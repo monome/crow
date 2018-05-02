@@ -18,11 +18,11 @@ OBJDUMP=arm-none-eabi-objdump
 BIN = $(TARGET).bin
 
 DEFS = -DUSE_STDPERIPH_DRIVER -DSTM32F4XX -DARM_MATH_CM4 -DHSE_VALUE=8000000
-STARTUP = $(CUBE)/CMSIS/Device/ST/STM32F7xx/Source/Templates/gcc/startup_stm32f401xe.s
+STARTUP = $(CUBE)/CMSIS/Device/ST/STM32F4xx/Source/Templates/gcc/startup_stm32f401xe.s
 
 # MCFLAGS = -march=armv4e-m -mthumb 
 # MCFLAGS = -mthumb -march=armv4e-m -mfloat-abi=hard -mfpu=fpv4-sp-d16
-MCFLAGS = -mfloat-abi=hard -mfpu=fpv4-sp-d16
+MCFLAGS = -mthumb -march=armv7e-m -mfloat-abi=hard -mfpu=fpv4-sp-d16
 
 STM32_INCLUDES = \
 	-I$(WRLIB)/ \
@@ -71,7 +71,6 @@ SRC = main.c \
 	$(WRLIB)/str_buffer.c \
 	$(WRLIB)/wrConvert.c \
 	$(WRLIB)/wrMath.c \
-	$(WRLIB)/wrMeters.c \
 
 OBJDIR = .
 OBJS = $(SRC:%.c=$(OBJDIR)/%.o)
@@ -102,8 +101,8 @@ $(BIN): $(EXECUTABLE)
 	@$(OBJDUMP) -x --syms $< > $(addsuffix .dmp, $(basename $<))
 	@echo "symbol table: $@.dmp"
 	@echo "Release: "$(R)
-	- stat -x main.bin | grep 'Size'
-	@echo "        ^ must be less than 1MB (1,000,000)"
+	- stat main.bin | grep 'Size'
+	@echo "        ^ must be less than 320kB (320,000)"
 
 flash: $(BIN)
 	st-flash write $(BIN) 0x08000000
