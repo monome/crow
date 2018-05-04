@@ -37,12 +37,12 @@ STM32_INCLUDES = \
 OPTIMIZE       = -O2
 
 CFLAGS += -std=c99
-CFLAGS += -DLUA_32BITS -DLUA_COMPAT_5_2
 CFLAGS += -Wall
 CFLAGS += $(MCFLAGS)
 CFLAGS += $(OPTIMIZE)
 CFLAGS += $(DEFS) -I. -I./ $(STM32_INCLUDES)
 CFLAGS += -fsingle-precision-constant -Wdouble-promotion
+#CFLAGS += -DLUA_32BITS -DLUA_COMPAT_5_2
 
 R ?= 0
 ifeq ($(R), 1)
@@ -67,6 +67,7 @@ SRC = main.c \
 	$(HALS)/stm32f4xx_hal_i2c.c \
 	$(HALS)/stm32f4xx_hal_dma.c \
 	$(HALS)/stm32f4xx_hal_dma2d.c \
+	$(HALS)/stm32f4xx_hal_spi.c \
 	$(HALS)/stm32f4xx_hal_tim.c \
 	$(HALS)/stm32f4xx_hal_tim_ex.c \
 	$(HALS)/stm32f4xx_hal_usart.c \
@@ -82,7 +83,7 @@ LUALIB_OBJS=	lauxlib.o lbaselib.o lbitlib.o lcorolib.o ldblib.o liolib.o \
 	lmathlib.o loslib.o lstrlib.o ltablib.o lutf8lib.o loadlib.o linit.o
 
 OBJDIR = .
-OBJS = $(SRC:%.c=$(OBJDIR)/%.o) $(addprefix $(LUAS)/,$(LUACORE_OBJS) $(LUALIB_OBJS) )
+OBJS = $(SRC:%.c=$(OBJDIR)/%.o) #$(addprefix $(LUAS)/,$(LUACORE_OBJS) $(LUALIB_OBJS) )
 OBJS += Startup.o
 
 # C dependencies echoed into Makefile

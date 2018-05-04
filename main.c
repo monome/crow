@@ -1,11 +1,18 @@
 #include "main.h"
 
-#include <lua.h>
-#include <lauxlib.h>
-#include <lualib.h>
+//#include <lua.h>
+//#include <lauxlib.h>
+//#include <lualib.h>
 
 #include <string.h>
 
+#include "lib/debug_usart.h"
+#include "lib/dac8565.h"
+
+static GPIO_InitTypeDef GPIO_InitStruct;
+
+static void Lua_Test(void);
+static void Dbg_Pin_Init(void);
 static void Sys_Clk_Config(void);
 static void Error_Handler(void);
 
@@ -14,6 +21,31 @@ int main(void)
     HAL_Init();
     Sys_Clk_Config();
 
+    Dbg_Pin_Init();
+    Debug_USART_Init();
+    Debug_USART_printf("\ntest\n\r");
+    DAC_Init();
+
+    Lua_Test();
+
+    Debug_USART_tryprint();
+
+    DAC_Set(0, 1000);
+    HAL_Delay(100);
+    DAC_Set(0, 3000);
+
+    int16_t dack = 0;
+    while (1){
+        HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+        DAC_Set(0, dack);
+        dack++;
+    }
+}
+
+// Lua deactivated to decrease flash time
+static void Lua_Test(void)
+{
+    /*
     lua_State* L;         // pointer to store lua state
     L = luaL_newstate();  // create a new lua state & save pointer
     luaL_openlibs(L);     // give our lua state access to lua libs
@@ -29,8 +61,11 @@ int main(void)
                      );
     int result = lua_pcall(L, 0, 0, 0);
     if( result ){ fprintf(stderr, "failure\n"); }
+    */
+}
 
-    static GPIO_InitTypeDef GPIO_InitStruct;
+static void Dbg_Pin_Init(void)
+{
     __HAL_RCC_GPIOC_CLK_ENABLE();
 
     GPIO_InitStruct.Pin   = GPIO_PIN_13;
@@ -38,11 +73,6 @@ int main(void)
     GPIO_InitStruct.Pull  = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FAST;
     HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-    while (1){
-        HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-        HAL_Delay(100);
-    }
 }
 
 static void Sys_Clk_Config(void)
