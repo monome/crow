@@ -4,6 +4,8 @@
 #include <lauxlib.h>
 #include <lualib.h>
 
+#include <string.h>
+
 static void Sys_Clk_Config(void);
 static void Error_Handler(void);
 
@@ -11,6 +13,22 @@ int main(void)
 {
     HAL_Init();
     Sys_Clk_Config();
+
+    lua_State* L;         // pointer to store lua state
+    L = luaL_newstate();  // create a new lua state & save pointer
+    luaL_openlibs(L);     // give our lua state access to lua libs
+
+    // lua hello-world as a string
+    char* slua =
+        "function f()\n                  \
+            print(\"Hello from lua\")\n  \
+        end";
+    luaL_loadbuffer(L, slua
+                     , strlen(slua)
+                     , "sscript"
+                     );
+    int result = lua_pcall(L, 0, 0, 0);
+    if( result ){ fprintf(stderr, "failure\n"); }
 
     static GPIO_InitTypeDef GPIO_InitStruct;
     __HAL_RCC_GPIOC_CLK_ENABLE();
