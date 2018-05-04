@@ -1,5 +1,9 @@
 #include "main.h"
 
+#include <lua.h>
+#include <lauxlib.h>
+#include <lualib.h>
+
 static void SystemClock_Config(void);
 static void Error_Handler(void);
 

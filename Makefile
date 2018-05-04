@@ -5,6 +5,7 @@ CUBE=../STM32_Cube_F4/Drivers
 HALS=$(CUBE)/STM32F4xx_HAL_Driver/Src
 WRLIB=../../wrLib
 WRDSP=../../wrDsp
+LUAS=../../lua/src
 PRJ_DIR=crow
 
 CC=arm-none-eabi-gcc-4.9.3
@@ -30,11 +31,13 @@ STM32_INCLUDES = \
 	-I$(CUBE)/CMSIS/Device/ST/STM32F4xx/Include/ \
 	-I$(CUBE)/CMSIS/Include/ \
 	-I$(CUBE)/STM32F4xx_HAL_Driver/Inc/ \
+	-I/usr/local/include/ \
 	-Iusbd/ \
 
 OPTIMIZE       = -O2
 
 CFLAGS += -std=c99
+CFLAGS += -DLUA_32BITS -DLUA_COMPAT_5_2
 CFLAGS += -Wall
 CFLAGS += $(MCFLAGS)
 CFLAGS += $(OPTIMIZE)
@@ -72,8 +75,14 @@ SRC = main.c \
 	$(WRLIB)/wrConvert.c \
 	$(WRLIB)/wrMath.c \
 
+LUACORE_OBJS=	lapi.o lcode.o lctype.o ldebug.o ldo.o ldump.o lfunc.o lgc.o llex.o \
+	lmem.o lobject.o lopcodes.o lparser.o lstate.o lstring.o ltable.o \
+	ltm.o lundump.o lvm.o lzio.o
+LUALIB_OBJS=	lauxlib.o lbaselib.o lbitlib.o lcorolib.o ldblib.o liolib.o \
+	lmathlib.o loslib.o lstrlib.o ltablib.o lutf8lib.o loadlib.o linit.o
+
 OBJDIR = .
-OBJS = $(SRC:%.c=$(OBJDIR)/%.o)
+OBJS = $(SRC:%.c=$(OBJDIR)/%.o) $(addprefix $(LUAS)/,$(LUACORE_OBJS) $(LUALIB_OBJS) )
 OBJS += Startup.o
 
 # C dependencies echoed into Makefile
