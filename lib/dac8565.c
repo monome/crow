@@ -22,19 +22,25 @@ void DAC_Init(void)
     dac_spi.Init.CRCPolynomial     = 7;
 
     if(HAL_SPI_Init(&dac_spi) != HAL_OK){ Debug_USART_printf("spi_init\n\r"); }
-    else{ Debug_USART_printf("!!\n\r"); }
 
     // NRST & NSS both high
     HAL_GPIO_WritePin( SPIx_NSS_GPIO_PORT, SPIx_NSS_PIN, 1 );
     HAL_GPIO_WritePin( SPIx_NRST_GPIO_PORT, SPIx_NRST_PIN, 1 );
 }
 
-void DAC_Set(uint8_t channel, uint16_t value)
+void DAC_Set( int8_t channel, uint16_t value )
 {
     static uint8_t aTxBuffer[3];
-
-    //aTxBuffer[0] = channel;
-    aTxBuffer[0] = 0b00110100;
+    if(channel >= 4){ return; } // invalid channel selected
+    else if( channel == -1 ){
+        aTxBuffer[0] = DAC8565_SET_ALL;
+    } else if( channel == -2 ){
+        aTxBuffer[0] = DAC8565_REFRESH_ALL;
+    } else {
+        aTxBuffer[0] = DAC8565_SET_ONE  // update & set output instantly
+                     | (channel<<1)     // alignment
+                     ;
+    }
     aTxBuffer[1] = (uint8_t)((value & 0xFF00) >>8);
     aTxBuffer[2] = (uint8_t)( value & 0xFF);
 

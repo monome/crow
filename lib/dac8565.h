@@ -40,9 +40,18 @@
 #define SPIx_DMA_TX_IRQHandler           DMA1_Stream4_IRQHandler
 #define SPIx_DMA_RX_IRQHandler           DMA1_Stream3_IRQHandler
 
+// dac8565 defines
+#define DAC8565_SET_ONE     0b00010000
+#define DAC8565_PREP_ONE    0x0
+#define DAC8565_SET_ALL     0b00110100
+#define DAC8565_REFRESH_ALL 0b00110000
+
+#define DAC_ALL_CHANNELS    ((int8_t)-1)
+#define DAC_ZERO_VOLTS      ((uint16_t)(((uint32_t)0xFFFF * 2)/3))
+
 void DAC_Init(void);
 
-void DAC_Set(uint8_t channel, uint16_t value);
+void DAC_Set( int8_t channel, uint16_t value );
 
 void SPIx_DMA_RX_IRQHandler(void);
 void SPIx_DMA_TX_IRQHandler(void);

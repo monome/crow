@@ -30,13 +30,10 @@ int main(void)
 
     Debug_USART_tryprint();
 
-    DAC_Set(0, 1000);
-    HAL_Delay(100);
-    DAC_Set(0, 3000);
+    DAC_Set( DAC_ALL_CHANNELS, DAC_ZERO_VOLTS );
 
-    int16_t dack = 0;
+    uint16_t dack = 0;
     while (1){
-        HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
         DAC_Set(0, dack);
         dack++;
     }
