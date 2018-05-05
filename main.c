@@ -33,7 +33,8 @@ int main(void)
     Debug_USART_tryprint();
 
     DAC_Set( DAC_ALL_CHANNELS, DAC_ZERO_VOLTS );
-    Debug_USART_putn(ADC_Get(0));
+    ADC_Get(0);
+    ADC_Get(0);
 
     uint16_t dack = 0;
     while (1){
