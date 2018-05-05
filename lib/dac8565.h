@@ -36,9 +36,7 @@
 #define SPId_IRQn                        SPI2_IRQn
 #define SPId_IRQHandler                  SPI2_IRQHandler
 #define SPId_DMA_TX_IRQn                 DMA1_Stream4_IRQn
-#define SPId_DMA_RX_IRQn                 DMA1_Stream3_IRQn
 #define SPId_DMA_TX_IRQHandler           DMA1_Stream4_IRQHandler
-#define SPId_DMA_RX_IRQHandler           DMA1_Stream3_IRQHandler
 
 // dac8565 defines
 #define DAC8565_SET_ONE     0b00010000
@@ -53,6 +51,5 @@ void DAC_Init(void);
 
 void DAC_Set( int8_t channel, uint16_t value );
 
-void SPId_DMA_RX_IRQHandler(void);
 void SPId_DMA_TX_IRQHandler(void);
 void SPId_IRQHandler(void);
