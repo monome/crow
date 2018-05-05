@@ -8,6 +8,7 @@
 
 #include "lib/debug_usart.h"
 #include "lib/dac8565.h"
+#include "lib/ads131.h"
 
 static GPIO_InitTypeDef GPIO_InitStruct;
 
@@ -25,12 +26,14 @@ int main(void)
     Debug_USART_Init();
     Debug_USART_printf("\ntest\n\r");
     DAC_Init();
+    ADC_Init();
 
     Lua_Test();
 
     Debug_USART_tryprint();
 
     DAC_Set( DAC_ALL_CHANNELS, DAC_ZERO_VOLTS );
+    Debug_USART_putn(ADC_Get(0));
 
     uint16_t dack = 0;
     while (1){

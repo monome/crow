@@ -2,7 +2,7 @@
 
 #include "debug_usart.h"
 
-static SPI_HandleTypeDef dac_spi;
+SPI_HandleTypeDef dac_spi;
 uint8_t aTxBuffer[64];
 
 void DAC_Init(void)
@@ -56,20 +56,21 @@ void DAC_Set( int8_t channel, uint16_t value )
     // just wait til it's done (for now)
     while (HAL_SPI_GetState(&dac_spi) != HAL_SPI_STATE_READY){;;}
 }
-void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
+
+void DAC_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
 {
     // signal end of transmission by pulling NSS high
     HAL_GPIO_WritePin( SPId_NSS_GPIO_PORT, SPId_NSS_PIN, 1 );
 }
 
-void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi)
+void DAC_SPI_ErrorCallback(SPI_HandleTypeDef *hspi)
 {
     Debug_USART_printf("spi_error\n\r");
     // pull NSS high to cancel any ongoing transmission
     HAL_GPIO_WritePin( SPId_NSS_GPIO_PORT, SPId_NSS_PIN, 1 );
 }
 
-void HAL_SPI_MspInit(SPI_HandleTypeDef *hspi)
+void DAC_SPI_MspInit(SPI_HandleTypeDef *hspi)
 {
     static DMA_HandleTypeDef hdma_tx;
 
@@ -134,7 +135,7 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef *hspi)
     HAL_NVIC_EnableIRQ(SPId_IRQn);
 }
 
-void HAL_SPI_MspDeInit(SPI_HandleTypeDef *hspi)
+void DAC_SPI_MspDeInit(SPI_HandleTypeDef *hspi)
 {
 
   static DMA_HandleTypeDef hdma_tx;

@@ -47,9 +47,17 @@
 #define DAC_ALL_CHANNELS    ((int8_t)-1)
 #define DAC_ZERO_VOLTS      ((uint16_t)(((uint32_t)0xFFFF * 2)/3))
 
+extern SPI_HandleTypeDef dac_spi;
+
 void DAC_Init(void);
 
 void DAC_Set( int8_t channel, uint16_t value );
 
 void SPId_DMA_TX_IRQHandler(void);
 void SPId_IRQHandler(void);
+
+void DAC_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi);
+void DAC_SPI_ErrorCallback(SPI_HandleTypeDef *hspi);
+
+void DAC_SPI_MspInit(SPI_HandleTypeDef *hspi);
+void DAC_SPI_MspDeInit(SPI_HandleTypeDef *hspi);
