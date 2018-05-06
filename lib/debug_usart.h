@@ -41,10 +41,11 @@ void HAL_USART_RxCpltCallback(USART_HandleTypeDef *husart);
 void USARTx_IRQHandler(void);
 
 // Communication Fns
-void Debug_USART_tryprint(void);
-void Debug_USART_printf(char* s);
-void Debug_USART_putn(uint32_t n);
-void Debug_USART_putn8(uint8_t n);
+void U_PrintNow(void);
+void U_Print(char* s);
+void U_PrintLn(char* s);
+void U_PrintU32(uint32_t n);
+void U_PrintU8(uint8_t n);
 
 // Next Gen Fn Calls
-void DB_print_var(char* name, uint32_t n, uint8_t ret_flag);
+void U_PrintVar(char* name, uint32_t n, uint8_t ret_flag);

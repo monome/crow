@@ -9,11 +9,11 @@ str_buffer_t str_buf;
 
 #ifdef RELEASE
 void Debug_USART_Init(void){ return; }
-void Debug_USART_tryprint( void ){ return; }
-void Debug_USART_printf(char* s){ return; }
-void Debug_USART_putn(uint32_t n){ return; }
-void Debug_USART_putn8(uint8_t n){ return; }
-void DB_print_var(char* name, uint32_t n, uint8_t ret_flag){ return; }
+void U_PrintNow(void){ return; }
+void U_Print(char* s){ return; }
+void U_PrintU32(uint32_t n){ return; }
+void U_PrintU8(uint8_t n){ return; }
+void U_PrintVar(char* name, uint32_t n, uint8_t ret_flag){ return; }
 #endif // RELEASE
 
 #ifdef DEBUG
@@ -111,7 +111,7 @@ void USARTx_DMA_TX_IRQHandler( void )
 
 void HAL_USART_TxCpltCallback( USART_HandleTypeDef *husart )
 {
-	Debug_USART_tryprint();
+    U_PrintNow();
 }
 
 void USARTx_IRQHandler( void )
@@ -121,7 +121,7 @@ void USARTx_IRQHandler( void )
 
 // Communication Functions
 
-void Debug_USART_tryprint( void )
+void U_PrintNow( void )
 {
 	if( HAL_USART_GetState( &handusart ) == HAL_USART_STATE_READY
 	 && !str_buffer_empty( &str_buf ) ){
@@ -138,12 +138,23 @@ __set_PRIMASK( old_primask );
     }
 }
 
-void Debug_USART_printf( char* s )
+void U_Print(char* s)
 {
 	str_buffer_enqueue( &str_buf, s );
-	Debug_USART_tryprint();
+    U_PrintNow();
 }
-void Debug_USART_putn( uint32_t n )
+void U_PrintLn(char* s)
+{
+	uint8_t len = strlen( (const char*)s );
+	char my_str[len+3]; // space for escape sequence
+	
+	strcpy( my_str, s );
+	strcpy( &my_str[len], "\n\r\0" );
+    
+    str_buffer_enqueue( &str_buf, my_str );
+    U_PrintNow();
+}
+void U_PrintU32(uint32_t n)
 {
 	static char str[13] = "0xFFFFFFFF\n\r\0";
 	for( int8_t i=7; i >= 0; i-- ){
@@ -156,9 +167,9 @@ void Debug_USART_putn( uint32_t n )
 			str[9-i] = 55 + (char)temp;
 		}
 	}
-	Debug_USART_printf( str );
+    U_Print( str );
 }
-void Debug_USART_putn8( uint8_t n )
+void U_PrintU8(uint8_t n)
 {
 	static char str[5] = "FF\n\r\0";
 	for( int8_t i=1; i >= 0; i-- ){
@@ -171,14 +182,14 @@ void Debug_USART_putn8( uint8_t n )
 			str[1-i] = 55 + (char)temp;
 		}
 	}
-	Debug_USART_printf( str );
+    U_Print( str );
 }
 
 // New school func calls
-void DB_print_var( char* name
-                 , uint32_t n
-				 , uint8_t ret_flag
-				 )
+void U_PrintVar( char*    name
+               , uint32_t n
+			   , uint8_t  ret_flag
+			   )
 {
 	char str[24];
 	uint8_t len = strlen( (const char*)name );
@@ -206,6 +217,6 @@ void DB_print_var( char* name
 	} else {
 		strcpy( &str[i+8], ", \0" ); // add space
 	}
-	Debug_USART_printf( str ); // call basic print function
+    U_Print( str );
 }
 #endif // DEBUG

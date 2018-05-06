@@ -24,13 +24,15 @@ int main(void)
 
     Dbg_Pin_Init();
     Debug_USART_Init();
-    Debug_USART_printf("\ntest\n\r");
+    //Debug_USART_printf("\ntest\n\r");
+    U_PrintLn("\ntest");
     DAC_Init();
     ADC_Init();
 
     Lua_Test();
 
-    Debug_USART_tryprint();
+    //Debug_USART_tryprint();
+    U_PrintNow();
 
     DAC_Set( DAC_ALL_CHANNELS, DAC_ZERO_VOLTS );
     ADC_Get(0);

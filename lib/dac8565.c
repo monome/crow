@@ -21,7 +21,7 @@ void DAC_Init(void)
     dac_spi.Init.CRCCalculation    = SPI_CRCCALCULATION_DISABLE;
     dac_spi.Init.CRCPolynomial     = 7;
 
-    if(HAL_SPI_Init(&dac_spi) != HAL_OK){ Debug_USART_printf("spi_init\n\r"); }
+    if(HAL_SPI_Init(&dac_spi) != HAL_OK){ U_PrintLn("spi_init"); }
 
     // NRST & NSS both high
     HAL_GPIO_WritePin( SPId_NSS_GPIO_PORT, SPId_NSS_PIN, 1 );
@@ -50,7 +50,7 @@ void DAC_Set( int8_t channel, uint16_t value )
                            , (uint8_t*)aTxBuffer
                            , 3
                            ) != HAL_OK ){
-        Debug_USART_printf("spi_tx_fail\n\r");
+        U_PrintLn("spi_tx_fail");
     }
 
     // just wait til it's done (for now)
@@ -65,7 +65,7 @@ void DAC_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
 
 void DAC_SPI_ErrorCallback(SPI_HandleTypeDef *hspi)
 {
-    Debug_USART_printf("spi_error\n\r");
+    U_PrintLn("spi_error");
     // pull NSS high to cancel any ongoing transmission
     HAL_GPIO_WritePin( SPId_NSS_GPIO_PORT, SPId_NSS_PIN, 1 );
 }

@@ -33,7 +33,7 @@ void ADC_Init(void)
     adc_spi.Init.TIMode            = SPI_TIMODE_DISABLE;
     adc_spi.Init.CRCCalculation    = SPI_CRCCALCULATION_DISABLE;
     adc_spi.Init.CRCPolynomial     = 7;
-    if(HAL_SPI_Init(&adc_spi) != HAL_OK){ Debug_USART_printf("spi_init\n\r"); }
+    if(HAL_SPI_Init(&adc_spi) != HAL_OK){ U_PrintLn("spi_init"); }
 
     //uint32_t prescaler = (uint32_t)((SystemCoreClock / 10000)-1);
     uint32_t period_value = 20; // 2MHz w/ prescaler=1 @84MHz master
@@ -42,7 +42,7 @@ void ADC_Init(void)
     adc_tim.Init.Prescaler = 1; //prescaler;
     adc_tim.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
     adc_tim.Init.CounterMode = TIM_COUNTERMODE_UP;
-    if(HAL_TIM_PWM_Init(&adc_tim) != HAL_OK){ Debug_USART_printf("tim_init\n\r"); }
+    if(HAL_TIM_PWM_Init(&adc_tim) != HAL_OK){ U_PrintLn("tim_init"); }
 
     tim_config.OCMode       = TIM_OCMODE_PWM1;
     tim_config.OCPolarity   = TIM_OCPOLARITY_HIGH;
@@ -52,12 +52,12 @@ void ADC_Init(void)
     tim_config.OCIdleState  = TIM_OCIDLESTATE_RESET;
     tim_config.Pulse        = period_value/2;
     if(HAL_TIM_PWM_ConfigChannel(&adc_tim, &tim_config, TIMa_CHANNEL) != HAL_OK){
-        Debug_USART_printf("tim_config\n\r");
+        U_PrintLn("tim_config");
     }
 
     // Start MCLK & set NSS high
     if(HAL_TIM_PWM_Start( &adc_tim, TIMa_CHANNEL ) != HAL_OK){
-        Debug_USART_printf("tim_st\n\r");
+        U_PrintLn("tim_st");
     }
     HAL_GPIO_WritePin( SPIa_NSS_GPIO_PORT, SPIa_NSS_PIN, 1 );
 
@@ -77,8 +77,8 @@ uint16_t ADC_Cmd(uint32_t command)
     uint32_t* cmd = (uint32_t*)aTxBuffer;
     *cmd = command;
     ADC_TxRx( aTxBuffer, aRxBuffer, ADC_CMD_SIZE );
-    Debug_USART_putn(_flip_byte_order(((uint32_t*)aRxBuffer)[0]));
-    Debug_USART_printf("\n\r");
+    U_PrintU32(_flip_byte_order(((uint32_t*)aRxBuffer)[0]));
+    U_PrintLn("");
 
     return (uint16_t)(_flip_byte_order(((uint32_t*)aRxBuffer)[0])>>16);
 }
@@ -97,13 +97,13 @@ void ADC_Get( uint8_t channel )
     aTxBuffer[2] = 0;
     aTxBuffer[3] = 0;
     ADC_TxRx( aTxBuffer, aRxBuffer, ADC_BUF_SIZE );
-    Debug_USART_putn(_flip_byte_order(((uint32_t*)aRxBuffer)[0]));
-    Debug_USART_putn(_flip_byte_order(((uint32_t*)aRxBuffer)[1]));
-    Debug_USART_putn(_flip_byte_order(((uint32_t*)aRxBuffer)[2]));
-    Debug_USART_putn(_flip_byte_order(((uint32_t*)aRxBuffer)[3]));
-    Debug_USART_putn(_flip_byte_order(((uint32_t*)aRxBuffer)[4]));
-    Debug_USART_putn(_flip_byte_order(((uint32_t*)aRxBuffer)[5]));
-    Debug_USART_printf("\n\r");
+    U_PrintU32(_flip_byte_order(((uint32_t*)aRxBuffer)[0]));
+    U_PrintU32(_flip_byte_order(((uint32_t*)aRxBuffer)[1]));
+    U_PrintU32(_flip_byte_order(((uint32_t*)aRxBuffer)[2]));
+    U_PrintU32(_flip_byte_order(((uint32_t*)aRxBuffer)[3]));
+    U_PrintU32(_flip_byte_order(((uint32_t*)aRxBuffer)[4]));
+    U_PrintU32(_flip_byte_order(((uint32_t*)aRxBuffer)[5]));
+    U_PrintLn("");
     //return (((int32_t*)aRxBuffer)[1]);
 }
 void ADC_TxRx( uint8_t* aTxBuffer, uint8_t* aRxBuffer, uint32_t size )
@@ -115,14 +115,14 @@ void ADC_TxRx( uint8_t* aTxBuffer, uint8_t* aRxBuffer, uint32_t size )
                                   , aRxBuffer
                                   , size
                                   ) != HAL_OK ){
-        Debug_USART_printf("spi_tx_fail\n\r");
+        U_PrintLn("spi_tx_fail");
     }
     // just wait til it's done (for now)
     while (HAL_SPI_GetState(&adc_spi) != HAL_SPI_STATE_READY){;;}
 }
 void ADC_SPI_ErrorCallback(SPI_HandleTypeDef *hspi)
 {
-    Debug_USART_printf("spi_error\n\r");
+    U_PrintLn("spi_error");
     // pull NSS high to cancel any ongoing transmission
     HAL_GPIO_WritePin( SPIa_NSS_GPIO_PORT, SPIa_NSS_PIN, 1 );
 }
