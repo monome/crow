@@ -90,6 +90,16 @@ OBJS += Startup.o
 # C dependencies echoed into Makefile
 DEP = $(OBJS:.o=.d)  # one dependency file for each source
 
+# OS dependent size printing
+UNAME := $(shell uname)
+
+ifeq ($(UNAME), Darwin)
+	GETSIZE = stat -x
+endif
+
+ifeq ($(UNAME), Linux)
+	GETSIZE = stat
+endif
 
 all: $(TARGET).hex $(BIN)
 
@@ -112,7 +122,7 @@ $(BIN): $(EXECUTABLE)
 	@$(OBJDUMP) -x --syms $< > $(addsuffix .dmp, $(basename $<))
 	@echo "symbol table: $@.dmp"
 	@echo "Release: "$(R)
-	- stat main.bin | grep 'Size'
+	- $(GETSIZE) main.bin | grep 'Size'
 	@echo "        ^ must be less than 320kB (320,000)"
 
 flash: $(BIN)
