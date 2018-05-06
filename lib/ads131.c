@@ -4,7 +4,7 @@
 #include "debug_usart.h"
 
 #define ADC_DATAWIDTH  4 // 32bit
-#define ADC_FRAMES     6 // status word, plus 2 channels
+#define ADC_FRAMES     3 // status word, plus 2 channels
 #define ADC_CMD_SIZE   4 // 32bit only
 #define ADC_BUF_SIZE   (ADC_DATAWIDTH * ADC_FRAMES)
 
