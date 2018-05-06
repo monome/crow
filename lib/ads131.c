@@ -30,7 +30,7 @@ void ADC_Init(void)
     adc_spi.Init.CLKPolarity       = SPI_POLARITY_HIGH; // or _LOW?
     adc_spi.Init.CLKPhase          = SPI_PHASE_1EDGE;
     adc_spi.Init.NSS               = SPI_NSS_SOFT; //_HARD_OUTPUT
-    adc_spi.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_32; // ~120kHz
+    adc_spi.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256;
     adc_spi.Init.FirstBit          = SPI_FIRSTBIT_MSB;
     adc_spi.Init.TIMode            = SPI_TIMODE_DISABLE;
     adc_spi.Init.CRCCalculation    = SPI_CRCCALCULATION_DISABLE;
