@@ -1,6 +1,7 @@
 #include "ads131.h"
 
 #include "spi_ll.h"
+#include <stm32f4xx_hal.h>
 #include "debug_usart.h"
 
 #define ADC_DATAWIDTH  4 // 32bit
@@ -14,9 +15,10 @@ TIM_OC_InitTypeDef tim_config;
 uint8_t aRxBuffer[ADC_BUF_SIZE];
 uint8_t aTxBuffer[ADC_BUF_SIZE];
 
-uint16_t ADC_Cmd(uint32_t command);
+uint16_t ADS_Cmd( uint16_t command );
+uint16_t ADS_Reg( uint8_t reg_mask, uint8_t val );
 void ADC_TxRx( uint8_t* aTxBuffer, uint8_t* aRxBuffer, uint32_t size );
-uint32_t _flip_byte_order(uint32_t word);
+uint32_t _flip_byte_order( uint32_t word );
 
 void ADC_Init(void)
 {
@@ -59,30 +61,60 @@ void ADC_Init(void)
     if(HAL_TIM_PWM_Start( &adc_tim, TIMa_CHANNEL ) != HAL_OK){
         U_PrintLn("tim_st");
     }
-    HAL_GPIO_WritePin( SPIa_NSS_GPIO_PORT, SPIa_NSS_PIN, 1 );
 
     for( uint8_t i=0; i<ADC_BUF_SIZE; i++ ){
         aRxBuffer[i] = 0;
         aTxBuffer[i] = 0;
     }
-    while(ADC_Cmd(ADS_NULL) != ADS_READY){
+    
+    // ADS131 Init Sequence:
+    ADS_Cmd(ADS_RESET);
+    while(ADS_Cmd(ADS_NULL) != ADS_READY){
         // try a hardware reset here! we have NRST under uc control
+        HAL_Delay(5);
     }
-    //ADC_Cmd(ADS_RESET);
-    ADC_Cmd(ADS_UNLOCK); // reset
+    ADS_Cmd(ADS_UNLOCK);
+    // CONFIGURE REGS HERE
+    // ADS_Reg(ADS_WRITE_REG | ADS_CLK1, 0x08); // MCLK/8
+        // CLKIN divider. see p63 of ads131 datasheet
+    //  clk2 sets ADC read rate?
+    // ADS_Reg(ADS_WRITE_REG | ADS_CLK2, 0x08); // MCLK/8
+    // fMOD = fICLK / 8, and OSR=400 (default 0x86)
+        // see p64 & Table30(p65) for OSR settings
+        // Table30 shows effective sampling rates w/ diff MCLKs
+        // start at 1kHz, then work up depending on quality/cpu
+    // fMOD = fICLK / 2  fICLK = fCLKIN / 2048 ** now is 500hz ** 0x21
+    //  ADC_ENA, 0x0F to enable all channels
+    ADS_Reg(ADS_WRITE_REG | ADS_ADC_ENA, 0x0F); // MCLK/8
+    ADS_Cmd(ADS_WAKEUP);
 }
 
-uint16_t ADC_Cmd(uint32_t command)
+uint16_t ADS_Reg( uint8_t reg_mask, uint8_t val )
 {
-    uint32_t* cmd = (uint32_t*)aTxBuffer;
-    *cmd = command;
+    uint16_t retval = 0;
+
+    if( (reg_mask & ADS_READ_REG) == ADS_READ_REG ){ // read
+        ADS_Cmd( ((uint16_t)reg_mask) << 8);         // send query
+        retval = ADS_Cmd( ADS_NULL );                // get response
+    } else { // write
+        ADS_Cmd( ((uint16_t)reg_mask) << 8 | (uint16_t)val );
+    }
+    return retval;
+}
+
+uint16_t ADS_Cmd( uint16_t command )
+{
+    uint16_t* cmd = (uint16_t*)aTxBuffer;
+    *cmd++ = command;
+    *cmd = 0; // fill lower 16b w/ zeroes
     ADC_TxRx( aTxBuffer, aRxBuffer, ADC_CMD_SIZE );
-    U_PrintU32(_flip_byte_order(((uint32_t*)aRxBuffer)[0]));
+    
+    U_PrintU32(_flip_byte_order(((uint16_t*)aRxBuffer)[1]));
     U_PrintLn("");
 
     return (uint16_t)(_flip_byte_order(((uint32_t*)aRxBuffer)[0])>>16);
 }
-uint32_t _flip_byte_order(uint32_t word)
+uint32_t _flip_byte_order( uint32_t word )
 {
     uint32_t retval = (word >> 24);
     retval |= (word >> 8) & 0x0000FF00;
@@ -169,6 +201,8 @@ void ADC_SPI_MspInit(SPI_HandleTypeDef *hspi)
     GPIO_InitStruct.Pull      = GPIO_PULLUP;
     GPIO_InitStruct.Mode      = GPIO_MODE_OUTPUT_PP;
     HAL_GPIO_Init(SPIa_NSS_GPIO_PORT, &GPIO_InitStruct);
+    // pull NSS high immediately (resting state)
+    HAL_GPIO_WritePin( SPIa_NSS_GPIO_PORT, SPIa_NSS_PIN, 1 );
 
     // DMA Streams
     hdma_tx.Instance                 = SPIa_TX_DMA_STREAM;

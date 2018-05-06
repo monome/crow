@@ -61,15 +61,23 @@
 #define ADS_READY   0xFF02
 
 #define ADS_NULL    0x0
-#define ADS_RESET   0x00110000
-#define ADS_STANDBY 0x00220000
-#define ADS_WAKEUP  0x00330000
-#define ADS_LOCK    0x05550000
-#define ADS_UNLOCK  0x06550000
-//#define ADS_UNLOCK  0x55060000
+#define ADS_RESET   0x0011
+#define ADS_STANDBY 0x0022
+#define ADS_WAKEUP  0x0033
+#define ADS_LOCK    0x0555
+#define ADS_UNLOCK  0x0655
+//#define ADS_UNLOCK  0x5506
 
-#define ADS_READ_REG 0x00100000
-#define ADS_WRITE_REG 0x01000000
+#define ADS_READ_REG  0x20
+#define ADS_WRITE_REG 0x40
+
+// ads131 user config registers
+#define ADS_A_SYS_CFG 0x0B
+#define ADS_D_SYS_CFG 0x0C
+#define ADS_CLK1      0x0D
+#define ADS_CLK2      0x0E
+#define ADS_ADC_ENA   0x0F
+
 
 
 void ADC_Init(void);
