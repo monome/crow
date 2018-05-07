@@ -45,6 +45,7 @@ void U_PrintNow(void);
 void U_Print(char* s);
 void U_PrintLn(char* s);
 void U_PrintU32(uint32_t n);
+void U_PrintU16(uint16_t n);
 void U_PrintU8(uint8_t n);
 
 // Next Gen Fn Calls

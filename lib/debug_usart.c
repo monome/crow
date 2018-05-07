@@ -12,6 +12,7 @@ void Debug_USART_Init(void){ return; }
 void U_PrintNow(void){ return; }
 void U_Print(char* s){ return; }
 void U_PrintU32(uint32_t n){ return; }
+void U_PrintU16(uint32_t n){ return; }
 void U_PrintU8(uint8_t n){ return; }
 void U_PrintVar(char* name, uint32_t n, uint8_t ret_flag){ return; }
 #endif // RELEASE
@@ -165,6 +166,21 @@ void U_PrintU32(uint32_t n)
 			str[9-i] = 48 + (char)temp;
 		} else { // alpha
 			str[9-i] = 55 + (char)temp;
+		}
+	}
+    U_Print( str );
+}
+void U_PrintU16(uint16_t n)
+{
+	static char str[9] = "0xFFFF\n\r\0";
+	for( int8_t i=3; i >= 0; i-- ){
+	    uint32_t temp;
+		temp = n >> (i<<2);
+		temp &= 0x000F; // mask lowest nibble
+		if( temp < 10 ) { // numeric
+			str[5-i] = 48 + (char)temp;
+		} else { // alpha
+			str[5-i] = 55 + (char)temp;
 		}
 	}
     U_Print( str );

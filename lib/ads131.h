@@ -43,6 +43,10 @@
 #define SPIa_MOSI_GPIO_PORT              GPIOA
 #define SPIa_MOSI_AF                     GPIO_AF5_SPI1
 
+#define SPIa_NRST_GPIO_CLK_ENABLE()      __HAL_RCC_GPIOB_CLK_ENABLE()
+#define SPIa_NRST_PIN                    GPIO_PIN_1
+#define SPIa_NRST_GPIO_PORT              GPIOB
+
 // Definition for SPIa's DMA
 #define SPIa_TX_DMA_CHANNEL              DMA_CHANNEL_3
 #define SPIa_TX_DMA_STREAM               DMA2_Stream3

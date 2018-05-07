@@ -15,6 +15,8 @@ TIM_OC_InitTypeDef tim_config;
 uint8_t aRxBuffer[ADC_BUF_SIZE];
 uint8_t aTxBuffer[ADC_BUF_SIZE];
 
+void ADS_Init_Sequence(void);
+void ADS_Reset_Device(void);
 uint16_t ADS_Cmd( uint16_t command );
 uint16_t ADS_Reg( uint8_t reg_mask, uint8_t val );
 void ADC_TxRx( uint8_t* aTxBuffer, uint8_t* aRxBuffer, uint32_t size );
@@ -38,7 +40,7 @@ void ADC_Init(void)
     if(HAL_SPI_Init(&adc_spi) != HAL_OK){ U_PrintLn("spi_init"); }
 
     //uint32_t prescaler = (uint32_t)((SystemCoreClock / 10000)-1);
-    uint32_t period_value = 20; // 2MHz w/ prescaler=1 @84MHz master
+    uint32_t period_value = 0x09; // 2MHz w/ prescaler=1 @84MHz master
     adc_tim.Instance = TIMa;
     adc_tim.Init.Period = period_value;
     adc_tim.Init.Prescaler = 1; //prescaler;
@@ -57,22 +59,29 @@ void ADC_Init(void)
         U_PrintLn("tim_config");
     }
 
-    // Start MCLK & set NSS high
+    // Reset ADC, Start MCLK, wait, boot ADC
+    HAL_GPIO_WritePin( SPIa_NRST_GPIO_PORT, SPIa_NRST_PIN, 0 );
     if(HAL_TIM_PWM_Start( &adc_tim, TIMa_CHANNEL ) != HAL_OK){
         U_PrintLn("tim_st");
     }
+    HAL_Delay(5);
+    HAL_GPIO_WritePin( SPIa_NRST_GPIO_PORT, SPIa_NRST_PIN, 1 );
 
     for( uint8_t i=0; i<ADC_BUF_SIZE; i++ ){
         aRxBuffer[i] = 0;
         aTxBuffer[i] = 0;
     }
-    
-    // ADS131 Init Sequence:
-    ADS_Cmd(ADS_RESET);
+    ADS_Init_Sequence();
+}
+
+void ADS_Init_Sequence(void)
+{
+    ADS_Reset_Device();
+
     while(ADS_Cmd(ADS_NULL) != ADS_READY){
-        // try a hardware reset here! we have NRST under uc control
-        HAL_Delay(5);
+        ADS_Reset_Device();
     }
+    ADS_Cmd(ADS_RESET);
     ADS_Cmd(ADS_UNLOCK);
     // CONFIGURE REGS HERE
     // ADS_Reg(ADS_WRITE_REG | ADS_CLK1, 0x08); // MCLK/8
@@ -87,8 +96,16 @@ void ADC_Init(void)
     //  ADC_ENA, 0x0F to enable all channels
     ADS_Reg(ADS_WRITE_REG | ADS_ADC_ENA, 0x0F); // MCLK/8
     ADS_Cmd(ADS_WAKEUP);
-}
 
+}
+void ADS_Reset_Device(void)
+{
+    HAL_Delay(5);
+    HAL_GPIO_WritePin( SPIa_NRST_GPIO_PORT, SPIa_NRST_PIN, 0 );
+    HAL_Delay(5);
+    HAL_GPIO_WritePin( SPIa_NRST_GPIO_PORT, SPIa_NRST_PIN, 1 );
+    HAL_Delay(5);
+}
 uint16_t ADS_Reg( uint8_t reg_mask, uint8_t val )
 {
     uint16_t retval = 0;
@@ -104,15 +121,17 @@ uint16_t ADS_Reg( uint8_t reg_mask, uint8_t val )
 
 uint16_t ADS_Cmd( uint16_t command )
 {
-    uint16_t* cmd = (uint16_t*)aTxBuffer;
-    *cmd++ = command;
-    *cmd = 0; // fill lower 16b w/ zeroes
+    aTxBuffer[0] = (command & 0xFF00) >> 8;
+    aTxBuffer[1] =  command & 0x00FF;
+    aTxBuffer[2] = 0;
+    aTxBuffer[3] = 0;
+    uint32_t* rx = (uint32_t*)aRxBuffer;
+    *rx = 0; // zero out receive buffer
     ADC_TxRx( aTxBuffer, aRxBuffer, ADC_CMD_SIZE );
     
-    U_PrintU32(_flip_byte_order(((uint16_t*)aRxBuffer)[1]));
-    U_PrintLn("");
+    U_PrintU16((uint16_t)((aRxBuffer[0]<<8)|(aRxBuffer[1])));
 
-    return (uint16_t)(_flip_byte_order(((uint32_t*)aRxBuffer)[0])>>16);
+    return ((uint16_t)((aRxBuffer[0]<<8)|(aRxBuffer[1])));
 }
 uint32_t _flip_byte_order( uint32_t word )
 {
@@ -124,17 +143,12 @@ uint32_t _flip_byte_order( uint32_t word )
 }
 void ADC_Get( uint8_t channel )
 {
-    aTxBuffer[0] = 0x0;
-    aTxBuffer[1] = 0x0;
-    aTxBuffer[2] = 0;
-    aTxBuffer[3] = 0;
+    uint32_t* tx = (uint32_t*)aTxBuffer;
+    *tx = 0; // NULL command
     ADC_TxRx( aTxBuffer, aRxBuffer, ADC_BUF_SIZE );
-    U_PrintU32(_flip_byte_order(((uint32_t*)aRxBuffer)[0]));
+    U_PrintU16((uint16_t)((aRxBuffer[0]<<8)|(aRxBuffer[1])));
     U_PrintU32(_flip_byte_order(((uint32_t*)aRxBuffer)[1]));
     U_PrintU32(_flip_byte_order(((uint32_t*)aRxBuffer)[2]));
-    U_PrintU32(_flip_byte_order(((uint32_t*)aRxBuffer)[3]));
-    U_PrintU32(_flip_byte_order(((uint32_t*)aRxBuffer)[4]));
-    U_PrintU32(_flip_byte_order(((uint32_t*)aRxBuffer)[5]));
     U_PrintLn("");
     //return (((int32_t*)aRxBuffer)[1]);
 }
@@ -177,6 +191,8 @@ void ADC_SPI_MspInit(SPI_HandleTypeDef *hspi)
     SPIa_MISO_GPIO_CLK_ENABLE();
     SPIa_MOSI_GPIO_CLK_ENABLE();
 
+    SPIa_NRST_GPIO_CLK_ENABLE();
+
     SPIa_CLK_ENABLE();
 
     SPIa_DMAx_CLK_ENABLE();
@@ -201,7 +217,14 @@ void ADC_SPI_MspInit(SPI_HandleTypeDef *hspi)
     GPIO_InitStruct.Pull      = GPIO_PULLUP;
     GPIO_InitStruct.Mode      = GPIO_MODE_OUTPUT_PP;
     HAL_GPIO_Init(SPIa_NSS_GPIO_PORT, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Pin       = SPIa_NRST_PIN;
+    GPIO_InitStruct.Pull      = GPIO_PULLUP;
+    GPIO_InitStruct.Mode      = GPIO_MODE_OUTPUT_PP;
+    HAL_GPIO_Init(SPIa_NRST_GPIO_PORT, &GPIO_InitStruct);
+
     // pull NSS high immediately (resting state)
+    HAL_GPIO_WritePin( SPIa_NRST_GPIO_PORT, SPIa_NRST_PIN, 1 );
     HAL_GPIO_WritePin( SPIa_NSS_GPIO_PORT, SPIa_NSS_PIN, 1 );
 
     // DMA Streams
