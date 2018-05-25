@@ -11,13 +11,14 @@ str_buffer_t str_buf;
 void Debug_USART_Init(void){ return; }
 void U_PrintNow(void){ return; }
 void U_Print(char* s){ return; }
+void U_PrintLn(char* s){ return; }
 void U_PrintU32(uint32_t n){ return; }
-void U_PrintU16(uint32_t n){ return; }
+void U_PrintU16(uint16_t n){ return; }
 void U_PrintU8(uint8_t n){ return; }
 void U_PrintVar(char* name, uint32_t n, uint8_t ret_flag){ return; }
 #endif // RELEASE
 
-#ifdef DEBUG
+#ifndef RELEASE
 void Debug_USART_Init( void )
 {
 	handusart.Instance = DBG_USARTx;

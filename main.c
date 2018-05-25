@@ -6,9 +6,9 @@
 
 #include <string.h>
 
-#include "lib/debug_usart.h"
-#include "lib/dac8565.h"
-#include "lib/ads131.h"
+#include "ll/debug_usart.h"
+#include "ll/dac8565.h"
+#include "ll/ads131.h"
 
 static GPIO_InitTypeDef GPIO_InitStruct;
 
@@ -25,8 +25,8 @@ int main(void)
     Dbg_Pin_Init();
     Debug_USART_Init();
     //Debug_USART_printf("\ntest\n\r");
-    U_PrintLn("\ntest");
-    DAC_Init();
+    U_PrintLn("test");
+/*    DAC_Init();
     ADC_Init();
 
     Lua_Test();
@@ -38,10 +38,10 @@ int main(void)
     ADC_Get(0);
     ADC_Get(0);
 
-    uint16_t dack = 0;
+    uint16_t dack = 0;*/
     while (1){
-        DAC_Set(0, dack);
-        dack++;
+        //DAC_Set(0, dack);
+        //dack++;
     }
 }
 

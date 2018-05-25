@@ -1,8 +1,8 @@
 TARGET=main
 EXECUTABLE=main.elf
 
-CUBE=../STM32_Cube_F4/Drivers
-HALS=$(CUBE)/STM32F4xx_HAL_Driver/Src
+CUBE=../STM32_Cube_F7/Drivers
+HALS=$(CUBE)/STM32F7xx_HAL_Driver/Src
 WRLIB=../../wrLib
 WRDSP=../../wrDsp
 LUAS=../../lua/src
@@ -18,8 +18,8 @@ OBJDUMP=arm-none-eabi-objdump
 # BIN=$(CP) -O ihex 
 BIN = $(TARGET).bin
 
-DEFS = -DUSE_STDPERIPH_DRIVER -DSTM32F4XX -DARM_MATH_CM4 -DHSE_VALUE=8000000
-STARTUP = $(CUBE)/CMSIS/Device/ST/STM32F4xx/Source/Templates/gcc/startup_stm32f401xe.s
+DEFS = -DUSE_STDPERIPH_DRIVER -DSTM32F7XX -DARM_MATH_CM7 -DHSE_VALUE=8000000
+STARTUP = $(CUBE)/CMSIS/Device/ST/STM32F7xx/Source/Templates/gcc/startup_stm32f722xx.s
 
 # MCFLAGS = -march=armv4e-m -mthumb 
 # MCFLAGS = -mthumb -march=armv4e-m -mfloat-abi=hard -mfpu=fpv4-sp-d16
@@ -28,13 +28,13 @@ MCFLAGS = -mthumb -march=armv7e-m -mfloat-abi=hard -mfpu=fpv4-sp-d16
 STM32_INCLUDES = \
 	-I$(WRLIB)/ \
 	-I$(WRDSP)/ \
-	-I$(CUBE)/CMSIS/Device/ST/STM32F4xx/Include/ \
+	-I$(CUBE)/CMSIS/Device/ST/STM32F7xx/Include/ \
 	-I$(CUBE)/CMSIS/Include/ \
-	-I$(CUBE)/STM32F4xx_HAL_Driver/Inc/ \
+	-I$(CUBE)/STM32F7xx_HAL_Driver/Inc/ \
 	-I/usr/local/include/ \
 	-Iusbd/ \
 
-OPTIMIZE       = -O2
+OPTIMIZE       = -O0
 
 CFLAGS += -std=c99
 CFLAGS += -Wall
@@ -47,35 +47,33 @@ CFLAGS += -fsingle-precision-constant -Wdouble-promotion
 R ?= 0
 ifeq ($(R), 1)
     CFLAGS += -DRELEASE
-else
-    CFLAGS += -DDEBUG
 endif
 
 LDFLAGS = -Wl,-T,stm32_flash.ld
 LIBS = -lm -lc -lnosys
 
 SRC = main.c \
-	stm32f4xx_it.c \
-	system_stm32f4xx.c \
-	$(HALS)/stm32f4xx_hal.c \
-	$(HALS)/stm32f4xx_hal_cortex.c \
-	$(HALS)/stm32f4xx_hal_rcc.c \
-	$(HALS)/stm32f4xx_hal_rcc_ex.c \
-	$(HALS)/stm32f4xx_hal_flash.c \
-	$(HALS)/stm32f4xx_hal_flash_ex.c \
-	$(HALS)/stm32f4xx_hal_gpio.c \
-	$(HALS)/stm32f4xx_hal_i2c.c \
-	$(HALS)/stm32f4xx_hal_dma.c \
-	$(HALS)/stm32f4xx_hal_dma2d.c \
-	$(HALS)/stm32f4xx_hal_spi.c \
-	$(HALS)/stm32f4xx_hal_tim.c \
-	$(HALS)/stm32f4xx_hal_tim_ex.c \
-	$(HALS)/stm32f4xx_hal_usart.c \
+	stm32f7xx_it.c \
+	system_stm32f7xx.c \
+	$(HALS)/stm32f7xx_hal.c \
+	$(HALS)/stm32f7xx_hal_cortex.c \
+	$(HALS)/stm32f7xx_hal_rcc.c \
+	$(HALS)/stm32f7xx_hal_rcc_ex.c \
+	$(HALS)/stm32f7xx_hal_flash.c \
+	$(HALS)/stm32f7xx_hal_flash_ex.c \
+	$(HALS)/stm32f7xx_hal_gpio.c \
+	$(HALS)/stm32f7xx_hal_i2c.c \
+	$(HALS)/stm32f7xx_hal_dma.c \
+	$(HALS)/stm32f7xx_hal_dma2d.c \
+	$(HALS)/stm32f7xx_hal_spi.c \
+	$(HALS)/stm32f7xx_hal_tim.c \
+	$(HALS)/stm32f7xx_hal_tim_ex.c \
+	$(HALS)/stm32f7xx_hal_usart.c \
 	$(wildcard lib/*.c) \
+	$(wildcard ll/*.c) \
 	$(WRLIB)/str_buffer.c \
 	$(WRLIB)/wrConvert.c \
 	$(WRLIB)/wrMath.c \
-	#$(HALS)/stm32f4xx_hal_tim_ex.c \
 
 LUACORE_OBJS=	lapi.o lcode.o lctype.o ldebug.o ldo.o ldump.o lfunc.o lgc.o llex.o \
 	lmem.o lobject.o lopcodes.o lparser.o lstate.o lstring.o ltable.o \
@@ -93,13 +91,12 @@ DEP = $(OBJS:.o=.d)  # one dependency file for each source
 # OS dependent size printing
 UNAME := $(shell uname)
 
+GETSIZE = stat
+
 ifeq ($(UNAME), Darwin)
 	GETSIZE = stat -x
 endif
 
-ifeq ($(UNAME), Linux)
-	GETSIZE = stat
-endif
 
 all: $(TARGET).hex $(BIN)
 
@@ -122,8 +119,8 @@ $(BIN): $(EXECUTABLE)
 	@$(OBJDUMP) -x --syms $< > $(addsuffix .dmp, $(basename $<))
 	@echo "symbol table: $@.dmp"
 	@echo "Release: "$(R)
-	- $(GETSIZE) main.bin | grep 'Size'
-	@echo "        ^ must be less than 320kB (320,000)"
+	@$(GETSIZE) main.bin | grep 'Size'
+	@echo "        ^ must be less than 512kB (512,000)"
 
 flash: $(BIN)
 	st-flash write $(BIN) 0x08000000

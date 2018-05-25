@@ -1,8 +1,8 @@
 #pragma once
 
-#include <stm32f4xx.h>
+#include <stm32f7xx.h>
 
-#include "stm32f4xx_hal_conf.h"
+#include "stm32f7xx_hal_conf.h"
 
 // Definition for SPId clock resources
 #define SPId                             SPI2

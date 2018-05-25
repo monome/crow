@@ -1,8 +1,8 @@
 #pragma once
 
-#include <stm32f4xx.h>
+#include <stm32f7xx.h>
 
-#include "stm32f4xx_hal_conf.h"
+#include "stm32f7xx_hal_conf.h"
 
 // Defs for MCLK pin, using hardware timer
 #define TIMa                             TIM3
@@ -82,7 +82,7 @@
 #define ADS_CLK2      0x0E
 #define ADS_ADC_ENA   0x0F
 
-
+#define ADS_DATAWORDSIZE 0x4 // 32bit, pin M1 pulled high to IOVDD
 
 void ADC_Init(void);
 
@@ -95,6 +95,7 @@ void SPIa_IRQHandler(void);
 
 void ADC_SPI_ErrorCallback(SPI_HandleTypeDef *hspi);
 void ADC_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi);
+void ADC_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi);
 
 void ADC_SPI_MspInit(SPI_HandleTypeDef *hspi);
 void ADC_SPI_MspDeInit(SPI_HandleTypeDef *hspi);
