@@ -1,6 +1,7 @@
 #include "dac8565.h"
 
 #include "debug_usart.h"
+#include "debug_pin.h"
 
 SPI_HandleTypeDef dac_spi;
 uint8_t aTxBuffer[64];

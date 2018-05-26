@@ -9,11 +9,9 @@
 #include "lib/io.h"
 
 #include "ll/debug_usart.h"
-
-static GPIO_InitTypeDef GPIO_InitStruct;
+#include "ll/debug_pin.h"
 
 static void Lua_Test(void);
-static void Dbg_Pin_Init(void);
 static void Sys_Clk_Config(void);
 static void Error_Handler(void);
 
@@ -22,7 +20,7 @@ int main(void)
     HAL_Init();
     Sys_Clk_Config();
 
-    Dbg_Pin_Init();
+    Debug_Pin_Init();
     Debug_USART_Init();
     U_PrintLn("crow");
 
@@ -39,11 +37,11 @@ int main(void)
         inc = flip ? 0.1 : 1.0;
 
         IO_Set(0,inc);
+        IO_Set(1,inc);
         flip ^= 1;
         //IO_Set(1,inc1);
         //inc += 2.5; if(inc > 5.0){ inc = 0.0; }
         //inc1 += 2.5; if(inc1 > 10.0){ inc1 = 5.0; }
-
         IO_Process();
     }
 }
@@ -69,18 +67,6 @@ static void Lua_Test(void)
     if( result ){ fprintf(stderr, "failure\n"); }
     */
 }
-
-static void Dbg_Pin_Init(void)
-{
-    __HAL_RCC_GPIOC_CLK_ENABLE();
-
-    GPIO_InitStruct.Pin   = GPIO_PIN_13;
-    GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;
-    GPIO_InitStruct.Pull  = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FAST;
-    HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-}
-
 static void Sys_Clk_Config(void)
 {
     static RCC_ClkInitTypeDef RCC_ClkInitStruct;
