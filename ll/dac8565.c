@@ -42,8 +42,10 @@ void DAC_SetU16( int8_t channel, uint16_t value )
                      | (channel<<1)     // alignment
                      ;
     }
-    aTxBuffer[1] = (uint8_t)((value & 0xFF00) >>8);
-    aTxBuffer[2] = (uint8_t)( value & 0xFF);
+    //aTxBuffer[1] = (uint8_t)((value & 0xFF00) >>8);
+    //aTxBuffer[2] = (uint8_t)( value & 0xFF);
+    uint16_t* tx_dac = (uint16_t*)(&(aTxBuffer[1]));
+    *tx_dac = value;
 
     // pull !SYNC low
     HAL_GPIO_WritePin( SPId_NSS_GPIO_PORT, SPId_NSS_PIN, 0 );
