@@ -33,16 +33,15 @@ int main(void)
 
     U_PrintNow();
 
-    DAC_Set( DAC_ALL_CHANNELS, DAC_ZERO_VOLTS );
-    ADC_Get(0);
-    //ADC_Get(0);
+    DAC_SetVolts( DAC_ALL_CHANNELS, 0.0 );
+    ADC_GetU16(0);
     U_PrintNow();
 
-    uint16_t dack = 0;
+    float dack = 0.0;
     while (1){
-        U_PrintU16(ADC_Get(0));
-        DAC_Set(0, dack);
-        dack++;
+        U_PrintU16(ADC_GetU16(0));
+        DAC_SetU16(0, dack);
+        if( (dack += 0.01) >= 10.0 ){ dack = -5.0; }
     }
 }
 

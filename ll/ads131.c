@@ -26,7 +26,6 @@ uint16_t ADS_Cmd( uint16_t command );
 uint16_t ADS_Reg( uint8_t reg_mask, uint8_t val );
 void ADC_TxRx( uint16_t* aTxBuffer, uint16_t* aRxBuffer, uint32_t size );
 void ADC_Rx( uint16_t* aRxBuffer, uint32_t size );
-uint32_t _flip_byte_order( uint32_t word );
 
 void ADC_Init(void)
 {
@@ -66,14 +65,9 @@ void ADC_Init(void)
     if(HAL_TIM_PWM_ConfigChannel(&adc_tim, &tim_config, TIMa_CHANNEL) != HAL_OK){
         U_PrintLn("tim_config");
     }
-
-    // Reset ADC, Start MCLK, wait, boot ADC
-    //HAL_GPIO_WritePin( SPIa_NRST_GPIO_PORT, SPIa_NRST_PIN, 0 );
     if(HAL_TIM_PWM_Start( &adc_tim, TIMa_CHANNEL ) != HAL_OK){
         U_PrintLn("tim_st");
     }
-    //HAL_Delay(1); // 800ns minimum (no problem!)
-    //HAL_GPIO_WritePin( SPIa_NRST_GPIO_PORT, SPIa_NRST_PIN, 1 );
 
     for( uint8_t i=0; i<ADC_BUF_SIZE; i++ ){
         aRxBuffer[i] = 0;
@@ -100,13 +94,16 @@ void ADS_Init_Sequence(void)
         // Table30 shows effective sampling rates w/ diff MCLKs
         // start at 1kHz, then work up depending on quality/cpu
     // fMOD = fICLK / 2  fICLK = fCLKIN / 2048 ** now is 500hz ** 0x21
-    //  ADC_ENA, 0x0F to enable all channels
-    ADS_Reg(ADS_WRITE_REG | ADS_ADC_ENA, 0x0F); // MCLK/8
+    ADS_Reg(ADS_WRITE_REG | ADS_ADC_ENA, 0x0F);
     ADS_Cmd(ADS_WAKEUP);
     ADS_Cmd(ADS_LOCK);
 }
 void ADS_Reset_Device(void)
 {
+    ADS_IsReady(); // send query
+    if(ADS_IsReady()){ return; } // ready to go!
+
+    // not ready: reset
     HAL_GPIO_WritePin( SPIa_NRST_GPIO_PORT, SPIa_NRST_PIN, 0 );
     HAL_Delay(5); // reset can take up to 4.5ms (p35)
     HAL_GPIO_WritePin( SPIa_NRST_GPIO_PORT, SPIa_NRST_PIN, 1 );
@@ -147,15 +144,7 @@ uint16_t ADS_Cmd( uint16_t command )
     
     return aRxBuffer[0];
 }
-uint32_t _flip_byte_order( uint32_t word )
-{
-    uint32_t retval = (word >> 24);
-    retval |= (word >> 8) & 0x0000FF00;
-    retval |= (word << 8) & 0x00FF0000;
-    retval |= (word << 24) & 0xFF000000;
-    return retval;
-}
-uint16_t ADC_Get( uint8_t channel )
+uint16_t ADC_GetU16( uint8_t channel )
 {
     uint32_t* tx = (uint32_t*)aTxBuffer;
     *tx = 0; // NULL command

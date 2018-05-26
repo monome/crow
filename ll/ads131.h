@@ -87,7 +87,7 @@
 void ADC_Init(void);
 
 //int32_t
-uint16_t ADC_Get( uint8_t channel );
+uint16_t ADC_GetU16( uint8_t channel );
 
 void SPIa_DMA_RX_IRQHandler(void);
 void SPIa_DMA_TX_IRQHandler(void);

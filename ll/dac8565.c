@@ -29,7 +29,7 @@ void DAC_Init(void)
     HAL_GPIO_WritePin( SPId_NRST_GPIO_PORT, SPId_NRST_PIN, 1 );
 }
 
-void DAC_Set( int8_t channel, uint16_t value )
+void DAC_SetU16( int8_t channel, uint16_t value )
 {
     static uint8_t aTxBuffer[3];
     if(channel >= 4){ return; } // invalid channel selected
@@ -56,6 +56,14 @@ void DAC_Set( int8_t channel, uint16_t value )
 
     // just wait til it's done (for now)
     while (HAL_SPI_GetState(&dac_spi) != HAL_SPI_STATE_READY){;;}
+}
+void DAC_SetVolts( int8_t channel, float volts )
+{
+    // might need to cast ZERO to float, then cast to u16?
+    // could be issues with negative volts getting clipped
+    DAC_SetU16( channel
+              , (volts * DAC_V_TO_U16) + DAC_ZERO_VOLTS
+              );
 }
 
 void DAC_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
