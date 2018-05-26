@@ -25,23 +25,24 @@ int main(void)
     Dbg_Pin_Init();
     Debug_USART_Init();
     //Debug_USART_printf("\ntest\n\r");
-    U_PrintLn("test");
-/*    DAC_Init();
+    //U_PrintLn("crow");
+    DAC_Init();
     ADC_Init();
 
     Lua_Test();
 
-    //Debug_USART_tryprint();
     U_PrintNow();
 
     DAC_Set( DAC_ALL_CHANNELS, DAC_ZERO_VOLTS );
     ADC_Get(0);
-    ADC_Get(0);
+    //ADC_Get(0);
+    U_PrintNow();
 
-    uint16_t dack = 0;*/
+    uint16_t dack = 0;
     while (1){
-        //DAC_Set(0, dack);
-        //dack++;
+        U_PrintU16(ADC_Get(0));
+        DAC_Set(0, dack);
+        dack++;
     }
 }
 

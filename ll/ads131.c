@@ -12,8 +12,8 @@
 SPI_HandleTypeDef adc_spi;
 TIM_HandleTypeDef adc_tim;
 TIM_OC_InitTypeDef tim_config;
-uint8_t aRxBuffer[ADC_BUF_SIZE];
-uint8_t aTxBuffer[ADC_BUF_SIZE];
+uint16_t aRxBuffer[ADC_BUF_SIZE];
+uint16_t aTxBuffer[ADC_BUF_SIZE];
 #define NSS_DELAY 10000
 #define DELAY_usec(u) \
     do{ for( volatile int i=0; i<u; i++ ){;;} \
@@ -24,8 +24,8 @@ void ADS_Reset_Device(void);
 uint8_t ADS_IsReady( void );
 uint16_t ADS_Cmd( uint16_t command );
 uint16_t ADS_Reg( uint8_t reg_mask, uint8_t val );
-void ADC_TxRx( uint8_t* aTxBuffer, uint8_t* aRxBuffer, uint32_t size );
-void ADC_Rx( uint8_t* aRxBuffer, uint32_t size );
+void ADC_TxRx( uint16_t* aTxBuffer, uint16_t* aRxBuffer, uint32_t size );
+void ADC_Rx( uint16_t* aRxBuffer, uint32_t size );
 uint32_t _flip_byte_order( uint32_t word );
 
 void ADC_Init(void)
@@ -34,11 +34,13 @@ void ADC_Init(void)
     adc_spi.Instance               = SPIa;
     adc_spi.Init.Mode              = SPI_MODE_MASTER;
     adc_spi.Init.Direction         = SPI_DIRECTION_2LINES;
-    adc_spi.Init.DataSize          = SPI_DATASIZE_8BIT;
-    adc_spi.Init.CLKPolarity       = SPI_POLARITY_HIGH; // or _LOW?
-    adc_spi.Init.CLKPhase          = SPI_PHASE_1EDGE;
+    adc_spi.Init.DataSize          = SPI_DATASIZE_16BIT;
+    adc_spi.Init.CLKPolarity       = SPI_POLARITY_LOW; // or _HIGH?
+    // p46 "The device latches data on DIN on the SCLK falling edge."
+    // "Data on DOUT are shifted out on the SCLK rising edge."
+    adc_spi.Init.CLKPhase          = SPI_PHASE_2EDGE;
     adc_spi.Init.NSS               = SPI_NSS_SOFT; //_HARD_OUTPUT
-    adc_spi.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_64;
+    adc_spi.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_64; // 1.2MHz
     adc_spi.Init.FirstBit          = SPI_FIRSTBIT_MSB;
     adc_spi.Init.TIMode            = SPI_TIMODE_DISABLE;
     adc_spi.Init.CRCCalculation    = SPI_CRCCALCULATION_DISABLE;
@@ -67,9 +69,9 @@ void ADC_Init(void)
 
     // Reset ADC, Start MCLK, wait, boot ADC
     //HAL_GPIO_WritePin( SPIa_NRST_GPIO_PORT, SPIa_NRST_PIN, 0 );
-/*    if(HAL_TIM_PWM_Start( &adc_tim, TIMa_CHANNEL ) != HAL_OK){
+    if(HAL_TIM_PWM_Start( &adc_tim, TIMa_CHANNEL ) != HAL_OK){
         U_PrintLn("tim_st");
-    }*/
+    }
     //HAL_Delay(1); // 800ns minimum (no problem!)
     //HAL_GPIO_WritePin( SPIa_NRST_GPIO_PORT, SPIa_NRST_PIN, 1 );
 
@@ -84,20 +86,15 @@ void ADS_Init_Sequence(void)
 {
     ADS_Reset_Device();
 
-    //ADS_Cmd(ADS_NULL);
-   // ADS_Cmd(ADS_NULL);
-   // ADS_Cmd(ADS_NULL);
-
-    /*while(ADS_Cmd(ADS_NULL) != ADS_READY){
-        ADS_Reset_Device();
-    }*/
-    //ADS_Cmd(ADS_RESET);
     ADS_Cmd(ADS_UNLOCK);
+    if( ADS_Cmd(ADS_NULL) != ADS_UNLOCK ){
+        U_PrintLn("Can't Unlock");
+    }
     // CONFIGURE REGS HERE
-    // ADS_Reg(ADS_WRITE_REG | ADS_CLK1, 0x08); // MCLK/8
+    ADS_Reg(ADS_WRITE_REG | ADS_CLK1, 0x08); // MCLK/8
         // CLKIN divider. see p63 of ads131 datasheet
     //  clk2 sets ADC read rate?
-    // ADS_Reg(ADS_WRITE_REG | ADS_CLK2, 0x08); // MCLK/8
+    ADS_Reg(ADS_WRITE_REG | ADS_CLK2, 0x08); // MCLK/8
     // fMOD = fICLK / 8, and OSR=400 (default 0x86)
         // see p64 & Table30(p65) for OSR settings
         // Table30 shows effective sampling rates w/ diff MCLKs
@@ -106,20 +103,17 @@ void ADS_Init_Sequence(void)
     //  ADC_ENA, 0x0F to enable all channels
     ADS_Reg(ADS_WRITE_REG | ADS_ADC_ENA, 0x0F); // MCLK/8
     ADS_Cmd(ADS_WAKEUP);
-
+    ADS_Cmd(ADS_LOCK);
 }
 void ADS_Reset_Device(void)
 {
-    HAL_Delay(1);
     HAL_GPIO_WritePin( SPIa_NRST_GPIO_PORT, SPIa_NRST_PIN, 0 );
     HAL_Delay(5); // reset can take up to 4.5ms (p35)
-    //HAL_GPIO_WritePin( SPIa_NRST_GPIO_PORT, SPIa_NRST_PIN, 1 );
+    HAL_GPIO_WritePin( SPIa_NRST_GPIO_PORT, SPIa_NRST_PIN, 1 );
+    HAL_Delay(5); // reset can take up to 4.5ms (p35)
 
-    while(!ADS_IsReady()){
-        ADS_Reset_Device();
-    }
-    HAL_GPIO_WritePin( SPIa_NSS_GPIO_PORT, SPIa_NSS_PIN, 1 );
-    ADS_IsReady();
+    while(!ADS_IsReady()){} // needs timeout
+    ADS_Cmd(ADS_NULL);
 }
 uint16_t ADS_Reg( uint8_t reg_mask, uint8_t val )
 {
@@ -129,7 +123,7 @@ uint16_t ADS_Reg( uint8_t reg_mask, uint8_t val )
         ADS_Cmd( ((uint16_t)reg_mask) << 8);         // send query
         retval = ADS_Cmd( ADS_NULL );                // get response
     } else { // write
-        ADS_Cmd( ((uint16_t)reg_mask) << 8 | (uint16_t)val );
+        retval = ADS_Cmd( ((uint16_t)reg_mask) << 8 | val );
     }
     return retval;
 }
@@ -138,27 +132,20 @@ uint8_t ADS_IsReady( void )
 {
     uint32_t* tx = (uint32_t*)aTxBuffer;
     uint32_t* rx = (uint32_t*)aRxBuffer;
-    *tx = 0;
-    *rx = 0;
-    ADC_Rx( aRxBuffer, 4 );
+    *tx++ = 0;
+    *rx++ = 0;
+    ADC_Rx( aRxBuffer, 2 );
 
-    U_PrintU16((uint16_t)((aRxBuffer[0]<<8)|(aRxBuffer[1])));
-    return ((uint16_t)((aRxBuffer[0]<<8)|(aRxBuffer[1])) == ADS_READY);
+    return (aRxBuffer[0] == ADS_READY);
 }
 
 uint16_t ADS_Cmd( uint16_t command )
 {
-    aTxBuffer[0] = (command & 0xFF00) >> 8;
-    aTxBuffer[1] =  command & 0x00FF;
-    aTxBuffer[2] = 0;
-    aTxBuffer[3] = 0;
-    uint32_t* rx = (uint32_t*)aRxBuffer;
-    *rx = 0; // zero out receive buffer
-    ADC_TxRx( aTxBuffer, aRxBuffer, 2);//ADC_CMD_SIZE );
+    aTxBuffer[0] = command;
+    aRxBuffer[0] = 0;
+    ADC_TxRx( aTxBuffer, aRxBuffer, 1);
     
-    U_PrintU16((uint16_t)((aRxBuffer[0]<<8)|(aRxBuffer[1])));
-
-    return ((uint16_t)((aRxBuffer[0]<<8)|(aRxBuffer[1])));
+    return aRxBuffer[0];
 }
 uint32_t _flip_byte_order( uint32_t word )
 {
@@ -168,25 +155,21 @@ uint32_t _flip_byte_order( uint32_t word )
     retval |= (word << 24) & 0xFF000000;
     return retval;
 }
-void ADC_Get( uint8_t channel )
+uint16_t ADC_Get( uint8_t channel )
 {
     uint32_t* tx = (uint32_t*)aTxBuffer;
     *tx = 0; // NULL command
     ADC_TxRx( aTxBuffer, aRxBuffer, ADC_BUF_SIZE );
-    U_PrintU16((uint16_t)((aRxBuffer[0]<<8)|(aRxBuffer[1])));
-    U_PrintU32(_flip_byte_order(((uint32_t*)aRxBuffer)[1]));
-    U_PrintU32(_flip_byte_order(((uint32_t*)aRxBuffer)[2]));
-    U_PrintLn("");
-    //return (((int32_t*)aRxBuffer)[1]);
+    return aRxBuffer[channel+1];
 }
 
-void ADC_Rx( uint8_t* aRxBuffer, uint32_t size )
+void ADC_Rx( uint16_t* aRxBuffer, uint32_t size )
 {
     // pull !SYNC low
     HAL_GPIO_WritePin( SPIa_NSS_GPIO_PORT, SPIa_NSS_PIN, 0 );
     DELAY_usec(NSS_DELAY);
     if(HAL_SPI_Receive_DMA( &adc_spi
-                          , aRxBuffer
+                          , (uint8_t*)aRxBuffer
                           , size
                           ) != HAL_OK ){
         U_PrintLn("spi_rx_fail");
@@ -195,14 +178,14 @@ void ADC_Rx( uint8_t* aRxBuffer, uint32_t size )
     while (HAL_SPI_GetState(&adc_spi) != HAL_SPI_STATE_READY){;;}
 }
 
-void ADC_TxRx( uint8_t* aTxBuffer, uint8_t* aRxBuffer, uint32_t size )
+void ADC_TxRx( uint16_t* aTxBuffer, uint16_t* aRxBuffer, uint32_t size )
 {
     // pull !SYNC low
     HAL_GPIO_WritePin( SPIa_NSS_GPIO_PORT, SPIa_NSS_PIN, 0 );
     DELAY_usec(NSS_DELAY);
     if(HAL_SPI_TransmitReceive_DMA( &adc_spi
-                                  , aTxBuffer
-                                  , aRxBuffer
+                                  , (uint8_t*)aTxBuffer
+                                  , (uint8_t*)aRxBuffer
                                   , size
                                   ) != HAL_OK ){
         U_PrintLn("spi_txrx_fail");
@@ -220,7 +203,7 @@ void ADC_SPI_ErrorCallback(SPI_HandleTypeDef *hspi)
 
 void ADC_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 {
-    U_PrintLn("txrx-cb");
+    //U_PrintLn("txrx-cb");
     // signal end of transmission by pulling NSS high
     DELAY_usec(NSS_DELAY);
     HAL_GPIO_WritePin( SPIa_NSS_GPIO_PORT, SPIa_NSS_PIN, 1 );
@@ -228,7 +211,7 @@ void ADC_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 
 void ADC_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
 {
-    U_PrintLn("rx-cb");
+    //U_PrintLn("rx-cb");
     // signal end of transmission by pulling NSS high
     DELAY_usec(NSS_DELAY);
     HAL_GPIO_WritePin( SPIa_NSS_GPIO_PORT, SPIa_NSS_PIN, 1 );
@@ -289,8 +272,8 @@ void ADC_SPI_MspInit(SPI_HandleTypeDef *hspi)
     hdma_tx.Init.Direction           = DMA_MEMORY_TO_PERIPH;
     hdma_tx.Init.PeriphInc           = DMA_PINC_DISABLE;
     hdma_tx.Init.MemInc              = DMA_MINC_ENABLE;
-    hdma_tx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
-    hdma_tx.Init.MemDataAlignment    = DMA_MDATAALIGN_BYTE;
+    hdma_tx.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
+    hdma_tx.Init.MemDataAlignment    = DMA_MDATAALIGN_HALFWORD;
     hdma_tx.Init.Mode                = DMA_NORMAL;
     hdma_tx.Init.Priority            = DMA_PRIORITY_LOW;
     hdma_tx.Init.FIFOMode            = DMA_FIFOMODE_DISABLE;
@@ -310,8 +293,8 @@ void ADC_SPI_MspInit(SPI_HandleTypeDef *hspi)
     hdma_rx.Init.Direction           = DMA_PERIPH_TO_MEMORY;
     hdma_rx.Init.PeriphInc           = DMA_PINC_DISABLE;
     hdma_rx.Init.MemInc              = DMA_MINC_ENABLE;
-    hdma_rx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
-    hdma_rx.Init.MemDataAlignment    = DMA_MDATAALIGN_BYTE;
+    hdma_rx.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
+    hdma_rx.Init.MemDataAlignment    = DMA_MDATAALIGN_HALFWORD;
     hdma_rx.Init.Mode                = DMA_NORMAL;
     hdma_rx.Init.Priority            = DMA_PRIORITY_LOW;
     hdma_rx.Init.FIFOMode            = DMA_FIFOMODE_DISABLE;

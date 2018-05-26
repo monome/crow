@@ -5,18 +5,18 @@
 #include "stm32f7xx_hal_conf.h"
 
 // Defs for MCLK pin, using hardware timer
-#define TIMa                             TIM3
-#define TIMa_CLK_ENABLE()                __HAL_RCC_TIM3_CLK_ENABLE()
+#define TIMa                             TIM2
+#define TIMa_CLK_ENABLE()                __HAL_RCC_TIM2_CLK_ENABLE()
 
-#define TIMa_FORCE_RESET()               __HAL_RCC_TIM3_FORCE_RESET()
-#define TIMa_RELEASE_RESET()             __HAL_RCC_TIM3_RELEASE_RESET()
+#define TIMa_FORCE_RESET()               __HAL_RCC_TIM2_FORCE_RESET()
+#define TIMa_RELEASE_RESET()             __HAL_RCC_TIM2_RELEASE_RESET()
 
-#define TIMa_MCLK_GPIO_CLK_ENABLE()      __HAL_RCC_GPIOB_CLK_ENABLE()
+#define TIMa_MCLK_GPIO_CLK_ENABLE()      __HAL_RCC_GPIOA_CLK_ENABLE()
 
-#define TIMa_MCLK_PIN                    GPIO_PIN_0
-#define TIMa_MCLK_GPIO_PORT              GPIOB
-#define TIMa_MCLK_AF                     GPIO_AF2_TIM3 // this is PWM AF
-#define TIMa_CHANNEL                     TIM_CHANNEL_3
+#define TIMa_MCLK_PIN                    GPIO_PIN_3
+#define TIMa_MCLK_GPIO_PORT              GPIOA
+#define TIMa_MCLK_AF                     GPIO_AF1_TIM2 // this is PWM AF
+#define TIMa_CHANNEL                     TIM_CHANNEL_4
 
 // Definition for SPIa clock resources
 #define SPIa                             SPI1
@@ -43,9 +43,9 @@
 #define SPIa_MOSI_GPIO_PORT              GPIOA
 #define SPIa_MOSI_AF                     GPIO_AF5_SPI1
 
-#define SPIa_NRST_GPIO_CLK_ENABLE()      __HAL_RCC_GPIOB_CLK_ENABLE()
-#define SPIa_NRST_PIN                    GPIO_PIN_1
-#define SPIa_NRST_GPIO_PORT              GPIOB
+#define SPIa_NRST_GPIO_CLK_ENABLE()      __HAL_RCC_GPIOC_CLK_ENABLE()
+#define SPIa_NRST_PIN                    GPIO_PIN_4
+#define SPIa_NRST_GPIO_PORT              GPIOC
 
 // Definition for SPIa's DMA
 #define SPIa_TX_DMA_CHANNEL              DMA_CHANNEL_3
@@ -87,7 +87,7 @@
 void ADC_Init(void);
 
 //int32_t
-void ADC_Get( uint8_t channel );
+uint16_t ADC_Get( uint8_t channel );
 
 void SPIa_DMA_RX_IRQHandler(void);
 void SPIa_DMA_TX_IRQHandler(void);
