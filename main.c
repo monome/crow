@@ -100,11 +100,6 @@ static void Sys_Clk_Config(void)
     if(HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK){
         Error_Handler();
     }
-
-    HAL_RCC_MCOConfig( RCC_MCO2
-                     , RCC_MCO2SOURCE_SYSCLK
-                     , RCC_MCODIV_2
-                     );
 }
 
 static void Error_Handler(void)
