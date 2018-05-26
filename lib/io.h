@@ -4,6 +4,7 @@
 
 void IO_Init( void );
 
+void IO_Process( void );
 void IO_Recalibrate( void );
 
 // these 2 will need some intermediate layer for block-processing?

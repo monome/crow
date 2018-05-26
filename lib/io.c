@@ -8,7 +8,6 @@
 #include "../ll/debug_usart.h"
 
 // Private Declarations
-FLASH_Store_t* CAL_Process( FLASH_Store_t* save );
 void _CAL_DAC( uint8_t chan );
 float _CAL_ADC_GetAverage( uint8_t chan );
 
@@ -35,6 +34,11 @@ void IO_Init( void )
 
     CAL_LL_Init();
     //IO_Recalibrate();
+}
+
+void IO_Process( void )
+{
+    DAC_Update();
 }
 
 void IO_Recalibrate( void )
@@ -73,13 +77,14 @@ void IO_Recalibrate( void )
     //return save;
 }
 #define DAC_ZERO_VOLTS      ((uint16_t)(((uint32_t)0xFFFF * 2)/3))
+//#define DAC_ZERO_VOLTS 0
 #define DAC_V_TO_U16        ((float)(65535.0 / 15.0))
 void IO_Set( uint8_t channel, float volts )
 {
     // TODO: apply calibration first
     // TODO: roll calibration & scaling into one for efficiency
     DAC_SetU16( channel
-              , (uint16_t)(volts * DAC_V_TO_U16 + DAC_ZERO_VOLTS)
+              , (uint16_t)( DAC_ZERO_VOLTS - volts * DAC_V_TO_U16 )
               );
 }
 float IO_Get( uint8_t channel )

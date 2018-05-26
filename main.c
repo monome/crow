@@ -24,15 +24,28 @@ int main(void)
 
     Dbg_Pin_Init();
     Debug_USART_Init();
-    //U_PrintLn("crow");
-    //FLASH_Store_t save;
+    U_PrintLn("crow");
+
     IO_Init();
 
     Lua_Test();
 
     U_PrintNow();
 
-    while(1){}
+    uint8_t flip = 0;
+    float inc = 0.0;
+    float inc1 = 5.0;
+    while(1){
+        inc = flip ? 0.1 : 1.0;
+
+        IO_Set(0,inc);
+        flip ^= 1;
+        //IO_Set(1,inc1);
+        //inc += 2.5; if(inc > 5.0){ inc = 0.0; }
+        //inc1 += 2.5; if(inc1 > 10.0){ inc1 = 5.0; }
+
+        IO_Process();
+    }
 }
 
 // Lua deactivated to decrease flash time

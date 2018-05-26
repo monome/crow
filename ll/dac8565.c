@@ -15,7 +15,7 @@ void DAC_Init(void)
     dac_spi.Init.CLKPolarity       = SPI_POLARITY_HIGH; // or _LOW?
     dac_spi.Init.CLKPhase          = SPI_PHASE_1EDGE;
     dac_spi.Init.NSS               = SPI_NSS_SOFT; //_HARD_OUTPUT
-    dac_spi.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8; // ~120kHz
+    dac_spi.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16; // ~120kHz
         // Infers 7.5kHz samplerate (to update all 4 chans sequentially)
     dac_spi.Init.FirstBit          = SPI_FIRSTBIT_MSB;
     dac_spi.Init.TIMode            = SPI_TIMODE_DISABLE;
@@ -28,36 +28,63 @@ void DAC_Init(void)
     HAL_GPIO_WritePin( SPId_NSS_GPIO_PORT, SPId_NSS_PIN, 1 );
     HAL_GPIO_WritePin( SPId_NRST_GPIO_PORT, SPId_NRST_PIN, 1 );
 }
+typedef struct {
+    uint8_t  dirty;
+    uint8_t  cmd;
+    uint16_t data;
+} DAC_Samp_t;
+
+DAC_Samp_t dac_buf[5];
 
 void DAC_Update( void )
 {
+    // Check NSS is high, indicating no ongoing SPI comm'n
     if( HAL_GPIO_ReadPin( SPId_NSS_GPIO_PORT, SPId_NSS_PIN ) == GPIO_PIN_SET ){
-        // transmit a new value
-            // first choose which channel to update
+        uint8_t ch; // Choose which channel to update
+        if( dac_buf[4].dirty ){ ch = 4; } // Prioritize ALL
+        else {
+            static uint8_t last_ch = 0;
+            uint8_t i=0;
+            while(++i){ // Start at 1
+                if( i==5 ){ return; } // All channels clean
+                ch = (i+last_ch)%4;
+                if( dac_buf[ch].dirty ){ break; } // Proceed to send
+            } last_ch = ch;
+        }
         // pull !SYNC low
         HAL_GPIO_WritePin( SPId_NSS_GPIO_PORT, SPId_NSS_PIN, 0 );
         if(HAL_SPI_Transmit_DMA( &dac_spi
-                               , (uint8_t*)aTxBuffer // choose based on LL/queue?
+                               , (uint8_t*)&(dac_buf[ch].cmd)
                                , 3
                                ) != HAL_OK ){
             U_PrintLn("spi_tx_fail");
         }
+        dac_buf[ch].dirty = 0; // Unmark dirty to avoid repeat send
     }
 }
 void DAC_SetU16( int8_t channel, uint16_t value )
 {
+    value = (value & 0xFF)<<8 | (value & 0xFF00)>>8;
     if(channel >= 4){ return; } // invalid channel selected
-    else if( channel == -1 ){
-        aTxBuffer[0] = DAC8565_SET_ALL;
-    } else if( channel == -2 ){
-        aTxBuffer[0] = DAC8565_REFRESH_ALL;
+    else if( channel < 0 ){
+        dac_buf[4].dirty = 1;
+        dac_buf[4].cmd   = (channel == -1)
+                                ? DAC8565_SET_ALL
+                                : DAC8565_REFRESH_ALL;
+        dac_buf[4].data  = value;
+        for( uint8_t i=0; i<4; i++ ){
+            // individual buffers are aware of global changes
+            dac_buf[i].dirty = 0;
+            dac_buf[i].data  = dac_buf[4].data;
+        }
     } else {
-        aTxBuffer[0] = DAC8565_SET_ONE  // update & set output instantly
-                     | (channel<<1)     // alignment
-                     ;
+        if( value == dac_buf[channel].data ){ return; } // discard unchanged
+        dac_buf[channel].dirty = 1;
+        dac_buf[channel].cmd   = DAC8565_SET_ONE  // update & set output
+                               | (channel<<1)
+                               ;
+        dac_buf[channel].data  = value;
     }
-    uint16_t* tx_dac = (uint16_t*)(&(aTxBuffer[1]));
-    *tx_dac = value;
 }
 
 void DAC_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
