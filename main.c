@@ -6,9 +6,9 @@
 
 #include <string.h>
 
+#include "lib/io.h"
+
 #include "ll/debug_usart.h"
-#include "ll/dac8565.h"
-#include "ll/ads131.h"
 
 static GPIO_InitTypeDef GPIO_InitStruct;
 
@@ -24,28 +24,15 @@ int main(void)
 
     Dbg_Pin_Init();
     Debug_USART_Init();
-    //Debug_USART_printf("\ntest\n\r");
     //U_PrintLn("crow");
-    DAC_Init();
-    ADC_Init();
+    //FLASH_Store_t save;
+    IO_Init();
 
     Lua_Test();
 
     U_PrintNow();
 
-    DAC_SetVolts( DAC_ALL_CHANNELS, 0.0 );
-    DAC_Update();
-    ADC_GetU16(0);
-    U_PrintNow();
-
-    float dack = 0.0;
-    while (1){
-        //U_PrintU16(ADC_GetU16(0));
-        DAC_SetVolts(0, dack);
-        DAC_Update();
-        //HAL_Delay(1);
-        if( (dack += 0.03) >= 10.0 ){ dack = -5.0; }
-    }
+    while(1){}
 }
 
 // Lua deactivated to decrease flash time

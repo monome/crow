@@ -59,14 +59,6 @@ void DAC_SetU16( int8_t channel, uint16_t value )
     uint16_t* tx_dac = (uint16_t*)(&(aTxBuffer[1]));
     *tx_dac = value;
 }
-void DAC_SetVolts( int8_t channel, float volts )
-{
-    // might need to cast ZERO to float, then cast to u16?
-    // could be issues with negative volts getting clipped
-    DAC_SetU16( channel
-              , (volts * DAC_V_TO_U16) + DAC_ZERO_VOLTS
-              );
-}
 
 void DAC_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
 {

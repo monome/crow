@@ -45,8 +45,6 @@
 #define DAC8565_REFRESH_ALL 0b00110000
 
 #define DAC_ALL_CHANNELS    ((int8_t)-1)
-#define DAC_ZERO_VOLTS      ((uint16_t)(((uint32_t)0xFFFF * 2)/3))
-#define DAC_V_TO_U16        ((float)(65535.0 / 15.0))
 
 extern SPI_HandleTypeDef dac_spi;
 
@@ -54,7 +52,6 @@ void DAC_Init(void);
 
 void DAC_Update( void );
 void DAC_SetU16( int8_t channel, uint16_t value );
-void DAC_SetVolts( int8_t channel, float volts );
 
 void SPId_DMA_TX_IRQHandler(void);
 void SPId_IRQHandler(void);
