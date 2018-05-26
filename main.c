@@ -34,16 +34,17 @@ int main(void)
     U_PrintNow();
 
     DAC_SetVolts( DAC_ALL_CHANNELS, 0.0 );
+    DAC_Update();
     ADC_GetU16(0);
     U_PrintNow();
 
     float dack = 0.0;
     while (1){
-        U_PrintU16(ADC_GetU16(0));
+        //U_PrintU16(ADC_GetU16(0));
+        DAC_SetVolts(0, dack);
         DAC_Update();
-        DAC_SetU16(0, dack);
-        HAL_Delay(1);
-        if( (dack += 0.01) >= 10.0 ){ dack = -5.0; }
+        //HAL_Delay(1);
+        if( (dack += 0.03) >= 10.0 ){ dack = -5.0; }
     }
 }
 

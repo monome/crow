@@ -33,7 +33,7 @@ void DAC_Update( void )
 {
     if( HAL_GPIO_ReadPin( SPId_NSS_GPIO_PORT, SPId_NSS_PIN ) == GPIO_PIN_SET ){
         // transmit a new value
-        // first choose which channel to update
+            // first choose which channel to update
         // pull !SYNC low
         HAL_GPIO_WritePin( SPId_NSS_GPIO_PORT, SPId_NSS_PIN, 0 );
         if(HAL_SPI_Transmit_DMA( &dac_spi
@@ -46,7 +46,6 @@ void DAC_Update( void )
 }
 void DAC_SetU16( int8_t channel, uint16_t value )
 {
-    static uint8_t aTxBuffer[3];
     if(channel >= 4){ return; } // invalid channel selected
     else if( channel == -1 ){
         aTxBuffer[0] = DAC8565_SET_ALL;
@@ -57,8 +56,6 @@ void DAC_SetU16( int8_t channel, uint16_t value )
                      | (channel<<1)     // alignment
                      ;
     }
-    //aTxBuffer[1] = (uint8_t)((value & 0xFF00) >>8);
-    //aTxBuffer[2] = (uint8_t)( value & 0xFF);
     uint16_t* tx_dac = (uint16_t*)(&(aTxBuffer[1]));
     *tx_dac = value;
 }
