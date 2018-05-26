@@ -16,7 +16,7 @@ void DAC_Init(void)
     dac_spi.Init.CLKPolarity       = SPI_POLARITY_HIGH; // or _LOW?
     dac_spi.Init.CLKPhase          = SPI_PHASE_1EDGE;
     dac_spi.Init.NSS               = SPI_NSS_SOFT; //_HARD_OUTPUT
-    dac_spi.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16; // ~120kHz
+    dac_spi.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8; // ~120kHz
         // Infers 7.5kHz samplerate (to update all 4 chans sequentially)
     dac_spi.Init.FirstBit          = SPI_FIRSTBIT_MSB;
     dac_spi.Init.TIMode            = SPI_TIMODE_DISABLE;
