@@ -85,10 +85,16 @@ void ADS_Init_Sequence(void)
         U_PrintLn("Can't Unlock");
     }
     // CONFIGURE REGS HERE
-    ADS_Reg(ADS_WRITE_REG | ADS_CLK1, 0x08); // MCLK/8
+    ADS_Reg(ADS_WRITE_REG | ADS_CLK1, 0x02); // MCLK/8
+        // 0x02 is /2 which is least divisions (fastest internal)
+        // meaning slowest clkout from uc and least noise?
         // CLKIN divider. see p63 of ads131 datasheet
     //  clk2 sets ADC read rate?
-    ADS_Reg(ADS_WRITE_REG | ADS_CLK2, 0x08); // MCLK/8
+    ADS_Reg(ADS_WRITE_REG | ADS_CLK2, 0x2a); // MCLK/8
+    // this was arrived at experimentally
+    // 0x2* sets clockdiv to /2 (the least divisions, for slowest MCLK)
+    // 0x*b was lowest (ie most oversampling) where -5v actually reached 0x8000
+    // using 0x*c for safety
     // fMOD = fICLK / 8, and OSR=400 (default 0x86)
         // see p64 & Table30(p65) for OSR settings
         // Table30 shows effective sampling rates w/ diff MCLKs
