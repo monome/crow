@@ -4,7 +4,6 @@
 #include "debug_pin.h"
 
 SPI_HandleTypeDef dac_spi;
-uint8_t aTxBuffer[64];
 
 void DAC_Init(void)
 {
