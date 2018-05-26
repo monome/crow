@@ -52,6 +52,7 @@ extern SPI_HandleTypeDef dac_spi;
 
 void DAC_Init(void);
 
+void DAC_Update( void );
 void DAC_SetU16( int8_t channel, uint16_t value );
 void DAC_SetVolts( int8_t channel, float volts );
 

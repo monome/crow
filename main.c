@@ -40,7 +40,9 @@ int main(void)
     float dack = 0.0;
     while (1){
         U_PrintU16(ADC_GetU16(0));
+        DAC_Update();
         DAC_SetU16(0, dack);
+        HAL_Delay(1);
         if( (dack += 0.01) >= 10.0 ){ dack = -5.0; }
     }
 }

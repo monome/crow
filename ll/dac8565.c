@@ -29,6 +29,21 @@ void DAC_Init(void)
     HAL_GPIO_WritePin( SPId_NRST_GPIO_PORT, SPId_NRST_PIN, 1 );
 }
 
+void DAC_Update( void )
+{
+    if( HAL_GPIO_ReadPin( SPId_NSS_GPIO_PORT, SPId_NSS_PIN ) == GPIO_PIN_SET ){
+        // transmit a new value
+        // first choose which channel to update
+        // pull !SYNC low
+        HAL_GPIO_WritePin( SPId_NSS_GPIO_PORT, SPId_NSS_PIN, 0 );
+        if(HAL_SPI_Transmit_DMA( &dac_spi
+                               , (uint8_t*)aTxBuffer // choose based on LL/queue?
+                               , 3
+                               ) != HAL_OK ){
+            U_PrintLn("spi_tx_fail");
+        }
+    }
+}
 void DAC_SetU16( int8_t channel, uint16_t value )
 {
     static uint8_t aTxBuffer[3];
@@ -46,18 +61,6 @@ void DAC_SetU16( int8_t channel, uint16_t value )
     //aTxBuffer[2] = (uint8_t)( value & 0xFF);
     uint16_t* tx_dac = (uint16_t*)(&(aTxBuffer[1]));
     *tx_dac = value;
-
-    // pull !SYNC low
-    HAL_GPIO_WritePin( SPId_NSS_GPIO_PORT, SPId_NSS_PIN, 0 );
-    if(HAL_SPI_Transmit_DMA( &dac_spi
-                           , (uint8_t*)aTxBuffer
-                           , 3
-                           ) != HAL_OK ){
-        U_PrintLn("spi_tx_fail");
-    }
-
-    // just wait til it's done (for now)
-    while (HAL_SPI_GetState(&dac_spi) != HAL_SPI_STATE_READY){;;}
 }
 void DAC_SetVolts( int8_t channel, float volts )
 {
