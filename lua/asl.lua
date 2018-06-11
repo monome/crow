@@ -89,6 +89,7 @@ end
 
 function delay( t )
     -- wait time t before executing the next command
+    -- negative t should wait forever
     toward( self.here, t, LINEAR )
 end
 
@@ -123,7 +124,6 @@ end
 -- IMPLEMENTATION DETAILS:
 -- Internal data structure
 asl = { program = {}     -- store the ASL program
-      , nextLn  = 0      -- next line of program to execute (program counter)
       , retStk  = {}     -- return stack for nested constructs
       , hold    = false  -- is the slope trigger currently held high
       , lock    = false  -- program sets this to lockout bangs during lock{}
@@ -133,11 +133,10 @@ asl = { program = {}     -- store the ASL program
       }
 
 function set( aslT )
-    program = compileT( aslT )
-    nextLn  = 0
-    retStk  = {}
-    hold    = false
-    locked  = false
+    self.program = compileT( aslT )
+    self.retStk  = {}
+    self.hold    = false
+    self.locked  = false
 end
 
 function bang( state )
@@ -159,26 +158,7 @@ end
 --
 -- These constructs are implemented as functions that take ASL tables, thus are nestable
 
-function loop( aslT )
-    -- executes the aslT forever
-end
 
-function lock( aslT )
-    -- performs the aslT
-    -- all bang/level commands are ignored until aslt complete
-end
-
-function held( aslT )
-    -- performs the aslT
-    -- if the 'held' state variable is unset, the next command will
-    -- be executed immediately
-    -- 'held' represents a high 'gate' signal in synthesizer terms
-end
-
-function times( count_aslT )
-    count = count_aslT[1]
-    aslT = count_aslT[2]
-end
 
 -- COMPILER
 -- convert the syntactic sugar of ASL into tokenized form so it can be traversed
@@ -191,20 +171,9 @@ function compileT( aslT )
     for k, fn in ipairs aslT do
         table.insert( x, fn )
     end
+    table.insert( x, exit() )
     return x
 end
-
-compileT = {
-    -- some kind of index by name pattern matching
-    --[loop] = function()
-}
-
-function compileFn( fn )
-    if
-
-
-onRelease = newclosure(onPlayBtnRelease, "loadscene1")
-
 
 function toward( dest, time, shape )
     -- from the current location
@@ -235,20 +204,53 @@ function delay( time )
     return function() LL_toward( self.here, t, LINEAR ) end
 end
 
+function lockSet(state)
+    local s = state
+    return function() self.lock = s end
+end
+
+function doNext( AST )
+    --
+end
+
+function enter( AST )
+    return function()
+        table.insert( self.retStk, 1 )
+        doNext( AST )
+    end
+end
+
+function exit()
+    -- pop return stack & jump to that execution
+end
+
+function movePC( i )
+    return function()
+        self.retStk[#self.retStk] = 0  -- just resetting
+    end
+end
+
 -- WRAPPING functions
 function loop( aslT )
     -- executes the aslT forever
     -- save this for last -- it requires moving the program counter
-    --newT = {  }
+    return function()
+        enter{ table.unpack( compileT( aslT ) )
+             , movePC(-1)
+             }
+    end 
 end
 
 function lock( aslT )
     -- performs the aslT
     -- all bang/level commands are ignored until aslt complete
     return function()
+        -- if table.unpack doesn't work, start with compileT
+        -- then use table.insert to add 3 extra fns
         enter{ lockSet(true)
-             , -- recurse
+             , table.unpack( compileT( aslT ) )
              , lockSet(false)
+             , exit()
              }
     end
 end
@@ -258,11 +260,27 @@ function held( aslT )
     -- if the 'held' state variable is unset, the next command will
     -- be executed immediately
     -- 'held' represents a high 'gate' signal in synthesizer terms
+    return function()
+        if self.hold == true then               -- if gate high
+            enter{ table.unpack( compileT( aslT ) ) -- execute code
+                 , delay(-1)                        -- wait forever
+                 }
+        end                                     -- return if gate low
+    end
 end
 
+-- iterate n times
 function times( count_aslT )
-    count = count_aslT[1]
-    aslT = count_aslT[2]
+    local count = count_aslT[1]
+    --aslT = count_aslT[2]
+    return function()
+        while count do
+            count = count - 1
+            enter{ table.unpack( compileT( aslT ) )
+                 , exit()
+                 }
+        end
+    end
 end
 
 
@@ -274,6 +292,8 @@ end
 
 function start()
     -- abandon any ongoing calculation / callback
+    self.retStk = { bottom }
+    enter{ self.program }  -- begin the program
     -- restart the program
 end
 
