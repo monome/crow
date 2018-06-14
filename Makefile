@@ -3,6 +3,7 @@ EXECUTABLE=main.elf
 
 CUBE=../STM32_Cube_F7/Drivers
 HALS=$(CUBE)/STM32F7xx_HAL_Driver/Src
+USBD=../STM32_Cube_F7/Middlewares/ST/STM32_USB_Device_Library
 WRLIB=../../wrLib
 WRDSP=../../wrDsp
 LUAS=../../lua/src
@@ -33,6 +34,8 @@ STM32_INCLUDES = \
 	-I$(CUBE)/STM32F7xx_HAL_Driver/Inc/ \
 	-I/usr/local/include/ \
 	-Iusbd/ \
+	-I$(USBD)/Class/CDC/Inc/ \
+	-I$(USBD)/Core/Inc/ \
 
 OPTIMIZE       = -O0
 
@@ -65,14 +68,22 @@ SRC = main.c \
 	$(HALS)/stm32f7xx_hal_i2c.c \
 	$(HALS)/stm32f7xx_hal_dma.c \
 	$(HALS)/stm32f7xx_hal_dma2d.c \
+	$(HALS)/stm32f7xx_hal_pcd.c \
+	$(HALS)/stm32f7xx_hal_pcd_ex.c \
 	$(HALS)/stm32f7xx_hal_pwr.c \
 	$(HALS)/stm32f7xx_hal_pwr_ex.c \
 	$(HALS)/stm32f7xx_hal_spi.c \
 	$(HALS)/stm32f7xx_hal_tim.c \
 	$(HALS)/stm32f7xx_hal_tim_ex.c \
 	$(HALS)/stm32f7xx_hal_usart.c \
+	$(HALS)/stm32f7xx_ll_usb.c \
 	$(wildcard lib/*.c) \
 	$(wildcard ll/*.c) \
+	$(wildcard usbd/*.c) \
+	$(USBD)/Core/Src/usbd_core.c \
+	$(USBD)/Core/Src/usbd_ctlreq.c \
+	$(USBD)/Core/Src/usbd_ioreq.c \
+	$(USBD)/Class/CDC/Src/usbd_cdc.c \
 	$(WRLIB)/str_buffer.c \
 	$(WRLIB)/wrConvert.c \
 	$(WRLIB)/wrMath.c \
@@ -129,7 +140,7 @@ flash: $(BIN)
 	st-flash write $(BIN) 0x08010000
 
 dfu: $(BIN)
-	dfu-util -s 0x08010000 -D $(BIN) -S FFFFFFFEFFFF
+	dfu-util -s 0x08010000 -D $(BIN) #-S FFFFFFFEFFFF
 
 %.o: %.c
 	@$(CC) -ggdb $(CFLAGS) -c $< -o $@

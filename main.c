@@ -11,6 +11,8 @@
 #include "ll/debug_usart.h"
 #include "ll/debug_pin.h"
 
+#include "usbd/usbd_main.h"
+
 static void Lua_Test(void);
 static void Sys_Clk_Config(void);
 static void Error_Handler(void);
@@ -28,20 +30,18 @@ int main(void)
 
     Lua_Test();
 
+    USB_CDC_Init();
+
     U_PrintNow();
 
     uint8_t flip = 0;
     float inc = 0.0;
-    float inc1 = 5.0;
     while(1){
         inc = flip ? 0.1 : 1.0;
 
         IO_Set(0,inc);
         IO_Set(1,inc);
         flip ^= 1;
-        //IO_Set(1,inc1);
-        //inc += 2.5; if(inc > 5.0){ inc = 0.0; }
-        //inc1 += 2.5; if(inc1 > 10.0){ inc1 = 5.0; }
         IO_Process();
     }
 }
