@@ -125,6 +125,7 @@ end
 -- Internal data structure
 asl = { program = {}     -- store the ASL program
       , retStk  = {}     -- return stack for nested constructs
+      , pc      = 0      -- program counter within stack frame
       , hold    = false  -- is the slope trigger currently held high
       , lock    = false  -- program sets this to lockout bangs during lock{}
 
@@ -185,7 +186,7 @@ function toward( dest, time, shape )
     local d=dest, t=time, s=shape
     return function()
         LL_toward(d,t,s)
-        wait()
+        return wait
     end
 end
 
@@ -209,24 +210,32 @@ function lockSet(state)
     return function() self.lock = s end
 end
 
-function doNext( AST )
-    --
+function set_frame( AST )
+    local frame = self.program        -- the table representing the program
+    for i=1, #self.retStk, 1 do       -- traverse program
+        frame = frame[self.retStk[i]]
+    end
+    frame = AST
 end
 
 function enter( AST )
     return function()
-        table.insert( self.retStk, 1 )
-        doNext( AST )
+        table.insert( self.retStk, self.pc )
+        self.pc = 1  -- reset to top of new frame
+        set_frame( AST )
     end
 end
 
 function exit()
-    -- pop return stack & jump to that execution
+    return function()
+        table.remove( self.retStk )
+        self.pc = self.retStk[#self.retStk]
+    end
 end
 
-function movePC( i )
+function restart_frame()
     return function()
-        self.retStk[#self.retStk] = 0  -- just resetting
+        self.pc = 0 -- doNext will shift this to 1 (infinite loop)
     end
 end
 
@@ -236,7 +245,7 @@ function loop( aslT )
     -- save this for last -- it requires moving the program counter
     return function()
         enter{ table.unpack( compileT( aslT ) )
-             , movePC(-1)
+             , restart_frame()
              }
     end 
 end
@@ -255,6 +264,8 @@ function lock( aslT )
     end
 end
 
+function end_hold() end -- just a placeholder to search for
+
 function held( aslT )
     -- performs the aslT
     -- if the 'held' state variable is unset, the next command will
@@ -264,6 +275,7 @@ function held( aslT )
         if self.hold == true then               -- if gate high
             enter{ table.unpack( compileT( aslT ) ) -- execute code
                  , delay(-1)                        -- wait forever
+                 , end_hold()
                  }
         end                                     -- return if gate low
     end
@@ -290,11 +302,38 @@ end
 -- RUNTIME behaviour
 -- relates bang() to internal AST representation
 
+-- step through the program recursively!
+-- this is stupid. we're searching the tree every step!
+-- think about how to do this in a direct way
+
+-- returns the current table context of the program counter
+function get_frame()
+    local frame = self.program -- the table representing the program
+    for i=1, #self.retStk, 1 do
+        frame = frame[self.retStk[i]]
+    end
+    return frame
+end
+
+function doASL()
+    local p = get_frame()      -- find table level
+    if p.pc = nil then return  -- we're done
+    elseif p.pc = wait then    -- pause. waiting for a callback
+        self.pc = self.pc + 1  -- ++ program counter
+                               -- could set an 'expected' value
+    else
+        p.pc()                 -- execute the step
+        self.pc = self.pc + 1  -- ++program counter
+        doASL()                -- recurse for next step
+    end
+end
+
 function start()
-    -- abandon any ongoing calculation / callback
-    self.retStk = { bottom }
-    enter{ self.program }  -- begin the program
-    -- restart the program
+    if self.program != nil then
+        self.pc      = 1
+        self.retStk  = {}
+    end
+    doASL()
 end
 
 function drop()
