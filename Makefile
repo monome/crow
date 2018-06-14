@@ -122,10 +122,11 @@ $(BIN): $(EXECUTABLE)
 	@echo "symbol table: $@.dmp"
 	@echo "Release: "$(R)
 	@$(GETSIZE) main.bin | grep 'Size'
-	@echo "        ^ must be less than 512kB (512,000)"
+	@echo "        ^ must be less than 320kB (320,000)"
+	# 512kb -64kb(bootloader) -128kb(scripts)
 
 flash: $(BIN)
-	st-flash write $(BIN) 0x08000000
+	st-flash write $(BIN) 0x08010000
 
 dfu: $(BIN)
 	dfu-util -s 0x08010000 -D $(BIN) -S FFFFFFFEFFFF
