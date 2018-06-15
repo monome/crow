@@ -14,25 +14,29 @@
 // rawtext & luachunk expect a terminating \0 char
 void Caw_send_rawtext( char* text )
 {
-    uint32_t len = strlen(text) + 1; // +1 is event type
-    uint8_t s[len];
-    s[0] = ';';
+    uint32_t len = strlen(text);
+    uint8_t s[len + 3];
+    s[0]     = ';';
+    s[len+1] = '\n';
+    s[len+2] = '\r';
     memcpy( &s[1], text, len );
 
     USB_tx_enqueue( s
-                  , len
+                  , len + 3
                   );
 }
 
 void Caw_send_luachunk( char* text )
 {
-    uint32_t len = strlen(text) + 1; // +1 is event type
-    uint8_t s[len];
-    s[0] = '#';
+    uint32_t len = strlen(text);
+    uint8_t s[len + 3];
+    s[0]     = '#';
+    s[len+1] = '\n';
+    s[len+2] = '\r';
     memcpy( &s[1], text, len );
 
     USB_tx_enqueue( s
-                  , len
+                  , len + 3
                   );
 
 }

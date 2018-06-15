@@ -37,13 +37,9 @@ int main(void)
 
     uint8_t flip = 0;
     float inc = 0.0;
-    HAL_Delay(500);
-    Caw_send_rawtext("test\n\r");
     while(1){
-        HAL_Delay(500);
-        Caw_send_rawtext("caw\n\r");
-        HAL_Delay(500);
-        Caw_send_luachunk("listen\n\r");
+        HAL_Delay(500); Caw_send_rawtext("caw");
+        HAL_Delay(500); Caw_send_luachunk("listen");
 /*        inc = flip ? 0.1 : 1.0;
 
         IO_Set(0,inc);
