@@ -105,6 +105,7 @@
 extern USBD_CDC_ItfTypeDef  USBD_CDC_fops;
 
 void USB_tx_enqueue( uint8_t* buf, uint32_t len );
+uint8_t USB_rx_dequeue( uint8_t* buf, uint32_t* len );
 
 /* Exported macro ------------------------------------------------------------*/
 /* Exported functions ------------------------------------------------------- */
