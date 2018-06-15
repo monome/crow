@@ -7,6 +7,7 @@
 #include <string.h>
 
 #include "lib/io.h"
+#include "lib/caw.h"
 
 #include "ll/debug_usart.h"
 #include "ll/debug_pin.h"
@@ -24,11 +25,11 @@ int main(void)
 
     Debug_Pin_Init();
     Debug_USART_Init();
-    U_PrintLn("crow");
+    U_PrintLn("\ncrow");
 
-    IO_Init();
+    //IO_Init();
 
-    Lua_Test();
+    //Lua_Test();
 
     USB_CDC_Init();
 
@@ -36,13 +37,19 @@ int main(void)
 
     uint8_t flip = 0;
     float inc = 0.0;
+    HAL_Delay(500);
+    Caw_send_rawtext("test\n\r");
     while(1){
-        inc = flip ? 0.1 : 1.0;
+        HAL_Delay(500);
+        Caw_send_rawtext("caw\n\r");
+        HAL_Delay(500);
+        Caw_send_luachunk("listen\n\r");
+/*        inc = flip ? 0.1 : 1.0;
 
         IO_Set(0,inc);
         IO_Set(1,inc);
         flip ^= 1;
-        IO_Process();
+        IO_Process();*/
     }
 }
 

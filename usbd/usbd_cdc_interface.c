@@ -109,7 +109,7 @@ USBD_CDC_ItfTypeDef USBD_CDC_fops =
   */
 static int8_t CDC_Itf_Init(void)
 {
-    U_PrintLn("Itf-init");
+    //U_PrintLn("Itf-init");
   /*##-1- Configure the UART peripheral ######################################*/
   /* Put the USART peripheral in the Asynchronous mode (UART Mode) */
   /* USART configured as follow:
@@ -145,7 +145,7 @@ static int8_t CDC_Itf_Init(void)
 
   //##-3- Configure the TIM Base generation  #################################
   TIM_Config();
-  
+
   //##-4- Start the TIM Base generation in interrupt mode ####################
   // Start Channel1
   if(HAL_TIM_Base_Start_IT(&TimHandle) != HAL_OK)
@@ -189,30 +189,35 @@ static int8_t CDC_Itf_DeInit(void)
   */
 static int8_t CDC_Itf_Control (uint8_t cmd, uint8_t* pbuf, uint16_t length)
 { 
-    U_PrintLn("Itf_ctrl");
   switch (cmd)
   {
   case CDC_SEND_ENCAPSULATED_COMMAND:
+    U_PrintLn("itf:send_cmd");
     /* Add your code here */
     break;
 
   case CDC_GET_ENCAPSULATED_RESPONSE:
+    U_PrintLn("itf:get_response");
     /* Add your code here */
     break;
 
   case CDC_SET_COMM_FEATURE:
+    U_PrintLn("itf:set_feature");
     /* Add your code here */
     break;
 
   case CDC_GET_COMM_FEATURE:
+    U_PrintLn("itf:get_feature");
     /* Add your code here */
     break;
 
   case CDC_CLEAR_COMM_FEATURE:
+    U_PrintLn("itf:clr_feature");
     /* Add your code here */
     break;
 
   case CDC_SET_LINE_CODING:
+    //U_PrintLn("itf:s_line_coding");
     LineCoding.bitrate    = (uint32_t)(pbuf[0] | (pbuf[1] << 8) |\
                             (pbuf[2] << 16) | (pbuf[3] << 24));
     LineCoding.format     = pbuf[4];
@@ -224,6 +229,7 @@ static int8_t CDC_Itf_Control (uint8_t cmd, uint8_t* pbuf, uint16_t length)
     break;
 
   case CDC_GET_LINE_CODING:
+    U_PrintLn("itf:g_line_coding");
     pbuf[0] = (uint8_t)(LineCoding.bitrate);
     pbuf[1] = (uint8_t)(LineCoding.bitrate >> 8);
     pbuf[2] = (uint8_t)(LineCoding.bitrate >> 16);
@@ -234,12 +240,14 @@ static int8_t CDC_Itf_Control (uint8_t cmd, uint8_t* pbuf, uint16_t length)
     break;
 
   case CDC_SET_CONTROL_LINE_STATE:
+    //U_PrintLn("itf:s_ctrl_state");
     /* Add your code here */
     break;
 
   case CDC_SEND_BREAK:
+    U_PrintLn("itf:send_brk");
      /* Add your code here */
-    break;    
+    break;
     
   default:
     break;
@@ -253,12 +261,37 @@ static int8_t CDC_Itf_Control (uint8_t cmd, uint8_t* pbuf, uint16_t length)
   * @param  htim: TIM handle
   * @retval None
   */
+
+uint8_t unsent = 0;
+uint32_t tx_buf_size = 0;
+void USB_tx_enqueue( uint8_t* buf, uint32_t len )
+{
+    unsent = 1;
+    if( len > APP_TX_DATA_SIZE ){ len = APP_TX_DATA_SIZE; } // clip length
+    memcpy( UserTxBuffer
+          , buf
+          , len
+          );
+    tx_buf_size = len;
+}
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-    U_PrintLn("tim");
-  //uint32_t buffptr;
-  //uint32_t buffsize;
-  
+    // THIS IS JUST OVERWRITTEN RN! NO QUEUE!
+    if( unsent ){
+        USBD_CDC_SetTxBuffer( &USBD_Device
+                            , (uint8_t*)UserTxBuffer
+                            , tx_buf_size
+                            );
+        if( USBD_CDC_TransmitPacket(&USBD_Device) == USBD_OK ){
+            // if succeeded, clear the buffer (else leave it to retry)
+            unsent = 0;
+            /*UserTxBufPtrOut += buffsize;
+            if( UserTxBufPtrOut == APP_RX_DATA_SIZE ){
+                UserTxBufPtrOut = 0;
+            }*/
+        }
+    }
+
   /*
   if(UserTxBufPtrOut != UserTxBufPtrIn)
   {
@@ -320,7 +353,10 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
   */
 static int8_t CDC_Itf_Receive(uint8_t* Buf, uint32_t *Len)
 {
-    U_PrintLn("itf:rx");
+    //U_PrintLn("itf:rx");
+    for( uint32_t i=0; i<*Len; i++ ){
+        U_PrintU8(Buf[i]);
+    }
   //HAL_UART_Transmit_DMA(&UartHandle, Buf, *Len);
   return (USBD_OK);
 }
@@ -345,7 +381,7 @@ static int8_t CDC_Itf_Receive(uint8_t* Buf, uint32_t *Len)
   */
 static void ComPort_Config(void)
 {
-    U_PrintLn("comport_cf");
+    //U_PrintLn("comport_cf");
   /*if(HAL_UART_DeInit(&UartHandle) != HAL_OK)
   {
     // Initialization Error
@@ -424,15 +460,16 @@ static void ComPort_Config(void)
 }
 
 /**
-  * @brief  TIM_Config: Configure TIMx timer
+  * @brief  TIM_Config: Configure TIMu timer
   * @param  None.
   * @retval None
   */
 static void TIM_Config(void)
 {  
-  // Set TIMx instance
-  TimHandle.Instance = TIMx;
+  // Set TIMu instance
+  TimHandle.Instance = TIMu;
   
+    TIMu_CLK_ENABLE();
   // Initialize TIM3 peripheral as follow:
   //     + Period = 10000 - 1
   //     + Prescaler = ((SystemCoreClock/2)/10000) - 1
@@ -450,6 +487,9 @@ static void TIM_Config(void)
     //Error_Handler();
     U_PrintLn("!tim-base");
   }
+
+    HAL_NVIC_SetPriority(TIMu_IRQn, 6, 0);
+    HAL_NVIC_EnableIRQ(TIMu_IRQn);
 }
 
 

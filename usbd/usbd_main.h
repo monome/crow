@@ -15,3 +15,5 @@ void OTG_FS_IRQHandler(void);
 #else
 void OTG_HS_IRQHandler(void);
 #endif
+
+void TIMu_IRQHandler(void);

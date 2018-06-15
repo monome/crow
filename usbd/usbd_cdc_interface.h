@@ -89,20 +89,22 @@
 
 */
 // Definition for TIMx clock resources
-#define TIMx                             TIM3
-#define TIMx_CLK_ENABLE                  __HAL_RCC_TIM3_CLK_ENABLE
-#define TIMx_FORCE_RESET()               __HAL_RCC_USART1_FORCE_RESET()
-#define TIMx_RELEASE_RESET()             __HAL_RCC_USART1_RELEASE_RESET()
+#define TIMu                             TIM3
+#define TIMu_CLK_ENABLE                  __HAL_RCC_TIM3_CLK_ENABLE
+//#define TIMx_FORCE_RESET()               __HAL_RCC_USART1_FORCE_RESET()
+//#define TIMx_RELEASE_RESET()             __HAL_RCC_USART1_RELEASE_RESET()
 
 // Definition for TIMx's NVIC
-#define TIMx_IRQn                        TIM3_IRQn
-#define TIMx_IRQHandler                  TIM3_IRQHandler
+#define TIMu_IRQn                        TIM3_IRQn
+#define TIMu_IRQHandler                  TIM3_IRQHandler
 
 /* Periodically, the state of the buffer "UserTxBuffer" is checked.
    The period depends on CDC_POLLING_INTERVAL */
 #define CDC_POLLING_INTERVAL             5 /* in ms. The max is 65 and the min is 1 */
 
 extern USBD_CDC_ItfTypeDef  USBD_CDC_fops;
+
+void USB_tx_enqueue( uint8_t* buf, uint32_t len );
 
 /* Exported macro ------------------------------------------------------------*/
 /* Exported functions ------------------------------------------------------- */

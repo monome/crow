@@ -38,9 +38,11 @@ void USARTx_IRQHandler(void)
 {
     HAL_UART_IRQHandler(&UartHandle);
 }
-void TIMx_IRQHandler(void)
+*/
+
+extern TIM_HandleTypeDef TimHandle;
+
+void TIMu_IRQHandler(void)
 {
     HAL_TIM_IRQHandler(&TimHandle);
 }
-
-*/
