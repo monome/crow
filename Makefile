@@ -20,6 +20,7 @@ OBJDUMP=arm-none-eabi-objdump
 BIN = $(TARGET).bin
 
 DEFS = -DUSE_STDPERIPH_DRIVER -DSTM32F7XX -DARM_MATH_CM7 -DHSE_VALUE=8000000
+DEFS += -DSTM32F722xx -DUSE_HAL_DRIVER
 STARTUP = $(CUBE)/CMSIS/Device/ST/STM32F7xx/Source/Templates/gcc/startup_stm32f722xx.s
 
 # MCFLAGS = -march=armv4e-m -mthumb 

@@ -2,8 +2,6 @@
 
 #include <stm32f7xx.h>
 
-#include "stm32f7xx_hal_conf.h"
-
 // Defs for MCLK pin, using hardware timer
 #define TIMa                             TIM2
 #define TIMa_CLK_ENABLE()                __HAL_RCC_TIM2_CLK_ENABLE()
