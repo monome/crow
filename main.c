@@ -27,25 +27,26 @@ int main(void)
     Debug_USART_Init();
     U_PrintLn("\ncrow");
 
-    //IO_Init();
+    IO_Init();
 
-    //Lua_Test();
+    Lua_Test();
 
-    USB_CDC_Init();
+    //USB_CDC_Init();
 
     U_PrintNow();
 
     uint8_t flip = 0;
     float inc = 0.0;
     while(1){
-        HAL_Delay(500); Caw_send_rawtext("caw");
-        HAL_Delay(500); Caw_send_luachunk("listen");
-/*        inc = flip ? 0.1 : 1.0;
+        //Caw_try_receive();
+        //HAL_Delay(500); Caw_send_rawtext("caw");
+        //HAL_Delay(500); Caw_send_luachunk("listen");
+        inc = flip ? 0.1 : 1.0;
 
         IO_Set(0,inc);
         IO_Set(1,inc);
         flip ^= 1;
-        IO_Process();*/
+        IO_Process();
     }
 }
 
