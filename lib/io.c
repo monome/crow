@@ -84,7 +84,7 @@ void IO_Set( uint8_t channel, float volts )
     // TODO: apply calibration first
     // TODO: roll calibration & scaling into one for efficiency
     DAC_SetU16( channel
-              , (uint16_t)( DAC_ZERO_VOLTS - volts * DAC_V_TO_U16 )
+              , (uint16_t)( DAC_ZERO_VOLTS - (int16_t)(volts * DAC_V_TO_U16) )
               );
 }
 float IO_Get( uint8_t channel )
