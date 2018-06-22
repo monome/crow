@@ -36,6 +36,14 @@ void IO_Init( void )
     //IO_Recalibrate();
 }
 
+void IO_Start( void )
+{
+    DAC_Start();
+}
+
+// This needs to be reconfigured as a callback from the DAC driver
+// Only trigger the 'process' every 4th cycle
+// 1: average ADC since last sample
 void IO_Process( void )
 {
     DAC_Update();

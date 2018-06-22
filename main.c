@@ -35,6 +35,8 @@ int main(void)
 
     U_PrintNow();
 
+    IO_Start(); // buffers need to be ready by now
+
     uint8_t flip = 0;
     float inc = 5.0;
     while(1){

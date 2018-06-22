@@ -3,6 +3,7 @@
 #include <stm32f7xx.h>
 
 void IO_Init( void );
+void IO_Start( void );
 
 void IO_Process( void );
 void IO_Recalibrate( void );

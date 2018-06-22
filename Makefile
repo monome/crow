@@ -67,6 +67,7 @@ SRC = main.c \
 	$(HALS)/stm32f7xx_hal_flash_ex.c \
 	$(HALS)/stm32f7xx_hal_gpio.c \
 	$(HALS)/stm32f7xx_hal_i2c.c \
+	$(HALS)/stm32f7xx_hal_i2s.c \
 	$(HALS)/stm32f7xx_hal_dma.c \
 	$(HALS)/stm32f7xx_hal_dma2d.c \
 	$(HALS)/stm32f7xx_hal_pcd.c \
