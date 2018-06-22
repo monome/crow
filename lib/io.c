@@ -26,7 +26,7 @@ CAL_t cal;
 // Public Definitions
 void IO_Init( void )
 {
-    DAC_Init();
+    uint32_t block_size = DAC_Init();
     IO_Set( DAC_ALL_CHANNELS, 0.0 );
     DAC_Update();
 
@@ -84,6 +84,7 @@ void IO_Recalibrate( void )
 
     //return save;
 }
+// 0xAAAA
 #define DAC_ZERO_VOLTS      ((uint16_t)(((uint32_t)0xFFFF * 2)/3))
 //#define DAC_ZERO_VOLTS 0
 #define DAC_V_TO_U16        ((float)(65535.0 / 15.0))

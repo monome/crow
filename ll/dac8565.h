@@ -45,7 +45,7 @@
 
 #define DAC_ALL_CHANNELS    ((int8_t)-1)
 
-void DAC_Init(void);
+uint32_t DAC_Init(void);
 void DAC_Start(void);
 
 void DAC_Update( void );
