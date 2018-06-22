@@ -4,9 +4,9 @@
 #include "debug_pin.h"
 
 
-#define DAC_BLOCK_SIZE   2
+#define DAC_BLOCK_SIZE   1
 #define DAC_BUFFER_SIZE  (DAC_BLOCK_SIZE*2)
-uint16_t i2s_buf[DAC_BUFFER_SIZE];
+uint32_t i2s_buf[DAC_BUFFER_SIZE];
 
 
 I2S_HandleTypeDef dac_i2s;
@@ -17,11 +17,11 @@ void DAC_Init(void)
     dac_i2s.Instance          = I2Sx;
     dac_i2s.Init.Mode         = I2S_MODE_MASTER_TX;
     dac_i2s.Init.Standard     = I2S_STANDARD_PCM_SHORT;
-    dac_i2s.Init.DataFormat   = I2S_DATAFORMAT_24B; // need 32b?
+    dac_i2s.Init.DataFormat   = I2S_DATAFORMAT_32B; // need 32b?
     dac_i2s.Init.MCLKOutput   = I2S_MCLKOUTPUT_ENABLE;
-    dac_i2s.Init.AudioFreq    = I2S_AUDIOFREQ_48K;
-    dac_i2s.Init.CPOL         = I2S_CPOL_LOW;
-    dac_i2s.Init.ClockSource  = I2S_CLOCK_PLL;
+    dac_i2s.Init.AudioFreq    = I2S_AUDIOFREQ_192K;
+    dac_i2s.Init.CPOL         = I2S_CPOL_LOW; // or _HIGH
+    dac_i2s.Init.ClockSource  = I2S_CLOCK_SYSCLK; // or _PLL
 
     if(HAL_I2S_Init(&dac_i2s) != HAL_OK){ U_PrintLn("i2s_init"); }
 
@@ -31,14 +31,20 @@ void DAC_Init(void)
 
 void DAC_Start(void)
 {
+    // step in 2s for two half-words
+    uint8_t* _buf = (uint8_t*)i2s_buf;
     for( uint16_t i=0; i<DAC_BUFFER_SIZE; i++ ){
         // set channel 1 to midpoint (2v5)
-        i2s_buf[i] = (uint16_t)(DAC8565_SET_ONE | 0x01) << 8
-                   | 0x7FFF;
+        //_buf++; // padding. can change to DATAFORMAT_24B?
+        *_buf++ = 0xab; // BYTE1
+        *_buf++ = (DAC8565_SET_ONE | 0x02); // BYTE0
+        //*_buf++ = 0x1F << 0;//0x7F; // BYTE2
+        *_buf++ = 0x00; // BYTE3
+        *_buf++ = 0x00; // BYTE3
     }
     HAL_I2S_Transmit_DMA( &dac_i2s
-                        , i2s_buf
-                        , DAC_BLOCK_SIZE
+                        , (uint16_t*)i2s_buf
+                        , DAC_BUFFER_SIZE // sending as u16
                         );
 }
 
@@ -110,19 +116,41 @@ void DAC_SetU16( int8_t channel, uint16_t value )
 
 void HAL_I2S_TxHalfCpltCallback( I2S_HandleTypeDef *hi2s )
 {
-    U_PrintLn("tx");
-    HAL_I2S_Transmit_DMA( hi2s
+    // step in 2s for two half-words
+    uint8_t* _buf = (uint8_t*)i2s_buf;
+    for( uint16_t i=0; i<DAC_BLOCK_SIZE; i++ ){
+        // set channel 1 to midpoint (2v5)
+        //_buf++; // padding. can change to DATAFORMAT_24B?
+        *_buf++ = 0xab; // BYTE1
+        *_buf++ = (DAC8565_SET_ONE | 0x02); // BYTE0
+        //*_buf++ = 0x1F << 0;//0x7F; // BYTE2
+        *_buf++ = 0x00; // BYTE3
+        *_buf++ = 0x00; // BYTE3
+    }
+
+    /*HAL_I2S_Transmit_DMA( hi2s
                         , &i2s_buf[DAC_BLOCK_SIZE]
                         , DAC_BLOCK_SIZE
-                        );
+                        );*/
 }
 void HAL_I2S_TxCpltCallback( I2S_HandleTypeDef *hi2s )
 {
-    U_PrintLn("tx");
-    HAL_I2S_Transmit_DMA( hi2s
+    // step in 2s for two half-words
+    uint8_t* _buf = (uint8_t*)(&i2s_buf[DAC_BLOCK_SIZE]);
+    for( uint16_t i=0; i<DAC_BLOCK_SIZE; i++ ){
+        // set channel 1 to midpoint (2v5)
+        //_buf++; // padding. can change to DATAFORMAT_24B?
+        *_buf++ = 0xcb; // BYTE1
+        *_buf++ = (DAC8565_SET_ONE | 0x02); // BYTE0
+        //*_buf++ = 0x1F << 0;//0x7F; // BYTE2
+        *_buf++ = 0x00; // BYTE3
+        *_buf++ = 0x00; // BYTE3
+    }
+
+    /*HAL_I2S_Transmit_DMA( hi2s
                         , i2s_buf
                         , DAC_BLOCK_SIZE
-                        );
+                        );*/
 }
 void HAL_I2S_ErrorCallback( I2S_HandleTypeDef *hi2s )
 {
@@ -130,20 +158,29 @@ void HAL_I2S_ErrorCallback( I2S_HandleTypeDef *hi2s )
 }
 void HAL_I2S_MspInit(I2S_HandleTypeDef *hi2s)
 {
-    static DMA_HandleTypeDef hdma_tx;
+    // I2S PLL Config
+    RCC_PeriphCLKInitTypeDef RCC_ExCLKInitStruct;
 
-    GPIO_InitTypeDef  GPIO_InitStruct;
+    // PLLI2S_VCO = f(VCO clock) = f(PLLI2S clock input) × (PLLI2SN/PLLM)
+    // I2SCLK = f(PLLI2S clock output) = f(VCO clock) / PLLI2SR
+    RCC_ExCLKInitStruct.PeriphClockSelection = RCC_PERIPHCLK_I2S;
+    RCC_ExCLKInitStruct.I2sClockSelection = RCC_I2SCLKSOURCE_PLLI2S;
+    RCC_ExCLKInitStruct.PLLI2S.PLLI2SN = 384;
+    RCC_ExCLKInitStruct.PLLI2S.PLLI2SR = 2;
+    HAL_RCCEx_PeriphCLKConfig(&RCC_ExCLKInitStruct);
 
+    // SPI/I2S & DMA
+    I2Sx_CLK_ENABLE();
+    I2Sx_DMAx_CLK_ENABLE();
+
+    // GPIO pins
     I2Sx_NSS_GPIO_CLK_ENABLE();
     I2Sx_SCK_GPIO_CLK_ENABLE();
     I2Sx_MOSI_GPIO_CLK_ENABLE();
     I2Sx_NRST_GPIO_CLK_ENABLE();
 
-    I2Sx_CLK_ENABLE();
+    GPIO_InitTypeDef  GPIO_InitStruct;
 
-    I2Sx_DMAx_CLK_ENABLE();
-
-    // GPIO pins
     GPIO_InitStruct.Pin       = I2Sx_SCK_PIN;
     GPIO_InitStruct.Speed     = GPIO_SPEED_FAST;
     GPIO_InitStruct.Mode      = GPIO_MODE_AF_PP;
@@ -165,15 +202,17 @@ void HAL_I2S_MspInit(I2S_HandleTypeDef *hi2s)
     HAL_GPIO_Init(I2Sx_NRST_GPIO_PORT, &GPIO_InitStruct);
 
     // DMA Streams
+    static DMA_HandleTypeDef hdma_tx;
+
     hdma_tx.Instance                 = I2Sx_TX_DMA_STREAM;
 
     hdma_tx.Init.Channel             = I2Sx_TX_DMA_CHANNEL;
     hdma_tx.Init.Direction           = DMA_MEMORY_TO_PERIPH;
     hdma_tx.Init.PeriphInc           = DMA_PINC_DISABLE;
     hdma_tx.Init.MemInc              = DMA_MINC_ENABLE;
-    hdma_tx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
-    hdma_tx.Init.MemDataAlignment    = DMA_MDATAALIGN_BYTE;
-    hdma_tx.Init.Mode                = DMA_NORMAL;
+    hdma_tx.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
+    hdma_tx.Init.MemDataAlignment    = DMA_MDATAALIGN_WORD;
+    hdma_tx.Init.Mode                = DMA_CIRCULAR;
     hdma_tx.Init.Priority            = DMA_PRIORITY_LOW;
     hdma_tx.Init.FIFOMode            = DMA_FIFOMODE_DISABLE;
     hdma_tx.Init.FIFOThreshold       = DMA_FIFO_THRESHOLD_FULL;

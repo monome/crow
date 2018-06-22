@@ -38,14 +38,12 @@
 #define I2Sx_DMA_TX_IRQHandler           DMA1_Stream4_IRQHandler
 
 // dac8565 defines
-#define DAC8565_SET_ONE     0b00010000
-#define DAC8565_PREP_ONE    0x0
-#define DAC8565_SET_ALL     0b00110100
-#define DAC8565_REFRESH_ALL 0b00110000
+#define DAC8565_SET_ONE     ((uint8_t)0b00010000)
+#define DAC8565_PREP_ONE    ((uint8_t)0x0)
+#define DAC8565_SET_ALL     ((uint8_t)0b00110100)
+#define DAC8565_REFRESH_ALL ((uint8_t)0b00110000)
 
 #define DAC_ALL_CHANNELS    ((int8_t)-1)
-
-extern I2S_HandleTypeDef dac_spi;
 
 void DAC_Init(void);
 void DAC_Start(void);

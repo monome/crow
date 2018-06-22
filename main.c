@@ -40,6 +40,7 @@ int main(void)
     uint8_t flip = 0;
     float inc = 5.0;
     while(1){
+        Debug_Pin_Set(flip);
         //Caw_try_receive();
         //HAL_Delay(500); Caw_send_rawtext("caw");
         //HAL_Delay(500); Caw_send_luachunk("listen");
