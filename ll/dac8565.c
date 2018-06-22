@@ -24,11 +24,11 @@ uint32_t DAC_Init(void)
     dac_i2s.Instance          = I2Sx;
     dac_i2s.Init.Mode         = I2S_MODE_MASTER_TX;
     dac_i2s.Init.Standard     = I2S_STANDARD_PCM_SHORT;
-    dac_i2s.Init.DataFormat   = I2S_DATAFORMAT_32B; // need 32b?
+    dac_i2s.Init.DataFormat   = I2S_DATAFORMAT_24B;
     dac_i2s.Init.MCLKOutput   = I2S_MCLKOUTPUT_ENABLE;
     dac_i2s.Init.AudioFreq    = I2S_AUDIOFREQ_192K;
-    dac_i2s.Init.CPOL         = I2S_CPOL_LOW; // or _HIGH
-    dac_i2s.Init.ClockSource  = I2S_CLOCK_SYSCLK; // or _PLL
+    dac_i2s.Init.CPOL         = I2S_CPOL_LOW;
+    dac_i2s.Init.ClockSource  = I2S_CLOCK_SYSCLK;
 
     if(HAL_I2S_Init(&dac_i2s) != HAL_OK){ U_PrintLn("i2s_init"); }
 
@@ -51,47 +51,25 @@ void DAC_Start(void)
     uint32_t* dbuf = DAC_state.samples[0][0];
     for( uint16_t i=0; i<DAC_BUFFER_SIZE; i++ ){
         uint8_t* addr_ptr = ((uint8_t*)dbuf) + 1;
-        *addr_ptr = DAC8565_SET_ONE | 1<<1;
-        /**addr_ptr = DAC8565_SET_ONE
-                  | (i%4) << 1;*/
-        /**addr_ptr = (i%4 == 3)
-                        ? DAC8565_SET_ONE  | 3 << 1 // ch4 triggers update
+        *addr_ptr = (i%4 == 3)
+                        ? DAC8565_SET_AND_UPDATE | 3 << 1
                         : DAC8565_PREP_ONE | (i%4) << 1;
-                        */
         dbuf++;
     }
 
     // set all channels to 0v (0xAAAA)
     dbuf = DAC_state.samples[0][0];
     for( uint16_t i=0; i<DAC_BUFFER_SIZE; i++ ){
-        //uint8_t* addr_ptr = ((uint8_t*)dbuf) + 1;
         uint8_t* addr_ptr = ((uint8_t*)dbuf) + 0;
-        *addr_ptr = 0xaa;
-        addr_ptr = ((uint8_t*)dbuf) + 3;
-        *addr_ptr = 0xaa;
+        *addr_ptr = 0xAA;
+        addr_ptr += 3;
+        *addr_ptr = 0xAA;
         dbuf++;
     }
-
-
-
-
-
-    // step in 2s for two half-words
-/*    uint8_t* _buf = (uint8_t*)i2s_buf;
-    for( uint16_t i=0; i<DAC_BUFFER_SIZE; i++ ){
-        // set channel 1 to midpoint (2v5)
-        //_buf++; // padding. can change to DATAFORMAT_24B?
-        *_buf++ = 0xab; // BYTE1
-        *_buf++ = (DAC8565_SET_ONE | 0x02); // BYTE0
-        // *_buf++ = 0x1F << 0;//0x7F; // BYTE2
-        *_buf++ = 0x00; // BYTE3
-        *_buf++ = 0x00; // BYTE3
-    }
-    */
+    // begin i2s transmission
     HAL_I2S_Transmit_DMA( &dac_i2s
-                        //, (uint16_t*)i2s_buf
                         , (uint16_t*)(DAC_state.samples[0][0])
-                        , DAC_BUFFER_SIZE // sending as u16
+                        , DAC_BUFFER_SIZE
                         );
 }
 
