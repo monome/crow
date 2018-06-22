@@ -1,25 +1,26 @@
 #include "dac8565.h"
 
+#include "stdlib.h" // malloc()
 #include "debug_usart.h"
 #include "debug_pin.h"
 
-#define DAC_BLOCK_SIZE   1
-#define DAC_CHAN_COUNT   4
+#include "adda.h" // ADDA_BlockProcess()
+
 #define DAC_BUFFER_COUNT 2 // ping-pong
-#define DAC_BUFFER_SIZE  ( DAC_CHAN_COUNT \
-                         * DAC_BLOCK_SIZE \
-                         * DAC_BUFFER_COUNT)
-uint32_t i2s_buf[DAC_BUFFER_SIZE];
 
 I2S_HandleTypeDef dac_i2s;
 
-typedef struct{
-    uint32_t samples[DAC_BUFFER_COUNT][DAC_BLOCK_SIZE][DAC_CHAN_COUNT];
-} DAC_State_t;
+// pointer to the malloc()d buffer from DAC_Init()
+uint32_t  samp_count;
+uint32_t* samples;
 
-DAC_State_t DAC_state;
-uint32_t DAC_Init(void)
+void DAC_Init( uint16_t bsize, uint8_t chan_count )
 {
+    // Create the sample buffer for DMA transfer
+    samp_count = DAC_BUFFER_COUNT * bsize * chan_count;
+    samples = malloc( sizeof(uint32_t) * samp_count );
+    if(samples == NULL){ U_PrintLn("DAC_buffer"); }
+
     // Set the SPI parameters
     dac_i2s.Instance          = I2Sx;
     dac_i2s.Init.Mode         = I2S_MODE_MASTER_TX;
@@ -36,8 +37,6 @@ uint32_t DAC_Init(void)
     HAL_GPIO_WritePin( I2Sx_NRST_GPIO_PORT, I2Sx_NRST_PIN, 0 );
     volatile uint32_t t=10000; while(t){t--;}
     HAL_GPIO_WritePin( I2Sx_NRST_GPIO_PORT, I2Sx_NRST_PIN, 1 );
-
-    return DAC_BLOCK_SIZE;
 }
 
 /* Initialize the DMA buffer to contain required metadata
@@ -48,8 +47,8 @@ uint32_t DAC_Init(void)
 void DAC_Start(void)
 {
     // prepare SPI packet metadata
-    uint32_t* dbuf = DAC_state.samples[0][0];
-    for( uint16_t i=0; i<DAC_BUFFER_SIZE; i++ ){
+    uint32_t* dbuf = samples;
+    for( uint16_t i=0; i<samp_count; i++ ){
         uint8_t* addr_ptr = ((uint8_t*)dbuf) + 1;
         *addr_ptr = (i%4 == 3)
                         ? DAC8565_SET_AND_UPDATE | 3 << 1
@@ -58,8 +57,8 @@ void DAC_Start(void)
     }
 
     // set all channels to 0v (0xAAAA)
-    dbuf = DAC_state.samples[0][0];
-    for( uint16_t i=0; i<DAC_BUFFER_SIZE; i++ ){
+    dbuf = samples;
+    for( uint16_t i=0; i<samp_count; i++ ){
         uint8_t* addr_ptr = ((uint8_t*)dbuf) + 0;
         *addr_ptr = 0xAA;
         addr_ptr += 3;
@@ -68,123 +67,59 @@ void DAC_Start(void)
     }
     // begin i2s transmission
     HAL_I2S_Transmit_DMA( &dac_i2s
-                        , (uint16_t*)(DAC_state.samples[0][0])
-                        , DAC_BUFFER_SIZE
+                        , (uint16_t*)samples
+                        , samp_count
                         );
 }
 
-typedef struct {
-    uint8_t  dirty;
-    uint8_t  cmd;
-    uint16_t data;
-} DAC_Samp_t;
-
-DAC_Samp_t dac_buf[5];
-
-void DAC_Update( void )
+/* Does all the work converting a generic representation into serial packets
+ * Convert floats (representing volts) to u16 representation
+ * Interleave a block of each channel into a stream
+ * */
+#define DAC_ZERO_VOLTS      ((uint16_t)(((uint32_t)0xFFFF * 2)/3))
+#define DAC_V_TO_U16        ((float)(65535.0 / 15.0))
+void DAC_PickleBlock( uint32_t* dac_pickle_ptr
+                    , float*    unpickled_data
+                    , uint16_t  bsize
+                    )
 {
-    /*
-    // Check NSS is high, indicating no ongoing SPI comm'n
-    if( HAL_GPIO_ReadPin( SPId_NSS_GPIO_PORT, SPId_NSS_PIN ) == GPIO_PIN_SET ){
+    float* u[4];
+    u[0] = unpickled_data;
+    u[1] = &unpickled_data[bsize];
+    u[2] = &unpickled_data[bsize*2];
+    u[3] = &unpickled_data[bsize*3];
 
-        uint8_t ch; // Choose which channel to update
-        if( dac_buf[4].dirty ){ ch = 4; } // Prioritize ALL
-        else {
-            static uint8_t last_ch = 0;
-            uint8_t i=0;
-            while(++i){ // Start at 1
-                if( i==5 ){ return; } // All channels clean
-                ch = (i+last_ch)%4;
-                if( dac_buf[ch].dirty ){ break; } // Proceed to send
-            } last_ch = ch;
+    uint8_t* insert_p = (uint8_t*)dac_pickle_ptr;
+
+    for( uint16_t i=0; i<bsize; i++ ){
+        for( uint8_t j=0; j<4; j++ ){
+            uint16_t val = (uint16_t)( DAC_ZERO_VOLTS
+                                     - (int32_t)(*u[j]++ * DAC_V_TO_U16));
+            *insert_p = val>>8;
+            insert_p += 3;
+            *insert_p++ = val & 0xFF;
         }
-        // pull !SYNC low
-        HAL_GPIO_WritePin( SPId_NSS_GPIO_PORT, SPId_NSS_PIN, 0 );
-        Debug_Pin_Set( 1 );
-        if(HAL_SPI_Transmit( &dac_spi
-                               , (uint8_t*)&(dac_buf[ch].cmd)
-                               , 3
-                               , 10000 // timeout?
-                               ) != HAL_OK ){
-            U_PrintLn("spi_tx_fail");
-        }
-        DAC_SPI_TxCpltCallback( &dac_spi );
-        Debug_Pin_Set( 0 );
-        dac_buf[ch].dirty = 0; // Unmark dirty to avoid repeat send
-    }
-    */
-}
-void DAC_SetU16( int8_t channel, uint16_t value )
-{
-    value = (value & 0xFF)<<8 | (value & 0xFF00)>>8;
-    if(channel >= 4){ return; } // invalid channel selected
-    else if( channel < 0 ){
-        dac_buf[4].dirty = 1;
-        dac_buf[4].cmd   = (channel == -1)
-                                ? DAC8565_SET_ALL
-                                : DAC8565_REFRESH_ALL;
-        dac_buf[4].data  = value;
-        for( uint8_t i=0; i<4; i++ ){
-            // individual buffers are aware of global changes
-            dac_buf[i].dirty = 0;
-            dac_buf[i].data  = dac_buf[4].data;
-        }
-    } else {
-        if( value == dac_buf[channel].data ){ return; } // discard unchanged
-        dac_buf[channel].dirty = 1;
-        dac_buf[channel].cmd   = DAC8565_SET_ONE  // update & set output
-                               | (channel<<1)
-                               ;
-        dac_buf[channel].data  = value;
     }
 }
 
+
+
+// This wraps the (un)pickling functions in ll/addac.c
 void HAL_I2S_TxHalfCpltCallback( I2S_HandleTypeDef *hi2s )
 {
-    /*
-    // step in 2s for two half-words
-    uint8_t* _buf = (uint8_t*)i2s_buf;
-    for( uint16_t i=0; i<DAC_BLOCK_SIZE; i++ ){
-        // set channel 1 to midpoint (2v5)
-        //_buf++; // padding. can change to DATAFORMAT_24B?
-        *_buf++ = 0xab; // BYTE1
-        *_buf++ = (DAC8565_SET_ONE | 0x02); // BYTE0
-        // *_buf++ = 0x1F << 0;//0x7F; // BYTE2
-        *_buf++ = 0x00; // BYTE3
-        *_buf++ = 0x00; // BYTE3
-    }
-    */
-
-    /*HAL_I2S_Transmit_DMA( hi2s
-                        , &i2s_buf[DAC_BLOCK_SIZE]
-                        , DAC_BLOCK_SIZE
-                        );*/
+    ADDA_BlockProcess( samples );
 }
 void HAL_I2S_TxCpltCallback( I2S_HandleTypeDef *hi2s )
 {
-    /*
-    // step in 2s for two half-words
-    uint8_t* _buf = (uint8_t*)(&i2s_buf[DAC_BLOCK_SIZE]);
-    for( uint16_t i=0; i<DAC_BLOCK_SIZE; i++ ){
-        // set channel 1 to midpoint (2v5)
-        //_buf++; // padding. can change to DATAFORMAT_24B?
-        *_buf++ = 0xcb; // BYTE1
-        *_buf++ = (DAC8565_SET_ONE | 0x02); // BYTE0
-        // *_buf++ = 0x1F << 0;//0x7F; // BYTE2
-        *_buf++ = 0x00; // BYTE3
-        *_buf++ = 0x00; // BYTE3
-    }
-    */
-
-    /*HAL_I2S_Transmit_DMA( hi2s
-                        , i2s_buf
-                        , DAC_BLOCK_SIZE
-                        );*/
+    ADDA_BlockProcess( &samples[samp_count/2] );
 }
 void HAL_I2S_ErrorCallback( I2S_HandleTypeDef *hi2s )
 {
     U_PrintLn("i2s_tx_error");
 }
+
+
+// Driver Config
 void HAL_I2S_MspInit(I2S_HandleTypeDef *hi2s)
 {
     // I2S PLL Config

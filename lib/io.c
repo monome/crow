@@ -3,8 +3,7 @@
 #include "main.h"
 
 #include "../ll/cal_ll.h"
-#include "../ll/dac8565.h"
-#include "../ll/ads131.h"
+#include "../ll/adda.h"
 #include "../ll/debug_usart.h"
 
 // Private Declarations
@@ -26,11 +25,9 @@ CAL_t cal;
 // Public Definitions
 void IO_Init( void )
 {
-    uint32_t block_size = DAC_Init();
-    IO_Set( DAC_ALL_CHANNELS, 0.0 );
-    DAC_Update();
-
-    ADC_Init();
+    // TODO: need block_size for anything?
+    //uint16_t block_size = ADDA_Init();
+    ADDA_Init();
 
     CAL_LL_Init();
     //IO_Recalibrate();
@@ -38,15 +35,7 @@ void IO_Init( void )
 
 void IO_Start( void )
 {
-    DAC_Start();
-}
-
-// This needs to be reconfigured as a callback from the DAC driver
-// Only trigger the 'process' every 4th cycle
-// 1: average ADC since last sample
-void IO_Process( void )
-{
-    DAC_Update();
+    ADDA_Start();
 }
 
 void IO_Recalibrate( void )
@@ -62,13 +51,13 @@ void IO_Recalibrate( void )
 
     uint32_t del = 1;
     HAL_Delay(del);
-    U_PrintU16(ADC_GetU16(0));
+    //U_PrintU16(ADC_GetU16(0));
     HAL_Delay(del);
 
     // ADC calibration against reference
     CAL_LL_ActiveChannel( CAL_LL_Reference );
     HAL_Delay(del);
-    U_PrintU16(ADC_GetU16(0));
+    //U_PrintU16(ADC_GetU16(0));
     HAL_Delay(del);
 
 
@@ -85,22 +74,22 @@ void IO_Recalibrate( void )
     //return save;
 }
 // 0xAAAA
-#define DAC_ZERO_VOLTS      ((uint16_t)(((uint32_t)0xFFFF * 2)/3))
 //#define DAC_ZERO_VOLTS 0
-#define DAC_V_TO_U16        ((float)(65535.0 / 15.0))
 void IO_Set( uint8_t channel, float volts )
 {
     // TODO: apply calibration first
     // TODO: roll calibration & scaling into one for efficiency
-    DAC_SetU16( channel
+    /*DAC_SetU16( channel
               , (uint16_t)( DAC_ZERO_VOLTS - (int16_t)(volts * DAC_V_TO_U16) )
               );
+              */
 }
 float IO_Get( uint8_t channel )
 {
     // TODO: apply calibration first
     // TODO: roll calibration & scaling into one for efficiency
-    return ((float)ADC_GetU16(channel) / DAC_V_TO_U16 - 5.0);
+    //return ((float)ADC_GetU16(channel) / DAC_V_TO_U16 - 5.0);
+    return 0.0;
 }
 
 // Private definitions
@@ -116,7 +105,7 @@ void _CAL_DAC( uint8_t chan )
     do{
         // TODO: shift calibration toward destination
         IO_Set( chan, 0.0 );
-        DAC_Update();
+        //DAC_Update();
         // TODO: Wait for DAC DMA setting time
         // TODO: Wait for DAC settling time
         //float avg = _CAL_ADC_GetAverage(0); // always use 1st input

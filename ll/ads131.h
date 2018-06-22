@@ -82,7 +82,7 @@
 
 #define ADS_DATAWORDSIZE 0x4 // 32bit, pin M1 pulled high to IOVDD
 
-void ADC_Init(void);
+void ADC_Init( uint16_t bsize );
 
 //int32_t
 uint16_t ADC_GetU16( uint8_t channel );
@@ -91,9 +91,9 @@ void SPIa_DMA_RX_IRQHandler(void);
 void SPIa_DMA_TX_IRQHandler(void);
 void SPIa_IRQHandler(void);
 
-void ADC_SPI_ErrorCallback(SPI_HandleTypeDef *hspi);
-void ADC_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi);
-void ADC_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi);
+void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi);
+void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi);
+void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi);
 
-void ADC_SPI_MspInit(SPI_HandleTypeDef *hspi);
-void ADC_SPI_MspDeInit(SPI_HandleTypeDef *hspi);
+void HAL_SPI_MspInit(SPI_HandleTypeDef *hspi);
+void HAL_SPI_MspDeInit(SPI_HandleTypeDef *hspi);

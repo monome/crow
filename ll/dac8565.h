@@ -44,13 +44,13 @@
 #define DAC8565_SET_ALL        ((uint8_t)0b00110100)
 #define DAC8565_REFRESH_ALL    ((uint8_t)0b00110000)
 
-#define DAC_ALL_CHANNELS    ((int8_t)-1)
-
-uint32_t DAC_Init(void);
+void DAC_Init( uint16_t bsize, uint8_t chan_count );
 void DAC_Start(void);
 
-void DAC_Update( void );
-void DAC_SetU16( int8_t channel, uint16_t value );
+void DAC_PickleBlock( uint32_t* dac_pickle_ptr
+                    , float*    unpickled_data
+                    , uint16_t  bsize
+                    );
 
 void I2Sx_DMA_TX_IRQHandler(void);
 void I2Sx_IRQHandler(void);

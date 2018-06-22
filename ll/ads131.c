@@ -2,7 +2,6 @@
 
 #include <stm32f7xx_hal.h>
 
-#include "spi_ll.h"
 #include "debug_usart.h"
 
 #define ADC_FRAMES     3 // status word, plus 2 channels
@@ -27,7 +26,7 @@ uint16_t ADS_Reg( uint8_t reg_mask, uint8_t val );
 void ADC_TxRx( uint16_t* aTxBuffer, uint16_t* aRxBuffer, uint32_t size );
 void ADC_Rx( uint16_t* aRxBuffer, uint32_t size );
 
-void ADC_Init(void)
+void ADC_Init( uint16_t bsize )
 {
     // Set the SPI parameters
     adc_spi.Instance               = SPIa;
@@ -188,7 +187,7 @@ void ADC_TxRx( uint16_t* aTxBuffer, uint16_t* aRxBuffer, uint32_t size )
     // just wait til it's done (for now)
     while (HAL_SPI_GetState(&adc_spi) != HAL_SPI_STATE_READY){;;}
 }
-void ADC_SPI_ErrorCallback(SPI_HandleTypeDef *hspi)
+void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi)
 {
     U_PrintLn("spi_error");
     // pull NSS high to cancel any ongoing transmission
@@ -196,7 +195,7 @@ void ADC_SPI_ErrorCallback(SPI_HandleTypeDef *hspi)
     HAL_GPIO_WritePin( SPIa_NSS_GPIO_PORT, SPIa_NSS_PIN, 1 );
 }
 
-void ADC_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
+void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 {
     //U_PrintLn("txrx-cb");
     // signal end of transmission by pulling NSS high
@@ -204,7 +203,7 @@ void ADC_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
     HAL_GPIO_WritePin( SPIa_NSS_GPIO_PORT, SPIa_NSS_PIN, 1 );
 }
 
-void ADC_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
+void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
 {
     //U_PrintLn("rx-cb");
     // signal end of transmission by pulling NSS high
@@ -212,7 +211,7 @@ void ADC_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
     HAL_GPIO_WritePin( SPIa_NSS_GPIO_PORT, SPIa_NSS_PIN, 1 );
 }
 
-void ADC_SPI_MspInit(SPI_HandleTypeDef *hspi)
+void HAL_SPI_MspInit(SPI_HandleTypeDef *hspi)
 {
     static DMA_HandleTypeDef hdma_rx;
     static DMA_HandleTypeDef hdma_tx;
@@ -315,7 +314,7 @@ void ADC_SPI_MspInit(SPI_HandleTypeDef *hspi)
     HAL_NVIC_EnableIRQ(SPIa_IRQn);
 }
 
-void ADC_SPI_MspDeInit(SPI_HandleTypeDef *hspi)
+void HAL_SPI_MspDeInit(SPI_HandleTypeDef *hspi)
 {
     static DMA_HandleTypeDef hdma_rx;
     static DMA_HandleTypeDef hdma_tx;
