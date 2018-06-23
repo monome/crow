@@ -5,7 +5,6 @@
 #include "debug_usart.h"
 
 #define ADC_FRAMES     3 // status word, plus 2 channels
-#define ADC_CMD_SIZE   4 // 32bit only
 #define ADC_BUF_SIZE   (ADS_DATAWORDSIZE * ADC_FRAMES)
 
 SPI_HandleTypeDef adc_spi;
@@ -18,6 +17,9 @@ uint16_t aTxBuffer[ADC_BUF_SIZE];
     do{ for( volatile int i=0; i<u; i++ ){;;} \
     } while(0);
 
+uint8_t  adc_count;
+uint32_t samp_count;
+
 void ADS_Init_Sequence(void);
 void ADS_Reset_Device(void);
 uint8_t ADS_IsReady( void );
@@ -26,8 +28,11 @@ uint16_t ADS_Reg( uint8_t reg_mask, uint8_t val );
 void ADC_TxRx( uint16_t* aTxBuffer, uint16_t* aRxBuffer, uint32_t size );
 void ADC_Rx( uint16_t* aRxBuffer, uint32_t size );
 
-void ADC_Init( uint16_t bsize )
+void ADC_Init( uint16_t bsize, uint8_t chan_count )
 {
+    adc_count  = chan_count;
+    samp_count = bsize * chan_count;
+
     // Set the SPI parameters
     adc_spi.Instance               = SPIa;
     adc_spi.Init.Mode              = SPI_MODE_MASTER;
@@ -155,6 +160,20 @@ uint16_t ADC_GetU16( uint8_t channel )
     *tx = 0; // NULL command
     ADC_TxRx( aTxBuffer, aRxBuffer, ADC_BUF_SIZE );
     return aRxBuffer[channel+1];
+}
+
+#define DAC_V_TO_U16        ((float)(65535.0 / 15.0))
+void ADC_UnpickleBlock( float*   unpickled
+                      , uint16_t bsize
+                      )
+{
+    //float once = (float)ADC_GetU16(0) / DAC_V_TO_U16 - 5.0;
+    float once = 1.0;
+    for( uint8_t j=0; j<adc_count; j++ ){
+        for( uint16_t i=0; i<bsize; i++ ){
+            *unpickled++ = once;
+        }
+    }
 }
 
 void ADC_Rx( uint16_t* aRxBuffer, uint32_t size )

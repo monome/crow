@@ -82,11 +82,13 @@
 
 #define ADS_DATAWORDSIZE 0x4 // 32bit, pin M1 pulled high to IOVDD
 
-void ADC_Init( uint16_t bsize );
+void ADC_Init( uint16_t bsize, uint8_t chan_count );
 
 //int32_t
 uint16_t ADC_GetU16( uint8_t channel );
-
+void ADC_UnpickleBlock( float*   unpickled
+                      , uint16_t bsize
+                      );
 void SPIa_DMA_RX_IRQHandler(void);
 void SPIa_DMA_TX_IRQHandler(void);
 void SPIa_IRQHandler(void);
