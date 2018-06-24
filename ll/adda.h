@@ -1,0 +1,21 @@
+#pragma once
+
+#include <stm32f7xx.h>
+
+#define ADDA_BLOCK_SIZE     16
+#define ADDA_DAC_CHAN_COUNT 4
+#define ADDA_ADC_CHAN_COUNT 2
+
+typedef struct{
+    float    in[ ADDA_ADC_CHAN_COUNT][ADDA_BLOCK_SIZE];
+    float    out[ADDA_DAC_CHAN_COUNT][ADDA_BLOCK_SIZE];
+    uint16_t size;
+} IO_block_t;
+
+uint16_t ADDA_Init( void );
+void ADDA_Start( void );
+void ADDA_BlockProcess( uint32_t* dac_pickle_ptr );
+// __weak definition
+// Implement this in library code
+// It handles the block-processing of the IO!
+IO_block_t* IO_BlockProcess( IO_block_t* b );
