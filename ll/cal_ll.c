@@ -34,8 +34,8 @@ void CAL_LL_ActiveChannel( CAL_LL_Channel_t channel )
                      , CAL_1_PIN
                      , (channel & 2) >> 1
                      );
-    HAL_GPIO_WritePin( CAL_1_GPIO_PORT
-                     , CAL_1_PIN
+    HAL_GPIO_WritePin( CAL_2_GPIO_PORT
+                     , CAL_2_PIN
                      , (channel & 4) >> 2
                      );
 }
