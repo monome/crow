@@ -27,7 +27,7 @@ void DAC_Init( uint16_t bsize, uint8_t chan_count )
     dac_i2s.Init.Standard     = I2S_STANDARD_PCM_SHORT;
     dac_i2s.Init.DataFormat   = I2S_DATAFORMAT_24B;
     dac_i2s.Init.MCLKOutput   = I2S_MCLKOUTPUT_ENABLE;
-    dac_i2s.Init.AudioFreq    = I2S_AUDIOFREQ_192K;
+    dac_i2s.Init.AudioFreq    = I2S_AUDIOFREQ_96K;
     dac_i2s.Init.CPOL         = I2S_CPOL_LOW;
     dac_i2s.Init.ClockSource  = I2S_CLOCK_SYSCLK;
 
