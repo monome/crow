@@ -15,8 +15,8 @@ void DAC_Init(void)
     dac_spi.Init.CLKPolarity       = SPI_POLARITY_HIGH; // or _LOW?
     dac_spi.Init.CLKPhase          = SPI_PHASE_1EDGE;
     dac_spi.Init.NSS               = SPI_NSS_SOFT; //_HARD_OUTPUT
-    dac_spi.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;
-        // Can squeeze maybe 5% more performacnce by goin to _2
+    dac_spi.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+        // ~140kHz in polling mode @2
     dac_spi.Init.FirstBit          = SPI_FIRSTBIT_MSB;
     dac_spi.Init.TIMode            = SPI_TIMODE_DISABLE;
     dac_spi.Init.CRCCalculation    = SPI_CRCCALCULATION_DISABLE;
@@ -40,6 +40,7 @@ void DAC_Update( void )
 {
     // Check NSS is high, indicating no ongoing SPI comm'n
     if( HAL_GPIO_ReadPin( SPId_NSS_GPIO_PORT, SPId_NSS_PIN ) == GPIO_PIN_SET ){
+
         uint8_t ch; // Choose which channel to update
         if( dac_buf[4].dirty ){ ch = 4; } // Prioritize ALL
         else {
@@ -53,12 +54,16 @@ void DAC_Update( void )
         }
         // pull !SYNC low
         HAL_GPIO_WritePin( SPId_NSS_GPIO_PORT, SPId_NSS_PIN, 0 );
-        if(HAL_SPI_Transmit_DMA( &dac_spi
+        Debug_Pin_Set( 1 );
+        if(HAL_SPI_Transmit( &dac_spi
                                , (uint8_t*)&(dac_buf[ch].cmd)
                                , 3
+                               , 10000 // timeout?
                                ) != HAL_OK ){
             U_PrintLn("spi_tx_fail");
         }
+        DAC_SPI_TxCpltCallback( &dac_spi );
+        Debug_Pin_Set( 0 );
         dac_buf[ch].dirty = 0; // Unmark dirty to avoid repeat send
     }
 }
