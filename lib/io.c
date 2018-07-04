@@ -113,11 +113,15 @@ void IO_Set( uint8_t channel, float volts )
               );
               */
 }
+#include "../ll/ads131.h"
 float IO_Get( uint8_t channel )
 {
     // TODO: apply calibration first
     // TODO: roll calibration & scaling into one for efficiency
     //return ((float)ADC_GetU16(channel) / DAC_V_TO_U16 - 5.0);
+    ADC_GetU16(0);
+    //U_PrintU16(ADC_GetU16(0));
+    //U_PrintU16(ADC_GetU16(1));
     return 0.0;
 }
 

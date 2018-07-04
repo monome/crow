@@ -25,10 +25,9 @@ void ADDA_BlockProcess( uint32_t* dac_pickle_ptr )
     IO_block_t b = { .size = ADDA_BLOCK_SIZE };
     Debug_Pin_Set(1);
 
-    /*ADC_UnpickleBlock( b.in[0]
+    ADC_UnpickleBlock( b.in[0]
                      , ADDA_BLOCK_SIZE
                      );
-                     */
     IO_BlockProcess( &b );
     DAC_PickleBlock( dac_pickle_ptr
                    , b.out[0]
