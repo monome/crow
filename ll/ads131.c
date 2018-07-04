@@ -383,15 +383,24 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef *hspi)
 
 
     // DMA Priority (should be below IO, but above main process)
-    HAL_NVIC_SetPriority(SPIa_DMA_TX_IRQn, 1, 1);
-    HAL_NVIC_EnableIRQ(SPIa_DMA_TX_IRQn);
+    HAL_NVIC_SetPriority( SPIa_DMA_TX_IRQn
+                        , SPIa_DMA_TX_IRQPriority
+                        , SPIa_DMA_TX_IRQSubPriority
+                        );
+    HAL_NVIC_EnableIRQ( SPIa_DMA_TX_IRQn );
 
-    HAL_NVIC_SetPriority(SPIa_DMA_RX_IRQn, 1, 0);
-    HAL_NVIC_EnableIRQ(SPIa_DMA_RX_IRQn);
+    HAL_NVIC_SetPriority( SPIa_DMA_RX_IRQn
+                        , SPIa_DMA_RX_IRQPriority
+                        , SPIa_DMA_RX_IRQSubPriority
+                        );
+    HAL_NVIC_EnableIRQ( SPIa_DMA_RX_IRQn );
 
     // Must be lower priority than the above DMA
-    HAL_NVIC_SetPriority(SPIa_IRQn, 1, 2);
-    HAL_NVIC_EnableIRQ(SPIa_IRQn);
+    HAL_NVIC_SetPriority( SPIa_IRQn
+                        , SPIa_IRQPriority
+                        , SPIa_IRQSubPriority
+                        );
+    HAL_NVIC_EnableIRQ( SPIa_IRQn );
 }
 
 void HAL_SPI_MspDeInit(SPI_HandleTypeDef *hspi)

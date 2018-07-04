@@ -189,12 +189,18 @@ void HAL_I2S_MspInit(I2S_HandleTypeDef *hi2s)
     __HAL_LINKDMA(hi2s, hdmatx, hdma_tx);
 
     // DMA Priority (should be below IO, but above main process)
-    HAL_NVIC_SetPriority(I2Sx_DMA_TX_IRQn, 0, 1);
-    HAL_NVIC_EnableIRQ(I2Sx_DMA_TX_IRQn);
+    HAL_NVIC_SetPriority( I2Sx_DMA_TX_IRQn
+                        , I2Sx_DMA_TX_IRQPriority
+                        , I2Sx_DMA_TX_IRQSubPriority
+                        );
+    HAL_NVIC_EnableIRQ( I2Sx_DMA_TX_IRQn );
 
     // Must be lower priority than the above DMA
-    HAL_NVIC_SetPriority(I2Sx_IRQn, 0, 2);
-    HAL_NVIC_EnableIRQ(I2Sx_IRQn);
+    HAL_NVIC_SetPriority( I2Sx_IRQn
+                        , I2Sx_IRQPriority
+                        , I2Sx_IRQSubPriority
+                        );
+    HAL_NVIC_EnableIRQ( I2Sx_IRQn );
 }
 
 void DAC_I2S_MspDeInit(I2S_HandleTypeDef *hi2s)

@@ -37,6 +37,11 @@
 #define I2Sx_DMA_TX_IRQn                 DMA1_Stream4_IRQn
 #define I2Sx_DMA_TX_IRQHandler           DMA1_Stream4_IRQHandler
 
+#define I2Sx_DMA_TX_IRQPriority      6
+#define I2Sx_DMA_TX_IRQSubPriority   1
+#define I2Sx_IRQPriority             6
+#define I2Sx_IRQSubPriority          2
+
 // dac8565 defines
 #define DAC8565_SET_ONE        ((uint8_t)0b00010000)
 #define DAC8565_PREP_ONE       ((uint8_t)0x0)
