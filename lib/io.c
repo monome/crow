@@ -23,6 +23,13 @@ typedef struct {
 CAL_t cal;
 
 // Public Definitions
+
+#include "../../wrDsp/wrOscSine.h"
+#include "../../wrLib/wrMath.h"
+
+// currently getting 30 sinewaves at 48kHz
+osc_sine_t sinewave[4];
+
 void IO_Init( void )
 {
     // TODO: need block_size for anything?
@@ -31,11 +38,33 @@ void IO_Init( void )
 
     CAL_LL_Init();
     //IO_Recalibrate();
+
+    for( uint8_t j=0; j<4; j++ ){
+        osc_sine_init( &sinewave[j] );
+        osc_sine_time( &sinewave[j], 0.01*(j*2+1) );
+    }
 }
 
 void IO_Start( void )
 {
     ADDA_Start();
+}
+
+// DSP process
+IO_block_t* IO_BlockProcess( IO_block_t* b )
+{
+    for( uint8_t j=0; j<4; j++ ){
+        osc_sine_process_base_v( &sinewave[j]
+                               , b->size
+                               , b->out[j]
+                               );
+        mul_vf_f( b->out[j]
+                , 3.1
+                , b->out[j]
+                , b->size
+                );
+    }
+    return b;
 }
 
 void IO_Recalibrate( void )

@@ -41,8 +41,8 @@ __weak IO_block_t* IO_BlockProcess( IO_block_t* b )
 {
     static float count = 1.0;
     for( uint16_t i=0; i<(b->size); i++ ){
-        b->out[0][i] = 0.2;//count;//b->in[0][i];
-        b->out[1][i] = 1.0;//b->in[0][i];
+        b->out[0][i] = b->in[0][i];
+        b->out[1][i] = b->in[1][i];
         b->out[2][i] = 2.0;
         b->out[3][i] = 3.0;
 
