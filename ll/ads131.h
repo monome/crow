@@ -80,6 +80,14 @@
 #define ADS_READ_REG  0x20
 #define ADS_WRITE_REG 0x40
 
+// ads131 status registers
+#define ADS_STAT_1    0x02
+#define ADS_STAT_P    0x03
+#define ADS_STAT_N    0x04
+#define ADS_STAT_S    0x05
+#define ADS_ERROR_CNT 0x06
+#define ADS_STAT_M2   0x07
+
 // ads131 user config registers
 #define ADS_A_SYS_CFG 0x0B
 #define ADS_D_SYS_CFG 0x0C
