@@ -27,6 +27,7 @@ typedef struct{
 #define SLEW_CHANNELS 4
 
 // register a new destination
+void S_init( void );
 void S_toward( int        index
              , float      destination
              , float      ms
@@ -34,11 +35,12 @@ void S_toward( int        index
              , Callback_t cb
              );
 
-float* S_step_v( Slew_t* self
+float* S_step_v( int     index
                , float*  out
                , int     size
                );
 // example usage
+/*
 block_processor()
 {
     // process execution stack?
@@ -50,3 +52,4 @@ block_processor()
                 );
     }
 }
+*/

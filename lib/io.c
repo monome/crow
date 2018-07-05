@@ -5,6 +5,7 @@
 #include "../ll/cal_ll.h"
 #include "../ll/adda.h"
 #include "../ll/debug_usart.h"
+#include "slews.h"
 
 // Private Declarations
 void _CAL_DAC( uint8_t chan );
@@ -29,6 +30,8 @@ CAL_t cal;
 
 // currently getting 30 sinewaves at 48kHz
 osc_sine_t sinewave[4];
+void _callback_up( void );
+void _callback_down( void );
 
 void IO_Init( void )
 {
@@ -43,6 +46,9 @@ void IO_Init( void )
         osc_sine_init( &sinewave[j] );
         osc_sine_time( &sinewave[j], 0.01*(j*2+1) );
     }
+
+    S_init();
+    _callback_up();
 }
 
 void IO_Start( void )
@@ -50,10 +56,30 @@ void IO_Start( void )
     ADDA_Start();
 }
 
+void _callback_up( void )
+{
+    S_toward( 0
+            , 1.0
+            , 10.0
+            , SHAPE_Sine
+            , _callback_down
+            );
+}
+void _callback_down( void )
+{
+    S_toward( 0
+            , -1.0
+            , 20.5
+            , SHAPE_Sine
+            , _callback_up
+            );
+}
+
+
 // DSP process
 IO_block_t* IO_BlockProcess( IO_block_t* b )
 {
-    for( uint8_t j=0; j<4; j++ ){
+    /*for( uint8_t j=0; j<4; j++ ){
         osc_sine_process_base_v( &sinewave[j]
                                , b->size
                                , b->out[j]
@@ -63,7 +89,14 @@ IO_block_t* IO_BlockProcess( IO_block_t* b )
                 , b->out[j]
                 , b->size
                 );
+    }*/
+    for( int j=0; j<SLEW_CHANNELS; j++ ){
+        S_step_v( j
+                , b->out[j]
+                , b->size
+                );
     }
+
     return b;
 }
 

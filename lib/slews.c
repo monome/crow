@@ -1,8 +1,19 @@
 #include "slews.h"
+#include "stm32f7xx.h"
 
 Slew_t slews[SLEW_CHANNELS];
 
 // register a new destination
+void S_init( void )
+{
+    for( int j=0; j<SLEW_CHANNELS; j++ ){
+        slews[j].dest   = 0.0;
+        slews[j].action = NULL;
+        slews[j].last   = 0.0;
+        slews[j].delta  = 0.0;
+    }
+}
+
 void S_toward( int        index
              , float      destination
              , float      ms
@@ -10,7 +21,7 @@ void S_toward( int        index
              , Callback_t cb
              )
 {
-    if( index < 0 || index >= SLEW_CHANNELS ){ return }
+    if( index < 0 || index >= SLEW_CHANNELS ){ return; }
     Slew_t* self = &slews[index]; // safe pointer
 
     // update destination
@@ -33,19 +44,23 @@ void _S_isbreakpoint( Slew_t* self, float state )
 {
     if( self->delta >= 0 ){
         if( state >= self->dest ){
-            self->action;
+            if( self->action != NULL ){ self->action(); }
         }
     } else {
         if( state < self->dest ){
-            self->action;
+            if( self->action != NULL ){ self->action(); }
         }
     }
 }
-float* S_step_v( Slew_t* self
+float* S_step_v( int     index
                , float*  out
                , int     size
                )
 {
+    // turn index into pointer
+    if( index < 0 || index >= SLEW_CHANNELS ){ return out; }
+    Slew_t* self = &slews[index]; // safe pointer
+
     float* out2 = out;
     float* out3 = out;
     *out2++ = self->here + self->delta;
