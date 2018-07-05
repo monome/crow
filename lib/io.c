@@ -3,9 +3,9 @@
 #include "main.h"
 
 #include "../ll/cal_ll.h"
-#include "../ll/dac8565.h"
-#include "../ll/ads131.h"
+#include "../ll/adda.h"
 #include "../ll/debug_usart.h"
+#include "slews.h"
 
 // Private Declarations
 void _CAL_DAC( uint8_t chan );
@@ -24,21 +24,80 @@ typedef struct {
 CAL_t cal;
 
 // Public Definitions
+
+#include "../../wrDsp/wrOscSine.h"
+#include "../../wrLib/wrMath.h"
+
+// currently getting 30 sinewaves at 48kHz
+osc_sine_t sinewave[4];
+void _callback_up( void );
+void _callback_down( void );
+
 void IO_Init( void )
 {
-    DAC_Init();
-    IO_Set( DAC_ALL_CHANNELS, 0.0 );
-    DAC_Update();
-
-    ADC_Init();
+    // TODO: need block_size for anything?
+    //uint16_t block_size = ADDA_Init();
+    ADDA_Init();
 
     CAL_LL_Init();
     //IO_Recalibrate();
+
+    for( uint8_t j=0; j<4; j++ ){
+        osc_sine_init( &sinewave[j] );
+        osc_sine_time( &sinewave[j], 0.01*(j*2+1) );
+    }
+
+    S_init();
+    _callback_up();
 }
 
-void IO_Process( void )
+void IO_Start( void )
 {
-    DAC_Update();
+    ADDA_Start();
+}
+
+void _callback_up( void )
+{
+    S_toward( 0
+            , 1.0
+            , 10.0
+            , SHAPE_Sine
+            , _callback_down
+            );
+}
+void _callback_down( void )
+{
+    S_toward( 0
+            , -1.0
+            , 20.5
+            , SHAPE_Sine
+            , _callback_up
+            );
+}
+
+
+// DSP process
+IO_block_t* IO_BlockProcess( IO_block_t* b )
+{
+    /*for( uint8_t j=0; j<4; j++ ){
+        osc_sine_process_base_v( &sinewave[j]
+                               , b->size
+                               , b->out[j]
+                               );
+        mul_vf_f( b->out[j]
+                , 3.1
+                , b->out[j]
+                , b->size
+                );
+    }*/
+    for( int j=0; j<SLEW_CHANNELS; j++ ){
+        S_step_v( j
+                , b->out[j]
+                , b->size
+                );
+    }
+
+    return b;
 }
 
 void IO_Recalibrate( void )
@@ -54,13 +113,13 @@ void IO_Recalibrate( void )
 
     uint32_t del = 1;
     HAL_Delay(del);
-    U_PrintU16(ADC_GetU16(0));
+    //U_PrintU16(ADC_GetU16(0));
     HAL_Delay(del);
 
     // ADC calibration against reference
     CAL_LL_ActiveChannel( CAL_LL_Reference );
     HAL_Delay(del);
-    U_PrintU16(ADC_GetU16(0));
+    //U_PrintU16(ADC_GetU16(0));
     HAL_Delay(del);
 
 
@@ -76,22 +135,27 @@ void IO_Recalibrate( void )
 
     //return save;
 }
-#define DAC_ZERO_VOLTS      ((uint16_t)(((uint32_t)0xFFFF * 2)/3))
+// 0xAAAA
 //#define DAC_ZERO_VOLTS 0
-#define DAC_V_TO_U16        ((float)(65535.0 / 15.0))
 void IO_Set( uint8_t channel, float volts )
 {
     // TODO: apply calibration first
     // TODO: roll calibration & scaling into one for efficiency
-    DAC_SetU16( channel
+    /*DAC_SetU16( channel
               , (uint16_t)( DAC_ZERO_VOLTS - (int16_t)(volts * DAC_V_TO_U16) )
               );
+              */
 }
+#include "../ll/ads131.h"
 float IO_Get( uint8_t channel )
 {
     // TODO: apply calibration first
     // TODO: roll calibration & scaling into one for efficiency
-    return ((float)ADC_GetU16(channel) / DAC_V_TO_U16 - 5.0);
+    //return ((float)ADC_GetU16(channel) / DAC_V_TO_U16 - 5.0);
+    ADC_GetU16(0);
+    //U_PrintU16(ADC_GetU16(0));
+    //U_PrintU16(ADC_GetU16(1));
+    return 0.0;
 }
 
 // Private definitions
@@ -107,7 +171,7 @@ void _CAL_DAC( uint8_t chan )
     do{
         // TODO: shift calibration toward destination
         IO_Set( chan, 0.0 );
-        DAC_Update();
+        //DAC_Update();
         // TODO: Wait for DAC DMA setting time
         // TODO: Wait for DAC settling time
         //float avg = _CAL_ADC_GetAverage(0); // always use 1st input

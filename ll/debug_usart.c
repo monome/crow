@@ -87,14 +87,17 @@ void HAL_USART_MspInit(USART_HandleTypeDef *hu )
 	__HAL_LINKDMA( hu, hdmarx, hdma_rx ); // Associate DMA to USART handle
 */
 	// Configure NVIC for DMA
-	HAL_NVIC_SetPriority( USARTx_DMA_TX_IRQn, 5, 1 );
-	HAL_NVIC_EnableIRQ(   USARTx_DMA_TX_IRQn);
+	HAL_NVIC_SetPriority( USARTx_DMA_TX_IRQn
+                        , USARTx_DMA_IRQPriority
+                        , USARTx_DMA_IRQSubPriority
+                        );
+	HAL_NVIC_EnableIRQ( USARTx_DMA_TX_IRQn );
 
-	// HAL_NVIC_SetPriority(USARTx_DMA_RX_IRQn, 5, 2);
-	// HAL_NVIC_EnableIRQ(USARTx_DMA_RX_IRQn);
-
-	HAL_NVIC_SetPriority( USARTx_IRQn, 5, 0 );
-	HAL_NVIC_EnableIRQ(   USARTx_IRQn);
+	HAL_NVIC_SetPriority( USARTx_IRQn
+                        , USARTx_IRQSubPriority
+                        , USARTx_IRQSubPriority
+                        );
+	HAL_NVIC_EnableIRQ( USARTx_IRQn );
 }
 
 void USARTx_DMA_RX_IRQHandler( void )

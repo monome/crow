@@ -1,155 +1,182 @@
 #include "dac8565.h"
 
+#include "stdlib.h" // malloc()
 #include "debug_usart.h"
 #include "debug_pin.h"
 
-SPI_HandleTypeDef dac_spi;
+#include "adda.h" // ADDA_BlockProcess()
 
-void DAC_Init(void)
+#define DAC_BUFFER_COUNT 2 // ping-pong
+
+I2S_HandleTypeDef dac_i2s;
+
+// pointer to the malloc()d buffer from DAC_Init()
+uint32_t  samp_count;
+uint32_t* samples;
+
+void DAC_Init( uint16_t bsize, uint8_t chan_count )
 {
-    // Set the SPI parameters
-    dac_spi.Instance               = SPId;
-    dac_spi.Init.Mode              = SPI_MODE_MASTER;
-    dac_spi.Init.Direction         = SPI_DIRECTION_1LINE;
-    dac_spi.Init.DataSize          = SPI_DATASIZE_8BIT;
-    dac_spi.Init.CLKPolarity       = SPI_POLARITY_HIGH; // or _LOW?
-    dac_spi.Init.CLKPhase          = SPI_PHASE_1EDGE;
-    dac_spi.Init.NSS               = SPI_NSS_SOFT; //_HARD_OUTPUT
-    dac_spi.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
-        // ~140kHz in polling mode @2
-    dac_spi.Init.FirstBit          = SPI_FIRSTBIT_MSB;
-    dac_spi.Init.TIMode            = SPI_TIMODE_DISABLE;
-    dac_spi.Init.CRCCalculation    = SPI_CRCCALCULATION_DISABLE;
-    dac_spi.Init.CRCPolynomial     = 7;
+    // Create the sample buffer for DMA transfer
+    samp_count = DAC_BUFFER_COUNT * bsize * chan_count;
+    samples = malloc( sizeof(uint32_t) * samp_count );
+    if(samples == NULL){ U_PrintLn("DAC_buffer"); }
 
-    if(HAL_SPI_Init(&dac_spi) != HAL_OK){ U_PrintLn("spi_init"); }
+    // Set the SPI parameters
+    dac_i2s.Instance          = I2Sx;
+    dac_i2s.Init.Mode         = I2S_MODE_MASTER_TX;
+    dac_i2s.Init.Standard     = I2S_STANDARD_PCM_SHORT;
+    dac_i2s.Init.DataFormat   = I2S_DATAFORMAT_24B;
+    dac_i2s.Init.MCLKOutput   = I2S_MCLKOUTPUT_ENABLE;
+    dac_i2s.Init.AudioFreq    = I2S_AUDIOFREQ_96K;
+    dac_i2s.Init.CPOL         = I2S_CPOL_LOW;
+    dac_i2s.Init.ClockSource  = I2S_CLOCK_SYSCLK;
+
+    if(HAL_I2S_Init(&dac_i2s) != HAL_OK){ U_PrintLn("i2s_init"); }
 
     // NRST & NSS both high
-    HAL_GPIO_WritePin( SPId_NSS_GPIO_PORT, SPId_NSS_PIN, 1 );
-    HAL_GPIO_WritePin( SPId_NRST_GPIO_PORT, SPId_NRST_PIN, 1 );
+    HAL_GPIO_WritePin( I2Sx_NRST_GPIO_PORT, I2Sx_NRST_PIN, 0 );
+    volatile uint32_t t=10000; while(t){t--;}
+    HAL_GPIO_WritePin( I2Sx_NRST_GPIO_PORT, I2Sx_NRST_PIN, 1 );
 }
-typedef struct {
-    uint8_t  dirty;
-    uint8_t  cmd;
-    uint16_t data;
-} DAC_Samp_t;
 
-DAC_Samp_t dac_buf[5];
-
-void DAC_Update( void )
+/* Initialize the DMA buffer to contain required metadata
+ * Each channel is initialized with its relevant SPI command
+ * The last channel latches all the new values to the outputs
+ *
+ * */
+void DAC_Start(void)
 {
-    // Check NSS is high, indicating no ongoing SPI comm'n
-    if( HAL_GPIO_ReadPin( SPId_NSS_GPIO_PORT, SPId_NSS_PIN ) == GPIO_PIN_SET ){
+    // prepare SPI packet metadata
+    uint32_t* dbuf = samples;
+    for( uint16_t i=0; i<samp_count; i++ ){
+        uint8_t* addr_ptr = ((uint8_t*)dbuf) + 1;
+        *addr_ptr = (i%4 == 3)
+                        ? DAC8565_SET_AND_UPDATE | 3 << 1
+                        : DAC8565_PREP_ONE | (i%4) << 1;
+        dbuf++;
+    }
 
-        uint8_t ch; // Choose which channel to update
-        if( dac_buf[4].dirty ){ ch = 4; } // Prioritize ALL
-        else {
-            static uint8_t last_ch = 0;
-            uint8_t i=0;
-            while(++i){ // Start at 1
-                if( i==5 ){ return; } // All channels clean
-                ch = (i+last_ch)%4;
-                if( dac_buf[ch].dirty ){ break; } // Proceed to send
-            } last_ch = ch;
+    // set all channels to 0v (0xAAAA)
+    dbuf = samples;
+    for( uint16_t i=0; i<samp_count; i++ ){
+        uint8_t* addr_ptr = ((uint8_t*)dbuf) + 0;
+        *addr_ptr = 0xAA;
+        addr_ptr += 3;
+        *addr_ptr = 0xAA;
+        dbuf++;
+    }
+    // begin i2s transmission
+    HAL_I2S_Transmit_DMA( &dac_i2s
+                        , (uint16_t*)samples
+                        , samp_count
+                        );
+}
+
+/* Does all the work converting a generic representation into serial packets
+ * Convert floats (representing volts) to u16 representation
+ * Interleave a block of each channel into a stream
+ * */
+#define DAC_ZERO_VOLTS      ((uint16_t)(((uint32_t)0xFFFF * 2)/3))
+#define DAC_V_TO_U16        ((float)(65535.0 / 15.0))
+void DAC_PickleBlock( uint32_t* dac_pickle_ptr
+                    , float*    unpickled_data
+                    , uint16_t  bsize
+                    )
+{
+    float* u[4];
+    u[0] = unpickled_data;
+    u[1] = &unpickled_data[bsize];
+    u[2] = &unpickled_data[bsize*2];
+    u[3] = &unpickled_data[bsize*3];
+
+    uint8_t* insert_p = (uint8_t*)dac_pickle_ptr;
+
+    for( uint16_t i=0; i<bsize; i++ ){
+        for( uint8_t j=0; j<4; j++ ){
+            uint16_t val = (uint16_t)( DAC_ZERO_VOLTS
+                                     - (int32_t)(*u[j]++ * DAC_V_TO_U16));
+            *insert_p = val>>8;
+            insert_p += 3;
+            *insert_p++ = val & 0xFF;
         }
-        // pull !SYNC low
-        HAL_GPIO_WritePin( SPId_NSS_GPIO_PORT, SPId_NSS_PIN, 0 );
-        Debug_Pin_Set( 1 );
-        if(HAL_SPI_Transmit( &dac_spi
-                               , (uint8_t*)&(dac_buf[ch].cmd)
-                               , 3
-                               , 10000 // timeout?
-                               ) != HAL_OK ){
-            U_PrintLn("spi_tx_fail");
-        }
-        DAC_SPI_TxCpltCallback( &dac_spi );
-        Debug_Pin_Set( 0 );
-        dac_buf[ch].dirty = 0; // Unmark dirty to avoid repeat send
     }
 }
-void DAC_SetU16( int8_t channel, uint16_t value )
+
+
+
+// This wraps the (un)pickling functions in ll/addac.c
+void HAL_I2S_TxHalfCpltCallback( I2S_HandleTypeDef *hi2s )
 {
-    value = (value & 0xFF)<<8 | (value & 0xFF00)>>8;
-    if(channel >= 4){ return; } // invalid channel selected
-    else if( channel < 0 ){
-        dac_buf[4].dirty = 1;
-        dac_buf[4].cmd   = (channel == -1)
-                                ? DAC8565_SET_ALL
-                                : DAC8565_REFRESH_ALL;
-        dac_buf[4].data  = value;
-        for( uint8_t i=0; i<4; i++ ){
-            // individual buffers are aware of global changes
-            dac_buf[i].dirty = 0;
-            dac_buf[i].data  = dac_buf[4].data;
-        }
-    } else {
-        if( value == dac_buf[channel].data ){ return; } // discard unchanged
-        dac_buf[channel].dirty = 1;
-        dac_buf[channel].cmd   = DAC8565_SET_ONE  // update & set output
-                               | (channel<<1)
-                               ;
-        dac_buf[channel].data  = value;
-    }
+    ADDA_BlockProcess( samples );
+}
+void HAL_I2S_TxCpltCallback( I2S_HandleTypeDef *hi2s )
+{
+    ADDA_BlockProcess( &samples[samp_count/2] );
+}
+void HAL_I2S_ErrorCallback( I2S_HandleTypeDef *hi2s )
+{
+    U_PrintLn("i2s_tx_error");
 }
 
-void DAC_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
-{
-    // signal end of transmission by pulling NSS high
-    HAL_GPIO_WritePin( SPId_NSS_GPIO_PORT, SPId_NSS_PIN, 1 );
-}
 
-void DAC_SPI_ErrorCallback(SPI_HandleTypeDef *hspi)
+// Driver Config
+void HAL_I2S_MspInit(I2S_HandleTypeDef *hi2s)
 {
-    U_PrintLn("spi_error");
-    // pull NSS high to cancel any ongoing transmission
-    HAL_GPIO_WritePin( SPId_NSS_GPIO_PORT, SPId_NSS_PIN, 1 );
-}
+    // I2S PLL Config
+    RCC_PeriphCLKInitTypeDef RCC_ExCLKInitStruct;
 
-void DAC_SPI_MspInit(SPI_HandleTypeDef *hspi)
-{
-    static DMA_HandleTypeDef hdma_tx;
+    // PLLI2S_VCO = f(VCO clock) = f(PLLI2S clock input) × (PLLI2SN/PLLM)
+    // I2SCLK = f(PLLI2S clock output) = f(VCO clock) / PLLI2SR
+    RCC_ExCLKInitStruct.PeriphClockSelection = RCC_PERIPHCLK_I2S;
+    RCC_ExCLKInitStruct.I2sClockSelection = RCC_I2SCLKSOURCE_PLLI2S;
+    RCC_ExCLKInitStruct.PLLI2S.PLLI2SN = 384;
+    RCC_ExCLKInitStruct.PLLI2S.PLLI2SR = 2;
+    HAL_RCCEx_PeriphCLKConfig(&RCC_ExCLKInitStruct);
+
+    // SPI/I2S & DMA
+    I2Sx_CLK_ENABLE();
+    I2Sx_DMAx_CLK_ENABLE();
+
+    // GPIO pins
+    I2Sx_NSS_GPIO_CLK_ENABLE();
+    I2Sx_SCK_GPIO_CLK_ENABLE();
+    I2Sx_MOSI_GPIO_CLK_ENABLE();
+    I2Sx_NRST_GPIO_CLK_ENABLE();
 
     GPIO_InitTypeDef  GPIO_InitStruct;
 
-    SPId_NSS_GPIO_CLK_ENABLE();
-    SPId_SCK_GPIO_CLK_ENABLE();
-    SPId_MOSI_GPIO_CLK_ENABLE();
-    SPId_NRST_GPIO_CLK_ENABLE();
-
-    SPId_CLK_ENABLE();
-
-    SPId_DMAx_CLK_ENABLE();
-
-    // GPIO pins
-    GPIO_InitStruct.Pin       = SPId_SCK_PIN;
+    GPIO_InitStruct.Pin       = I2Sx_SCK_PIN;
     GPIO_InitStruct.Speed     = GPIO_SPEED_FAST;
     GPIO_InitStruct.Mode      = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Alternate = SPId_SCK_AF;
-    HAL_GPIO_Init(SPId_SCK_GPIO_PORT, &GPIO_InitStruct);
+    GPIO_InitStruct.Alternate = I2Sx_SCK_AF;
+    HAL_GPIO_Init(I2Sx_SCK_GPIO_PORT, &GPIO_InitStruct);
 
-    GPIO_InitStruct.Pin       = SPId_MOSI_PIN;
-    GPIO_InitStruct.Alternate = SPId_MOSI_AF;
-    HAL_GPIO_Init(SPId_MOSI_GPIO_PORT, &GPIO_InitStruct);
+    GPIO_InitStruct.Pin       = I2Sx_MOSI_PIN;
+    GPIO_InitStruct.Alternate = I2Sx_MOSI_AF;
+    HAL_GPIO_Init(I2Sx_MOSI_GPIO_PORT, &GPIO_InitStruct);
 
-    // NSS & NRST handled manually
-    GPIO_InitStruct.Pin       = SPId_NSS_PIN;
+    GPIO_InitStruct.Pin       = I2Sx_NSS_PIN;
+    GPIO_InitStruct.Alternate = I2Sx_NSS_AF;
+    HAL_GPIO_Init(I2Sx_NSS_GPIO_PORT, &GPIO_InitStruct);
+
+    // NRST handled manually
+    GPIO_InitStruct.Pin       = I2Sx_NRST_PIN;
     GPIO_InitStruct.Pull      = GPIO_PULLUP;
     GPIO_InitStruct.Mode      = GPIO_MODE_OUTPUT_PP;
-    HAL_GPIO_Init(SPId_NSS_GPIO_PORT, &GPIO_InitStruct);
-
-    GPIO_InitStruct.Pin       = SPId_NRST_PIN;
-    HAL_GPIO_Init(SPId_NRST_GPIO_PORT, &GPIO_InitStruct);
+    HAL_GPIO_Init(I2Sx_NRST_GPIO_PORT, &GPIO_InitStruct);
 
     // DMA Streams
-    hdma_tx.Instance                 = SPId_TX_DMA_STREAM;
+    static DMA_HandleTypeDef hdma_tx;
 
-    hdma_tx.Init.Channel             = SPId_TX_DMA_CHANNEL;
+    hdma_tx.Instance                 = I2Sx_TX_DMA_STREAM;
+
+    hdma_tx.Init.Channel             = I2Sx_TX_DMA_CHANNEL;
     hdma_tx.Init.Direction           = DMA_MEMORY_TO_PERIPH;
     hdma_tx.Init.PeriphInc           = DMA_PINC_DISABLE;
     hdma_tx.Init.MemInc              = DMA_MINC_ENABLE;
-    hdma_tx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
-    hdma_tx.Init.MemDataAlignment    = DMA_MDATAALIGN_BYTE;
-    hdma_tx.Init.Mode                = DMA_NORMAL;
+    hdma_tx.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
+    hdma_tx.Init.MemDataAlignment    = DMA_MDATAALIGN_WORD;
+    hdma_tx.Init.Mode                = DMA_CIRCULAR;
     hdma_tx.Init.Priority            = DMA_PRIORITY_LOW;
     hdma_tx.Init.FIFOMode            = DMA_FIFOMODE_DISABLE;
     hdma_tx.Init.FIFOThreshold       = DMA_FIFO_THRESHOLD_FULL;
@@ -158,41 +185,47 @@ void DAC_SPI_MspInit(SPI_HandleTypeDef *hspi)
 
     HAL_DMA_Init(&hdma_tx);
 
-    // Associate SPI w/ DMA
-    __HAL_LINKDMA(hspi, hdmatx, hdma_tx);
+    // Associate I2S w/ DMA
+    __HAL_LINKDMA(hi2s, hdmatx, hdma_tx);
 
     // DMA Priority (should be below IO, but above main process)
-    HAL_NVIC_SetPriority(SPId_DMA_TX_IRQn, 0, 1);
-    HAL_NVIC_EnableIRQ(SPId_DMA_TX_IRQn);
+    HAL_NVIC_SetPriority( I2Sx_DMA_TX_IRQn
+                        , I2Sx_DMA_TX_IRQPriority
+                        , I2Sx_DMA_TX_IRQSubPriority
+                        );
+    HAL_NVIC_EnableIRQ( I2Sx_DMA_TX_IRQn );
 
     // Must be lower priority than the above DMA
-    HAL_NVIC_SetPriority(SPId_IRQn, 0, 2);
-    HAL_NVIC_EnableIRQ(SPId_IRQn);
+    HAL_NVIC_SetPriority( I2Sx_IRQn
+                        , I2Sx_IRQPriority
+                        , I2Sx_IRQSubPriority
+                        );
+    HAL_NVIC_EnableIRQ( I2Sx_IRQn );
 }
 
-void DAC_SPI_MspDeInit(SPI_HandleTypeDef *hspi)
+void DAC_I2S_MspDeInit(I2S_HandleTypeDef *hi2s)
 {
 
   static DMA_HandleTypeDef hdma_tx;
 
-  SPId_FORCE_RESET();
-  SPId_RELEASE_RESET();
+  I2Sx_FORCE_RESET();
+  I2Sx_RELEASE_RESET();
 
-  HAL_GPIO_DeInit(SPId_NSS_GPIO_PORT, SPId_NSS_PIN);
-  HAL_GPIO_DeInit(SPId_SCK_GPIO_PORT, SPId_SCK_PIN);
-  HAL_GPIO_DeInit(SPId_MOSI_GPIO_PORT, SPId_MOSI_PIN);
+  HAL_GPIO_DeInit(I2Sx_NSS_GPIO_PORT,  I2Sx_NSS_PIN);
+  HAL_GPIO_DeInit(I2Sx_SCK_GPIO_PORT,  I2Sx_SCK_PIN);
+  HAL_GPIO_DeInit(I2Sx_MOSI_GPIO_PORT, I2Sx_MOSI_PIN);
 
   HAL_DMA_DeInit(&hdma_tx);
 
-  HAL_NVIC_DisableIRQ(SPId_DMA_TX_IRQn);
-  HAL_NVIC_DisableIRQ(SPId_IRQn);
+  HAL_NVIC_DisableIRQ(I2Sx_DMA_TX_IRQn);
+  HAL_NVIC_DisableIRQ(I2Sx_IRQn);
 }
 
-void SPId_DMA_TX_IRQHandler(void)
+void I2Sx_DMA_TX_IRQHandler(void)
 {
-    HAL_DMA_IRQHandler(dac_spi.hdmatx);
+    HAL_DMA_IRQHandler(dac_i2s.hdmatx);
 }
-void SPId_IRQHandler(void)
+void I2Sx_IRQHandler(void)
 {
-    HAL_SPI_IRQHandler(&dac_spi);
+    HAL_I2S_IRQHandler(&dac_i2s);
 }

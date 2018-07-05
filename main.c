@@ -35,6 +35,8 @@ int main(void)
 
     U_PrintNow();
 
+    IO_Start(); // buffers need to be ready by now
+
     uint8_t flip = 0;
     float inc = 5.0;
     while(1){
@@ -43,13 +45,10 @@ int main(void)
         //HAL_Delay(500); Caw_send_luachunk("listen");
         //inc = flip ? 0.1 : 1.0;
         inc += 4.1; if( inc >= 5.0 ){ inc -= 10.0; }
-        IO_Set(0,inc);
         //IO_Set(1,inc);
         //IO_Set(2,inc);
         //IO_Set(3,inc);
         //IO_Set(1,inc);
-        flip ^= 1;
-        IO_Process();
     }
 }
 

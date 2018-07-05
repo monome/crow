@@ -59,6 +59,13 @@
 #define SPIa_DMA_TX_IRQHandler           DMA2_Stream3_IRQHandler
 #define SPIa_DMA_RX_IRQHandler           DMA2_Stream0_IRQHandler
 
+#define SPIa_DMA_TX_IRQPriority      0
+#define SPIa_DMA_TX_IRQSubPriority   1
+#define SPIa_DMA_RX_IRQPriority      0
+#define SPIa_DMA_RX_IRQSubPriority   0
+#define SPIa_IRQPriority             0
+#define SPIa_IRQSubPriority          2
+
 // ADS131 commands
 #define ADS_READY   0xFF02
 
@@ -73,6 +80,14 @@
 #define ADS_READ_REG  0x20
 #define ADS_WRITE_REG 0x40
 
+// ads131 status registers
+#define ADS_STAT_1    0x02
+#define ADS_STAT_P    0x03
+#define ADS_STAT_N    0x04
+#define ADS_STAT_S    0x05
+#define ADS_ERROR_CNT 0x06
+#define ADS_STAT_M2   0x07
+
 // ads131 user config registers
 #define ADS_A_SYS_CFG 0x0B
 #define ADS_D_SYS_CFG 0x0C
@@ -82,18 +97,20 @@
 
 #define ADS_DATAWORDSIZE 0x4 // 32bit, pin M1 pulled high to IOVDD
 
-void ADC_Init(void);
+void ADC_Init( uint16_t bsize, uint8_t chan_count );
 
 //int32_t
 uint16_t ADC_GetU16( uint8_t channel );
-
+void ADC_UnpickleBlock( float*   unpickled
+                      , uint16_t bsize
+                      );
 void SPIa_DMA_RX_IRQHandler(void);
 void SPIa_DMA_TX_IRQHandler(void);
 void SPIa_IRQHandler(void);
 
-void ADC_SPI_ErrorCallback(SPI_HandleTypeDef *hspi);
-void ADC_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi);
-void ADC_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi);
+void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi);
+void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi);
+void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi);
 
-void ADC_SPI_MspInit(SPI_HandleTypeDef *hspi);
-void ADC_SPI_MspDeInit(SPI_HandleTypeDef *hspi);
+void HAL_SPI_MspInit(SPI_HandleTypeDef *hspi);
+void HAL_SPI_MspDeInit(SPI_HandleTypeDef *hspi);

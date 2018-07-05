@@ -26,8 +26,13 @@
 #define USARTx_DMA_TX_IRQHandler	DMA1_Stream3_IRQHandler
 #define USARTx_DMA_RX_IRQHandler	DMA1_Stream1_IRQHandler
 
-#define USARTx_IRQn				USART3_IRQn
-#define USARTx_IRQHandler		USART3_IRQHandler
+#define USARTx_IRQn				    USART3_IRQn
+#define USARTx_IRQHandler		    USART3_IRQHandler
+#define USARTx_IRQPriority          5
+#define USARTx_IRQSubPriority       0
+#define USARTx_DMA_IRQPriority      5
+#define USARTx_DMA_IRQSubPriority   1
+
 
 #define DBG_USART_TIMEOUT	0x4000 /* a long time */
 

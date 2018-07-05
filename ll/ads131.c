@@ -2,22 +2,21 @@
 
 #include <stm32f7xx_hal.h>
 
-#include "spi_ll.h"
 #include "debug_usart.h"
+#include "debug_pin.h"
 
 #define ADC_FRAMES     3 // status word, plus 2 channels
-#define ADC_CMD_SIZE   4 // 32bit only
-#define ADC_BUF_SIZE   (ADS_DATAWORDSIZE * ADC_FRAMES)
+//#define ADC_BUF_SIZE   (ADS_DATAWORDSIZE * ADC_FRAMES)
+#define ADC_BUF_SIZE   (ADC_FRAMES)
 
 SPI_HandleTypeDef adc_spi;
 TIM_HandleTypeDef adc_tim;
 TIM_OC_InitTypeDef tim_config;
 uint16_t aRxBuffer[ADC_BUF_SIZE];
 uint16_t aTxBuffer[ADC_BUF_SIZE];
-#define NSS_DELAY 10000
-#define DELAY_usec(u) \
-    do{ for( volatile int i=0; i<u; i++ ){;;} \
-    } while(0);
+
+uint8_t  adc_count;
+uint32_t samp_count;
 
 void ADS_Init_Sequence(void);
 void ADS_Reset_Device(void);
@@ -26,19 +25,22 @@ uint16_t ADS_Cmd( uint16_t command );
 uint16_t ADS_Reg( uint8_t reg_mask, uint8_t val );
 void ADC_TxRx( uint16_t* aTxBuffer, uint16_t* aRxBuffer, uint32_t size );
 void ADC_Rx( uint16_t* aRxBuffer, uint32_t size );
+uint8_t _ADC_CheckErrors( uint16_t error_mask );
+//uint8_t _ADC_CheckErrors( uint16_t expect, uint16_t error );
 
-void ADC_Init(void)
+void ADC_Init( uint16_t bsize, uint8_t chan_count )
 {
+    adc_count  = chan_count;
+    samp_count = bsize * chan_count;
+
     // Set the SPI parameters
     adc_spi.Instance               = SPIa;
     adc_spi.Init.Mode              = SPI_MODE_MASTER;
     adc_spi.Init.Direction         = SPI_DIRECTION_2LINES;
     adc_spi.Init.DataSize          = SPI_DATASIZE_16BIT;
-    adc_spi.Init.CLKPolarity       = SPI_POLARITY_LOW; // or _HIGH?
-    // p46 "The device latches data on DIN on the SCLK falling edge."
-    // "Data on DOUT are shifted out on the SCLK rising edge."
+    adc_spi.Init.CLKPolarity       = SPI_POLARITY_LOW;
     adc_spi.Init.CLKPhase          = SPI_PHASE_2EDGE;
-    adc_spi.Init.NSS               = SPI_NSS_SOFT; //_HARD_OUTPUT
+    adc_spi.Init.NSS               = SPI_NSS_SOFT;
     adc_spi.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_64; // 1.2MHz
     adc_spi.Init.FirstBit          = SPI_FIRSTBIT_MSB;
     adc_spi.Init.TIMode            = SPI_TIMODE_DISABLE;
@@ -47,7 +49,8 @@ void ADC_Init(void)
     if(HAL_SPI_Init(&adc_spi) != HAL_OK){ U_PrintLn("spi_init"); }
 
     //uint32_t prescaler = (uint32_t)((SystemCoreClock / 10000)-1);
-    uint32_t period_value = 0x09; // 2MHz w/ prescaler=1 @84MHz master
+    uint32_t period_value = 0x20; // 2MHz w/ prescaler=1 @84MHz master
+        // ~0x0c is 4.096MHz
     adc_tim.Instance = TIMa;
     adc_tim.Init.Period = period_value;
     adc_tim.Init.Prescaler = 1; //prescaler;
@@ -81,16 +84,16 @@ void ADS_Init_Sequence(void)
     ADS_Reset_Device();
 
     ADS_Cmd(ADS_UNLOCK);
-    if( ADS_Cmd(ADS_NULL) != ADS_UNLOCK ){
-        U_PrintLn("Can't Unlock");
-    }
+    if( ADS_Cmd(ADS_NULL) != ADS_UNLOCK ){ U_PrintLn("Can't Unlock"); }
+
     // CONFIGURE REGS HERE
-    ADS_Reg(ADS_WRITE_REG | ADS_CLK1, 0x02); // MCLK/8
+    ADS_Reg(ADS_WRITE_REG | ADS_CLK1, 0x01 << 1); // MCLK/8 // 0x02 before
+    //U_PrintU16( ADS_Cmd(ADS_NULL) ); // assert ADS_CLK1
         // 0x02 is /2 which is least divisions (fastest internal)
         // meaning slowest clkout from uc and least noise?
         // CLKIN divider. see p63 of ads131 datasheet
     //  clk2 sets ADC read rate?
-    ADS_Reg(ADS_WRITE_REG | ADS_CLK2, 0x2a); // MCLK/8
+    ADS_Reg(ADS_WRITE_REG | ADS_CLK2, 0x2b); // MCLK/8
     // this was arrived at experimentally
     // 0x2* sets clockdiv to /2 (the least divisions, for slowest MCLK)
     // 0x*b was lowest (ie most oversampling) where -5v actually reached 0x8000
@@ -100,8 +103,11 @@ void ADS_Init_Sequence(void)
         // Table30 shows effective sampling rates w/ diff MCLKs
         // start at 1kHz, then work up depending on quality/cpu
     // fMOD = fICLK / 2  fICLK = fCLKIN / 2048 ** now is 500hz ** 0x21
-    ADS_Reg(ADS_WRITE_REG | ADS_ADC_ENA, 0x0F);
+    ADS_Reg(ADS_WRITE_REG | ADS_ADC_ENA, 0x03); // this contradicts datasheet
+        // DS suggests 0 or 0xF, but we use 0x03 for only 2 channels
+        // this is based on making certain the ADS_Reg response is correct
     ADS_Cmd(ADS_WAKEUP);
+
     ADS_Cmd(ADS_LOCK);
 }
 void ADS_Reset_Device(void)
@@ -127,6 +133,15 @@ uint16_t ADS_Reg( uint8_t reg_mask, uint8_t val )
         retval = ADS_Cmd( ADS_NULL );                // get response
     } else { // write
         retval = ADS_Cmd( ((uint16_t)reg_mask) << 8 | val );
+        // write success assertion
+        uint16_t status = ADS_Cmd(ADS_NULL);
+        uint16_t expect = ( ((reg_mask & 0x1F) | 0x20)<<8
+                          | val
+                          );
+        if( status != expect ){
+            U_Print("!WREG expect: "); U_PrintU16(expect);
+            U_Print("received: "); U_PrintU16(status);
+        }
     }
     return retval;
 }
@@ -152,17 +167,52 @@ uint16_t ADS_Cmd( uint16_t command )
 }
 uint16_t ADC_GetU16( uint8_t channel )
 {
-    uint32_t* tx = (uint32_t*)aTxBuffer;
-    *tx = 0; // NULL command
+    aTxBuffer[0] = 0;
     ADC_TxRx( aTxBuffer, aRxBuffer, ADC_BUF_SIZE );
+
+        U_PrintLn("");
+    if( _ADC_CheckErrors( aRxBuffer[0] ) ){
+        U_PrintLn("");
+    }
+
+    //U_PrintU16(aRxBuffer[0]);
     return aRxBuffer[channel+1];
+}
+
+#define DAC_V_TO_U16        ((float)(65535.0 / 15.0))
+void ADC_UnpickleBlock( float*   unpickled
+                      , uint16_t bsize
+                      )
+{
+    // Return current buf
+    for( uint8_t j=1; j<adc_count+1; j++ ){
+        float once = ((float)aRxBuffer[j]) / DAC_V_TO_U16 - 5.0;
+        for( uint16_t i=0; i<bsize; i++ ){
+            *unpickled++ = once;
+        }
+    }
+
+    // Request next buffer (if driver is free)
+    if (HAL_SPI_GetState(&adc_spi) == HAL_SPI_STATE_READY){
+        HAL_GPIO_WritePin( SPIa_NSS_GPIO_PORT, SPIa_NSS_PIN, 0 );
+    volatile int wait = 100; while(wait){wait--;}
+        uint32_t* tx = (uint32_t*)aTxBuffer;
+        *tx = 0; // NULL command
+        if(HAL_SPI_TransmitReceive_DMA( &adc_spi
+                                      , (uint8_t*)aTxBuffer
+                                      , (uint8_t*)aRxBuffer
+                                      , ADC_BUF_SIZE
+                                      ) != HAL_OK ){
+            U_PrintLn("spi_txrx_fail");
+        }
+    }
 }
 
 void ADC_Rx( uint16_t* aRxBuffer, uint32_t size )
 {
     // pull !SYNC low
     HAL_GPIO_WritePin( SPIa_NSS_GPIO_PORT, SPIa_NSS_PIN, 0 );
-    DELAY_usec(NSS_DELAY);
+    volatile int wait = 100; while(wait){wait--;}
     if(HAL_SPI_Receive_DMA( &adc_spi
                           , (uint8_t*)aRxBuffer
                           , size
@@ -177,7 +227,7 @@ void ADC_TxRx( uint16_t* aTxBuffer, uint16_t* aRxBuffer, uint32_t size )
 {
     // pull !SYNC low
     HAL_GPIO_WritePin( SPIa_NSS_GPIO_PORT, SPIa_NSS_PIN, 0 );
-    DELAY_usec(NSS_DELAY);
+    volatile int wait = 100; while(wait){wait--;}
     if(HAL_SPI_TransmitReceive_DMA( &adc_spi
                                   , (uint8_t*)aTxBuffer
                                   , (uint8_t*)aRxBuffer
@@ -188,31 +238,60 @@ void ADC_TxRx( uint16_t* aTxBuffer, uint16_t* aRxBuffer, uint32_t size )
     // just wait til it's done (for now)
     while (HAL_SPI_GetState(&adc_spi) != HAL_SPI_STATE_READY){;;}
 }
-void ADC_SPI_ErrorCallback(SPI_HandleTypeDef *hspi)
+
+uint8_t _ADC_CheckErrors( uint16_t error )
+{
+    uint8_t retval = 0;
+    //error = error >> 8;
+    if( error != 0 ){ // fault handler
+        retval = 1;
+        if( error & 0x2 ){} // Data ready fault
+        if( error & 0x4 ){ // Resync fault
+            //U_PrintLn("sync");
+        }
+        if( error & 0x8 ){ // Watchdog timer
+            U_PrintLn("watchdog");
+        }
+        if( error & 0x10 ){ // ADC input fault
+            //U_Print("adc_p: ");
+            //U_PrintU16(ADS_Reg( ADS_READ_REG | ADS_STAT_P, 0 ));
+            //U_Print("adc_n: ");
+            //U_PrintU16(ADS_Reg( ADS_READ_REG | ADS_STAT_N, 0 ));
+        }
+        if( error & 0x20  ){ // SPI fault
+            //U_Print("spi: ");
+            //U_PrintU16(ADS_Reg( ADS_READ_REG | ADS_STAT_S, 0 ));
+        }
+        if( error & 0x40 ){ // Command fault
+            //U_PrintLn("bad_cmd");
+            return 2;
+        }
+    }
+    return retval;
+}
+void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi)
 {
     U_PrintLn("spi_error");
     // pull NSS high to cancel any ongoing transmission
-    DELAY_usec(NSS_DELAY);
     HAL_GPIO_WritePin( SPIa_NSS_GPIO_PORT, SPIa_NSS_PIN, 1 );
 }
 
-void ADC_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
+void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 {
     //U_PrintLn("txrx-cb");
     // signal end of transmission by pulling NSS high
-    DELAY_usec(NSS_DELAY);
     HAL_GPIO_WritePin( SPIa_NSS_GPIO_PORT, SPIa_NSS_PIN, 1 );
 }
 
-void ADC_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
+void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
 {
     //U_PrintLn("rx-cb");
     // signal end of transmission by pulling NSS high
-    DELAY_usec(NSS_DELAY);
+    //_ADC_CheckErrors( aRxBuffer[0] );
     HAL_GPIO_WritePin( SPIa_NSS_GPIO_PORT, SPIa_NSS_PIN, 1 );
 }
 
-void ADC_SPI_MspInit(SPI_HandleTypeDef *hspi)
+void HAL_SPI_MspInit(SPI_HandleTypeDef *hspi)
 {
     static DMA_HandleTypeDef hdma_rx;
     static DMA_HandleTypeDef hdma_tx;
@@ -304,18 +383,27 @@ void ADC_SPI_MspInit(SPI_HandleTypeDef *hspi)
 
 
     // DMA Priority (should be below IO, but above main process)
-    HAL_NVIC_SetPriority(SPIa_DMA_TX_IRQn, 1, 1);
-    HAL_NVIC_EnableIRQ(SPIa_DMA_TX_IRQn);
+    HAL_NVIC_SetPriority( SPIa_DMA_TX_IRQn
+                        , SPIa_DMA_TX_IRQPriority
+                        , SPIa_DMA_TX_IRQSubPriority
+                        );
+    HAL_NVIC_EnableIRQ( SPIa_DMA_TX_IRQn );
 
-    HAL_NVIC_SetPriority(SPIa_DMA_RX_IRQn, 1, 0);
-    HAL_NVIC_EnableIRQ(SPIa_DMA_RX_IRQn);
+    HAL_NVIC_SetPriority( SPIa_DMA_RX_IRQn
+                        , SPIa_DMA_RX_IRQPriority
+                        , SPIa_DMA_RX_IRQSubPriority
+                        );
+    HAL_NVIC_EnableIRQ( SPIa_DMA_RX_IRQn );
 
     // Must be lower priority than the above DMA
-    HAL_NVIC_SetPriority(SPIa_IRQn, 1, 2);
-    HAL_NVIC_EnableIRQ(SPIa_IRQn);
+    HAL_NVIC_SetPriority( SPIa_IRQn
+                        , SPIa_IRQPriority
+                        , SPIa_IRQSubPriority
+                        );
+    HAL_NVIC_EnableIRQ( SPIa_IRQn );
 }
 
-void ADC_SPI_MspDeInit(SPI_HandleTypeDef *hspi)
+void HAL_SPI_MspDeInit(SPI_HandleTypeDef *hspi)
 {
     static DMA_HandleTypeDef hdma_rx;
     static DMA_HandleTypeDef hdma_tx;
