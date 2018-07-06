@@ -8,6 +8,7 @@
 
 #include "lib/io.h"
 #include "lib/caw.h"
+#include "lib/ii.h"
 
 #include "ll/debug_usart.h"
 #include "ll/debug_pin.h"
@@ -28,6 +29,8 @@ int main(void)
     U_PrintLn("\ncrow");
 
     IO_Init();
+
+    II_init( II_FOLLOW );
 
     Lua_Test();
 
