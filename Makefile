@@ -38,7 +38,7 @@ STM32_INCLUDES = \
 	-I$(USBD)/Class/CDC/Inc/ \
 	-I$(USBD)/Core/Inc/ \
 
-OPTIMIZE       = -O3
+OPTIMIZE       = -O0
 
 CFLAGS += -std=c99
 CFLAGS += -Wall

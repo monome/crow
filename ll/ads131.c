@@ -6,8 +6,13 @@
 #include "debug_pin.h"
 
 #define ADC_FRAMES     3 // status word, plus 2 channels
-//#define ADC_BUF_SIZE   (ADS_DATAWORDSIZE * ADC_FRAMES)
-#define ADC_BUF_SIZE   (ADC_FRAMES)
+#define ADC_BUF_SIZE   (ADS_DATAWORDSIZE * ADC_FRAMES)
+//#define ADC_BUF_SIZE   (ADC_FRAMES)
+
+#define NSS_DELAY 10000
+#define DELAY_usec(u) \
+    do{ for( volatile int i=0; i<u; i++ ){;;} \
+    } while(0);
 
 SPI_HandleTypeDef adc_spi;
 TIM_HandleTypeDef adc_tim;
@@ -41,7 +46,7 @@ void ADC_Init( uint16_t bsize, uint8_t chan_count )
     adc_spi.Init.CLKPolarity       = SPI_POLARITY_LOW;
     adc_spi.Init.CLKPhase          = SPI_PHASE_2EDGE;
     adc_spi.Init.NSS               = SPI_NSS_SOFT;
-    adc_spi.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_64; // 1.2MHz
+    adc_spi.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_128; // 1.2MHz
     adc_spi.Init.FirstBit          = SPI_FIRSTBIT_MSB;
     adc_spi.Init.TIMode            = SPI_TIMODE_DISABLE;
     adc_spi.Init.CRCCalculation    = SPI_CRCCALCULATION_DISABLE;
@@ -49,7 +54,7 @@ void ADC_Init( uint16_t bsize, uint8_t chan_count )
     if(HAL_SPI_Init(&adc_spi) != HAL_OK){ U_PrintLn("spi_init"); }
 
     //uint32_t prescaler = (uint32_t)((SystemCoreClock / 10000)-1);
-    uint32_t period_value = 0x20; // 2MHz w/ prescaler=1 @84MHz master
+    uint32_t period_value = 0x13; // 2MHz w/ prescaler=1 @84MHz master
         // ~0x0c is 4.096MHz
     adc_tim.Instance = TIMa;
     adc_tim.Init.Period = period_value;
@@ -167,13 +172,15 @@ uint16_t ADS_Cmd( uint16_t command )
 }
 uint16_t ADC_GetU16( uint8_t channel )
 {
-    aTxBuffer[0] = 0;
+    uint32_t* tx = (uint32_t*)aTxBuffer;
+    *tx = 0; // NULL command
+    //aTxBuffer[0] = 0;
     ADC_TxRx( aTxBuffer, aRxBuffer, ADC_BUF_SIZE );
 
-        U_PrintLn("");
-    if( _ADC_CheckErrors( aRxBuffer[0] ) ){
+    /*if( _ADC_CheckErrors( aRxBuffer[0] ) ){
         U_PrintLn("");
     }
+    */
 
     //U_PrintU16(aRxBuffer[0]);
     return aRxBuffer[channel+1];
@@ -195,7 +202,7 @@ void ADC_UnpickleBlock( float*   unpickled
     // Request next buffer (if driver is free)
     if (HAL_SPI_GetState(&adc_spi) == HAL_SPI_STATE_READY){
         HAL_GPIO_WritePin( SPIa_NSS_GPIO_PORT, SPIa_NSS_PIN, 0 );
-    volatile int wait = 100; while(wait){wait--;}
+        DELAY_usec(NSS_DELAY);
         uint32_t* tx = (uint32_t*)aTxBuffer;
         *tx = 0; // NULL command
         if(HAL_SPI_TransmitReceive_DMA( &adc_spi
@@ -212,7 +219,7 @@ void ADC_Rx( uint16_t* aRxBuffer, uint32_t size )
 {
     // pull !SYNC low
     HAL_GPIO_WritePin( SPIa_NSS_GPIO_PORT, SPIa_NSS_PIN, 0 );
-    volatile int wait = 100; while(wait){wait--;}
+    DELAY_usec(NSS_DELAY);
     if(HAL_SPI_Receive_DMA( &adc_spi
                           , (uint8_t*)aRxBuffer
                           , size
@@ -227,7 +234,7 @@ void ADC_TxRx( uint16_t* aTxBuffer, uint16_t* aRxBuffer, uint32_t size )
 {
     // pull !SYNC low
     HAL_GPIO_WritePin( SPIa_NSS_GPIO_PORT, SPIa_NSS_PIN, 0 );
-    volatile int wait = 100; while(wait){wait--;}
+    DELAY_usec(NSS_DELAY);
     if(HAL_SPI_TransmitReceive_DMA( &adc_spi
                                   , (uint8_t*)aTxBuffer
                                   , (uint8_t*)aRxBuffer
@@ -273,6 +280,7 @@ void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi)
 {
     U_PrintLn("spi_error");
     // pull NSS high to cancel any ongoing transmission
+    DELAY_usec(NSS_DELAY);
     HAL_GPIO_WritePin( SPIa_NSS_GPIO_PORT, SPIa_NSS_PIN, 1 );
 }
 
@@ -280,6 +288,7 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 {
     //U_PrintLn("txrx-cb");
     // signal end of transmission by pulling NSS high
+    DELAY_usec(NSS_DELAY);
     HAL_GPIO_WritePin( SPIa_NSS_GPIO_PORT, SPIa_NSS_PIN, 1 );
 }
 
@@ -288,6 +297,7 @@ void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
     //U_PrintLn("rx-cb");
     // signal end of transmission by pulling NSS high
     //_ADC_CheckErrors( aRxBuffer[0] );
+    DELAY_usec(NSS_DELAY);
     HAL_GPIO_WritePin( SPIa_NSS_GPIO_PORT, SPIa_NSS_PIN, 1 );
 }
 

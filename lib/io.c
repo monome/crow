@@ -90,11 +90,15 @@ IO_block_t* IO_BlockProcess( IO_block_t* b )
                 , b->size
                 );
     }*/
-    for( int j=0; j<SLEW_CHANNELS; j++ ){
+    /*for( int j=0; j<SLEW_CHANNELS; j++ ){
         S_step_v( j
                 , b->out[j]
                 , b->size
                 );
+    }
+    */
+    for( int i=0; i<(b->size); i++ ){
+        b->out[0][i] = b->in[0][i];
     }
 
     return b;
@@ -152,7 +156,7 @@ float IO_Get( uint8_t channel )
     // TODO: apply calibration first
     // TODO: roll calibration & scaling into one for efficiency
     //return ((float)ADC_GetU16(channel) / DAC_V_TO_U16 - 5.0);
-    ADC_GetU16(0);
+    U_PrintU16(ADC_GetU16(channel));
     //U_PrintU16(ADC_GetU16(0));
     //U_PrintU16(ADC_GetU16(1));
     return 0.0;

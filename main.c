@@ -44,6 +44,7 @@ int main(void)
     float inc = 5.0;
     while(1){
         U_PrintNow();
+        //IO_Get(0);
         //Caw_try_receive();
         //HAL_Delay(500); Caw_send_rawtext("caw");
         //HAL_Delay(500); Caw_send_luachunk("listen");
