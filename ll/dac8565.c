@@ -4,7 +4,8 @@
 #include "debug_usart.h"
 #include "debug_pin.h"
 
-#include "adda.h" // ADDA_BlockProcess()
+#include "adda.h"   // ADDA_BlockProcess()
+#include "wrMath.h" // lim_f()
 
 #define DAC_BUFFER_COUNT 2 // ping-pong
 
@@ -93,8 +94,12 @@ void DAC_PickleBlock( uint32_t* dac_pickle_ptr
 
     for( uint16_t i=0; i<bsize; i++ ){
         for( uint8_t j=0; j<4; j++ ){
-            uint16_t val = (uint16_t)( DAC_ZERO_VOLTS
-                                     - (int32_t)(*u[j]++ * DAC_V_TO_U16));
+            uint16_t val = (uint16_t)
+                           ( DAC_ZERO_VOLTS
+                             - (int32_t)(lim_f( *u[j]++
+                                              , -5.0
+                                              , 10.0
+                                              ) * DAC_V_TO_U16));
             *insert_p = val>>8;
             insert_p += 3;
             *insert_p++ = val & 0xFF;
