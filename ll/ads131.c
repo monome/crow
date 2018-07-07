@@ -186,14 +186,14 @@ uint16_t ADC_GetU16( uint8_t channel )
     return aRxBuffer[channel+1];
 }
 
-#define DAC_V_TO_U16        ((float)(65535.0 / 15.0))
+#define ADC_U16_TO_V        ((float)(15.0 / 65535.0))
 void ADC_UnpickleBlock( float*   unpickled
                       , uint16_t bsize
                       )
 {
     // Return current buf
     for( uint8_t j=1; j<adc_count+1; j++ ){
-        float once = ((float)aRxBuffer[j]) / DAC_V_TO_U16 - 5.0;
+        float once = ((float)aRxBuffer[j]) * ADC_U16_TO_V - 5.0;
         for( uint16_t i=0; i<bsize; i++ ){
             *unpickled++ = once;
         }
