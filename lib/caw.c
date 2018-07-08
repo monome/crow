@@ -52,7 +52,7 @@ uint8_t Caw_try_receive( void )
     static uint8_t* buf;
     static uint32_t len;
 
-    if( USB_rx_dequeue( buf, &len ) ){
+    if( USB_rx_dequeue( &buf, &len ) ){
         isdata = 1;
         // switch on buf[0] to select action
         Caw_receive_rawtext_callback( buf, len );

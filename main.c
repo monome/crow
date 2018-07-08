@@ -45,8 +45,8 @@ int main(void)
     while(1){
         U_PrintNow();
         //IO_Get(0);
-        //Caw_try_receive();
-        HAL_Delay(500); Caw_send_rawtext("caw");
+        Caw_try_receive();
+        //HAL_Delay(500); Caw_send_rawtext("caw");
         //HAL_Delay(500); Caw_send_luachunk("listen");
         //inc = flip ? 0.1 : 1.0;
         inc += 4.1; if( inc >= 5.0 ){ inc -= 10.0; }

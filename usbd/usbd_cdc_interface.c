@@ -194,11 +194,11 @@ static int8_t CDC_Itf_Receive( uint8_t* buf, uint32_t *len )
     }
     return (USBD_OK);
 }
-uint8_t USB_rx_dequeue( uint8_t* buf, uint32_t* len )
+uint8_t USB_rx_dequeue( uint8_t** buf, uint32_t* len )
 {
-    uint8_t has_data;
+    uint8_t has_data = 0;
     if( (has_data = USB_rx_has_data()) ){
-        buf  = &(UserRxBuffer[rx_buf_ptr]);
+        *buf  = &(UserRxBuffer[rx_buf_ptr]);
         *len = rx_buf_size;
         rx_buf_size = 0; // clear buf
         rx_buf_ptr  = 0; // reset index
