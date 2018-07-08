@@ -84,26 +84,37 @@ void DAC_PickleBlock( uint32_t* dac_pickle_ptr
                     , uint16_t  bsize
                     )
 {
-    float* u[4];
-    u[0] = unpickled_data;
-    u[1] = &unpickled_data[bsize];
-    u[2] = &unpickled_data[bsize*2];
-    u[3] = &unpickled_data[bsize*3];
+    lim_vf_f( unpickled_data
+            , -5.0           // saturate at -5v
+            , 10.0           // saturate at +10v
+            , unpickled_data
+            , bsize * 4
+            );
+    mul_vf_f( unpickled_data
+            , DAC_V_TO_U16   // scale volts up to u16
+            , unpickled_data
+            , bsize * 4
+            );
 
-    uint8_t* insert_p = (uint8_t*)dac_pickle_ptr;
+    uint16_t usixteens[bsize * 4];
+    uint16_t* usixp = usixteens;
 
     for( uint16_t i=0; i<bsize; i++ ){
         for( uint8_t j=0; j<4; j++ ){
-            uint16_t val = (uint16_t)
-                           ( DAC_ZERO_VOLTS
-                             - (int32_t)(lim_f( *u[j]++
-                                              , -5.0
-                                              , 10.0
-                                              ) * DAC_V_TO_U16));
-            *insert_p = val>>8;
-            insert_p += 3;
-            *insert_p++ = val & 0xFF;
+            *usixp++ = (uint16_t)( DAC_ZERO_VOLTS
+                                   //- (int32_t)(*u[j]++)
+                                   - (int32_t)(unpickled_data[i+j*bsize])
+                                 );
         }
+    }
+
+    uint8_t* insert_p = (uint8_t*)dac_pickle_ptr;
+    usixp = usixteens;
+
+    for( uint16_t i=0; i<(bsize*4); i++ ){
+        *insert_p = *usixp>>8;
+        insert_p += 3;
+        *insert_p++ = *usixp++ & 0xFF;
     }
 }
 
