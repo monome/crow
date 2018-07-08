@@ -54,7 +54,7 @@ void ADC_Init( uint16_t bsize, uint8_t chan_count )
     if(HAL_SPI_Init(&adc_spi) != HAL_OK){ U_PrintLn("spi_init"); }
 
     //uint32_t prescaler = (uint32_t)((SystemCoreClock / 10000)-1);
-    uint32_t period_value = 0x0c; // ~8.3MHz
+    uint32_t period_value = 0x06; // ~8.3MHz
     adc_tim.Instance = TIMa;
     adc_tim.Init.Period = period_value;
     adc_tim.Init.Prescaler = 1; //prescaler;
@@ -97,7 +97,7 @@ void ADS_Init_Sequence(void)
         // meaning slowest clkout from uc and least noise?
         // CLKIN divider. see p63 of ads131 datasheet
     //  clk2 sets ADC read rate?
-    ADS_Reg(ADS_WRITE_REG | ADS_CLK2, 0x2b); // MCLK/8
+    ADS_Reg(ADS_WRITE_REG | ADS_CLK2, 0x2a); // MCLK/8
     // this was arrived at experimentally
     // 0x2* sets clockdiv to /2 (the least divisions, for slowest MCLK)
     // 0x*b was lowest (ie most oversampling) where -5v actually reached 0x8000
@@ -198,7 +198,7 @@ void ADC_UnpickleBlock( float*   unpickled
         float once = ((float)((int16_t*)aRxBuffer)[j]) * ADC_U16_TO_V + 2.5;
         float c    = 1.0 / bsize;
         for( uint16_t i=0; i<bsize; i++ ){
-            *unpick++ = last[j-1] + (c * i)*(once - last[j-1]);
+            *unpick++ = last[j-1] + (c * (i+1))*(once - last[j-1]);
         }
         last[j-1] = once;
     }
