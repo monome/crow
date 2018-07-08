@@ -30,8 +30,8 @@ CAL_t cal;
 
 // currently getting 30 sinewaves at 48kHz
 osc_sine_t sinewave[4];
-void _callback_up( void );
-void _callback_down( void );
+static void _callback_up( void );
+static void _callback_down( void );
 
 void IO_Init( void )
 {
@@ -56,7 +56,7 @@ void IO_Start( void )
     ADDA_Start();
 }
 
-void _callback_up( void )
+static void _callback_up( void )
 {
     S_toward( 0
             , 1.0
@@ -65,7 +65,7 @@ void _callback_up( void )
             , _callback_down
             );
 }
-void _callback_down( void )
+static void _callback_down( void )
 {
     S_toward( 0
             , -1.0
