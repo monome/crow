@@ -1,6 +1,7 @@
 #include "adda.h"
 
 #include "debug_pin.h"
+#include "debug_usart.h"
 #include "ads131.h"
 #include "dac8565.h"
 
@@ -23,7 +24,6 @@ void ADDA_Start( void )
 void ADDA_BlockProcess( uint32_t* dac_pickle_ptr )
 {
     IO_block_t b = { .size = ADDA_BLOCK_SIZE };
-    Debug_Pin_Set(1);
 
     ADC_UnpickleBlock( b.in[0]
                      , ADDA_BLOCK_SIZE
@@ -33,7 +33,6 @@ void ADDA_BlockProcess( uint32_t* dac_pickle_ptr )
                    , b.out[0]
                    , ADDA_BLOCK_SIZE
                    );
-    Debug_Pin_Set(0);
 }
 
 __weak IO_block_t* IO_BlockProcess( IO_block_t* b )

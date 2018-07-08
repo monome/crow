@@ -123,11 +123,15 @@ void DAC_PickleBlock( uint32_t* dac_pickle_ptr
 // This wraps the (un)pickling functions in ll/addac.c
 void HAL_I2S_TxHalfCpltCallback( I2S_HandleTypeDef *hi2s )
 {
+    Debug_Pin_Set(1);
     ADDA_BlockProcess( samples );
+    Debug_Pin_Set(0);
 }
 void HAL_I2S_TxCpltCallback( I2S_HandleTypeDef *hi2s )
 {
+    Debug_Pin_Set(1);
     ADDA_BlockProcess( &samples[samp_count/2] );
+    Debug_Pin_Set(0);
 }
 void HAL_I2S_ErrorCallback( I2S_HandleTypeDef *hi2s )
 {

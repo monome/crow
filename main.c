@@ -116,5 +116,7 @@ static void Sys_Clk_Config(void)
 static void Error_Handler(void)
 {
     // print debug message after USART is running
+    U_PrintLn("Error Handler");
+    U_PrintNow();
     while(1){;;}
 }
