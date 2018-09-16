@@ -35,25 +35,17 @@ int main(void)
     Lua_Test();
 
     USB_CDC_Init();
+    U_PrintLn("cdc");
 
     U_PrintNow();
 
     IO_Start(); // buffers need to be ready by now
 
-    uint8_t flip = 0;
-    float inc = 5.0;
     while(1){
         U_PrintNow();
-        //IO_Get(0);
         Caw_try_receive();
         //HAL_Delay(500); Caw_send_rawtext("caw");
         //HAL_Delay(500); Caw_send_luachunk("listen");
-        //inc = flip ? 0.1 : 1.0;
-        inc += 4.1; if( inc >= 5.0 ){ inc -= 10.0; }
-        //IO_Set(1,inc);
-        //IO_Set(2,inc);
-        //IO_Set(3,inc);
-        //IO_Set(1,inc);
     }
 }
 

@@ -60,11 +60,19 @@ uint8_t Caw_try_receive( void )
     return isdata;
 }
 
-__weak void Caw_receive_rawtext_callback( uint8_t* buf, uint32_t len )
+//__weak void Caw_receive_rawtext_callback( uint8_t* buf, uint32_t len )
+void Caw_receive_rawtext_callback( uint8_t* buf, uint32_t len )
 {
     char s[len+1];
     memcpy( s, buf, len );
     s[len] = '\0'; // ensure termination
 
     U_PrintLn(s);
+    if( len == 1 ){
+        U_PrintU8(*buf);
+        if( *buf == '~' ){
+            char msg[] = "\nready...";
+            Caw_send_rawtext( msg );
+        }
+    }
 }

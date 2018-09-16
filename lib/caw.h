@@ -9,4 +9,5 @@ void Caw_send_value( uint8_t type, float value ); // enum the type
 uint8_t Caw_try_receive( void );
 
 // Weak callbacks. Define in top-level program
-__weak void Caw_receive_rawtext_callback( uint8_t* buf, uint32_t len );
+void Caw_receive_rawtext_callback( uint8_t* buf, uint32_t len );
+//__weak void Caw_receive_rawtext_callback( uint8_t* buf, uint32_t len );

@@ -334,3 +334,12 @@ function times( count_aslT )
 end
 
 return asl
+
+-- all the forms can be implemented with these meta-forms
+-- cond{ bool, {} }
+-- while{ bool, {} }
+
+-- times{ count, {} }
+-- held{ {} }
+-- lock{ {} }
+-- loop{ {} }
