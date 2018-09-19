@@ -1,20 +1,19 @@
 -- must be provided for asl.lua
-function LL_toward( d, t, s )
-    print("toward",d,"in time:",t,"with shape:",s)
+function LL_toward( id, d, t, s )
+    print("id: "..id,"\ttoward "..d,"\tin time: "..t,"\twith shape: "..s)
 end
 
 
-local asl = dofile("lua/asl.lua")
+local Asl = dofile("lua/asl.lua")
 
-local function tester()
+local function tester(sl)
     local shape = "sine"
-    asl:set
+    sl:action
         { now(0)                            -- reset LFO to 0
         , loop{ toward(  5, 2, shape ) -- LFO rises
               , toward( -5, 2, shape ) -- LFO falls
               }                             -- repeats rise&fall
         }
-    asl:bang(true) -- start the slope!
 end
 
 -- example of a 'library' shape
@@ -30,12 +29,12 @@ local function lfo( speed, curve, level )
            }
 end
 
-local function tester2()
-    asl:set( lfo() )
+local function tester2(sl)
+    sl:action( lfo() )
 end
 
 local function tester3()
-    asl:set
+    sl:action
         { now(3)
         , asl_if( function() return true end
                 , { toward( -3 )
@@ -46,8 +45,8 @@ local function tester3()
         }
 end
 
-local function tester4()
-    asl:set
+local function tester4(sl)
+    sl:action
         { toward(7)
         , times( 2, { toward(3)
                     , toward(-4)
@@ -57,8 +56,8 @@ local function tester4()
         }
 end
 
-local function tester5()
-    asl:set
+local function tester5(sl)
+    sl:action
         { toward(5)
         , held{ toward(4)
               , toward(3)
@@ -73,28 +72,28 @@ local function tester5()
         }
 end
 
-tester5()
-asl:bang(true)
+local sl = {}
+sl[1] = Asl.new(1)
+sl[2] = Asl.new(2)
+tester5(sl[1])
+sl[2]:action(lfo())
+sl[1]:bang(true)
 --set_hold_state(false)
-callback()
-asl:bang(true)
-callback()
-callback()
-asl:bang(false)
-callback()
-callback()
-callback()
-callback()
-callback()
-callback()
-callback()
-callback()
-callback()
-callback()
-
+sl[1]:callback()
+sl[2]:bang(true)
+sl[1]:callback()
+sl[1]:bang(false)
+sl[2]:callback()
+sl[2]:callback()
+sl[1]:callback()
+sl[1]:callback()
+sl[2]:callback()
+sl[1]:callback()
+sl[2]:callback()
+sl[1]:callback()
 --asl:bang(false)
 
--- desired representation of the above asl:set
+-- desired representation of the above asl:action
 -- { now(0)
 -- , { toward( 5, 2, "sine")
 --   , toward( -5, 2, "sine")
@@ -102,3 +101,7 @@ callback()
 --   }
 -- , exit(0)
 -- }
+--
+--
+--caller of exit
+
