@@ -47,6 +47,7 @@ end
 
 -- use a metamethod so we can can *assign* myAsl:action = lfo()
 -- but then *call* myAsl:action(high/low) 
+-- need a 'proxy' metatable. see: https://www.lua.org/pil/13.4.4.html
 function Asl:action( aslT )
     self.program  = compileT( aslT )
     self.retStk   = {}

@@ -1,5 +1,7 @@
 -- must be provided for asl.lua
 function LL_toward( id, d, t, s )
+    if type(d) == 'function' then d = d() end
+    if type(t) == 'function' then t = t() end
     print("id: "..id,"\ttoward "..d,"\tin time: "..t,"\twith shape: "..s)
 end
 
@@ -16,6 +18,11 @@ local function tester(sl)
         }
 end
 
+-- closured fns to be invoked fresh each time
+function q_random( lower, upper )
+    return function() return math.random(lower,upper) end
+end
+
 -- example of a 'library' shape
 local function lfo( speed, curve, level )
     -- default values for variadic fn use
@@ -23,7 +30,7 @@ local function lfo( speed, curve, level )
     curve = curve or "linear"
     level = level or 5
 
-    return { loop{ toward(  level, speed, curve )
+    return { loop{ toward( q_random(-5,5), speed, curve )
                  , toward( -level, speed, curve )
                  }
            }
@@ -74,23 +81,26 @@ end
 
 local sl = {}
 sl[1] = Asl.new(1)
-sl[2] = Asl.new(2)
-tester5(sl[1])
-sl[2]:action(lfo())
+--sl[2] = Asl.new(2)
+--tester5(sl[1])
+--sl[2]:action(lfo())
+sl[1]:action(lfo())
 sl[1]:bang(true)
 --set_hold_state(false)
 sl[1]:callback()
-sl[2]:bang(true)
-sl[1]:callback()
-sl[1]:bang(false)
-sl[2]:callback()
-sl[2]:callback()
+--sl[2]:bang(true)
 sl[1]:callback()
 sl[1]:callback()
-sl[2]:callback()
 sl[1]:callback()
-sl[2]:callback()
-sl[1]:callback()
+--sl[1]:bang(false)
+--sl[2]:callback()
+--sl[2]:callback()
+--sl[1]:callback()
+--sl[1]:callback()
+--sl[2]:callback()
+--sl[1]:callback()
+--sl[2]:callback()
+--sl[1]:callback()
 --asl:bang(false)
 
 -- desired representation of the above asl:action
