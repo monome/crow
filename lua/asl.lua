@@ -1,5 +1,7 @@
 --- A Slope Language
--- declaratively script hardware-interactive slopes
+-- declarative scripts for time-based event structures
+-- scripts can have compile-time, or call-time behaviour and
+-- query hardware states at the appropriate time
 
 local table = require("table")
 local print = print
