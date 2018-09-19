@@ -115,6 +115,7 @@ endif
 
 
 all: $(TARGET).hex $(BIN)
+	@mkdir build/
 
 # include all DEP files in the makefile
 # will rebuild elements if dependent C headers are changed
@@ -171,9 +172,10 @@ erase:
 	st-flash erase
 
 clean:
-	@rm -f Startup.lst $(TARGET).elf.lst $(OBJS) $(AUTOGEN) \
+	@rm -rf Startup.lst $(TARGET).elf.lst $(OBJS) $(AUTOGEN) \
 	$(TARGET).bin  $(TARGET).out  $(TARGET).hex \
-	$(TARGET).map  $(TARGET).dmp  $(EXECUTABLE) $(DEP)
+	$(TARGET).map  $(TARGET).dmp  $(EXECUTABLE) $(DEP) \
+	build/ \
 
 splint:
 	splint -I. -I./ $(STM32_INCLUDES) *.c
