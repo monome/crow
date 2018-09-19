@@ -1,16 +1,10 @@
-function LL_toward( d, t, s )
-    print("toward",d,"in time:",t,"with shape:",s)
-end
-
-
-
 -- A Slope Language
 local asl = { program = {}     -- store the ASL program
             , retStk  = {}     -- return stack for nested constructs
             , pc      = 0      -- program counter within stack frame
             , hold    = false  -- is the slope trigger currently held high
-            , in_hold = false  -- is the ASL program currently in a held construct
-            , lock    = false  -- program sets to lockout bangs during lock{}
+            , in_hold = false  -- is eval currently in a held construct
+            , locked  = false  -- flag to lockout bangs during lock{}
             }
 
 local table = require("table")

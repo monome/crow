@@ -1,3 +1,9 @@
+-- must be provided for asl.lua
+function LL_toward( d, t, s )
+    print("toward",d,"in time:",t,"with shape:",s)
+end
+
+
 local asl = dofile("lua/asl.lua")
 
 local function tester()
@@ -71,9 +77,10 @@ tester5()
 asl:bang(true)
 --set_hold_state(false)
 callback()
+asl:bang(true)
 callback()
 callback()
-release()
+asl:bang(false)
 callback()
 callback()
 callback()
