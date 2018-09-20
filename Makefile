@@ -46,7 +46,7 @@ CFLAGS += $(MCFLAGS)
 CFLAGS += $(OPTIMIZE)
 CFLAGS += $(DEFS) -I. -I./ $(STM32_INCLUDES)
 CFLAGS += -fsingle-precision-constant -Wdouble-promotion
-#CFLAGS += -DLUA_32BITS -DLUA_COMPAT_5_2
+CFLAGS += -DLUA_32BITS -DLUA_COMPAT_5_2
 
 R ?= 0
 ifeq ($(R), 1)
@@ -91,6 +91,14 @@ SRC = main.c \
 	$(WRLIB)/wrMath.c \
 	$(WRDSP)/wrOscSine.c \
 
+# these get converted to bytecode strings wrapped in c-headers
+LUA_SRC = \
+	lua/crowlib.lua \
+	lua/asl.lua \
+
+
+LUA_PP = $(LUA_SRC:%.lua=%.lua.h)
+
 LUACORE_OBJS=	lapi.o lcode.o lctype.o ldebug.o ldo.o ldump.o lfunc.o lgc.o llex.o \
 	lmem.o lobject.o lopcodes.o lparser.o lstate.o lstring.o ltable.o \
 	ltm.o lundump.o lvm.o lzio.o
@@ -99,6 +107,7 @@ LUALIB_OBJS=	lauxlib.o lbaselib.o lbitlib.o lcorolib.o ldblib.o liolib.o \
 
 OBJDIR = .
 OBJS = $(SRC:%.c=$(OBJDIR)/%.o) #$(addprefix $(LUAS)/,$(LUACORE_OBJS) $(LUALIB_OBJS) )
+OBJS += $(addprefix $(LUAS)/,$(LUACORE_OBJS) $(LUALIB_OBJS) )
 OBJS += Startup.o
 
 # C dependencies echoed into Makefile
@@ -115,7 +124,8 @@ endif
 
 
 all: $(TARGET).hex $(BIN)
-	@mkdir build/
+	@mkdir -p build/
+
 
 # include all DEP files in the makefile
 # will rebuild elements if dependent C headers are changed
@@ -124,7 +134,7 @@ all: $(TARGET).hex $(BIN)
 $(TARGET).hex: $(EXECUTABLE)
 	@$(CP) -O ihex $^ $@
 
-$(EXECUTABLE): $(OBJS)
+$(EXECUTABLE): $(LUA_PP) $(OBJS)
 	@$(LD) -g $(MCFLAGS) $(LDFLAGS) $(OBJS) $(LIBS) -o $@
 	@echo "linked:       $@"
 	@$(OBJDUMP) --disassemble $@ > $@.lst
@@ -156,6 +166,10 @@ dfu: $(BIN)
 %.s: %.c
 	@$(CC) -ggdb $(CFLAGS) -S $< -o $@
 
+%.lua.h: %.lua
+	@echo $< "->" $@
+	@lua ../lua2h/l2h.lua $<
+
 Startup.o: $(STARTUP)
 	@$(CC) $(CFLAGS) -c $< -o $@
 	@echo $@
@@ -175,7 +189,7 @@ clean:
 	@rm -rf Startup.lst $(TARGET).elf.lst $(OBJS) $(AUTOGEN) \
 	$(TARGET).bin  $(TARGET).out  $(TARGET).hex \
 	$(TARGET).map  $(TARGET).dmp  $(EXECUTABLE) $(DEP) \
-	build/ \
+	build/ lua/*.lua.h \
 
 splint:
 	splint -I. -I./ $(STM32_INCLUDES) *.c

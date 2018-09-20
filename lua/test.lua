@@ -8,7 +8,7 @@ function LL_toward( id, d, t, s )
 end
 
 
-local Asl = dofile("lua/asl.lua")
+local Asl = crowfile("lua/asl.lua")
 
 local function tester(sl)
     local shape = "sine"

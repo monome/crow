@@ -3,7 +3,7 @@
 -- scripts can have compile-time, or call-time behaviour and
 -- query hardware states at the appropriate time
 
-local table = require("table")
+local table = require('table')
 local print = print
 
 local Asl = {}
@@ -12,7 +12,7 @@ Asl.__index = Asl
 function Asl.new(id)
     local slope = {}
     setmetatable(slope, Asl)
-    if id == nil then print"asl needs id of output channel" end
+    if id == nil then print('asl needs id of output channel') end
     slope.id = id or 1
     slope:init()
     return slope
@@ -77,12 +77,12 @@ end
 
 local function doASL( self )
     local p = get_frame(self)                     -- find table level
-    if p[self.pc] == nil then print"asl.pc == nil" return
-    elseif type(p[self.pc]) == "function" then
+    if p[self.pc] == nil then print('asl.pc == nil') return
+    elseif type(p[self.pc]) == ('function') then
         wait = p[self.pc](self)                  -- execute the step
         if self.pc ~= nil then
             self.pc = self.pc + 1
-            if wait ~= "wait" then doASL(self) end  -- recurse for next step
+            if wait ~= 'wait' then doASL(self) end  -- recurse for next step
         end -- else we did last exit()
     else
         table.insert( self.retStk, self.pc )
@@ -135,11 +135,11 @@ end
 
 -- hw access fn
 function toward( dest, time, shape )
-    local d,t,s = dest or 0, time or 1, shape or "linear"
+    local d,t,s = dest or 0, time or 1, shape or 'linear'
     return function(self)
         LL_toward(self.id, d,t,s)
         if t ~= 0 then
-            return "wait"
+            return 'wait'
         end
     end
 end

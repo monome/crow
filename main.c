@@ -1,21 +1,17 @@
 #include "main.h"
 
-//#include <lua.h>
-//#include <lauxlib.h>
-//#include <lualib.h>
-
 #include <string.h>
 
 #include "lib/io.h"
 #include "lib/caw.h"
 #include "lib/ii.h"
+#include "lib/lualink.h"
 
 #include "ll/debug_usart.h"
 #include "ll/debug_pin.h"
 
 #include "usbd/usbd_main.h"
 
-static void Lua_Test(void);
 static void Sys_Clk_Config(void);
 static void Error_Handler(void);
 
@@ -32,7 +28,7 @@ int main(void)
 
     II_init( II_FOLLOW );
 
-    Lua_Test();
+    Lua_Init(); // send this function a list of fnptrs?
 
     USB_CDC_Init();
     U_PrintLn("cdc");
@@ -49,27 +45,6 @@ int main(void)
     }
 }
 
-// Lua deactivated to decrease flash time
-static void Lua_Test(void)
-{
-    /*
-    lua_State* L;         // pointer to store lua state
-    L = luaL_newstate();  // create a new lua state & save pointer
-    luaL_openlibs(L);     // give our lua state access to lua libs
-
-    // lua hello-world as a string
-    char* slua =
-        "function f()\n                  \
-            print(\"Hello from lua\")\n  \
-        end";
-    luaL_loadbuffer(L, slua
-                     , strlen(slua)
-                     , "sscript"
-                     );
-    int result = lua_pcall(L, 0, 0, 0);
-    if( result ){ fprintf(stderr, "failure\n"); }
-    */
-}
 static void Sys_Clk_Config(void)
 {
     static RCC_ClkInitTypeDef RCC_ClkInitStruct;
