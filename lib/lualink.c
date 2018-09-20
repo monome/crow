@@ -68,20 +68,17 @@ static int L_dofile( lua_State *L )
 {
     const char* l_name = luaL_checkstring(L, 1);
     uint8_t i = 0;
-    U_Print("&lua/asl.lua "); U_PrintU32((uint32_t)lua_asl);
-    U_Print("&lua/crowlib.lua ");U_PrintU32((uint32_t)lua_crowlib);
     while( Lua_libs[i].addr_of_luacode != NULL ){
         if( !strcmp( l_name, Lua_libs[i].name ) ){ // if the strings match
-            U_Print("found lib "); U_Print((char*)Lua_libs[i].name); U_Print(" at ");
-            U_PrintU32((uint32_t)Lua_libs[i].addr_of_luacode);
             if( luaL_dostring( L, Lua_libs[i].addr_of_luacode ) ){
-                U_PrintLn("can't load default");
+                U_PrintLn("can't load library");
                 goto fail;
             }
             return 1; // table is left on the stack as retval
         }
         i++;
     }
+    U_PrintLn("can't find library");
 fail:
     // failed to find library
     lua_pushnil(L);
@@ -152,13 +149,27 @@ static void Lua_opencrowlibs( lua_State *L )
 }
 
 static void Lua_loadscript( lua_State* L, const char* script ){
-    // TODO: first decide if there is a user-script to load
-    // else, fall through to default script
+    int error = 0;
+    if( (error = luaL_loadstring( L, script )) ){
+        switch( error ){
+            case LUA_ERRSYNTAX: U_PrintLn("can't load script: syntax error"); break;
+            case LUA_ERRMEM:    U_PrintLn("can't load script: memory error"); break;
+            default: break;
+        }
+        const char* errmsg = luaL_checkstring(L, -1);
+        U_PrintLn( (char*)errmsg );
+    }
 
-    // Load the default script: defines init()
-    int result = luaL_dostring(L, script);
-    if( result ){ U_PrintLn("can't load script"); }
-    else{ U_PrintLn("script loaded!"); }
+    if( (error = lua_pcall(L, 0, LUA_MULTRET, 0)) ){
+        switch( error ){
+            case LUA_ERRRUN: U_PrintLn("can't exec script: runtime error"); break;
+            case LUA_ERRMEM: U_PrintLn("can't exec script: memory error"); break;
+            case LUA_ERRERR: U_PrintLn("can't exec script: err in err handler"); break;
+            default: break;
+        }
+        const char* errmsg = luaL_checkstring(L, -1);
+        U_PrintLn( (char*)errmsg );
+    }
 }
 static void Lua_crowbegin( lua_State* L )
 {
