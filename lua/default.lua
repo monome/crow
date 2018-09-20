@@ -1,6 +1,7 @@
-crab = dofile('lua/crowlib.lua')
+crow = dofile('lua/crowlib.lua')
 Asl = dofile('lua/asl.lua')
 
+-- TODO where should this go?
 function LL_toward( self, d, t, s )
     if type(d) == 'function' then d = d() end
     if type(t) == 'function' then t = t() end
@@ -8,6 +9,7 @@ function LL_toward( self, d, t, s )
     go_toward( self.id, d, t, s )
 end
 
+-- TODO where should these go?
 local function lfo( speed, curve, level )
     speed = speed or 1
     curve = curve or 'linear'
@@ -28,5 +30,5 @@ function init()
     slope[1]:bang(true)
     slope[1]:callback()
 
-    print(crab.squared(5))
+    print(crow.squared(5))
 end
