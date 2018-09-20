@@ -11,7 +11,7 @@ typedef enum{ SHAPE_Linear
             , SHAPE_Expo
 } Shape_t;
 
-typedef void (*Callback_t)();
+typedef void (*Callback_t)(int);
 
 typedef struct{
     // destination
@@ -34,22 +34,7 @@ void S_toward( int        index
              , Shape_t    shape
              , Callback_t cb
              );
-
 float* S_step_v( int     index
                , float*  out
                , int     size
                );
-// example usage
-/*
-block_processor()
-{
-    // process execution stack?
-
-    for( int j=0; j<SLEW_CHANNELS; j++ ){
-        S_step_v( &slews[j]
-                , b->out[j]
-                , b->size
-                );
-    }
-}
-*/

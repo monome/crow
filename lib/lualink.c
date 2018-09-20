@@ -38,6 +38,9 @@ static void Lua_opencrowlibs( lua_State* L );
 static void Lua_loadscript( lua_State* L, const char* script );
 static void Lua_crowbegin( lua_State* L );
 
+// Callback prototypes
+static void cb_L_toward( int id );
+
 lua_State* L; // global access for 'reset-environment'
 
 // Public functions
@@ -103,6 +106,13 @@ static int L_go_toward( lua_State *L )
     U_Print("time\t"); U_PrintF(time);
     U_Print("shape\t"); U_PrintLn( (char*)shape);
 
+    // just put the check*() right in here!
+    S_toward( id-1 // C is zero-based
+            , dest
+            , time*1000.0
+            , SHAPE_Linear // Shape_t
+            , cb_L_toward
+            );
     return 0;
 }
 static int L_send_usb( lua_State *L )
@@ -178,4 +188,16 @@ static void Lua_crowbegin( lua_State* L )
     // The only callback->Lua *not* declared in Lua is a received command over USB
     lua_getglobal(L,"init");
     lua_pcall(L,0,0,0);
+}
+
+// Crow callbacks
+// TODO: is there anyway *not* to access the global lua_State?
+static void cb_L_toward( int id )
+{
+    lua_getglobal(L, "toward_handler");
+    lua_pushinteger(L, id+1); // lua is 1-based
+    if( lua_pcall(L, 1, 0, 0) != LUA_OK ){
+        U_PrintLn("error running toward_handler");
+        U_PrintLn( (char*)lua_tostring(L, -1) );
+    }
 }

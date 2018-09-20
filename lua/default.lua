@@ -9,6 +9,11 @@ function LL_toward( self, d, t, s )
     go_toward( self.id, d, t, s )
 end
 
+function toward_handler( id )
+    slope[id]:callback()
+end
+
+
 -- TODO where should these go?
 local function lfo( speed, curve, level )
     speed = speed or 1
@@ -24,11 +29,10 @@ end
 function init()
     print'init()'
 
-    local slope = {}
+    --local slope = {}
     slope[1] = Asl.new(1)
     slope[1]:action(lfo())
     slope[1]:bang(true)
-    slope[1]:callback()
 
     print(crow.squared(5))
 end

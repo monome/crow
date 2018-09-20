@@ -30,8 +30,6 @@ CAL_t cal;
 
 // currently getting 30 sinewaves at 48kHz
 osc_sine_t sinewave[4];
-static void _callback_up( void );
-static void _callback_down( void );
 
 void IO_Init( void )
 {
@@ -42,13 +40,12 @@ void IO_Init( void )
     CAL_LL_Init();
     //IO_Recalibrate();
 
-    for( uint8_t j=0; j<4; j++ ){
-        osc_sine_init( &sinewave[j] );
-        osc_sine_time( &sinewave[j], 0.01*(j*2+1) );
-    }
+    //for( uint8_t j=0; j<4; j++ ){
+    //    osc_sine_init( &sinewave[j] );
+    //    osc_sine_time( &sinewave[j], 0.01*(j*2+1) );
+    //}
 
     S_init();
-    _callback_up();
 }
 
 void IO_Start( void )
@@ -56,51 +53,18 @@ void IO_Start( void )
     ADDA_Start();
 }
 
-static void _callback_up( void )
-{
-    S_toward( 0
-            , 1.0
-            , 10.0
-            , SHAPE_Sine
-            , _callback_down
-            );
-}
-static void _callback_down( void )
-{
-    S_toward( 0
-            , -1.0
-            , 20.5
-            , SHAPE_Sine
-            , _callback_up
-            );
-}
-
-
 // DSP process
 IO_block_t* IO_BlockProcess( IO_block_t* b )
 {
-    /*for( uint8_t j=0; j<4; j++ ){
-        osc_sine_process_base_v( &sinewave[j]
-                               , b->size
-                               , b->out[j]
-                               );
-        mul_vf_f( b->out[j]
-                , 3.1
-                , b->out[j]
-                , b->size
-                );
-    }*/
-    /*for( int j=0; j<SLEW_CHANNELS; j++ ){
+    for( int j=0; j<SLEW_CHANNELS; j++ ){
         S_step_v( j
                 , b->out[j]
                 , b->size
                 );
     }
-    */
-    for( int i=0; i<(b->size); i++ ){
-        b->out[0][i] = b->in[0][i];
-    }
-
+    //for( int i=0; i<(b->size); i++ ){
+    //    b->out[0][i] = b->in[0][i];
+    //}
     return b;
 }
 
