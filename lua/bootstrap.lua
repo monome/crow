@@ -1,7 +1,9 @@
 --- Bootstrap Lua by redefining standard library functions
---
 -- dofile() and print() need hardware specific implementations
 -- call this before any other lua code
+--
+--
+-- nb: assert() seems to be broken. failed assert does nothing
 
 print = function(...)
     local printResult = ''
