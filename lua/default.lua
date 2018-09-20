@@ -13,7 +13,7 @@ function LL_toward( self, d, t, s )
 end
 
 function toward_handler( id )
-    slope[id]:callback()
+    slope[id]:step()
 end
 
 

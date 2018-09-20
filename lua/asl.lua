@@ -66,7 +66,7 @@ end
 -- think about how to do this in a direct way
 
 -- returns the current table context of the program counter
---> helper doASL()
+--> helper step()
 local function get_frame(self)
     local frame = self.program -- the table representing the program
     for i=1, #self.retStk, 1 do
@@ -75,24 +75,20 @@ local function get_frame(self)
     return frame
 end
 
-local function doASL( self )
-    local p = get_frame(self)                     -- find table level
+function Asl:step()
+    local p = get_frame(self)                      -- find table level
     if p[self.pc] == nil then print('asl.pc == nil') return
     elseif type(p[self.pc]) == ('function') then
-        wait = p[self.pc](self)                  -- execute the step
+        wait = p[self.pc](self)                    -- execute the step
         if self.pc ~= nil then
             self.pc = self.pc + 1
-            if wait ~= 'wait' then doASL(self) end  -- recurse for next step
+            if wait ~= 'wait' then self:step() end -- recurse for next step
         end -- else we did last exit()
     else
         table.insert( self.retStk, self.pc )
         self.pc = 1
-        doASL(self)                               -- unpack table & recurse
+        self:step()                                -- unpack table & recurse
     end
-end
-
-function Asl:callback()
-    doASL(self)
 end
 
 function Asl:set_hold_state(state)
@@ -104,7 +100,7 @@ local function start( self )
         self.pc      = 1
         self.retStk  = {}
     end
-    doASL(self)
+    self:step()
 end
 
 local function release( self )
