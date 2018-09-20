@@ -93,6 +93,8 @@ SRC = main.c \
 
 # these get converted to bytecode strings wrapped in c-headers
 LUA_SRC = \
+	lua/bootstrap.lua \
+	lua/default.lua \
 	lua/crowlib.lua \
 	lua/asl.lua \
 

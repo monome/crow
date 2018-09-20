@@ -1,6 +1,10 @@
--- dofile() replacement
-function crowfile( path )
-    -- just calls to C with the string
+--- Crow standard library
+--
 
+local crab = {}
 
+function crab.squared(n)
+    return n*n
+end
 
+return crab

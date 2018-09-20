@@ -137,7 +137,7 @@ end
 function toward( dest, time, shape )
     local d,t,s = dest or 0, time or 1, shape or 'linear'
     return function(self)
-        LL_toward(self.id, d,t,s)
+        LL_toward(self,d,t,s)
         if t ~= 0 then
             return 'wait'
         end

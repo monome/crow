@@ -1,10 +1,10 @@
 -- must be provided for asl.lua
-function LL_toward( id, d, t, s )
-    -- should take 'self' instead, and pass it to d() and t()
+function LL_toward( self, d, t, s )
     -- that would allow one to access the state of the output in a closure
     if type(d) == 'function' then d = d() end
     if type(t) == 'function' then t = t() end
-    print("id: "..id,"\ttoward "..d,"\tin time: "..t,"\twith shape: "..s)
+    print("id: "..self.id,"\ttoward "..d,"\tin time: "..t,"\twith shape: "..s)
+    go_toward( self.id, d, t, s )
 end
 
 
