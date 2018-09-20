@@ -36,7 +36,7 @@ const struct lua_lib_locator Lua_libs[] =
 // Private prototypes
 static void Lua_opencrowlibs( lua_State* L );
 static void Lua_loadscript( lua_State* L, const char* script );
-static void Lua_eval( lua_State* L );
+static void Lua_crowbegin( lua_State* L );
 
 lua_State* L; // global access for 'reset-environment'
 
@@ -49,7 +49,7 @@ void Lua_Init(void)
     Lua_loadscript(L, lua_bootstrap); // redefine dofile() and print()
     Lua_loadscript(L, lua_default);
 
-    Lua_eval(L);
+    Lua_crowbegin(L);
 }
 
 void Lua_DeInit(void)
@@ -160,7 +160,7 @@ static void Lua_loadscript( lua_State* L, const char* script ){
     if( result ){ U_PrintLn("can't load script"); }
     else{ U_PrintLn("script loaded!"); }
 }
-static void Lua_eval( lua_State* L )
+static void Lua_crowbegin( lua_State* L )
 {
     // Call init() function
     // This is all we need to do -> the rest should flow back from Lua
