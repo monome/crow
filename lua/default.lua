@@ -1,6 +1,9 @@
 crow = dofile('lua/crowlib.lua')
 Asl = dofile('lua/asl.lua')
 
+--TODO this should be hidden from the user altogether (inside 'out' table)
+local slope = {}
+
 -- TODO where should this go?
 function LL_toward( self, d, t, s )
     if type(d) == 'function' then d = d() end
