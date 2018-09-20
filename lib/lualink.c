@@ -45,24 +45,15 @@ void Lua_DeInit(void)
 
 static void Lua_Test( lua_State *L )
 {
-    //float n = 3.0;
+    float n = 3.0;
 
-    // push a float onto the Lua stack
-    //lua_pushnumber(L,n);
-
-    // print to usart
-    //char stest[] = "return squared(3)"
-    luaL_dostring(L, "return squared(3)" );
-    float n = lua_tonumber(L,-1);
+    luaL_getglobal(L,"squared");
+    luaL_pushnumber(L,3.0);
+    lua_pcall(L,2,1,0);
+    n = lua_tonumber(L,-1);
     lua_pop(L,1);
 
-    // from lua, call 'squared'
-    // squared calls back to C to do the mul
-    // lua receives the squared version
-    // pop the result back off the stack
-
     U_PrintF(n); // print to usart
-
 }
 
 // C-library
