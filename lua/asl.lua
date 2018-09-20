@@ -222,4 +222,6 @@ function times( count, aslT )
     return t
 end
 
+print 'asl lib loaded'
+
 return Asl

@@ -30,6 +30,8 @@ function luapath_to_cpath( path )
             )
 end
 
+print'lua bootstrapped'
+
 --- Tests
 -- move these to a diff file & run tests over all the functions from makefile?
 
