@@ -9,7 +9,7 @@
 
 // Hardware IO
 #include "ll/debug_usart.h" // U_Print*()
-#include "lib/io.h"         // IO_toward() <- dsp action
+#include "lib/slews.h"      // S_toward
 #include "lib/caw.h"        // Caw_send_*()
 #include "lib/ii.h"         // II_*()
 
@@ -62,11 +62,7 @@ void Lua_DeInit(void)
 
 // C-library
 // to call from Lua
-//
-// go_toward() -- set the dsp engine toward a new target
-// send_usb()  -- send a message over usb-uart to host
-// send_i2c()  -- send a message over i2c
-//
+
 static int L_dofile( lua_State *L )
 {
     const char* l_name = luaL_checkstring(L, 1);
