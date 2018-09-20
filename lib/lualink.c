@@ -48,7 +48,7 @@ static void Lua_Test( lua_State *L )
     float n = 3.0;
 
     luaL_getglobal(L,"squared");
-    luaL_pushnumber(L,3.0);
+    luaL_pushnumber(L,n);
     lua_pcall(L,2,1,0);
     n = lua_tonumber(L,-1);
     lua_pop(L,1);
