@@ -25,6 +25,7 @@ ref/*
 # Precompiled Headers
 *.gch
 *.pch
+*.lua.h
 
 # Libraries
 *.lib
