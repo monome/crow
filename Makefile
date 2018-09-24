@@ -92,12 +92,7 @@ SRC = main.c \
 	$(WRDSP)/wrOscSine.c \
 
 # these get converted to bytecode strings wrapped in c-headers
-LUA_SRC = \
-	lua/bootstrap.lua \
-	lua/default.lua \
-	lua/crowlib.lua \
-	lua/asl.lua \
-
+LUA_SRC = $(wildcard lua/*.lua) \
 
 LUA_PP = $(LUA_SRC:%.lua=%.lua.h)
 
@@ -108,7 +103,7 @@ LUALIB_OBJS=	lauxlib.o lbaselib.o lbitlib.o lcorolib.o ldblib.o liolib.o \
 	lmathlib.o loslib.o lstrlib.o ltablib.o lutf8lib.o loadlib.o linit.o
 
 OBJDIR = .
-OBJS = $(SRC:%.c=$(OBJDIR)/%.o) #$(addprefix $(LUAS)/,$(LUACORE_OBJS) $(LUALIB_OBJS) )
+OBJS = $(SRC:%.c=$(OBJDIR)/%.o)
 OBJS += $(addprefix $(LUAS)/,$(LUACORE_OBJS) $(LUALIB_OBJS) )
 OBJS += Startup.o
 
