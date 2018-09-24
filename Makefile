@@ -170,7 +170,7 @@ dfu: $(BIN)
 
 %.lua.h: %.lua
 	@echo $< "->" $@
-	@lua ../lua2h/l2h.lua $<
+	@lua util/l2h.lua $<
 
 Startup.o: $(STARTUP)
 	@$(CC) $(CFLAGS) -c $< -o $@
