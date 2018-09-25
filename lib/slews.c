@@ -11,8 +11,10 @@ void S_init( void )
         slews[j].shape  = SHAPE_Linear;
         slews[j].action = NULL;
         slews[j].here   = 0.0;
-        slews[j].last   = 0.0;
-        slews[j].delta  = 0.0;
+        slews[j].last   = 0.0; //
+        slews[j].delta  = 0.0; //
+
+        slews[j].countdown = -1.0;
     }
 }
 
@@ -31,42 +33,28 @@ void S_toward( int        index
     self->shape  = shape;
     self->action = cb;
 
-    // update metadata
-    // TODO: make it time-based slopes, not convergence (support static delay)
-    self->last  = self->here; // need something smarter for shaping?
-    const float t_scalar = SAMPLE_RATE / 1000.0;
-    self->delta = (self->dest - self->here) / (ms * t_scalar);
+    // direct update & callback if ms = 0 (ie instant)
+    if( ms <= 0.0 ){
+        self->here      = destination; // hard set
+        self->countdown = 0.0;         // force callback next sample
+        //TODO just call the action directly!!
+        //avoids off-by-one sample error
+    } else {
+        const float t_scalar = SAMPLE_RATE / 1000.0;
+        self->countdown = ms * t_scalar; // samples until callback
+        self->delta = (self->dest - self->here) / self->countdown;
+    }
+    self->last  = self->here;
 }
 
 // TODO: how to optimize this?
-// compiler inlining probably goes pretty far
-// inlining is likely faster than making it a fnptr & having to call
-// thought to fnptr S_step_v() itself, but how to handle switching
-// context at a breakpoint
-//
-//
-// update!!
-//
-// need to do the breakpoint based on *time* not destination
-// this means we need to add a sense of time to the library
-// but also means we don't have to do the complex edge cases
-// and can calculate once per frame whether the breakpoint will
-// be this frame.
-//
 // stretch: can also add overshoot compensation for sub-sample
 // accuracy and time locking. similar approach to JF sawtooth
 // lookup.
-//
-void _S_isbreakpoint( Slew_t* self, int id, float state )
+static void _S_isbreakpoint( Slew_t* self, int id, float here )
 {
-    if( self->delta >= 0 ){
-        if( state >= self->dest ){
-            if( self->action != NULL ){ (*self->action)(id); }
-        }
-    } else {
-        if( state < self->dest ){
-            if( self->action != NULL ){ (*self->action)(id); }
-        }
+    if( self->countdown <= 0.0 ){
+        if( self->action != NULL ){ (*self->action)(id); }
     }
 }
 float* S_step_v( int     index
@@ -80,12 +68,24 @@ float* S_step_v( int     index
 
     float* out2 = out;
     float* out3 = out;
-    *out2++ = self->here + self->delta;
-    _S_isbreakpoint( self, index, *out3 );
-    for( int i=0; i<size; i++ ){
-        *out2++ = *out3++ + self->delta;
+    if( self->countdown > (float)size ){ // no edge case
+        *out2++ = self->here + self->delta;
+        for( int i=0; i<size; i++ ){
+            *out2++ = *out3++ + self->delta;
+        }
+        self->countdown -= (float)size;
+    } else {
+        float thiscd = (float)size - self->countdown;
+        //TODO optimize loops as we can pre-calc exactly which
+        //sample will have the edge case, so no need for a branch each time
+        *out2++ = self->here + self->delta;
         _S_isbreakpoint( self, index, *out3 );
+        for( int i=0; i<size; i++ ){
+            *out2++ = *out3++ + self->delta;
+            _S_isbreakpoint( self, index, *out3 );
+        }
+        self->countdown -= thiscd;
     }
-    self->here = *out3;
+    self->here = *out3; // TODO overwrites delay() breakpoint
     return out;
 }

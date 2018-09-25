@@ -22,6 +22,7 @@ typedef struct{
     float       here;  // current state
     float       last;  // 'here' @last breakpoint
     float       delta; // timestep per sample
+    float       countdown; // samples until breakpoint
 } Slew_t;
 
 #define SLEW_CHANNELS 4
