@@ -54,6 +54,7 @@ void S_toward( int        index
 static void _S_isbreakpoint( Slew_t* self, int id, float here )
 {
     if( self->countdown <= 0.0 ){
+        //TODO set self->action to NULL before calling
         if( self->action != NULL ){ (*self->action)(id); }
     }
 }
@@ -86,6 +87,8 @@ float* S_step_v( int     index
         }
         self->countdown -= thiscd;
     }
+    //TODO add elseif for countdown < -1.0 which means nothing set
+    //so just fill buffer with a copy of here/dest.
     self->here = *out3; // TODO overwrites delay() breakpoint
     return out;
 }
