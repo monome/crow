@@ -32,7 +32,8 @@ void Debug_USART_Init( void )
 	handusart.Init.WordLength = USART_WORDLENGTH_8B;
 	handusart.Init.StopBits   = USART_STOPBITS_1;
 	handusart.Init.Parity     = USART_PARITY_NONE;
-	handusart.Init.Mode       = USART_MODE_TX_RX;
+	handusart.Init.Mode       = USART_MODE_TX;
+
 	HAL_USART_Init( &handusart );
 
 	str_buffer_init( &str_buf, 511 ); // fifo for DMA buffer
@@ -44,74 +45,54 @@ void Debug_USART_DeInit(void)
 	str_buffer_deinit( &str_buf );
 }
 
+#include "midi.h"
 
 // LOW LEVEL USART HARDWARE CONFIGURATION FUNCTION
 void HAL_USART_MspInit(USART_HandleTypeDef *hu )
 {
-	static DMA_HandleTypeDef hdma_tx;
-	// static DMA_HandleTypeDef hdma_rx;
+    if(hu == &handusart){
+	    static DMA_HandleTypeDef hdma_tx;
 
-	DBG_USART_USART_RCC();
-	DBG_USART_GPIO_RCC();
-	DBG_DMAx_CLK_ENABLE();
+	    DBG_USART_USART_RCC();
+	    DBG_USART_GPIO_RCC();
+	    DBG_DMAx_CLK_ENABLE();
 
-	GPIO_InitTypeDef gpio;
-	gpio.Pin       = DBG_USART_TXPIN;
-	gpio.Mode      = GPIO_MODE_AF_PP;
-	gpio.Pull      = GPIO_PULLUP;
-	gpio.Speed     = GPIO_SPEED_FREQ_HIGH;
-	gpio.Alternate = DBG_USART_AF;
-	HAL_GPIO_Init( DBG_USART_GPIO, &gpio );
+	    GPIO_InitTypeDef gpio;
+	    gpio.Pin       = DBG_USART_TXPIN;
+	    gpio.Mode      = GPIO_MODE_AF_PP;
+	    gpio.Pull      = GPIO_PULLUP;
+	    gpio.Speed     = GPIO_SPEED_FREQ_HIGH;
+	    gpio.Alternate = DBG_USART_AF;
+	    HAL_GPIO_Init( DBG_USART_GPIO, &gpio );
 
-	gpio.Pin = DBG_USART_RXPIN;
-	HAL_GPIO_Init( DBG_USART_GPIO, &gpio );
+        // Configure DMA
+	    hdma_tx.Instance                 = USARTx_TX_DMA_STREAM;
+	    hdma_tx.Init.Channel             = USARTx_TX_DMA_CHANNEL;
+	    hdma_tx.Init.Direction           = DMA_MEMORY_TO_PERIPH;
+	    hdma_tx.Init.PeriphInc           = DMA_PINC_DISABLE;
+	    hdma_tx.Init.MemInc              = DMA_MINC_ENABLE;
+	    hdma_tx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+	    hdma_tx.Init.MemDataAlignment    = DMA_MDATAALIGN_BYTE;
+	    hdma_tx.Init.Mode                = DMA_NORMAL;
+	    hdma_tx.Init.Priority            = DMA_PRIORITY_LOW;
+	    HAL_DMA_Init( &hdma_tx );
+	    __HAL_LINKDMA( hu, hdmatx, hdma_tx ); // Associate DMA to USART handle
 
-	// Configure DMA
-	hdma_tx.Instance                 = USARTx_TX_DMA_STREAM;
-	hdma_tx.Init.Channel             = USARTx_TX_DMA_CHANNEL;
-	hdma_tx.Init.Direction           = DMA_MEMORY_TO_PERIPH;
-	hdma_tx.Init.PeriphInc           = DMA_PINC_DISABLE;
-	hdma_tx.Init.MemInc              = DMA_MINC_ENABLE;
-	hdma_tx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
-	hdma_tx.Init.MemDataAlignment    = DMA_MDATAALIGN_BYTE;
-	hdma_tx.Init.Mode                = DMA_NORMAL;
-	hdma_tx.Init.Priority            = DMA_PRIORITY_LOW;
-	HAL_DMA_Init( &hdma_tx );
-	__HAL_LINKDMA( hu, hdmatx, hdma_tx ); // Associate DMA to USART handle
+        // Configure NVIC for DMA
+        HAL_NVIC_SetPriority( USARTx_DMA_TX_IRQn
+                            , USARTx_DMA_IRQPriority
+                            , USARTx_DMA_TXIRQSubPriority
+                            );
+	    HAL_NVIC_EnableIRQ( USARTx_DMA_TX_IRQn );
 
-/*	hdma_rx.Instance				= USARTx_RX_DMA_STREAM;
-	hdma_rx.Init.Channel			= USARTx_RX_DMA_CHANNEL;
-	hdma_rx.Init.Direction			= DMA_PERIPH_TO_MEMORY;
-	hdma_rx.Init.PeriphInc			= DMA_PINC_DISABLE;
-	hdma_rx.Init.MemInc				= DMA_MINC_ENABLE;
-	hdma_rx.Init.PeriphDataAlignment= DMA_PDATAALIGN_BYTE;
-	hdma_rx.Init.MemDataAlignment	= DMA_MDATAALIGN_BYTE;
-	hdma_rx.Init.Mode 				= DMA_NORMAL;
-	hdma_rx.Init.Priority 			= DMA_PRIORITY_HIGH;
-	HAL_DMA_Init( &hdma_rx );
-	__HAL_LINKDMA( hu, hdmarx, hdma_rx ); // Associate DMA to USART handle
-*/
-	// Configure NVIC for DMA
-	HAL_NVIC_SetPriority( USARTx_DMA_TX_IRQn
-                        , USARTx_DMA_IRQPriority
-                        , USARTx_DMA_IRQSubPriority
-                        );
-	HAL_NVIC_EnableIRQ( USARTx_DMA_TX_IRQn );
-
-	HAL_NVIC_SetPriority( USARTx_IRQn
-                        , USARTx_IRQSubPriority
-                        , USARTx_IRQSubPriority
-                        );
-	HAL_NVIC_EnableIRQ( USARTx_IRQn );
-}
-
-void USARTx_DMA_RX_IRQHandler( void )
-{
-	HAL_DMA_IRQHandler( handusart.hdmarx );
-}
-
-void HAL_USART_RxCpltCallback( USART_HandleTypeDef *husart )
-{
+        HAL_NVIC_SetPriority( USARTx_IRQn
+                            , USARTx_IRQSubPriority
+                            , USARTx_IRQSubPriority
+                            );
+	    HAL_NVIC_EnableIRQ( USARTx_IRQn );
+    } else {
+        MIDI_MspInit(hu);
+    }
 }
 
 void USARTx_DMA_TX_IRQHandler( void )
@@ -123,13 +104,17 @@ void HAL_USART_TxCpltCallback( USART_HandleTypeDef *husart )
 {
 }
 
+void HAL_USART_ErrorCallback( USART_HandleTypeDef *husart )
+{
+    U_Print("errorcode: ");
+    U_PrintU8( husart->ErrorCode );
+}
 void USARTx_IRQHandler( void )
 {
 	HAL_USART_IRQHandler( &handusart );
 }
 
 // Communication Functions
-
 void U_PrintNow( void )
 {
 	if( HAL_USART_GetState( &handusart ) == HAL_USART_STATE_READY

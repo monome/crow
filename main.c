@@ -9,6 +9,7 @@
 
 #include "ll/debug_usart.h"
 #include "ll/debug_pin.h"
+#include "ll/midi.h"
 
 #include "usbd/usbd_main.h"
 
@@ -22,25 +23,30 @@ int main(void)
 
     Debug_Pin_Init();
     Debug_USART_Init();
-    U_PrintLn("\ncrow");
+    U_PrintLn("\n\rcrow");
 
-    IO_Init();
+    MIDI_Init();
 
-    II_init( II_FOLLOW );
+    //IO_Init();
 
-    Lua_Init(); // send this function a list of fnptrs?
+    //II_init( II_FOLLOW );
 
-    USB_CDC_Init();
-    U_PrintLn("cdc");
+//    Lua_Init(); // send this function a list of fnptrs?
+
+    //USB_CDC_Init();
+    //Caw_Init(); // call this with a fnptr to a receive callback
+    //U_PrintLn("cdc");
 
     U_PrintNow();
 
-    IO_Start(); // buffers need to be ready by now
+    //IO_Start(); // buffers need to be ready by now
 
     while(1){
         U_PrintNow();
-        Caw_try_receive();
-        //HAL_Delay(500); Caw_send_rawtext("caw");
+        HAL_Delay(2000);
+        U_Print("x");
+        //Caw_try_receive();
+        //HAL_Delay(500); Caw_send_rawtext("caw", 3);
         //HAL_Delay(500); Caw_send_luachunk("listen");
     }
 }

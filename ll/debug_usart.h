@@ -31,7 +31,8 @@
 #define USARTx_IRQPriority          5
 #define USARTx_IRQSubPriority       0
 #define USARTx_DMA_IRQPriority      5
-#define USARTx_DMA_IRQSubPriority   1
+#define USARTx_DMA_TXIRQSubPriority 2
+#define USARTx_DMA_RXIRQSubPriority 1
 
 
 #define DBG_USART_TIMEOUT	0x4000 /* a long time */
@@ -40,9 +41,9 @@
 void Debug_USART_Init(void);
 void Debug_USART_DeInit(void);
 void USARTx_DMA_TX_IRQHandler(void);
-void USARTx_DMA_RX_IRQHandler(void);
+//void USARTx_DMA_RX_IRQHandler(void);
 void HAL_USART_TxCpltCallback(USART_HandleTypeDef *husart);
-void HAL_USART_RxCpltCallback(USART_HandleTypeDef *husart);
+//void HAL_USART_RxCpltCallback(USART_HandleTypeDef *husart);
 void USARTx_IRQHandler(void);
 
 // Communication Fns
