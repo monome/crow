@@ -1,6 +1,6 @@
-#include "lib/lualink.h"
+/*#include "lib/lualink.h"
 
-#include <string.h> // strcmp()
+#include <string.h> // strcmp(), strlen()
 
 // Lua itself
 #include "../../lua/src/lua.h"
@@ -97,10 +97,10 @@ static int L_go_toward( lua_State *L )
     const char* shape = luaL_checkstring(L, 4);
 
     // now call the function in IO
-    U_Print("id\t"); U_PrintU8(id);
-    U_Print("dest\t"); U_PrintF(dest);
-    U_Print("time\t"); U_PrintF(time);
-    U_Print("shape\t"); U_PrintLn( (char*)shape);
+//    U_Print("id\t"); U_PrintU8(id);
+//    U_Print("dest\t"); U_PrintF(dest);
+//    U_Print("time\t"); U_PrintF(time);
+//    U_Print("shape\t"); U_PrintLn( (char*)shape);
 
     // just put the check*() right in here!
     S_toward( id-1 // C is zero-based
@@ -164,6 +164,7 @@ static void Lua_loadscript( lua_State* L, const char* script ){
         }
         const char* errmsg = luaL_checkstring(L, -1);
         U_PrintLn( (char*)errmsg );
+        return; // don't pcall the bad string!
     }
 
     if( (error = lua_pcall(L, 0, LUA_MULTRET, 0)) ){
@@ -197,3 +198,8 @@ static void cb_L_toward( int id )
         U_PrintLn( (char*)lua_tostring(L, -1) );
     }
 }
+static void cb_L_repl( char* buf, uint32_t len )
+{
+    Lua_loadscript(L, buf);
+}
+*/

@@ -56,15 +56,17 @@ void IO_Start( void )
 // DSP process
 IO_block_t* IO_BlockProcess( IO_block_t* b )
 {
-    for( int j=0; j<SLEW_CHANNELS; j++ ){
-        S_step_v( j
-                , b->out[j]
-                , b->size
-                );
-    }
-    //for( int i=0; i<(b->size); i++ ){
-    //    b->out[0][i] = b->in[0][i];
+    //float adc = b->in[0][0];
+
+    //for( int j=0; j<SLEW_CHANNELS; j++ ){
+    //    S_step_v( j
+    //            , b->out[j]
+    //            , b->size
+    //            );
     //}
+    for( int i=0; i<(b->size); i++ ){
+        b->out[0][i] = b->in[0][i];
+    }
     return b;
 }
 

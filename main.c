@@ -5,7 +5,7 @@
 #include "lib/io.h"
 #include "lib/caw.h"
 #include "lib/ii.h"
-#include "lib/lualink.h"
+//#include "lib/lualink.h"
 
 #include "ll/debug_usart.h"
 #include "ll/debug_pin.h"
@@ -24,27 +24,27 @@ int main(void)
     Debug_Pin_Init();
     Debug_USART_Init();
     U_PrintLn("\n\rcrow");
+    U_PrintNow();
 
     MIDI_Init();
+    U_PrintNow();
 
-    //IO_Init();
+    IO_Init();
 
     //II_init( II_FOLLOW );
 
 //    Lua_Init(); // send this function a list of fnptrs?
 
-    //USB_CDC_Init();
-    //Caw_Init(); // call this with a fnptr to a receive callback
-    //U_PrintLn("cdc");
+    //USB_CDC_Init(); Caw_Init(); U_PrintLn("cdc");
 
     U_PrintNow();
 
-    //IO_Start(); // buffers need to be ready by now
+    IO_Start(); // buffers need to be ready by now
 
     while(1){
         U_PrintNow();
-        HAL_Delay(2000);
-        U_Print("x");
+        //HAL_Delay(2000);
+        //U_Print("x");
         //Caw_try_receive();
         //HAL_Delay(500); Caw_send_rawtext("caw", 3);
         //HAL_Delay(500); Caw_send_luachunk("listen");

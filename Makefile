@@ -77,6 +77,7 @@ SRC = main.c \
 	$(HALS)/stm32f7xx_hal_spi.c \
 	$(HALS)/stm32f7xx_hal_tim.c \
 	$(HALS)/stm32f7xx_hal_tim_ex.c \
+	$(HALS)/stm32f7xx_hal_uart.c \
 	$(HALS)/stm32f7xx_hal_usart.c \
 	$(HALS)/stm32f7xx_ll_usb.c \
 	$(wildcard lib/*.c) \
@@ -96,15 +97,15 @@ LUA_SRC = $(wildcard lua/*.lua) \
 
 LUA_PP = $(LUA_SRC:%.lua=%.lua.h)
 
-LUACORE_OBJS=	lapi.o lcode.o lctype.o ldebug.o ldo.o ldump.o lfunc.o lgc.o llex.o \
-	lmem.o lobject.o lopcodes.o lparser.o lstate.o lstring.o ltable.o \
-	ltm.o lundump.o lvm.o lzio.o
-LUALIB_OBJS=	lauxlib.o lbaselib.o lbitlib.o lcorolib.o ldblib.o liolib.o \
-	lmathlib.o loslib.o lstrlib.o ltablib.o lutf8lib.o loadlib.o linit.o
+#	LUACORE_OBJS=	lapi.o lcode.o lctype.o ldebug.o ldo.o ldump.o lfunc.o lgc.o llex.o \
+#		lmem.o lobject.o lopcodes.o lparser.o lstate.o lstring.o ltable.o \
+#		ltm.o lundump.o lvm.o lzio.o
+#	LUALIB_OBJS=	lauxlib.o lbaselib.o lbitlib.o lcorolib.o ldblib.o liolib.o \
+#		lmathlib.o loslib.o lstrlib.o ltablib.o lutf8lib.o loadlib.o linit.o
 
 OBJDIR = .
 OBJS = $(SRC:%.c=$(OBJDIR)/%.o)
-OBJS += $(addprefix $(LUAS)/,$(LUACORE_OBJS) $(LUALIB_OBJS) )
+#OBJS += $(addprefix $(LUAS)/,$(LUACORE_OBJS) $(LUALIB_OBJS) )
 OBJS += Startup.o
 
 # C dependencies echoed into Makefile
