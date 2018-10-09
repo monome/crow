@@ -19,21 +19,29 @@ end
 
 -- TODO where should these go?
 local function lfo( speed, curve, level )
+    -- allow these defaults to be attributes of the out channel
     speed = speed or 1
     curve = curve or 'linear'
     level = level or 5
 
-    return { loop{ toward(  level, speed, curve )
-                 , toward( -level, speed, curve )
-                 }
-           }
+    return{ loop{ toward(  level, speed, curve )
+                , toward( -level, speed, curve )
+                }
+          }
 end
 
 function init()
     print'init()'
 
+    go_toward( 1, 5, 10, 'linear' )
+
+    go_towrard{time:1, slope:'linear'}
+
+    --default slew time?
+    --default curve?
+
     --local slope = {}
-    slope[1] = Asl.new(1)
+    --slope[1] = Asl.new(1)
     slope[1]:action(lfo())
     slope[1]:bang(true)
 

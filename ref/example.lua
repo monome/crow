@@ -11,6 +11,17 @@
 -- out.3 lfo, in.1 = speed, in.2 = retrig
 -- out.4 echo in.2 with delay set by in.1
 
+function hz( seconds ) return 1/seconds end
+
+function syntax()
+    o[1]:action = lfo( 2, 'expo' ) -- set the action
+    o[1]:action()                  -- do the action. optional bool/arg?
+
+
+
+end
+
+
 -- most of these param setups should be *defaults*
 function init()
     -- configure input 1
