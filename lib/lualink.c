@@ -114,8 +114,10 @@ static int L_go_toward( lua_State *L )
 static int L_send_usb( lua_State *L )
 {
     // pattern match on type: handle values vs strings vs chunk
+    // TODO: does lua have a fn to get stringlength (from ram, not a traversal)
     const char* msg = luaL_checkstring(L, 1);
-    Caw_send_rawtext( (char*) msg );
+    uint32_t len = strlen(msg);
+    Caw_send_rawtext( (char*) msg, len );
     return 0;
 }
 static int L_send_ii( lua_State *L )
