@@ -103,7 +103,7 @@ static int8_t CDC_Itf_DeInit(void)
     U_PrintLn("TODO: CDC_Itf_DeInit");
     return (USBD_OK);
 }
-uint8_t line_coding_flag = 0;
+
 static int8_t CDC_Itf_Control (uint8_t cmd, uint8_t* pbuf, uint16_t length)
 { 
     // Most of this is unimplemented!
@@ -134,12 +134,9 @@ static int8_t CDC_Itf_Control (uint8_t cmd, uint8_t* pbuf, uint16_t length)
             pbuf[5] = LineCoding.paritytype;
             pbuf[6] = LineCoding.datatype;
             break;
-        case CDC_SET_CONTROL_LINE_STATE:
-            U_PrintLn("itf:s_ctrl_state ");
-            line_coding_flag = 1;
-            break;
-        case CDC_SEND_BREAK: U_PrintLn("itf:send_brk");     break;
-        default:             U_PrintLn("other");            break;
+        case CDC_SET_CONTROL_LINE_STATE: U_PrintLn("itf:s_ctrl_state"); break;
+        case CDC_SEND_BREAK:             U_PrintLn("itf:send_brk");     break;
+        default: break;
     }
     return (USBD_OK);
 }
@@ -192,13 +189,6 @@ static int8_t CDC_Itf_Receive( uint8_t* buf, uint32_t *len )
     // enqueue data in the USB_rx buffer
     // TODO: obviously just proof of concept. doesn't have a real queue
     if(*len > 0){
-        if( line_coding_flag ){
-            // ignore?
-            U_PrintLn("coding");
-            line_coding_flag = 0;
-        } else {
-            U_PrintLn("print");
-        }
         rx_buf_size += *len;
         rx_has_data  = 1;
     }
