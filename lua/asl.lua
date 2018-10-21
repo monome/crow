@@ -91,13 +91,17 @@ function delay( time )
 end
 
 -- WRAPPING functions
+function seq_coroutines( self, fns )
+    for i=1, #fns, 1 do
+        local _,wait = coroutine.resume(fns[i], self)
+        coroutine.yield(wait)
+    end
+end
+
 function asl_if( fn_to_bool, fns )
     return coroutine.create(function(self)
         if fn_to_bool(self) then
-            for i=1, #fns, 1 do
-                _,wait = coroutine.resume(fns[i], self)
-                coroutine.yield(wait)
-            end
+            seq_coroutines(self, fns)
         end
     end)
 end
@@ -105,10 +109,7 @@ end
 function asl_wrap( enter_fn, fns, exit_fn )
     return coroutine.create(function(self)
         enter_fn(self)
-        for i=1, #fns, 1 do
-            _,wait = coroutine.resume(fns[i], self)
-            coroutine.yield(wait)
-        end
+        seq_coroutines(self, fns)
         exit_fn(self)
     end)
 end
@@ -117,10 +118,7 @@ end
 function loop( fns )
     return coroutine.create(function(self)
         while true do
-            for i=1,#fns,1 do
-                _,wait = coroutine.resume(fns[i], self)
-                coroutine.yield(wait)
-            end
+            seq_coroutines(self, fns)
         end
     end)
 end
