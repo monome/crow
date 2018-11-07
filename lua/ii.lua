@@ -5,6 +5,9 @@ local ii = {}
 
 function ii.setup()
     -- sets stm32 i2c rx address?
+    -- TODO allow user to change i2c address so crow can pretend to be
+    -- another module by redefining ii.callback() with handlers for
+    -- the received data
     --
     -- TODO
     -- big idea is that this fn could take the name of the destination
@@ -17,7 +20,7 @@ function ii.setup()
     -- and thus it makes no sense to only have a small subset avail
 end
 
-function ii.send()
+function ii.send( destination, )
     -- consider whether the TT commands could be aliased to something
     -- more in the lua/crow style like carp lets u rename C libs.
     -- 
@@ -31,19 +34,42 @@ end
 -- instead, the diff modules are diff source files which can
 -- be loaded with dofile() when the i2c address is set
 function ii.callback()
-    -- this actually needs to be a clear subset of II commands
-    -- to fit into the i2c reception model. crow can only accept,
-    -- or even expect, messages to be sent in the typical manner
-    -- for TT.
-    -- what is the set of commands that we must accept?
-    --
-    -- CW.OUT chan value slew -> Maybe getter
-    -- CW.IN chan -> input_val
-    -- CW.CMD which value (triggers a callback in lua for the
-    --      user to customize specific meaning
-    --      if user wants more than 1 arg, they can redefine
-    --      CW.OUT
-    -- CW.RQ should query and return a value
+    -- CW.OUT       chan (value)-> (value)
+    -- CW.OUT.SLEW  chan (slew) -> (slew)
+    -- CW.IN        chan        -> input_val
+    -- CW.CALL      1arg
+    -- CW.CALL2     2args
+    -- CW.CALL3     3args
+    -- CW.CALL4     4args
+    --      triggers a callback in lua for the user to customize
+    --      specific meaning. if 1-less-than-expected in TT it is
+    --      considered a request and crow should return a value.
+end
+
+-- triggered by received ii msg 'CW.CALL'
+function ii.call( arg )
+    if arg == nil then  -- this is a data request
+        ii.send()       -- return *something* to leader
+    else
+                        -- this is where you define your action
+    end
+end
+-- can obvs use first arg as an index into many diff functions
+function ii.call2( arg, arg2 ) end
+function ii.call3( arg, arg2, arg3 ) end
+function ii.call4( arg, arg2, arg3, arg4 ) end
+
+-- prints a list of connected devices
+function ii.get_devices()
+    -- requires update to the ii tech across the board
+    -- 1. send 'ping' to universal channel
+    -- 2. record responses in a table
+    -- 3. print a list of those responses (with id numbers?)
+end
+
+-- prints a list of available (lua) commands for a given device
+function ii.get_commands( devicename )
+    -- this is the list of functions that are implemented for crow
 end
 
 print 'ii loaded'
