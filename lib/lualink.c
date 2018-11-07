@@ -60,6 +60,14 @@ void Lua_DeInit(void)
     lua_close(L);
 }
 
+void check_ram_usage( void )
+{
+    int s; // stack allocation
+    int* h = malloc(sizeof(int)); // heap allocation
+    U_Print("ram left "); U_PrintU32( (int)&s - (int)h );
+    free(h);
+}
+
 // C-library
 // to call from Lua
 
@@ -73,6 +81,7 @@ static int L_dofile( lua_State *L )
                 U_PrintLn("can't load library");
                 goto fail;
             }
+            check_ram_usage();
             return 1; // table is left on the stack as retval
         }
         i++;
