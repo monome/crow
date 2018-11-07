@@ -1,6 +1,3 @@
-crow = dofile'lua/crowlib.lua' -- should just be dofile(crowlib) or .lua
-crow.openlibs()
-
 function init()
     go_toward( 1, 5, 10, 'linear' )
 

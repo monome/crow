@@ -5,6 +5,12 @@ local crow = {}
 
 --- Library loader
 --
+local function closelibs()
+    -- set whole list of libs to nil to close them
+    -- TODO does this free the RAM used by 'dofile'?
+    Asl = nil
+end
+
 function crow.libs( lib )
     if lib == nil then
         -- load all
@@ -12,10 +18,13 @@ function crow.libs( lib )
     elseif type(lib) == 'table' then
         -- load the list 
     else
+        if lib == 'close' then closelibs() end
         -- assume string & load single library
     end
 end
 
+-- TODO open all libs by default
+crow.libs()
 
 
 --- Utilities
