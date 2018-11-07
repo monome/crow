@@ -183,6 +183,7 @@ static void Lua_crowbegin( lua_State* L )
     // Call init() function
     // This is all we need to do -> the rest should flow back from Lua
     // The only callback->Lua *not* declared in Lua is a received command over USB
+    U_PrintLn("init()"); // call in C to avoid user seeing in lua
     lua_getglobal(L,"init");
     lua_pcall(L,0,0,0);
 }
