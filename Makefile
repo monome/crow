@@ -16,6 +16,8 @@ AS=arm-none-eabi-as
 CP=arm-none-eabi-objcopy
 OBJDUMP=arm-none-eabi-objdump
 
+FENNEL=fennel
+
 # BIN=$(CP) -O ihex 
 BIN = $(TARGET).bin
 
@@ -97,6 +99,11 @@ LUA_SRC = $(wildcard lua/*.lua) \
 
 LUA_PP = $(LUA_SRC:%.lua=%.lua.h)
 
+FNL_SRC = $(wildcard util/*.fnl) \
+	$(wildcard lua/*.fnl) \
+
+FNL_PP = $(FNL_SRC:%.fnl=%.lua)
+
 #	LUACORE_OBJS=	lapi.o lcode.o lctype.o ldebug.o ldo.o ldump.o lfunc.o lgc.o llex.o \
 #		lmem.o lobject.o lopcodes.o lparser.o lstate.o lstring.o ltable.o \
 #		ltm.o lundump.o lvm.o lzio.o
@@ -132,7 +139,7 @@ all: $(TARGET).hex $(BIN)
 $(TARGET).hex: $(EXECUTABLE)
 	@$(CP) -O ihex $^ $@
 
-$(EXECUTABLE): $(LUA_PP) $(OBJS)
+$(EXECUTABLE): $(FNL_PP) $(LUA_PP) $(OBJS)
 	@$(LD) -g $(MCFLAGS) $(LDFLAGS) $(OBJS) $(LIBS) -o $@
 	@echo "linked:       $@"
 	@$(OBJDUMP) --disassemble $@ > $@.lst
@@ -163,6 +170,10 @@ dfu: $(BIN)
 
 %.s: %.c
 	@$(CC) -ggdb $(CFLAGS) -S $< -o $@
+
+%.lua: %.fnl
+	@echo $< "->" $@
+	@$(FENNEL) --compile $< > $@
 
 %.lua.h: %.lua
 	@echo $< "->" $@

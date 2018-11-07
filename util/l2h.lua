@@ -1,22 +1,18 @@
----Lua to C-header converter
---
---just stringifys a lua file and wraps it as a char[] in a header
-
-name = string.gsub(string.sub(arg[1],1,-5), '/', '_')
-p = assert(io.open(arg[1],'r'))
-f = io.open(arg[1]..'.h', 'w')
-f:write('#pragma once\n\nchar '..name..'[]=')
-
--- also add code validation here! save having to flash and read an
--- error over uart...
--- add white-space stripping to reduce filesize (spaces v tabs!)
-function writeline(src, dst)
-    nextline = src:read('l')
-    if nextline == nil then return end
-    dst:write('\"'..nextline..'\\n\"\n\t')
-    writeline(src,dst)
+local function _0_(src, dst)
+  local nextline = src.read(src, "l")
+  if (nextline ~= nil) then
+    dst.write(dst, (("\"" .. nextline) .. "\\n\"\n\9"))
+    return writeline(src, dst)
+  end
 end
-
-writeline(p,f)
-f:write(';')
-f:close()
+writeline = _0_
+do
+  local filename = arg[1]
+  do
+    local f = io.open((filename .. ".h"), "w")
+    f.write(f, (("#pragma once\n\nchar " .. string.gsub(string.sub(filename, 1, -5), "/", "_")) .. "[]="))
+    writeline(assert(io.open(filename, "r")), f)
+    f.write(f, ";")
+    return f.close(f)
+  end
+end
