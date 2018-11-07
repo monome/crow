@@ -1,49 +1,19 @@
-crow = dofile('lua/crowlib.lua')
-Asl = dofile('lua/asl.lua')
-
---TODO this should be hidden from the user altogether (inside 'out' table)
-local slope = {}
-
--- TODO where should this go?
-function LL_toward( self, d, t, s )
-    if type(d) == 'function' then d = d() end
-    if type(t) == 'function' then t = t() end
-    --print('id '..self.id,'\ttoward '..d,'\tin time '..t,'\twith shape '..s)
-    go_toward( self.id, d, t, s )
-end
-
-function toward_handler( id )
-    slope[id]:step()
-end
-
-
--- TODO where should these go?
-local function lfo( speed, curve, level )
-    -- allow these defaults to be attributes of the out channel
-    speed = speed or 1
-    curve = curve or 'linear'
-    level = level or 5
-
-    return{ loop{ toward(  level, speed, curve )
-                , toward( -level, speed, curve )
-                }
-          }
-end
+crow = dofile'lua/crowlib.lua' -- should just be dofile(crowlib) or .lua
+crow.openlibs()
 
 function init()
-    print'init()'
-
     go_toward( 1, 5, 10, 'linear' )
 
-    go_towrard{time:1, slope:'linear'}
+    go_toward{ channel  : 1
+             , level    : 5
+             , time     : 10
+             , slope    : 'linear'
+             }
 
-    --default slew time?
-    --default curve?
-
-    --local slope = {}
-    --slope[1] = Asl.new(1)
-    slope[1]:action(lfo())
+    slope[1]:action( lfo() )
     slope[1]:bang(true)
 
-    print(crow.squared(5))
+    -- ideally (with metatables)
+    out[1].action = lfo()   -- set action to be lfo (must clear 'locked')
+    out[1]:action(true)     -- do action with 'high' state (ie. reset)
 end
