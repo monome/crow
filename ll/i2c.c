@@ -61,6 +61,30 @@ uint8_t I2C_Init( uint8_t address )
     return error;
 }
 
+uint8_t I2C_is_boot( void )
+{
+    uint8_t boot = 0;
+	GPIO_InitTypeDef gpio;
+	I2Cx_SCL_GPIO_CLK_ENABLE();
+	gpio.Pin       = I2Cx_SCL_PIN;
+	gpio.Mode      = GPIO_MODE_INPUT;
+	gpio.Pull      = GPIO_PULLUP;
+	gpio.Speed     = GPIO_SPEED_FREQ_HIGH;
+	HAL_GPIO_Init( I2Cx_SCL_GPIO_PORT, &gpio );
+
+    if( !HAL_GPIO_ReadPin( I2Cx_SCL_GPIO_PORT, I2Cx_SCL_PIN ) ){
+        boot = 1;
+    }
+
+    // set to OD to ensure no damage by i2c line
+    // FIXME is this necessary, or does DeInit set the pin to tristate?
+	gpio.Mode      = GPIO_MODE_AF_OD;
+	HAL_GPIO_Init( I2Cx_SCL_GPIO_PORT, &gpio );
+
+	HAL_GPIO_DeInit( I2Cx_SCL_GPIO_PORT, I2Cx_SCL_PIN );
+    return boot;
+}
+
 void I2C_DeInit( void )
 {
     HAL_I2C_DeInit( &i2c_handle );
