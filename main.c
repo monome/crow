@@ -50,17 +50,19 @@ int main(void)
 
 //    Lua_Init(); // send this function a list of fnptrs?
 
-    //USB_CDC_Init(); Caw_Init(); U_PrintLn("cdc");
+    USB_CDC_Init(); //Caw_Init();
+    U_PrintLn("cdc");
 
     U_PrintNow();
 
-    IO_Start(); // buffers need to be ready by now
+//FIXME IO_Start is getting stuck inside?
+    //IO_Start(); // buffers need to be ready by now
 
     while(1){
         U_PrintNow();
-        //HAL_Delay(2000);
+        //HAL_Delay(1000);
         //U_Print("x");
-        //Caw_try_receive();
+        Caw_try_receive();
         //HAL_Delay(500); Caw_send_rawtext("caw", 3);
         //HAL_Delay(500); Caw_send_luachunk("listen");
     }
