@@ -13,6 +13,7 @@
 #include "lib/slews.h"      // S_toward
 #include "lib/caw.h"        // Caw_send_*()
 #include "lib/ii.h"         // II_*()
+#include "lib/bootloader.h" // bootloader_enter()
 
 // Lua libs wrapped in C-headers: Note the extra '.h'
 #include "lua/bootstrap.lua.h" // MUST LOAD THIS MANUALLY FIRST
@@ -100,6 +101,11 @@ static int L_print_serial( lua_State *L )
     Caw_send_luachunk( (char*)luaL_checkstring(L, 1) );
     return 0;
 }
+static int L_bootloader( lua_State *L )
+{
+    bootloader_enter();
+    return 0;
+}
 static int L_go_toward( lua_State *L )
 {
     const char* shape = luaL_checkstring(L, 4);
@@ -141,6 +147,7 @@ static const struct luaL_Reg libCrow[]=
     { { "c_dofile"    , L_dofile        }
     , { "debug_usart" , L_debug         }
     , { "print_serial", L_print_serial  }
+    , { "bootloader"  , L_bootloader    }
     , { "go_toward"   , L_go_toward     }
     , { "send_usb"    , L_send_usb      }
     , { "send_ii"     , L_send_ii       }
