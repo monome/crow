@@ -2,69 +2,60 @@
 
 #include <string.h>
 
+#include "lib/bootloader.h" // bootloader_is_i2c_force()
 #include "lib/io.h"
 #include "lib/caw.h"
 #include "lib/ii.h"
-//#include "lib/lualink.h"
+#include "lib/lualink.h"
 
 #include "ll/debug_usart.h"
 #include "ll/debug_pin.h"
 #include "ll/midi.h"
 
-#include "usbd/usbd_main.h"
 
 static void Sys_Clk_Config(void);
 static void Error_Handler(void);
 
-#define GOTO_BOOT_ADDRESS  0x20006666
-#define GOTO_BOOT_MAGICNUM 0x66666666
-static void Enter_Bootloader(void)
-{
-    // TODO de-init everything
-    *(uint32_t*)(GOTO_BOOT_ADDRESS) = GOTO_BOOT_MAGICNUM;
-    NVIC_SystemReset();
-    while(1){}
-}
-
-#include "ll/i2c.h" // I2C_is_boot()
 int main(void)
 {
     HAL_Init();
     Sys_Clk_Config();
 
-    if( I2C_is_boot() ){
-        Enter_Bootloader();
-    }
+    bootloader_is_i2c_force();
 
     Debug_Pin_Init();
     Debug_USART_Init();
-    U_PrintLn("\n\rcrow");
-    U_PrintNow();
-
-    MIDI_Init();
-    U_PrintNow();
+    U_PrintLn("\n\rcrow"); U_PrintNow();
 
     IO_Init();
 
+    Caw_Init();
+    U_PrintLn("caw");
+        U_PrintNow();
+
+    Lua_Init(); // send this function a list of fnptrs?
+
+    //MIDI_Init();
     //II_init( II_FOLLOW );
 
-//    Lua_Init(); // send this function a list of fnptrs?
-
-    USB_CDC_Init(); //Caw_Init();
-    U_PrintLn("cdc");
-
-    U_PrintNow();
-
-//FIXME IO_Start is getting stuck inside?
+//FIXME IO_Start is freezing
     //IO_Start(); // buffers need to be ready by now
+
+    Lua_crowbegin();
 
     while(1){
         U_PrintNow();
-        //HAL_Delay(1000);
-        //U_Print("x");
-        Caw_try_receive();
-        //HAL_Delay(500); Caw_send_rawtext("caw", 3);
-        //HAL_Delay(500); Caw_send_luachunk("listen");
+        switch( Caw_try_receive() ){ // true on pressing 'enter'
+            case 1:
+                Lua_repl( Caw_get_read()
+                        , Caw_get_read_len() // len is ignored for \0 anyway
+                        , Caw_send_luaerror // 'print' continuation
+                        );
+                Caw_send_raw( (uint8_t*)"\n> \0", 4 );
+                break;
+            case 2: bootloader_enter(); break;
+            default: break;
+        }
     }
 }
 

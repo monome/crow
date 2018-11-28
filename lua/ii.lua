@@ -20,7 +20,7 @@ function ii.setup()
     -- and thus it makes no sense to only have a small subset avail
 end
 
-function ii.send( destination, )
+function ii.send( destination )
     -- consider whether the TT commands could be aliased to something
     -- more in the lua/crow style like carp lets u rename C libs.
     -- 

@@ -106,6 +106,8 @@ static int8_t CDC_Itf_DeInit(void)
 
 static int8_t CDC_Itf_Control (uint8_t cmd, uint8_t* pbuf, uint16_t length)
 { 
+    static int8_t lcoding = 3; // just a dumb 'ready print'
+
     // Most of this is unimplemented!
     switch( cmd ){
         case CDC_SEND_ENCAPSULATED_COMMAND: U_PrintLn("itf:send_cmd");     break;
@@ -113,7 +115,7 @@ static int8_t CDC_Itf_Control (uint8_t cmd, uint8_t* pbuf, uint16_t length)
         case CDC_SET_COMM_FEATURE:          U_PrintLn("itf:set_feature");  break;
         case CDC_GET_COMM_FEATURE:          U_PrintLn("itf:get_feature");  break;
         case CDC_CLEAR_COMM_FEATURE:        U_PrintLn("itf:clr_feature");  break;
-        case CDC_SET_LINE_CODING:           //U_PrintLn("itf:s_line_coding");
+        case CDC_SET_LINE_CODING:
             LineCoding.bitrate    = (uint32_t)(  pbuf[0]
                                               | (pbuf[1] << 8)
                                               | (pbuf[2] << 16)
@@ -124,6 +126,12 @@ static int8_t CDC_Itf_Control (uint8_t cmd, uint8_t* pbuf, uint16_t length)
             LineCoding.datatype   = pbuf[6];
             // Set the new configuration
             ComPort_Config();
+            if( lcoding ){ lcoding--; }
+            else{
+                U_PrintLn("Dialing...");
+                USB_tx_enqueue( (uint8_t*)"\n\nDialing...\n\0", 14 );
+            }
+
             break;
         case CDC_GET_LINE_CODING: U_PrintLn("itf:g_line_coding");
             pbuf[0] = (uint8_t)(LineCoding.bitrate);

@@ -11,6 +11,7 @@ print = function(...)
         printResult = printResult .. tostring(v) .. '\t'
     end
     debug_usart(printResult) --TODO replace this with formatted print over USB?
+    print_serial(printResult)
 end
 
 -- nb: this is basically the inverse of l2h.lua (but we don't want that at RT)

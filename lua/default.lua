@@ -1,10 +1,10 @@
 function init()
     go_toward( 1, 5, 10, 'linear' )
 
-    go_toward{ channel  : 1
-             , level    : 5
-             , time     : 10
-             , slope    : 'linear'
+    go_toward{ channel  = 1
+             , level    = 5
+             , time     = 10
+             , slope    = 'linear'
              }
 
     slope[1]:action( lfo() )
