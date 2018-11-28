@@ -39,7 +39,7 @@ int main(void)
     //II_init( II_FOLLOW );
 
 //FIXME IO_Start is freezing
-    //IO_Start(); // buffers need to be ready by now
+    IO_Start(); // buffers need to be ready by now
 
     Lua_crowbegin();
 
