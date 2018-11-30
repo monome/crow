@@ -109,11 +109,9 @@ static int L_bootloader( lua_State *L )
 static int L_go_toward( lua_State *L )
 {
     const char* shape = luaL_checkstring(L, 4);
-
-    // now call the function in IO
     S_toward( luaL_checkinteger(L, 1)-1 // C is zero-based
             , luaL_checknumber(L, 2)
-            , luaL_checknumber(L, 3)*1000.0
+            , luaL_checknumber(L, 3) * 1000.0
             , SHAPE_Linear // Shape_t
             , cb_L_toward
             );
@@ -167,25 +165,17 @@ static void Lua_linkctolua( lua_State *L )
 }
 
 static void Lua_eval( lua_State* L, const char* script, ErrorHandler_t errfn ){
-    int error = 0;
-    if( (error = luaL_loadstring( L, script )) ){
+    int error;
+    if( (error = luaL_loadstring( L, script ) || lua_pcall( L, 0, 0, 0 )) ){
+        (*errfn)( (char*)lua_tostring( L, -1 ) );
+        lua_pop( L, 1 );
         switch( error ){
-            case LUA_ERRSYNTAX: U_PrintLn("can't load script: syntax error"); break;
-            case LUA_ERRMEM:    U_PrintLn("can't load script: memory error"); break;
+            case LUA_ERRSYNTAX: U_PrintLn("!load script: syntax"); break;
+            case LUA_ERRMEM:    U_PrintLn("!load script: memory"); break;
+            case LUA_ERRRUN:    U_PrintLn("!exec script: runtime"); break;
+            case LUA_ERRERR:    U_PrintLn("!exec script: err in err handler"); break;
             default: break;
         }
-        (*errfn)( (char*)luaL_checkstring(L, -1) );
-        return; // don't pcall the bad string!
-    }
-
-    if( (error = lua_pcall(L, 0, LUA_MULTRET, 0)) ){
-        switch( error ){
-            case LUA_ERRRUN: U_PrintLn("can't exec script: runtime error"); break;
-            case LUA_ERRMEM: U_PrintLn("can't exec script: memory error"); break;
-            case LUA_ERRERR: U_PrintLn("can't exec script: err in err handler"); break;
-            default: break;
-        }
-        (*errfn)( (char*)luaL_checkstring(L, -1) );
     }
 }
 
@@ -212,6 +202,8 @@ static void cb_L_toward( int id )
     lua_pushinteger(L, id+1); // lua is 1-based
     if( lua_pcall(L, 1, 0, 0) != LUA_OK ){
         U_PrintLn("error running toward_handler");
+        //TODO should print to USB
         U_PrintLn( (char*)lua_tostring(L, -1) );
+        lua_pop( L, 1 );
     }
 }
