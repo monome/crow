@@ -31,17 +31,14 @@ int main(void)
 
     Caw_Init();
     U_PrintLn("caw");
-        U_PrintNow();
 
     Lua_Init(); // send this function a list of fnptrs?
 
     //MIDI_Init();
     //II_init( II_FOLLOW );
 
-//FIXME IO_Start is freezing
-    IO_Start(); // buffers need to be ready by now
-
     Lua_crowbegin();
+    IO_Start(); // buffers need to be ready by now
 
     while(1){
         U_PrintNow();
