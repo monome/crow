@@ -43,6 +43,8 @@ extern void I2C_RxCpltCallback( uint8_t* data );
 uint8_t I2C_Init( uint8_t address );
 void I2C_DeInit( void );
 
+uint8_t I2C_is_boot( void );
+
 // Interrupt handlers for i2c events & errors
 void I2Cx_EV_IRQHandler( void );
 void I2Cx_ER_IRQHandler( void );

@@ -49,7 +49,7 @@ function init()
     out.trig.level(4, 10.0) -- 10v
 
     -- allocate a metro for trigger delay
-    delay = metro.alloc( tdelay, 1.0, 1 )
+    delay = metro.new( tdelay, 1.0, 1 )
 end
 
 function tdelay()

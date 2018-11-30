@@ -2,12 +2,13 @@
 
 #include <stm32f7xx.h>
 
-void Caw_send_rawtext( char* text );
+uint8_t Caw_Init( void );
+
+void Caw_send_raw( uint8_t* buf, uint32_t len );
 void Caw_send_luachunk( char* text );
+void Caw_send_luaerror( char* error_msg );
 void Caw_send_value( uint8_t type, float value ); // enum the type
 
 uint8_t Caw_try_receive( void );
-
-// Weak callbacks. Define in top-level program
-void Caw_receive_rawtext_callback( uint8_t* buf, uint32_t len );
-//__weak void Caw_receive_rawtext_callback( uint8_t* buf, uint32_t len );
+char* Caw_get_read( void );
+uint32_t Caw_get_read_len( void );

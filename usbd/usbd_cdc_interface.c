@@ -106,6 +106,8 @@ static int8_t CDC_Itf_DeInit(void)
 
 static int8_t CDC_Itf_Control (uint8_t cmd, uint8_t* pbuf, uint16_t length)
 { 
+    static int8_t lcoding = 3; // just a dumb 'ready print'
+
     // Most of this is unimplemented!
     switch( cmd ){
         case CDC_SEND_ENCAPSULATED_COMMAND: U_PrintLn("itf:send_cmd");     break;
@@ -113,7 +115,7 @@ static int8_t CDC_Itf_Control (uint8_t cmd, uint8_t* pbuf, uint16_t length)
         case CDC_SET_COMM_FEATURE:          U_PrintLn("itf:set_feature");  break;
         case CDC_GET_COMM_FEATURE:          U_PrintLn("itf:get_feature");  break;
         case CDC_CLEAR_COMM_FEATURE:        U_PrintLn("itf:clr_feature");  break;
-        case CDC_SET_LINE_CODING:           //U_PrintLn("itf:s_line_coding");
+        case CDC_SET_LINE_CODING:
             LineCoding.bitrate    = (uint32_t)(  pbuf[0]
                                               | (pbuf[1] << 8)
                                               | (pbuf[2] << 16)
@@ -124,6 +126,12 @@ static int8_t CDC_Itf_Control (uint8_t cmd, uint8_t* pbuf, uint16_t length)
             LineCoding.datatype   = pbuf[6];
             // Set the new configuration
             ComPort_Config();
+            if( lcoding ){ lcoding--; }
+            else{
+                U_PrintLn("Dialing...");
+                USB_tx_enqueue( (uint8_t*)"\n\nDialing...\n\0", 14 );
+            }
+
             break;
         case CDC_GET_LINE_CODING: U_PrintLn("itf:g_line_coding");
             pbuf[0] = (uint8_t)(LineCoding.bitrate);
@@ -134,48 +142,50 @@ static int8_t CDC_Itf_Control (uint8_t cmd, uint8_t* pbuf, uint16_t length)
             pbuf[5] = LineCoding.paritytype;
             pbuf[6] = LineCoding.datatype;
             break;
-        case CDC_SET_CONTROL_LINE_STATE: U_PrintLn("itf:s_ctrl_state"); break;
+        case CDC_SET_CONTROL_LINE_STATE: break;U_PrintLn("itf:s_ctrl_state"); break;
         case CDC_SEND_BREAK:             U_PrintLn("itf:send_brk");     break;
-        default: break;
+        default: U_PrintLn("default"); break;
     }
     return (USBD_OK);
 }
 
-uint8_t tx_has_data = 0;
-uint32_t tx_buf_size = 0;
 void USB_tx_enqueue( uint8_t* buf, uint32_t len )
 {
-    tx_has_data = 1;
     if( len > APP_TX_DATA_SIZE ){ len = APP_TX_DATA_SIZE; } // clip length
-    memcpy( UserTxBuffer
+    memcpy( &UserTxBuffer[UserTxBufPtrIn]
           , buf
           , len
           );
-    tx_buf_size = len;
+    UserTxBufPtrIn += len;
 }
 // This could be called directly from the scheduler in main (not TIM)
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-    // THIS IS JUST OVERWRITTEN RN! NO QUEUE!
-    if( tx_has_data ){
+    uint32_t buffptr;
+    uint32_t buffsize;
+
+    if( UserTxBufPtrOut != UserTxBufPtrIn ){
+        if( UserTxBufPtrOut > UserTxBufPtrIn ){
+            buffsize = APP_RX_DATA_SIZE - UserTxBufPtrOut;
+        } else {
+            buffsize = UserTxBufPtrIn - UserTxBufPtrOut;
+        }
+        buffptr = UserTxBufPtrOut;
         USBD_CDC_SetTxBuffer( &USBD_Device
-                            , (uint8_t*)UserTxBuffer
-                            , tx_buf_size
+                            , (uint8_t*)&UserTxBuffer[buffptr]
+                            , buffsize
                             );
         if( USBD_CDC_TransmitPacket(&USBD_Device) == USBD_OK ){
-            // if succeeded, clear the buffer (else leave it to retry)
-            tx_has_data = 0;
-            /*UserTxBufPtrOut += buffsize;
+            UserTxBufPtrOut += buffsize;
             if( UserTxBufPtrOut == APP_RX_DATA_SIZE ){
                 UserTxBufPtrOut = 0;
-            }*/
+            }
         }
     }
 }
 
 
 // RECEIVE
-
 uint32_t rx_buf_size = 0;
 uint32_t rx_buf_ptr  = 0;
 uint8_t rx_has_data  = 0;
