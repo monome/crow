@@ -15,6 +15,7 @@ function crow.libs( lib )
     if lib == nil then
         -- load all
         Asl = dofile('lua/asl.lua')
+        --Asllib = dofile('lua/asllib.lua')
     elseif type(lib) == 'table' then
         -- load the list 
     else
