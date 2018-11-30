@@ -20,8 +20,9 @@ typedef struct{
     Callback_t  action;
     // state
     float       here;      // current state
-    float       scalar;    // one ms in samples
     float       delta;     // timestep per sample
+    float       scalar;    // one ms in samples
+    float       last;
     float       countdown; // samples until breakpoint
 } Slew_t;
 

@@ -13,6 +13,7 @@ void S_init( void )
         slews[j].here   = 0.0;
         slews[j].delta  = 0.0; //
         slews[j].scalar = SAMPLE_RATE / 1000.0; // TODO send SR as arg
+        slews[j].last   = 0.0;
 
         slews[j].countdown = -1.0;
     }
@@ -27,6 +28,9 @@ void S_toward( int        index
 {
     if( index < 0 || index >= SLEW_CHANNELS ){ return; }
     Slew_t* self = &slews[index]; // safe pointer
+
+    // save current destination (for future shaping)
+    self->last   = self->here;
 
     // update destination
     self->dest   = destination;
@@ -53,6 +57,12 @@ float* S_step_v( int     index
     // turn index into pointer
     if( index < 0 || index >= SLEW_CHANNELS ){ U_PrintLn("ix");return out; }
     Slew_t* self = &slews[index]; // safe pointer
+
+    //TODO wrap the below in a function
+    // then apply it to a 'shaper' function that uses last & dest to calc
+    // shaper function should have default shapes, but also capacity
+    // to handle an array of quantize values either over the full range
+    // or on a repeating octave
 
     float* out2 = out;
     float* out3 = out;
