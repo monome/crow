@@ -191,7 +191,8 @@ void Lua_crowbegin( void )
 
 void Lua_repl( char* buf, uint32_t len, ErrorHandler_t errfn )
 {
-    Lua_eval( L, buf, errfn );
+    //Lua_eval( L, buf, errfn );
+    Lua_eval( L, buf, (*U_PrintLn) );
     check_ram_usage();
 }
 
