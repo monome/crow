@@ -37,6 +37,7 @@ end
 -- RUNTIME behaviour
 
 function Asl:step()
+    if self.co == nil then print'no slope' return end
     _,wait = coroutine.resume( self.co, self )
     if wait ~= 'wait' then self:step() end
 end
