@@ -11,7 +11,7 @@ typedef enum{ SHAPE_Linear
             , SHAPE_Expo
 } Shape_t;
 
-typedef void (*Callback_t)(int);
+typedef void (*Callback_t)(int channel);
 
 typedef struct{
     // destination
@@ -19,9 +19,9 @@ typedef struct{
     Shape_t     shape;
     Callback_t  action;
     // state
-    float       here;  // current state
-    float       last;  // 'here' @last breakpoint
-    float       delta; // timestep per sample
+    float       here;      // current state
+    float       scalar;    // one ms in samples
+    float       delta;     // timestep per sample
     float       countdown; // samples until breakpoint
 } Slew_t;
 
