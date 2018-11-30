@@ -49,11 +49,28 @@ for k in ipairs( out ) do
     -- pass the result of out.new() ?
     out[k] = { channel = k
              , level   = 0
-             , time    = 0
-             , slope   = 'linear'
-             , asl     = {}
+             , rate    = 0
+             , shape   = 'linear'
+             , asl     = Asl.new(k) -- the standard LFO
+             , trig    = { asl      = Asl.new(k)
+                         , polarity = 1
+                         , time     = 1
+                         , level    = 5
+                         }
              }
+    out[k].asl:action( lfo( function() return out[k].rate end
+                          , function() return out[k].shape end
+                          , function() return out[k].level end
+                          )
+                     )
+    out[k].trig.asl:action( trig( function() return out[k].trig.polarity end
+                                , function() return out[k].trig.time end
+                                , function() return out[k].trig.level end
+                                )
+                          )
+    -- consider end of trig causing 'bang' of action if it exists?
 end
+
 -- Asl redefines this to provide actions at end of slopes
 function toward_handler( id ) end
 

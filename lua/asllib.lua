@@ -12,6 +12,22 @@ function lfo( speed, curve, level )
           }
 end
 
+function trig( polarity, time, level )
+    polarity, time, level = polarity or 1, time or 0.1, level or 5
+
+    local rest = 0
+    if not polarity then
+        rest  = level
+        level = 0
+    end
+
+    return{ toward{ 'level' = level }
+          , toward{ 'time'  = time  }
+          , toward{ 'level' = rest  }
+          }
+end
+
+
 function ramp( time, skew, curve, level )
     time,skew,curve,level = time  or 1
                           , skew  or 0.5
