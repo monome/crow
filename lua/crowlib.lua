@@ -44,35 +44,35 @@ end
 
 --- Output lib
 -- 4 outputs
-local out = {1,2,3,4}
+out = {1,2,3,4}
 for k in ipairs( out ) do
     -- pass the result of out.new() ?
     out[k] = { channel = k
              , level   = 0
              , time    = 0
              , slope   = 'linear'
+             , asl     = {}
              }
 end
+-- Asl redefines this to provide actions at end of slopes
+function toward_handler( id ) end
+
+
+--- Asl
+-- get a new Asl object for each out channel
+-- redefine the toward_handler
+--if Asl then
+--    for k in ipairs( out ) do
+--        out[k].asl = Asl.new(k)
+--    end
+--    toward_handler = function( id )
+--        out[id].asl:step()
+--    end
+--end
+
+
 
 -- TODO should 'go_toward' be called 'slew'???
-
-
---- ASL specifics
--- actually maybe there should be some further breakdown
--- in/out/timers/ii get their own files
--- crowlib provides only the lowest level access fns
--- though this is still relatively high-level vs C
-
--- need one of these per 'out' class
-local slope = {}
--- handles callback from C-dsp engine
--- this should do nothing by default, then the asl-out-extension
--- should overwrite it to the following.
--- then the user can define their own callback handler without
--- the full asl library if they want
-function toward_handler( id )
-    slope[id]:step()
-end
 -- special wrapper should really be in the ASL lib itself?
 function LL_toward( id, d, t, s )
     if type(d) == 'function' then d = d() end
