@@ -209,6 +209,46 @@ void Lua_repl( char* buf, uint32_t len, ErrorHandler_t errfn )
     //check_ram_usage();
 }
 
+uint8_t receiving_new_script = 0;
+char* new_script;
+void Lua_receive_script( char* buf, uint32_t len, ErrorHandler_t errfn )
+{
+    static char* nsp;
+    if( !receiving_new_script ){
+        // TODO call to Lua to free resources from current script
+        new_script = malloc(0xFFFF); // allocate memory to receive 64kB? 16kB?
+        if(new_script == NULL){
+            (*errfn)("!script: out of memory");
+            return; // how to deal with this situation?
+            // FIXME: should respond over usb stating out of memory?
+            //        try allocating a smaller amount and hope it fits?
+            //        retry?
+        }
+        receiving_new_script = 1;
+        nsp = new_script;
+    }
+    memcpy( nsp, buf, len );
+    nsp += len;
+}
+
+void Lua_load_new_script( ErrorHandler_t errfn )
+{
+    int error;
+    if( (error = luaL_loadstring( L, new_script )) ){
+        (*errfn)( (char*)lua_tostring( L, -1 ) );
+    } else {
+        // TODO write to non-active flash page?
+        if( (error = lua_pcall( L, 0, 0, 0 )) ){
+            (*errfn)( (char*)lua_tostring( L, -1 ) );
+        } else {
+            // TODO keep 2 programs in flash & don't flip the bit until after
+            //      pcall'ing the new program and confirming it doesn't crash
+        }
+    }
+    free(new_script);
+    receiving_new_script = 0;
+}
+
 // Callback from C to Lua
 static void cb_L_toward( int id )
 {
