@@ -119,6 +119,6 @@ for _,fn in ipairs( wrapped_fns ) do
     closure_if_table( fn )
 end
 
-print'crow lib loaded'
+print'crowlib loaded'
 
 return crow
