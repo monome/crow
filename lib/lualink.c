@@ -19,11 +19,13 @@
 #include "lua/bootstrap.lua.h" // MUST LOAD THIS MANUALLY FIRST
 #include "lua/crowlib.lua.h"
 #include "lua/asl.lua.h"
+#include "lua/asllib.lua.h"
 
 struct lua_lib_locator{ const char* name; const char* addr_of_luacode; };
 const struct lua_lib_locator Lua_libs[] =
     { { "lua_crowlib", lua_crowlib }
     , { "lua_asl"    , lua_asl     }
+    , { "lua_asllib" , lua_asllib  }
     , { NULL         , NULL        }
     };
 
@@ -76,15 +78,17 @@ static int L_dofile( lua_State *L )
     while( Lua_libs[i].addr_of_luacode != NULL ){
         if( !strcmp( l_name, Lua_libs[i].name ) ){ // if the strings match
             if( luaL_dostring( L, Lua_libs[i].addr_of_luacode ) ){
-                U_PrintLn("can't load library");
+                U_Print("can't load library: ");
+                U_PrintLn( (char*)Lua_libs[i].name );
                 goto fail;
             }
-            check_ram_usage();
+            //check_ram_usage();
             return 1; // table is left on the stack as retval
         }
         i++;
     }
-    U_PrintLn("can't find library");
+    U_Print("can't find library: ");
+    U_PrintLn( (char*)l_name );
 fail:
     // failed to find library
     lua_pushnil(L);
@@ -117,6 +121,14 @@ static int L_go_toward( lua_State *L )
             );
     return 0;
 }
+static int L_get_state( lua_State *L )
+{
+    float s = S_get_state( luaL_checkinteger(L, 1)-1 );
+    lua_pushnumber( L
+                  , s // testing if functional style causing issues?
+                  );
+    return 1;
+}
 static int L_send_usb( lua_State *L )
 {
     // pattern match on type: handle values vs strings vs chunk
@@ -147,6 +159,7 @@ static const struct luaL_Reg libCrow[]=
     , { "print_serial", L_print_serial  }
     , { "bootloader"  , L_bootloader    }
     , { "go_toward"   , L_go_toward     }
+    , { "get_state"   , L_get_state     }
     , { "send_usb"    , L_send_usb      }
     , { "send_ii"     , L_send_ii       }
     , { "set_ii_addr" , L_set_ii_addr   }
@@ -168,7 +181,7 @@ static void Lua_eval( lua_State* L, const char* script, ErrorHandler_t errfn ){
     int error;
     if( (error = luaL_loadstring( L, script ) || lua_pcall( L, 0, 0, 0 )) ){
         (*errfn)( (char*)lua_tostring( L, -1 ) );
-        lua_pop( L, 1 );
+        //lua_pop( L, 1 );
         switch( error ){
             case LUA_ERRSYNTAX: U_PrintLn("!load script: syntax"); break;
             case LUA_ERRMEM:    U_PrintLn("!load script: memory"); break;
@@ -193,7 +206,47 @@ void Lua_repl( char* buf, uint32_t len, ErrorHandler_t errfn )
 {
     //Lua_eval( L, buf, errfn );
     Lua_eval( L, buf, (*U_PrintLn) );
-    check_ram_usage();
+    //check_ram_usage();
+}
+
+uint8_t receiving_new_script = 0;
+char* new_script;
+void Lua_receive_script( char* buf, uint32_t len, ErrorHandler_t errfn )
+{
+    static char* nsp;
+    if( !receiving_new_script ){
+        // TODO call to Lua to free resources from current script
+        new_script = malloc(0xFFFF); // allocate memory to receive 64kB? 16kB?
+        if(new_script == NULL){
+            (*errfn)("!script: out of memory");
+            return; // how to deal with this situation?
+            // FIXME: should respond over usb stating out of memory?
+            //        try allocating a smaller amount and hope it fits?
+            //        retry?
+        }
+        receiving_new_script = 1;
+        nsp = new_script;
+    }
+    memcpy( nsp, buf, len );
+    nsp += len;
+}
+
+void Lua_load_new_script( ErrorHandler_t errfn )
+{
+    int error;
+    if( (error = luaL_loadstring( L, new_script )) ){
+        (*errfn)( (char*)lua_tostring( L, -1 ) );
+    } else {
+        // TODO write to non-active flash page?
+        if( (error = lua_pcall( L, 0, 0, 0 )) ){
+            (*errfn)( (char*)lua_tostring( L, -1 ) );
+        } else {
+            // TODO keep 2 programs in flash & don't flip the bit until after
+            //      pcall'ing the new program and confirming it doesn't crash
+        }
+    }
+    free(new_script);
+    receiving_new_script = 0;
 }
 
 // Callback from C to Lua

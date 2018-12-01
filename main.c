@@ -37,8 +37,8 @@ int main(void)
     //MIDI_Init();
     //II_init( II_FOLLOW );
 
-    Lua_crowbegin();
     IO_Start(); // buffers need to be ready by now
+    Lua_crowbegin();
 
     while(1){
         U_PrintNow();
@@ -51,6 +51,11 @@ int main(void)
                 Caw_send_raw( (uint8_t*)"\n> \0", 4 );
                 break;
             case 2: bootloader_enter(); break;
+            case 3: Lua_receive_script( Caw_get_read()
+                                      , Caw_get_read_len()
+                                      , Caw_send_luaerror
+                                      ); break;
+            case 4: Lua_load_new_script( Caw_send_luaerror ); break;
             default: break;
         }
     }

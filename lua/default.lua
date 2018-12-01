@@ -1,4 +1,5 @@
 function init()
+    out[1].asl:bang(true)
 --    go_toward( 1, 5, 10, 'linear' )
 --
 --    go_toward{ channel  = 1

@@ -2,14 +2,23 @@
 --
 -- a collection of basic asl scripts
 --
+Asllib = {} -- how should we refer to the below?
+
+-- is it possible to overload the `-` operator with a metatable?
+function negate( v )
+    if type(v) == 'function' then
+        return function() return -v() end
+    else return -v end
+end
+
 function lfo( speed, curve, level )
     -- allow these defaults to be attributes of the out channel
     speed, curve, level = speed or 1, curve or 'linear', level or 5
 
-    return{ loop{ toward(  level, speed, curve )
-                , toward( -level, speed, curve )
-                }
-          }
+    return loop{ toward(        level , speed, curve )
+               , toward( negate(level), speed, curve )
+               }
+
 end
 
 function trig( polarity, time, level )
@@ -21,9 +30,9 @@ function trig( polarity, time, level )
         level = 0
     end
 
-    return{ toward{ 'level' = level }
-          , toward{ 'time'  = time  }
-          , toward{ 'level' = rest  }
+    return{ toward{ ['level'] = level }
+          , toward{ ['time' ] = time  }
+          , toward{ ['level'] = rest  }
           }
 end
 
@@ -55,9 +64,9 @@ function ar( attack, release, curve, level )
           }
 end
 
-print 'asl std lib loaded'
+print 'asllib loaded'
 
-return Asl
+return Asllib
 
 -- continue for the following shapes
 -- ASR

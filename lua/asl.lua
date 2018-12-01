@@ -27,8 +27,11 @@ end
 -- use a metamethod so we can can *assign* myAsl:action = lfo()
 -- but then *call* myAsl:action(high/low) 
 -- need a 'proxy' metatable. see: https://www.lua.org/pil/13.4.4.html
-function Asl:action( fn )
-    self.co     = fn
+function Asl:action( thread )
+    if type(thread) == 'table' then
+        -- TODO wrap sequence in a coroutine as it lacks an outer construct
+    end
+    self.co     = thread
     self.hold   = false
     self.locked = false
 end
@@ -57,10 +60,15 @@ function Asl:bang( dir )
 end
 
 -- hw access fn
--- TODO should this take args in a table for curly braces
--- there's an inferred inference in how it's used
--- but it's not just a wrapped 'go_toward' as it abstracts
--- the id based on the asl in use
+    -- TODO
+    -- consider: toward{ 'delay' = time  }
+    -- consider: toward{ 'now'   = level }
+    -- these provide more explicit alternate functionality
+    -- rather than the below which relies on some rote-learned set of defaults
+    -- TODO also consider that toward with missing args should insert closured
+    -- queries to the self.params so that they automatically reflect global
+    -- settings!!!!!
+
 function toward( dest, time, shape )
     local d,t,s
     if type(dest) == 'table' then -- accept table syntax
@@ -71,7 +79,7 @@ function toward( dest, time, shape )
     end
     return coroutine.create(function( self )
         while true do
-            if d == 'here' then d = 1 end -- TODO d=1 should get 'here'
+            if d == 'here' then d = LL_get_state( self.id ) end
             LL_toward( self.id, d, t, s )
             coroutine.yield( (t ~= 0) and 'wait' or nil )
         end
@@ -136,6 +144,6 @@ function times( count, aslT )
                  )
 end
 
-print 'asl lib loaded'
+print 'asl loaded'
 
 return Asl

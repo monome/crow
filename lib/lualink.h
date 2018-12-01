@@ -9,3 +9,5 @@ void Lua_DeInit(void);
 
 void Lua_crowbegin(void);
 void Lua_repl( char* buf, uint32_t len, ErrorHandler_t errfn );
+void Lua_receive_script( char* buf, uint32_t len, ErrorHandler_t errfn );
+void Lua_load_new_script( ErrorHandler_t errfn );

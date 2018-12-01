@@ -56,6 +56,8 @@ static int8_t pReader = 0;
 uint8_t Caw_try_receive( void )
 {
     // TODO add scanning for 'goto_bootloader' override command. return 2
+    // TODO add start_flash_chunk command handling. return 3
+    // TODO add end_flash_chunk command handling. return 4
     static uint8_t* buf;
     static uint32_t len;
     static int8_t usb_busy = 2;
@@ -76,6 +78,7 @@ uint8_t Caw_try_receive( void )
         } else if( *buf == '~' && usb_busy ){
             if( !(--usb_busy) ){
                 Caw_send_raw( (uint8_t*)"\n\nwelcome to crow :)\n> \0", 23 );
+                U_PrintLn("ready.");
             }
         }
     }

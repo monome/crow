@@ -30,6 +30,7 @@ typedef struct{
 
 // register a new destination
 void S_init( void );
+float S_get_state( int index );
 void S_toward( int        index
              , float      destination
              , float      ms

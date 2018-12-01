@@ -19,6 +19,13 @@ void S_init( void )
     }
 }
 
+float S_get_state( int index )
+{
+    if( index < 0 || index >= SLEW_CHANNELS ){ return 0.0; }
+    Slew_t* self = &slews[index]; // safe pointer
+    return self->here;
+}
+
 void S_toward( int        index
              , float      destination
              , float      ms
@@ -55,7 +62,7 @@ float* S_step_v( int     index
                )
 {
     // turn index into pointer
-    if( index < 0 || index >= SLEW_CHANNELS ){ U_PrintLn("ix");return out; }
+    if( index < 0 || index >= SLEW_CHANNELS ){ return out; }
     Slew_t* self = &slews[index]; // safe pointer
 
     //TODO wrap the below in a function
