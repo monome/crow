@@ -37,8 +37,8 @@ int main(void)
     //MIDI_Init();
     //II_init( II_FOLLOW );
 
-    Lua_crowbegin();
     IO_Start(); // buffers need to be ready by now
+    Lua_crowbegin();
 
     while(1){
         U_PrintNow();
