@@ -2,14 +2,22 @@
 --
 -- a collection of basic asl scripts
 --
+
+-- is it possible to overload the `-` operator with a metatable?
+function negate( v )
+    if type(v) == 'function' then
+        return function() return -v() end
+    else return -v end
+end
+
 function lfo( speed, curve, level )
     -- allow these defaults to be attributes of the out channel
     speed, curve, level = speed or 1, curve or 'linear', level or 5
 
-    return{ loop{ toward(  level, speed, curve )
-                , toward( -level, speed, curve )
-                }
-          }
+    return loop{ toward(        level , speed, curve )
+               , toward( negate(level), speed, curve )
+               }
+
 end
 
 function trig( polarity, time, level )
