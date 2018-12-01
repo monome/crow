@@ -71,7 +71,7 @@ function toward( dest, time, shape )
     end
     return coroutine.create(function( self )
         while true do
-            if d == 'here' then d = 1 end -- TODO d=1 should get 'here'
+            if d == 'here' then d = LL_get_state( self.id ) end
             LL_toward( self.id, d, t, s )
             coroutine.yield( (t ~= 0) and 'wait' or nil )
         end

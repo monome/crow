@@ -19,6 +19,13 @@ void S_init( void )
     }
 }
 
+float S_get_state( int index )
+{
+    if( index < 0 || index >= SLEW_CHANNELS ){ return 0.0; }
+    Slew_t* self = &slews[index]; // safe pointer
+    return self->here;
+}
+
 void S_toward( int        index
              , float      destination
              , float      ms

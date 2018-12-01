@@ -97,6 +97,9 @@ function LL_toward( id, d, t, s )
     go_toward( id, d, t, s )
 end
 
+function LL_get_state( id )
+    return get_state(id)
+end
 
 
 --- Syntax extensions

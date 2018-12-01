@@ -117,6 +117,14 @@ static int L_go_toward( lua_State *L )
             );
     return 0;
 }
+static int L_get_state( lua_State *L )
+{
+    float s = S_get_state( luaL_checkinteger(L, 1)-1 );
+    lua_pushnumber( L
+                  , s // testing if functional style causing issues?
+                  );
+    return 1;
+}
 static int L_send_usb( lua_State *L )
 {
     // pattern match on type: handle values vs strings vs chunk
@@ -147,6 +155,7 @@ static const struct luaL_Reg libCrow[]=
     , { "print_serial", L_print_serial  }
     , { "bootloader"  , L_bootloader    }
     , { "go_toward"   , L_go_toward     }
+    , { "get_state"   , L_get_state     }
     , { "send_usb"    , L_send_usb      }
     , { "send_ii"     , L_send_ii       }
     , { "set_ii_addr" , L_set_ii_addr   }
