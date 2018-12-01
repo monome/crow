@@ -76,10 +76,10 @@ static int L_dofile( lua_State *L )
     while( Lua_libs[i].addr_of_luacode != NULL ){
         if( !strcmp( l_name, Lua_libs[i].name ) ){ // if the strings match
             if( luaL_dostring( L, Lua_libs[i].addr_of_luacode ) ){
-                U_PrintLn("can't load library");
+                U_Print("can't load library: "); U_PrintLn(Lua_libs[i].name);
                 goto fail;
             }
-            check_ram_usage();
+            //check_ram_usage();
             return 1; // table is left on the stack as retval
         }
         i++;
@@ -202,7 +202,7 @@ void Lua_repl( char* buf, uint32_t len, ErrorHandler_t errfn )
 {
     //Lua_eval( L, buf, errfn );
     Lua_eval( L, buf, (*U_PrintLn) );
-    check_ram_usage();
+    //check_ram_usage();
 }
 
 // Callback from C to Lua
