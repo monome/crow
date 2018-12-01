@@ -24,16 +24,8 @@ function crow.libs( lib )
     end
 end
 
--- TODO open all libs by default
+-- open all libs by default
 crow.libs()
-
-
---- Utilities
---
--- just demonstrating how to make crow.* fns
-function crow.squared(n)
-    return n*n
-end
 
 
 
