@@ -36,6 +36,7 @@ crow.libs()
 -- dummy functions required for testing without C
 -- belong in the testing library
 --function go_toward( id,d,t,s ) print'go_toward' end
+--function get_state( id ) return 1.0 end
 
 
 
@@ -98,6 +99,17 @@ for k in ipairs( out ) do
 --                          )
     -- consider end of trig causing 'bang' of action if it exists?
 --    out[k].asl:bang(true)
+end
+
+
+
+
+-- Communication functions
+-- these will be called from norns (or the REPL)
+-- they return values wrapped in strings that can be used in Lua directly
+-- via dostring
+function get_cv( channel )
+    print('^^(ret_cv(' .. channel .. ',' .. get_state(channel) .. '))')
 end
 
 
