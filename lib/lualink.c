@@ -177,7 +177,7 @@ static void Lua_eval( lua_State* L, const char* script, ErrorHandler_t errfn ){
     int error;
     if( (error = luaL_loadstring( L, script ) || lua_pcall( L, 0, 0, 0 )) ){
         (*errfn)( (char*)lua_tostring( L, -1 ) );
-        lua_pop( L, 1 );
+        //lua_pop( L, 1 );
         switch( error ){
             case LUA_ERRSYNTAX: U_PrintLn("!load script: syntax"); break;
             case LUA_ERRMEM:    U_PrintLn("!load script: memory"); break;
