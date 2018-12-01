@@ -108,8 +108,10 @@ end
 -- these will be called from norns (or the REPL)
 -- they return values wrapped in strings that can be used in Lua directly
 -- via dostring
+get_cv_cb = 'ret_cv' -- make a list of these so they can be queried / changed
 function get_cv( channel )
-    print('^^(ret_cv(' .. channel .. ',' .. get_state(channel) .. '))')
+    --FIXME this is returning *output* state, but should be *input*
+    print('^^(' .. get_cv_cb .. '(' .. channel .. ',' .. get_state(channel) .. '))')
 end
 
 
