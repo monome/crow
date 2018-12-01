@@ -2,6 +2,7 @@
 --
 -- a collection of basic asl scripts
 --
+Asllib = {} -- how should we refer to the below?
 
 -- is it possible to overload the `-` operator with a metatable?
 function negate( v )
@@ -63,9 +64,9 @@ function ar( attack, release, curve, level )
           }
 end
 
-print 'asl std lib loaded'
+print 'asllib loaded'
 
-return Asl
+return Asllib
 
 -- continue for the following shapes
 -- ASR

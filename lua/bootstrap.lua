@@ -35,7 +35,7 @@ end
 
 print'lua bootstrapped'
 
-crow = dofile'lua/crowlib.lua'
+crow = dofile('lua/crowlib.lua')
 
 --- Tests
 -- move these to a diff file & run tests over all the functions from makefile?

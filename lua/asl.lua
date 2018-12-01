@@ -144,6 +144,6 @@ function times( count, aslT )
                  )
 end
 
-print 'asl lib loaded'
+print 'asl loaded'
 
 return Asl

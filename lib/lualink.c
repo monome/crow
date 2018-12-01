@@ -19,11 +19,13 @@
 #include "lua/bootstrap.lua.h" // MUST LOAD THIS MANUALLY FIRST
 #include "lua/crowlib.lua.h"
 #include "lua/asl.lua.h"
+#include "lua/asllib.lua.h"
 
 struct lua_lib_locator{ const char* name; const char* addr_of_luacode; };
 const struct lua_lib_locator Lua_libs[] =
     { { "lua_crowlib", lua_crowlib }
     , { "lua_asl"    , lua_asl     }
+    , { "lua_asllib" , lua_asllib  }
     , { NULL         , NULL        }
     };
 
@@ -76,7 +78,8 @@ static int L_dofile( lua_State *L )
     while( Lua_libs[i].addr_of_luacode != NULL ){
         if( !strcmp( l_name, Lua_libs[i].name ) ){ // if the strings match
             if( luaL_dostring( L, Lua_libs[i].addr_of_luacode ) ){
-                U_Print("can't load library: "); U_PrintLn(Lua_libs[i].name);
+                U_Print("can't load library: ");
+                U_PrintLn( (char*)Lua_libs[i].name );
                 goto fail;
             }
             //check_ram_usage();
@@ -84,7 +87,8 @@ static int L_dofile( lua_State *L )
         }
         i++;
     }
-    U_PrintLn("can't find library");
+    U_Print("can't find library: ");
+    U_PrintLn( (char*)l_name );
 fail:
     // failed to find library
     lua_pushnil(L);
