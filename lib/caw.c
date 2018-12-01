@@ -76,6 +76,7 @@ uint8_t Caw_try_receive( void )
         } else if( *buf == '~' && usb_busy ){
             if( !(--usb_busy) ){
                 Caw_send_raw( (uint8_t*)"\n\nwelcome to crow :)\n> \0", 23 );
+                U_PrintLn("ready.");
             }
         }
     }
