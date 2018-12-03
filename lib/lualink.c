@@ -1,5 +1,6 @@
 #include "lib/lualink.h"
 
+
 #include <string.h> // strcmp(), strlen()
 #include <stdlib.h> // malloc(), free()
 
@@ -76,7 +77,7 @@ void check_ram_usage( void )
 // C-fns accessible to lua
 
 // NB these static functions are prefixed  with '_'
-// to avoid shadowing similar-named extern functions in other moduels
+// to avoid shadowing similar-named extern functions in other modules
 // and also to distinguish from extern 'L_' functions.
 static int _dofile( lua_State *L )
 {
