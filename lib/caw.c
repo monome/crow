@@ -60,7 +60,7 @@ uint8_t Caw_try_receive( void )
     // TODO add end_flash_chunk command handling. return 4
     static uint8_t* buf;
     static uint32_t len;
-    static int8_t usb_busy = 2;
+    static int8_t usb_busy = 0;
 
     if( USB_rx_dequeue( &buf, &len ) ){
         if( !usb_busy ){
