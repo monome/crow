@@ -104,6 +104,7 @@ uint16_t ADC_GetU16( uint8_t channel );
 void ADC_UnpickleBlock( float*   unpickled
                       , uint16_t bsize
                       );
+float ADC_GetValue( uint8_t channel );
 void SPIa_DMA_RX_IRQHandler(void);
 void SPIa_DMA_TX_IRQHandler(void);
 void SPIa_IRQHandler(void);

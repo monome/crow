@@ -3,7 +3,7 @@
 #include "main.h"
 
 #include "../ll/cal_ll.h"
-#include "../ll/adda.h"
+#include "../ll/adda.h" // _Init(), _Start(), _GetADCValue(), IO_block_t
 #include "../ll/debug_usart.h"
 #include "slews.h"
 
@@ -77,6 +77,11 @@ IO_block_t* IO_BlockProcess( IO_block_t* b )
     return b;
 }
 
+float IO_GetADC( uint8_t channel )
+{
+    return ADDA_GetADCValue( channel );
+}
+
 void IO_Recalibrate( void )
 {
     // Only calibrate if no current data saved
@@ -123,17 +128,6 @@ void IO_Set( uint8_t channel, float volts )
               );
               */
 }
-#include "../ll/ads131.h"
-float IO_Get( uint8_t channel )
-{
-    // TODO: apply calibration first
-    // TODO: roll calibration & scaling into one for efficiency
-    //return ((float)ADC_GetU16(channel) / DAC_V_TO_U16 - 5.0);
-    U_PrintU16(ADC_GetU16(channel));
-    //U_PrintU16(ADC_GetU16(0));
-    //U_PrintU16(ADC_GetU16(1));
-    return 0.0;
-}
 
 // Private definitions
 const CAL_LL_Channel_t cal_chan[4] = { CAL_LL_0
@@ -159,5 +153,5 @@ void _CAL_DAC( uint8_t chan )
 float _CAL_ADC_GetAverage( uint8_t chan )
 {
     // TODO: average a number of calls (blocking)
-    return IO_Get( chan );
+    return IO_GetADC( chan );
 }

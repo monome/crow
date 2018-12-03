@@ -15,6 +15,7 @@
 #include "lib/ii.h"         // II_*()
 #include "lib/bootloader.h" // bootloader_enter()
 #include "lib/metro.h"      // metro_start() metro_stop() metro_set_time()
+#include "lib/io.h"         // IO_GetADC()
 
 // Lua libs wrapped in C-headers: Note the extra '.h'
 #include "lua/bootstrap.lua.h" // MUST LOAD THIS MANUALLY FIRST
@@ -135,6 +136,11 @@ static int _get_state( lua_State *L )
                   );
     return 1;
 }
+static int _io_get_input( lua_State *L )
+{
+    lua_pushnumber( L, IO_GetADC( luaL_checkinteger(L, 1)-1 ) );
+    return 1;
+}
 static int _send_usb( lua_State *L )
 {
     // pattern match on type: handle values vs strings vs chunk
@@ -196,18 +202,26 @@ static int _metro_set_time( lua_State* L )
 
 // array of all the available functions
 static const struct luaL_Reg libCrow[]=
+        // bootstrap
     { { "c_dofile"       , _dofile           }
     , { "debug_usart"    , _debug            }
     , { "print_serial"   , _print_serial     }
+        // system
     , { "bootloader"     , _bootloader       }
+        // io
     , { "go_toward"      , _go_toward        }
     , { "get_state"      , _get_state        }
+    , { "io_get_input"   , _io_get_input     }
+        // usb
     , { "send_usb"       , _send_usb         }
+        // i2c
     , { "send_ii"        , _send_ii          }
     , { "set_ii_addr"    , _set_ii_addr      }
+        // metro
     , { "metro_start"    , _metro_start      }
     , { "metro_stop"     , _metro_stop       }
     , { "metro_set_time" , _metro_set_time   }
+
     , { NULL             , NULL              }
     };
 // make functions available to lua

@@ -186,11 +186,12 @@ uint16_t ADC_GetU16( uint8_t channel )
 }
 
 #define ADC_U16_TO_V        ((float)(15.0 / 65535.0))
+
+static float last[2] = {0.0,0.0};
 void ADC_UnpickleBlock( float*   unpickled
                       , uint16_t bsize
                       )
 {
-    static float last[2] = {0.0,0.0};
     float* unpick = unpickled;
     // Return current buf
     for( uint8_t j=1; j<=adc_count; j++ ){
@@ -219,6 +220,11 @@ void ADC_UnpickleBlock( float*   unpickled
             U_PrintLn("spi_txrx_fail");
         }
     }
+}
+
+float ADC_GetValue( uint8_t channel )
+{
+    return last[channel];
 }
 
 void ADC_Rx( uint16_t* aRxBuffer, uint32_t size )

@@ -15,6 +15,9 @@ typedef struct{
 uint16_t ADDA_Init( void );
 void ADDA_Start( void );
 void ADDA_BlockProcess( uint32_t* dac_pickle_ptr );
+
+float ADDA_GetADCValue( uint8_t channel );
+
 // __weak definition
 // Implement this in library code
 // It handles the block-processing of the IO!

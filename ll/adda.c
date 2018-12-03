@@ -35,6 +35,11 @@ void ADDA_BlockProcess( uint32_t* dac_pickle_ptr )
                    );
 }
 
+float ADDA_GetADCValue( uint8_t channel )
+{
+    return ADC_GetValue( channel );
+}
+
 __weak IO_block_t* IO_BlockProcess( IO_block_t* b )
 {
     static float count = 1.0;
