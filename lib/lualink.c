@@ -21,12 +21,14 @@
 #include "lua/crowlib.lua.h"
 #include "lua/asl.lua.h"
 #include "lua/asllib.lua.h"
+#include "lua/metro.lua.h"
 
 struct lua_lib_locator{ const char* name; const char* addr_of_luacode; };
 const struct lua_lib_locator Lua_libs[] =
     { { "lua_crowlib", lua_crowlib }
     , { "lua_asl"    , lua_asl     }
     , { "lua_asllib" , lua_asllib  }
+    , { "lua_metro"  , lua_metro   }
     , { NULL         , NULL        }
     };
 
