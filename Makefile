@@ -6,7 +6,7 @@ HALS=$(CUBE)/STM32F7xx_HAL_Driver/Src
 USBD=../STM32_Cube_F7/Middlewares/ST/STM32_USB_Device_Library
 WRLIB=../../wrLib
 WRDSP=../../wrDsp
-LUAS=../../lua/src
+LUAS=../lua/src
 PRJ_DIR=crow
 
 CC=arm-none-eabi-gcc-4.9.3
@@ -44,6 +44,7 @@ OPTIMIZE       = -O1
 
 CFLAGS += -std=c99
 CFLAGS += -Wall
+CFLAGS += -Wno-unused-function
 CFLAGS += $(MCFLAGS)
 CFLAGS += $(OPTIMIZE)
 CFLAGS += $(DEFS) -I. -I./ $(STM32_INCLUDES)
