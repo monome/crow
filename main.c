@@ -7,6 +7,7 @@
 #include "lib/caw.h"
 #include "lib/ii.h"
 #include "lib/lualink.h"
+#include "lib/metro.h"
 
 #include "ll/debug_usart.h"
 #include "ll/debug_pin.h"
@@ -23,14 +24,15 @@ int main(void)
 
     bootloader_is_i2c_force();
 
+    // init debugging
     Debug_Pin_Init();
     Debug_USART_Init();
     U_PrintLn("\n\rcrow"); U_PrintNow();
 
+    // init drivers
     IO_Init();
-
+    Metro_Init();
     Caw_Init();
-    U_PrintLn("caw");
 
     Lua_Init(); // send this function a list of fnptrs?
 

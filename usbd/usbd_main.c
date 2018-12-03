@@ -40,9 +40,9 @@ void USARTx_IRQHandler(void)
 }
 */
 
-extern TIM_HandleTypeDef TimHandle;
+extern TIM_HandleTypeDef USBTimHandle;
 
 void TIMu_IRQHandler(void)
 {
-    HAL_TIM_IRQHandler(&TimHandle);
+    HAL_TIM_IRQHandler(&USBTimHandle);
 }

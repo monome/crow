@@ -14,6 +14,7 @@
 #include "lib/caw.h"        // Caw_send_*()
 #include "lib/ii.h"         // II_*()
 #include "lib/bootloader.h" // bootloader_enter()
+#include "lib/metro.h"      // metro_start() metro_stop() metro_set_time()
 
 // Lua libs wrapped in C-headers: Note the extra '.h'
 #include "lua/bootstrap.lua.h" // MUST LOAD THIS MANUALLY FIRST
@@ -37,7 +38,8 @@ static void Lua_linkctolua( lua_State* L );
 static void Lua_eval( lua_State* L, const char* script, ErrorHandler_t errfn );
 
 // Callback prototypes
-static void cb_L_toward( int id );
+static void L_handle_toward( int id );
+static void L_handle_metro( const int idx, const int stage);
 
 lua_State* L; // global access for 'reset-environment'
 
@@ -68,10 +70,12 @@ void check_ram_usage( void )
     free(h);
 }
 
-// C-library
-// to call from Lua
+// C-fns accessible to lua
 
-static int L_dofile( lua_State *L )
+// NB these static functions are prefixed  with '_'
+// to avoid shadowing similar-named extern functions in other moduels
+// and also to distinguish from extern 'L_' functions.
+static int _dofile( lua_State *L )
 {
     const char* l_name = luaL_checkstring(L, 1);
     uint8_t i = 0;
@@ -94,34 +98,34 @@ fail:
     lua_pushnil(L);
     return 1;
 }
-static int L_debug( lua_State *L )
+static int _debug( lua_State *L )
 {
     const char* msg = luaL_checkstring(L, 1);
     U_PrintLn( (char*)msg);
     return 0;
 }
-static int L_print_serial( lua_State *L )
+static int _print_serial( lua_State *L )
 {
     Caw_send_luachunk( (char*)luaL_checkstring(L, 1) );
     return 0;
 }
-static int L_bootloader( lua_State *L )
+static int _bootloader( lua_State *L )
 {
     bootloader_enter();
     return 0;
 }
-static int L_go_toward( lua_State *L )
+static int _go_toward( lua_State *L )
 {
     const char* shape = luaL_checkstring(L, 4);
     S_toward( luaL_checkinteger(L, 1)-1 // C is zero-based
             , luaL_checknumber(L, 2)
             , luaL_checknumber(L, 3) * 1000.0
             , SHAPE_Linear // Shape_t
-            , cb_L_toward
+            , L_handle_toward
             );
     return 0;
 }
-static int L_get_state( lua_State *L )
+static int _get_state( lua_State *L )
 {
     float s = S_get_state( luaL_checkinteger(L, 1)-1 );
     lua_pushnumber( L
@@ -129,7 +133,7 @@ static int L_get_state( lua_State *L )
                   );
     return 1;
 }
-static int L_send_usb( lua_State *L )
+static int _send_usb( lua_State *L )
 {
     // pattern match on type: handle values vs strings vs chunk
     const char* msg = luaL_checkstring(L, 1);
@@ -137,33 +141,72 @@ static int L_send_usb( lua_State *L )
     Caw_send_raw( (uint8_t*) msg, len );
     return 0;
 }
-static int L_send_ii( lua_State *L )
+static int _send_ii( lua_State *L )
 {
     // pattern match on broadcast vs query
     uint8_t istate = 4;
     II_broadcast( II_FOLLOW, 1, &istate, 1 );
     return 0;
 }
-static int L_set_ii_addr( lua_State *L )
+static int _set_ii_addr( lua_State *L )
 {
     // pattern match on broadcast vs query
     uint8_t istate = 4;
     II_broadcast( II_FOLLOW, 1, &istate, 1 );
+    return 0;
+}
+static int _metro_start( lua_State* L )
+{
+    static int idx = 0;
+    float seconds = -1.0; // metro will re-use previous value
+    int count = -1; // default: infinite
+    int stage = 0;
+
+    int nargs = lua_gettop(L);
+    if (nargs > 0) { idx = (int) luaL_checkinteger(L, 1) - 1; } // 1-ix'd
+    if (nargs > 1) { seconds = (float)luaL_checknumber(L, 2); }
+    if (nargs > 2) { count = (int)luaL_checkinteger(L, 3); }
+    if (nargs > 3) { stage = (int)luaL_checkinteger(L, 4) - 1; } // 1-ix'd
+
+    metro_start( idx, seconds, count, stage ); // TODO implement in C
+    lua_settop(L, 0);
+    return 0;
+}
+static int _metro_stop( lua_State* L )
+{
+    if( lua_gettop(L) != 1 ){ return luaL_error(L, "wrong number of arguments"); }
+
+    int idx = (int)luaL_checkinteger(L, 1) - 1; // 1-ix'd
+    metro_stop(idx); // TODO implement in C
+    lua_settop(L, 0);
+    return 0;
+}
+static int _metro_set_time( lua_State* L )
+{
+    if( lua_gettop(L) != 2 ){ return luaL_error(L, "wrong number of arguments"); }
+
+    int idx = (int)luaL_checkinteger(L, 1) - 1; // 1-ix'd
+    float sec = (float) luaL_checknumber(L, 2);
+    metro_set_time(idx, sec); // TODO implement in C
+    lua_settop(L, 0);
     return 0;
 }
 
 // array of all the available functions
 static const struct luaL_Reg libCrow[]=
-    { { "c_dofile"    , L_dofile        }
-    , { "debug_usart" , L_debug         }
-    , { "print_serial", L_print_serial  }
-    , { "bootloader"  , L_bootloader    }
-    , { "go_toward"   , L_go_toward     }
-    , { "get_state"   , L_get_state     }
-    , { "send_usb"    , L_send_usb      }
-    , { "send_ii"     , L_send_ii       }
-    , { "set_ii_addr" , L_set_ii_addr   }
-    , { NULL          , NULL            }
+    { { "c_dofile"       , _dofile           }
+    , { "debug_usart"    , _debug            }
+    , { "print_serial"   , _print_serial     }
+    , { "bootloader"     , _bootloader       }
+    , { "go_toward"      , _go_toward        }
+    , { "get_state"      , _get_state        }
+    , { "send_usb"       , _send_usb         }
+    , { "send_ii"        , _send_ii          }
+    , { "set_ii_addr"    , _set_ii_addr      }
+    , { "metro_start"    , _metro_start      }
+    , { "metro_stop"     , _metro_stop       }
+    , { "metro_set_time" , _metro_set_time   }
+    , { NULL             , NULL              }
     };
 // make functions available to lua
 static void Lua_linkctolua( lua_State *L )
@@ -249,8 +292,9 @@ void Lua_load_new_script( ErrorHandler_t errfn )
     receiving_new_script = 0;
 }
 
-// Callback from C to Lua
-static void cb_L_toward( int id )
+
+// Callbacks from C to Lua
+static void L_handle_toward( int id )
 {
     lua_getglobal(L, "toward_handler");
     lua_pushinteger(L, id+1); // lua is 1-based
@@ -260,4 +304,17 @@ static void cb_L_toward( int id )
         U_PrintLn( (char*)lua_tostring(L, -1) );
         lua_pop( L, 1 );
     }
+}
+
+// probably need no static, and make this extern in header for access from metro lib
+static void L_handle_metro( const int idx, const int stage)
+{
+    // FIXME not wrapping metro in norns, but crow (or just direct?)
+    lua_getglobal(L, "norns");
+    lua_getfield(L, -1, "metro");
+    lua_remove(L, -2);
+    lua_pushinteger(L, idx + 1);   // convert to 1-based
+    lua_pushinteger(L, stage + 1); // convert to 1-based
+//FIXME l_report unimplemented. is this assert()?
+    //l_report(L, l_docall(L, 2, 0));
 }

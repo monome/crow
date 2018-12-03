@@ -67,7 +67,7 @@ uint32_t BuffLength;
 uint32_t UserTxBufPtrIn  = 0;
 uint32_t UserTxBufPtrOut = 0;
 
-TIM_HandleTypeDef  TimHandle;
+TIM_HandleTypeDef  USBTimHandle;
 
 extern USBD_HandleTypeDef  USBD_Device;
 
@@ -90,7 +90,7 @@ USBD_CDC_ItfTypeDef USBD_CDC_fops = { CDC_Itf_Init
 static int8_t CDC_Itf_Init(void)
 {
     TIM_Config();
-    if( HAL_TIM_Base_Start_IT(&TimHandle) != HAL_OK ){ U_PrintLn("!tim_start"); }
+    if( HAL_TIM_Base_Start_IT(&USBTimHandle) != HAL_OK ){ U_PrintLn("!tim_start"); }
 
     USBD_CDC_SetTxBuffer(&USBD_Device, UserTxBuffer, 0);
     USBD_CDC_SetRxBuffer(&USBD_Device, UserRxBuffer);
@@ -158,30 +158,35 @@ void USB_tx_enqueue( uint8_t* buf, uint32_t len )
           );
     UserTxBufPtrIn += len;
 }
-// This could be called directly from the scheduler in main (not TIM)
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{
-    uint32_t buffptr;
-    uint32_t buffsize;
 
-    if( UserTxBufPtrOut != UserTxBufPtrIn ){
-        if( UserTxBufPtrOut > UserTxBufPtrIn ){
-            buffsize = APP_RX_DATA_SIZE - UserTxBufPtrOut;
-        } else {
-            buffsize = UserTxBufPtrIn - UserTxBufPtrOut;
-        }
-        buffptr = UserTxBufPtrOut;
-        USBD_CDC_SetTxBuffer( &USBD_Device
-                            , (uint8_t*)&UserTxBuffer[buffptr]
-                            , buffsize
-                            );
-        if( USBD_CDC_TransmitPacket(&USBD_Device) == USBD_OK ){
-            UserTxBufPtrOut += buffsize;
-            if( UserTxBufPtrOut == APP_RX_DATA_SIZE ){
-                UserTxBufPtrOut = 0;
+uint8_t USB_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+// This could be called directly from the scheduler in main (not TIM)
+//void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+    if( htim == &USBTimHandle ){ // protect as it's called from timer lib
+        uint32_t buffptr;
+        uint32_t buffsize;
+        if( UserTxBufPtrOut != UserTxBufPtrIn ){
+            if( UserTxBufPtrOut > UserTxBufPtrIn ){
+                buffsize = APP_RX_DATA_SIZE - UserTxBufPtrOut;
+            } else {
+                buffsize = UserTxBufPtrIn - UserTxBufPtrOut;
+            }
+            buffptr = UserTxBufPtrOut;
+            USBD_CDC_SetTxBuffer( &USBD_Device
+                                , (uint8_t*)&UserTxBuffer[buffptr]
+                                , buffsize
+                                );
+            if( USBD_CDC_TransmitPacket(&USBD_Device) == USBD_OK ){
+                UserTxBufPtrOut += buffsize;
+                if( UserTxBufPtrOut == APP_RX_DATA_SIZE ){
+                    UserTxBufPtrOut = 0;
+                }
             }
         }
+        return 1;
     }
+    return 0;
 }
 
 
@@ -256,7 +261,7 @@ static void ComPort_Config(void)
 static void TIM_Config(void)
 {  
     // Set TIMu instance
-    TimHandle.Instance = TIMu;
+    USBTimHandle.Instance = TIMu;
   
     TIMu_CLK_ENABLE();
     // Initialize TIM3 peripheral as follow:
@@ -265,12 +270,12 @@ static void TIM_Config(void)
     //     + ClockDivision = 0
     //     + Counter direction = Up
     //
-    TimHandle.Init.Period = (CDC_POLLING_INTERVAL*1000) - 1;
-    TimHandle.Init.Prescaler = 84-1;
-    TimHandle.Init.ClockDivision = 0;
-    TimHandle.Init.CounterMode = TIM_COUNTERMODE_UP;
-    TimHandle.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-    if( HAL_TIM_Base_Init(&TimHandle) != HAL_OK ){ U_PrintLn("!tim-base"); }
+    USBTimHandle.Init.Period = (CDC_POLLING_INTERVAL*1000) - 1;
+    USBTimHandle.Init.Prescaler = 84-1;
+    USBTimHandle.Init.ClockDivision = 0;
+    USBTimHandle.Init.CounterMode = TIM_COUNTERMODE_UP;
+    USBTimHandle.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+    if( HAL_TIM_Base_Init(&USBTimHandle) != HAL_OK ){ U_PrintLn("!tim-base"); }
 
     HAL_NVIC_SetPriority( TIMu_IRQn, 6, 0 );
     HAL_NVIC_EnableIRQ( TIMu_IRQn );
