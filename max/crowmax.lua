@@ -1,21 +1,27 @@
 this.inlets  = 2
-this.outlets = 2
+this.outlets = 3
 
-local complete = false
-local crow_cmd = "" -- temporary space to construct the received string
 
+--- Marshall returned serial stream
 -- messages returned from serial port
-function from( ... )
-    local t = {...}
-    local len = table.remove(t,1)
-    -- a fragment of a message
-    -- need a simple parser to look for start/end tokens
--- FIXME just assuming the whole message comes in one packet
-	eval( bytes_to_string(t))
-    --if complete then
-    --    complete = false
-    --    eval( crow_cmd )
-    --end
+local cmd_bytes  = {} -- temporary space to construct the received string
+local cmd_length = -1
+local cmd_rxd    = 0
+function from( byte )
+	table.insert( cmd_bytes, byte )
+	cmd_rxd = cmd_rxd + 1
+	if cmd_rxd == cmd_length then
+    	eval( bytes_to_string( cmd_bytes))
+		cmd_bytes  = {}
+		cmd_length = -1
+		cmd_rxd    = 0
+    end
+end
+
+function from_length( n )
+	if n ~= 0 then
+		cmd_length = n
+	end
 end
 
 function eval( str )
@@ -23,14 +29,15 @@ function eval( str )
     if string.find( str, "^%^%^" ) then
 		pcall( loadstring( str:sub(3)))
     else
-        print"received print"
-        print( str )
+        to_max_print( str )
     end
 end
 
+
+--- Request/callback pairs
 -- from max
 function get_cv( channel )
-    to_serial("get_cv("..channel..")")
+    tell_crow( "get_cv("..channel..")")
 end
 -- continues to ->
 function ret_cv( channel, value )
@@ -39,23 +46,32 @@ end
 
 
 --- Helper conversion functions
--- convert string to ascii sequence
-function to_serial( string )
+
+function tell_crow( str )
+	outlet(0, string_to_serial( str))
+end
+
+function string_to_serial( str )
     ascii = {}
-    for c in string:gmatch"." do
+    for c in str:gmatch"." do
         table.insert(ascii, c:byte())
     end
-    outlet(0, ascii)
+	table.insert(ascii, string.byte'\n')
+    return ascii
 end
 
 function to_max( ... )
     outlet(1, ...)
 end
 
+function to_max_print( ... )
+    outlet(2, ...)
+end
+
 function bytes_to_string( bytes )
-    local string = ""
+    local str = ""
     for i=1, #bytes do
-        string = string .. string.char(bytes[i])
+        str = str .. string.char(bytes[i])
     end
-	return string
+	return str
 end
