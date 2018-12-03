@@ -13,7 +13,6 @@
 #include "ll/debug_pin.h"
 #include "ll/midi.h"
 
-
 static void Sys_Clk_Config(void);
 static void Error_Handler(void);
 
