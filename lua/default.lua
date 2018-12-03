@@ -1,5 +1,8 @@
 function init()
-    out[1].asl:bang(true)
+    -- start all the lfos
+    for c=1, 4 do
+        out[c].asl:bang(true)
+    end
 --    go_toward( 1, 5, 10, 'linear' )
 --
 --    go_toward{ channel  = 1

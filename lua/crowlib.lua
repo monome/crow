@@ -69,37 +69,37 @@ end
 
 
 -- MUST setup Asl before applying actions
-for k in ipairs( out ) do
+for chan = 1, #out do
     -- pass the result of out.new() ?
-    out[k] = { channel = k
-             , level   = 1.0
-             , rate    = 1.0
-             , shape   = 'linear'
-             , asl     = Asl.new(k) -- the standard LFO
---             , trig    = { asl      = Asl.new(k)
---                         , polarity = 1
---                         , time     = 1
---                         , level    = 5
---                         }
-             }
-    out[k].asl:action( lfo( 1.0
-                          , 'linear'
-                          , 2.0
-                          )
-                     )
-    --out[k].asl:action( lfo( function() return out[k].rate end
-    --                      , function() return out[k].shape end
-    --                      , function() return out[k].level end
+    out[chan] = { channel = chan
+                , level   = 1.0
+                , rate    = 1.0
+                , shape   = 'linear'
+                , asl     = Asl.new(chan) -- the standard LFO
+--                , trig    = { asl      = Asl.new(k)
+--                            , polarity = 1
+--                            , time     = 1
+--                            , level    = 5
+--                            }
+                }
+    out[chan].asl:action( lfo( 1.0
+                             , 'linear'
+                             , 2.0
+                             )
+                        )
+    --out[k].asl:action( lfo( function() return out[chan].rate end
+    --                      , function() return out[chan].shape end
+    --                      , function() return out[chan].level end
     --                      )
     --                 )
-    --out[k].asl:action( toward( 1, 10, 'linear' ) )
---    out[k].trig.asl:action( trig( function() return out[k].trig.polarity end
---                                , function() return out[k].trig.time end
---                                , function() return out[k].trig.level end
+    --out[chan].asl:action( toward( 1, 10, 'linear' ) )
+--    out[chan].trig.asl:action( trig( function() return out[chan].trig.polarity end
+--                                , function() return out[chan].trig.time end
+--                                , function() return out[chan].trig.level end
 --                                )
 --                          )
     -- consider end of trig causing 'bang' of action if it exists?
---    out[k].asl:bang(true)
+--    out[chan].asl:bang(true)
 end
 
 
