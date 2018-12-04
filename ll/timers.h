@@ -44,4 +44,4 @@ int Timer_Init( Timer_Callback_t cb );
 
 void Timer_Start( int ix );
 void Timer_Stop( int ix );
-void Timer_Set_Params( int ix, float seconds, int count );
+void Timer_Set_Params( int ix, float seconds );

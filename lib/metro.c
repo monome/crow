@@ -1,10 +1,11 @@
 #include "metro.h"
 
 #include <stm32f7xx.h>
-#include <stdlib.h>
+#include <stdlib.h>            // malloc()
 
-#include "../ll/timers.h"
-#include "../ll/debug_usart.h"
+#include "../ll/timers.h"      // _Init() _Start() _Stop() _Set_Params()
+#include "lualink.h"           // L_handle_metro()
+#include "../ll/debug_usart.h" // U_Print*
 
 enum {
     METRO_STATUS_RUNNING,
@@ -14,8 +15,9 @@ enum {
 typedef struct{
     int      ix;       // metro index
     int      status;   // running/stopped status
-    float    seconds;  // period in seconds
-    int      count;    // number of repeats. <0 is infinite
+    float    seconds;  // TODO never actually referred! period in seconds
+    int32_t  count;    // number of repeats. <0 is infinite
+    int32_t  stage;    // number of repeateds.
 } Metro_t;
 
 Metro_t* metros;
@@ -30,11 +32,11 @@ void Metro_Init(void)
     max_num_metros = Timer_Init( metro_bang );
     metros = malloc( sizeof(Metro_t) * max_num_metros );
 
-    // TODO add ll driver init?
     for( int i=0; i<max_num_metros; i++ ){
         metros[i].status  = METRO_STATUS_STOPPED;
         metros[i].seconds = 1.0;
         metros[i].count   = -1;
+        metros[i].stage   = 0;
     }
 }
 
@@ -46,11 +48,13 @@ void metro_start( int   ix
 {
     if( ix < 0
      || ix >= max_num_metros ){ U_PrintLn("metro_start: bad index"); return; }
+
     Metro_t* t = &metros[ix];
+    t->status = METRO_STATUS_RUNNING;
+    t->count  = count;
+    t->stage  = stage;
 
-    t->count = count;
-
-    Timer_Set_Params( ix, seconds, count ); // TODO currently discarding stage
+    Timer_Set_Params( ix, seconds );
     Timer_Start( ix );
 }
 
@@ -60,7 +64,11 @@ void metro_stop( int ix )
     if( ix < 0
      || ix >= max_num_metros ){ U_PrintLn("metro_stop: bad index"); return; }
 
-    Timer_Stop( ix );
+    Metro_t* t = &metros[ix];
+    if( t->status == METRO_STATUS_RUNNING ){
+        t->status = METRO_STATUS_STOPPED;
+        Timer_Stop( ix );
+    }
 }
 
 // set period of metro
@@ -69,14 +77,19 @@ void metro_set_time( int ix, float sec )
     if( ix < 0
      || ix >= max_num_metros ){ U_PrintLn("metro_set_time: bad index"); return; }
 
-    Timer_Set_Params( ix, sec, metros[ix].count ); // only using struct accessor
+    Timer_Set_Params( ix, sec ); // only using struct accessor
 }
 
 static void metro_bang( int ix )
 {
-    U_Print("metro: "); U_PrintU8(ix);
-    //union event_data *ev = event_data_new(EVENT_METRO);
-    //ev->metro.id = t->ix;
-    //ev->metro.stage = t->stage;
-    //event_post(ev);
+    // TODO confirm lua(1) makes a single tick
+    L_handle_metro( ix, metros[ix].stage );
+    metros[ix].stage++;
+//FIXME next line causes system not to load?
+    //if( metros[ix].stage < -1 ){ metros[ix].stage = 0x7FFF; } // overflow
+    if( metros[ix].count >= 0 ){ // negative values are infinite
+        if( metros[ix].stage > metros[ix].count ){
+            metro_stop(ix);
+        }
+    }
 }

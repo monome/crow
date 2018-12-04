@@ -83,7 +83,7 @@ int Timer_Init( Timer_Callback_t cb )
         TimHandle[i].Init.RepetitionCounter = 0;
         TimHandle[i].Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
 
-        Timer_Set_Params( i, 1.0, -1 );
+        Timer_Set_Params( i, 1.0 );
     }
     //Timer_Start(0);
 
@@ -111,7 +111,6 @@ void HAL_TIM_PeriodElapsedCallback( TIM_HandleTypeDef *htim )
     if( !USB_TIM_PeriodElapsedCallback(htim) ){
         for( int i=0; i<MAX_LL_TIMERS; i++ ){
             if( htim == &TimHandle[i] ){
-                // TODO countdown the repeat counter (is this hardware?)
                 (*callback)(i); // raise callback
                 return;
             }
@@ -119,7 +118,7 @@ void HAL_TIM_PeriodElapsedCallback( TIM_HandleTypeDef *htim )
     }
 }
 
-void Timer_Set_Params( int ix, float seconds, int count )
+void Timer_Set_Params( int ix, float seconds )
 {
     //TODO need to call Timer_Stop(ix); first to deactivate while changing params?
     //FIXME limited to max~16s. possible to decrease speed of clock source?
@@ -127,7 +126,6 @@ void Timer_Set_Params( int ix, float seconds, int count )
 
     TimHandle[ix].Init.Period            = (uint16_t)(seconds * (float)0x1000);
     TimHandle[ix].Init.Prescaler         = 0xE000; // TODO
-    TimHandle[ix].Init.RepetitionCounter = 0; // TODO is this a counter?? seems not
     if( HAL_TIM_Base_Init( &TimHandle[ix] ) != HAL_OK ){
         U_Print("Timer_Set_Params("); U_PrintU8n(ix); U_PrintLn(") failed");
     }

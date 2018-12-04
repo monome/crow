@@ -10,6 +10,7 @@ local function closelibs()
     -- TODO does this free the RAM used by 'dofile'?
     Asl    = nil
     Asllib = nil
+    Metro  = nil
 end
 
 function crow.libs( lib )
@@ -17,7 +18,7 @@ function crow.libs( lib )
         -- load all
         Asl    = dofile('lua/asl.lua')
         Asllib = dofile('lua/asllib.lua')
-        --Metro  = dofile('lua/metro.lua')
+        Metro  = dofile('lua/metro.lua')
     elseif type(lib) == 'table' then
         -- load the list 
     else

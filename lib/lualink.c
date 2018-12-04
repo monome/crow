@@ -41,10 +41,6 @@ const struct lua_lib_locator Lua_libs[] =
 static void Lua_linkctolua( lua_State* L );
 static void Lua_eval( lua_State* L, const char* script, ErrorHandler_t errfn );
 
-// Callback prototypes
-static void L_handle_toward( int id );
-static void L_handle_metro( const int idx, const int stage);
-
 lua_State* L; // global access for 'reset-environment'
 
 // Public functions
@@ -310,8 +306,8 @@ void Lua_load_new_script( ErrorHandler_t errfn )
 }
 
 
-// Callbacks from C to Lua
-static void L_handle_toward( int id )
+// Public Callbacks from C to Lua
+void L_handle_toward( int id )
 {
     lua_getglobal(L, "toward_handler");
     lua_pushinteger(L, id+1); // lua is 1-based
@@ -324,14 +320,15 @@ static void L_handle_toward( int id )
 }
 
 // probably need no static, and make this extern in header for access from metro lib
-static void L_handle_metro( const int idx, const int stage)
+void L_handle_metro( const int id, const int stage)
 {
-    // FIXME not wrapping metro in norns, but crow (or just direct?)
-    lua_getglobal(L, "norns");
-    lua_getfield(L, -1, "metro");
-    lua_remove(L, -2);
-    lua_pushinteger(L, idx + 1);   // convert to 1-based
-    lua_pushinteger(L, stage + 1); // convert to 1-based
-//FIXME l_report unimplemented. is this assert()?
-    //l_report(L, l_docall(L, 2, 0));
+    lua_getglobal(L, "metro_handler");
+    lua_pushinteger(L, id+1);    // 1-ix'd
+    lua_pushinteger(L, stage+1); // 1-ix'd
+    if( lua_pcall(L, 2, 0, 0) != LUA_OK ){
+        U_Print("error running "); U_PrintLn("metro_handler");
+        //TODO should print to USB
+        U_PrintLn( (char*)lua_tostring(L, -1) );
+        lua_pop( L, 1 );
+    }
 }

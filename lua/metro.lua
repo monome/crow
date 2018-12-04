@@ -1,14 +1,14 @@
 --- high-resolution metro API
 -- @module metro
 -- @alias Metro_mt
-require 'norns'
-norns.version.metro = '0.0.3'
+--require 'norns'
+--norns.version.metro = '0.0.3'
 
 local Metro = {}
 Metro.__index = Metro
 
-Metro.num_metros = 34
-Metro.num_script_metros = 30 -- 31-34 are reserved
+Metro.num_metros = 9
+Metro.num_script_metros = 7 -- 8+9 reserved for ADC polls?
 
 Metro.metros = {}
 Metro.available = {}
@@ -20,19 +20,19 @@ function Metro.alloc (cb, time, count)
     local id = nil
     for i, val in pairs(Metro.available) do
        if val == true then
-	  id = i
-	  break
+          id = i
+          break
        end
     end
     if id ~= nil then
         Metro.assigned[id] = true
         Metro.available[id] = false
-	local m = Metro.metros[id]
-	m:init()
-	if cb then m.callback = cb end
-	if time then m.time = time end
-	if count then m.count= count end
-	return m
+        local m = Metro.metros[id]
+        m:init()
+        if cb then m.callback = cb end
+        if time then m.time = time end
+        if count then m.count= count end
+        return m
     end
     print('metro.alloc: already used max number of allocated script metros')
     return nil
@@ -149,12 +149,12 @@ end
 -- @section globals
 
 --- callback on metro tick from C;
-norns.metro = function(idx, stage)
-  if Metro.metros[idx] then
-    if Metro.metros[idx].callback then
-      Metro.metros[idx].callback(stage)
-    end
-  end
+metro_handler = function(idx, stage)
+   if Metro.metros[idx] then
+      if Metro.metros[idx].callback then
+         Metro.metros[idx].callback(stage)
+      end
+   end
 end
 
 
