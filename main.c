@@ -32,11 +32,10 @@ int main(void)
     IO_Init();
     Metro_Init();
     Caw_Init();
-
-    Lua_Init(); // send this function a list of fnptrs?
-
     //MIDI_Init();
     //II_init( II_FOLLOW );
+
+    Lua_Init(); // send this function a list of fnptrs?
 
     IO_Start(); // buffers need to be ready by now
     Lua_crowbegin();
@@ -49,12 +48,6 @@ int main(void)
                         , Caw_get_read_len() // len is ignored for \0 anyway
                         , Caw_send_luaerror // 'print' continuation
                         );
-    // this is failing without *something* happening after the Lua_repl call
-    // bizarre
-    // maybe a weird memory collision issue?!
-    // FIXME
-                U_Print(""); // this is a NOP
-                //Caw_send_raw( (uint8_t*)"\n> \0", 4 );
                 break;
             case 2: bootloader_enter(); break;
             case 3: Lua_receive_script( Caw_get_read()
