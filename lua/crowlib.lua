@@ -59,6 +59,7 @@ end
 function LL_toward( id, d, t, s )
     if type(d) == 'function' then d = d() end
     if type(t) == 'function' then t = t() end
+    if type(s) == 'function' then s = s() end
     --print('id: '..id,'\ttoward '..d,'\tin time: '..t,'\twith shape: '..s)
     go_toward( id, d, t, s )
 end
