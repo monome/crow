@@ -33,7 +33,13 @@ end
 -- and having 500 extra fns probably uses a good chunk)
 -- instead, the diff modules are diff source files which can
 -- be loaded with dofile() when the i2c address is set
-function ii.callback()
+
+ii.cb_list = { ['crow'] = {1 = } }
+
+function ii.callback( addr, cmd, ... )
+    -- if addr is in ii.cb_list
+
+
     -- CW.OUT       chan (value)-> (value)
     -- CW.OUT.SLEW  chan (slew) -> (slew)
     -- CW.IN        chan        -> input_val
@@ -46,18 +52,26 @@ function ii.callback()
     --      considered a request and crow should return a value.
 end
 
+function ii
+
 -- triggered by received ii msg 'CW.CALL'
-function ii.call( arg )
+function ii.call1( arg )
     if arg == nil then  -- this is a data request
         ii.send()       -- return *something* to leader
     else
                         -- this is where you define your action
     end
 end
--- can obvs use first arg as an index into many diff functions
-function ii.call2( arg, arg2 ) end
-function ii.call3( arg, arg2, arg3 ) end
-function ii.call4( arg, arg2, arg3, arg4 ) end
+
+ii.callback_list = [[
+
+if the last arg is nil, this is a *request*
+   return something with ii.send()
+CW.CALL  -> function ii.call1( arg ) end
+CW.CALL2 -> function ii.call2( arg, arg2 ) end
+CW.CALL3 -> function ii.call3( arg, arg2, arg3 ) end
+CW.CALL4 -> function ii.call4( arg, arg2, arg3, arg4 ) end
+]]
 
 -- prints a list of connected devices
 function ii.get_devices()
@@ -70,6 +84,7 @@ end
 -- prints a list of available (lua) commands for a given device
 function ii.get_commands( devicename )
     -- this is the list of functions that are implemented for crow
+    --print(debug.getinfo(ii.call, "n").)
 end
 
 print 'ii loaded'
