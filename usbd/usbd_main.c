@@ -1,4 +1,5 @@
 #include "usbd_main.h"
+
 #include "../ll/debug_usart.h"
 
 USBD_HandleTypeDef USBD_Device;
@@ -28,17 +29,6 @@ void OTG_HS_IRQHandler(void)
 {
     HAL_PCD_IRQHandler(&hpcd);
 }
-/*
-void USARTx_DMA_TX_IRQHandler(void)
-{
-    HAL_DMA_IRQHandler(UartHandle.hdmatx);
-}
-
-void USARTx_IRQHandler(void)
-{
-    HAL_UART_IRQHandler(&UartHandle);
-}
-*/
 
 extern TIM_HandleTypeDef USBTimHandle;
 

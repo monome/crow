@@ -49,6 +49,7 @@
 #include "usbd_main.h"
 
 #include "../ll/debug_usart.h"
+
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
@@ -496,7 +497,6 @@ USBD_StatusTypeDef USBD_LL_OpenEP(USBD_HandleTypeDef *pdev,
   */
 USBD_StatusTypeDef USBD_LL_CloseEP(USBD_HandleTypeDef *pdev, uint8_t ep_addr)
 {
-    U_PrintLn("closeEP");
   HAL_PCD_EP_Close(pdev->pData, ep_addr);
   return USBD_OK;
 }
@@ -509,7 +509,6 @@ USBD_StatusTypeDef USBD_LL_CloseEP(USBD_HandleTypeDef *pdev, uint8_t ep_addr)
   */
 USBD_StatusTypeDef USBD_LL_FlushEP(USBD_HandleTypeDef *pdev, uint8_t ep_addr)
 {
-    U_PrintLn("flushEP");
   HAL_PCD_EP_Flush(pdev->pData, ep_addr);
   return USBD_OK;
 }
@@ -583,7 +582,6 @@ USBD_StatusTypeDef USBD_LL_Transmit(USBD_HandleTypeDef *pdev,
                                     uint8_t *pbuf,
                                     uint16_t size)
 {
-    //U_PrintLn("tx");
   HAL_PCD_EP_Transmit(pdev->pData, ep_addr, pbuf, size);
   return USBD_OK;
 }
@@ -601,7 +599,6 @@ USBD_StatusTypeDef USBD_LL_PrepareReceive(USBD_HandleTypeDef *pdev,
                                           uint8_t *pbuf,
                                           uint16_t size)
 {
-    //U_PrintLn("prx");
   HAL_PCD_EP_Receive(pdev->pData, ep_addr, pbuf, size);
   return USBD_OK;
 }
@@ -614,7 +611,6 @@ USBD_StatusTypeDef USBD_LL_PrepareReceive(USBD_HandleTypeDef *pdev,
   */
 uint32_t USBD_LL_GetRxDataSize(USBD_HandleTypeDef *pdev, uint8_t ep_addr)
 {
-    //U_PrintLn("getrxsize");
   return HAL_PCD_EP_GetRxCount(pdev->pData, ep_addr);
 }
 

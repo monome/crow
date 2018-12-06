@@ -63,9 +63,9 @@ USBD_CDC_LineCodingTypeDef LineCoding = { 115200 // baud rate
 
 uint8_t UserRxBuffer[APP_RX_DATA_SIZE];
 uint8_t UserTxBuffer[APP_TX_DATA_SIZE];
-uint32_t BuffLength;
 uint32_t UserTxBufPtrIn  = 0;
 uint32_t UserTxBufPtrOut = 0;
+uint32_t UserRxBufPtrIn  = 0;
 
 TIM_HandleTypeDef  USBTimHandle;
 
@@ -77,7 +77,6 @@ static int8_t CDC_Itf_DeInit(void);
 static int8_t CDC_Itf_Control(uint8_t cmd, uint8_t* pbuf, uint16_t length);
 static int8_t CDC_Itf_Receive(uint8_t* pbuf, uint32_t *Len);
 
-static void ComPort_Config(void);
 static void TIM_Config(void);
 
 USBD_CDC_ItfTypeDef USBD_CDC_fops = { CDC_Itf_Init
@@ -90,6 +89,7 @@ USBD_CDC_ItfTypeDef USBD_CDC_fops = { CDC_Itf_Init
 static int8_t CDC_Itf_Init(void)
 {
     TIM_Config();
+    U_PrintLn("CDC_Itf_Init");
     if( HAL_TIM_Base_Start_IT(&USBTimHandle) != HAL_OK ){ U_PrintLn("!tim_start"); }
 
     USBD_CDC_SetTxBuffer(&USBD_Device, UserTxBuffer, 0);
@@ -124,14 +124,6 @@ static int8_t CDC_Itf_Control (uint8_t cmd, uint8_t* pbuf, uint16_t length)
             LineCoding.format     = pbuf[4];
             LineCoding.paritytype = pbuf[5];
             LineCoding.datatype   = pbuf[6];
-            // Set the new configuration
-            ComPort_Config();
-            //if( lcoding ){ lcoding--; }
-            //else{
-            //    U_PrintLn("Dialing...");
-            //    USB_tx_enqueue( (uint8_t*)"\n\nDialing...\n\0", 14 );
-            //}
-
             break;
         case CDC_GET_LINE_CODING: U_PrintLn("itf:g_line_coding");
             pbuf[0] = (uint8_t)(LineCoding.bitrate);
@@ -168,7 +160,7 @@ uint8_t USB_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         uint32_t buffsize;
         if( UserTxBufPtrOut != UserTxBufPtrIn ){
             if( UserTxBufPtrOut > UserTxBufPtrIn ){
-                buffsize = APP_RX_DATA_SIZE - UserTxBufPtrOut;
+                buffsize = APP_TX_DATA_SIZE - UserTxBufPtrOut;
             } else {
                 buffsize = UserTxBufPtrIn - UserTxBufPtrOut;
             }
@@ -191,71 +183,27 @@ uint8_t USB_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 
 // RECEIVE
-uint32_t rx_buf_size = 0;
-uint32_t rx_buf_ptr  = 0;
-uint8_t rx_has_data  = 0;
-uint8_t USB_rx_has_data( void )
-{
-    return rx_has_data;
-}
-
 static int8_t CDC_Itf_Receive( uint8_t* buf, uint32_t *len )
 {
-    // enqueue data in the USB_rx buffer
-    // TODO: obviously just proof of concept. doesn't have a real queue
-    if(*len > 0){
-        rx_buf_size += *len;
-        rx_has_data  = 1;
-    }
-    return (USBD_OK);
+    if( *len > APP_RX_DATA_SIZE ){ *len = APP_RX_DATA_SIZE; }
+    memcpy( &UserRxBuffer[UserRxBufPtrIn]
+          , buf
+          , *len
+          );
+    UserRxBufPtrIn += *len;
+    return USBD_OK;
 }
+
 uint8_t USB_rx_dequeue( uint8_t** buf, uint32_t* len )
 {
-    uint8_t has_data = 0;
-    if( (has_data = USB_rx_has_data()) ){
-        *buf  = &(UserRxBuffer[rx_buf_ptr]);
-        *len = rx_buf_size;
-        rx_buf_size = 0; // clear buf
-        rx_buf_ptr  = 0; // reset index
-        rx_has_data = 0; // no data
-
-        USBD_CDC_SetRxBuffer( &USBD_Device, UserRxBuffer ); // reset buffer
+    if( UserRxBufPtrIn ){ // non-zero means data is present
+        *buf = UserRxBuffer;
+        *len = UserRxBufPtrIn;
+        UserRxBufPtrIn = 0; // reset rx array
         USBD_CDC_ReceivePacket(&USBD_Device); // Receive the next packet
+        return 1;
     }
-    return has_data;
-}
-
-static void ComPort_Config(void)
-{
-    /*
-    switch( LineCoding.format ){ // Set the Stop bit
-        case 0:  UartHandle.Init.StopBits = UART_STOPBITS_1; break;
-        case 2:  UartHandle.Init.StopBits = UART_STOPBITS_2; break;
-        default: UartHandle.Init.StopBits = UART_STOPBITS_1; break;
-    }
-  
-    switch( LineCoding.paritytype ){ // Set the Parity bit
-        case 0:  UartHandle.Init.Parity = UART_PARITY_NONE; break;
-        case 1:  UartHandle.Init.Parity = UART_PARITY_ODD;  break;
-        case 2:  UartHandle.Init.Parity = UART_PARITY_EVEN; break;
-        default: UartHandle.Init.Parity = UART_PARITY_NONE; break;
-    }
-  
-    //set the data type : only 8bits and 9bits is supported
-    switch( LineCoding.datatype ){ // Only 8b and 9b supported
-        case 0x07: // With this configuration a parity (Even or Odd) must be set
-            UartHandle.Init.WordLength = UART_WORDLENGTH_8B; break;
-        case 0x08:
-            UartHandle.Init.WordLength = (UartHandle.Init.Parity == UART_PARITY_NONE)
-                                            ? UART_WORDLENGTH_8B
-                                            : UART_WORDLENGTH_9B; break;
-        default: UartHandle.Init.WordLength = UART_WORDLENGTH_8B; break;
-    }
-  
-    UartHandle.Init.BaudRate     = LineCoding.bitrate;
-    */
-
-    // Now restart reception
+    return 0;
 }
 
 static void TIM_Config(void)
