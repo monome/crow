@@ -78,6 +78,7 @@ void check_ram_usage( void )
 static int _dofile( lua_State *L )
 {
     const char* l_name = luaL_checkstring(L, 1);
+    lua_pop( L, 1 );
     uint8_t i = 0;
     while( Lua_libs[i].addr_of_luacode != NULL ){
         if( !strcmp( l_name, Lua_libs[i].name ) ){ // if the strings match
@@ -101,12 +102,14 @@ fail:
 static int _debug( lua_State *L )
 {
     const char* msg = luaL_checkstring(L, 1);
+    lua_pop( L, 1 );
     U_PrintLn( (char*)msg);
     return 0;
 }
 static int _print_serial( lua_State *L )
 {
     Caw_send_luachunk( (char*)luaL_checkstring(L, 1) );
+    lua_pop( L, 1 );
     return 0;
 }
 static int _bootloader( lua_State *L )
@@ -123,11 +126,13 @@ static int _go_toward( lua_State *L )
             , SHAPE_Linear // Shape_t
             , L_handle_toward
             );
+    lua_pop( L, 4 );
     return 0;
 }
 static int _get_state( lua_State *L )
 {
     float s = S_get_state( luaL_checkinteger(L, 1)-1 );
+    lua_pop( L, 1 );
     lua_pushnumber( L
                   , s // testing if functional style causing issues?
                   );
@@ -135,13 +140,16 @@ static int _get_state( lua_State *L )
 }
 static int _io_get_input( lua_State *L )
 {
-    lua_pushnumber( L, IO_GetADC( luaL_checkinteger(L, 1)-1 ) );
+    float adc = IO_GetADC( luaL_checkinteger(L, 1)-1 );
+    lua_pop( L, 1 );
+    lua_pushnumber( L, adc );
     return 1;
 }
 static int _send_usb( lua_State *L )
 {
     // pattern match on type: handle values vs strings vs chunk
     const char* msg = luaL_checkstring(L, 1);
+    lua_pop( L, 1 );
     uint32_t len = strlen(msg);
     Caw_send_raw( (uint8_t*) msg, len );
     return 0;
@@ -172,6 +180,7 @@ static int _metro_start( lua_State* L )
     if (nargs > 1) { seconds = (float)luaL_checknumber(L, 2); }
     if (nargs > 2) { count = (int)luaL_checkinteger(L, 3); }
     if (nargs > 3) { stage = (int)luaL_checkinteger(L, 4) - 1; } // 1-ix'd
+    lua_pop( L, 4 );
 
     metro_start( idx, seconds, count, stage ); // TODO implement in C
     lua_settop(L, 0);
@@ -182,6 +191,7 @@ static int _metro_stop( lua_State* L )
     if( lua_gettop(L) != 1 ){ return luaL_error(L, "wrong number of arguments"); }
 
     int idx = (int)luaL_checkinteger(L, 1) - 1; // 1-ix'd
+    lua_pop( L, 1 );
     metro_stop(idx); // TODO implement in C
     lua_settop(L, 0);
     return 0;
@@ -192,6 +202,7 @@ static int _metro_set_time( lua_State* L )
 
     int idx = (int)luaL_checkinteger(L, 1) - 1; // 1-ix'd
     float sec = (float) luaL_checknumber(L, 2);
+    lua_pop( L, 2 );
     metro_set_time(idx, sec); // TODO implement in C
     lua_settop(L, 0);
     return 0;
@@ -204,7 +215,8 @@ static const struct luaL_Reg libCrow[]=
     , { "debug_usart"    , _debug            }
     , { "print_serial"   , _print_serial     }
         // system
-    , { "bootloader"     , _bootloader       }
+    , { "sys_bootloader" , _bootloader       }
+    //, { "sys_cpu_load"   , _sys_cpu          }
         // io
     , { "go_toward"      , _go_toward        }
     , { "get_state"      , _get_state        }
@@ -237,7 +249,7 @@ static void Lua_eval( lua_State* L, const char* script, ErrorHandler_t errfn ){
     int error;
     if( (error = luaL_loadstring( L, script ) || lua_pcall( L, 0, 0, 0 )) ){
         (*errfn)( (char*)lua_tostring( L, -1 ) );
-        //lua_pop( L, 1 );
+        lua_pop( L, 1 );
         switch( error ){
             case LUA_ERRSYNTAX: U_PrintLn("!load script: syntax"); break;
             case LUA_ERRMEM:    U_PrintLn("!load script: memory"); break;
@@ -292,10 +304,12 @@ void Lua_load_new_script( ErrorHandler_t errfn )
     int error;
     if( (error = luaL_loadstring( L, new_script )) ){
         (*errfn)( (char*)lua_tostring( L, -1 ) );
+        lua_pop( L, 1 );
     } else {
         // TODO write to non-active flash page?
         if( (error = lua_pcall( L, 0, 0, 0 )) ){
             (*errfn)( (char*)lua_tostring( L, -1 ) );
+            lua_pop( L, 1 );
         } else {
             // TODO keep 2 programs in flash & don't flip the bit until after
             //      pcall'ing the new program and confirming it doesn't crash
@@ -310,7 +324,7 @@ void Lua_load_new_script( ErrorHandler_t errfn )
 void L_handle_toward( int id )
 {
     lua_getglobal(L, "toward_handler");
-    lua_pushinteger(L, id+1); // lua is 1-based
+    lua_pushinteger(L, id+1); // 1-ix'd
     if( lua_pcall(L, 1, 0, 0) != LUA_OK ){
         U_PrintLn("error running toward_handler");
         //TODO should print to USB
