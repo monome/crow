@@ -5,8 +5,13 @@
 #include "../usbd/usbd_main.h"
 #include "../ll/debug_usart.h"
 
+#define USB_RX_BUFFER 256
+static char reader[USB_RX_BUFFER];
+static int8_t pReader = 0;
+
 uint8_t Caw_Init( void ) //TODO fnptr of callback )
 {
+    for( int i=0; i<USB_RX_BUFFER; i++ ){ reader[i] = 0; }
     USB_CDC_Init();
     // TODO set static void(*) which Caw_receive_callback() forward all info to
     // alt, we could just send a *buffer that we copy data into & check in scheduler
@@ -51,8 +56,6 @@ void Caw_send_value( uint8_t type, float value )
     //
 }
 
-static char reader[80];
-static int8_t pReader = 0;
 uint8_t Caw_try_receive( void )
 {
     // TODO add scanning for 'goto_bootloader' override command. return 2
@@ -60,26 +63,18 @@ uint8_t Caw_try_receive( void )
     // TODO add end_flash_chunk command handling. return 4
     static uint8_t* buf;
     static uint32_t len;
-    static int8_t usb_busy = 0;
 
     if( USB_rx_dequeue( &buf, &len ) ){
-        if( !usb_busy ){
-            memcpy( &(reader[pReader])
-                  , (char*)buf
-                  , len
-                  );
-            pReader += len;
-            if( reader[pReader-1] == '\n'
-             || reader[pReader-1] == '\r' ){ // line is finished!
-                reader[pReader] = '\0';
-                pReader++;
-                return 1;
-            }
-        } else if( *buf == '~' && usb_busy ){
-            if( !(--usb_busy) ){
-                Caw_send_raw( (uint8_t*)"\n\nwelcome to crow :)\n> \0", 23 );
-                U_PrintLn("ready.");
-            }
+        memcpy( &(reader[pReader])
+              , (char*)buf
+              , len
+              );
+        pReader += len;
+        if( reader[pReader-1] == '\n'
+         || reader[pReader-1] == '\r' ){ // line is finished!
+            reader[pReader] = '\0';
+            pReader++;
+            return 1;
         }
     }
     return 0;
