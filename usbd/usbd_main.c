@@ -7,13 +7,19 @@ USBD_HandleTypeDef USBD_Device;
 void USB_CDC_Init(void)
 {
     // Init Device Library
-    USBD_Init(&USBD_Device, &VCP_Desc, 0);
+    if( USBD_Init(&USBD_Device, &VCP_Desc, 0) != USBD_OK ){
+        U_PrintLn("Invalid Device handle");
+    }
 
     // Add Supported Class
-    USBD_RegisterClass(&USBD_Device, USBD_CDC_CLASS);
+    if( USBD_RegisterClass(&USBD_Device, USBD_CDC_CLASS) != USBD_OK ){
+        U_PrintLn("Invalid class handle");
+    }
 
     // Add CDC Interface Class
-    USBD_CDC_RegisterInterface(&USBD_Device, &USBD_CDC_fops);
+    if( USBD_CDC_RegisterInterface(&USBD_Device, &USBD_CDC_fops) != USBD_OK ){
+        U_PrintLn("Failed to register interface");
+    }
 
     // Start Device Process
     USBD_Start(&USBD_Device);
