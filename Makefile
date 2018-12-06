@@ -93,7 +93,6 @@ SRC = main.c \
 	$(WRLIB)/str_buffer.c \
 	$(WRLIB)/wrConvert.c \
 	$(WRLIB)/wrMath.c \
-	$(WRDSP)/wrOscSine.c \
 
 # these get converted to bytecode strings wrapped in c-headers
 LUA_SRC = $(wildcard lua/*.lua) \

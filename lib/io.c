@@ -1,11 +1,12 @@
 #include "io.h"
 
-#include "main.h"
+#include "main.h"              // FLASH_*_t
 
-#include "../ll/cal_ll.h"
-#include "../ll/adda.h" // _Init(), _Start(), _GetADCValue(), IO_block_t
-#include "../ll/debug_usart.h"
-#include "slews.h"
+#include "../ll/cal_ll.h"      // CAL_LL_Init(),
+#include "../ll/adda.h"        // _Init(), _Start(), _GetADCValue(), IO_block_t
+#include "slews.h"             // S_init(), S_step_v()
+
+#include "../ll/debug_usart.h" // U_Print*()
 
 // Private Declarations
 void _CAL_DAC( uint8_t chan );
@@ -23,27 +24,12 @@ typedef struct {
 
 CAL_t cal;
 
-// Public Definitions
-
-#include "../../wrDsp/wrOscSine.h"
-#include "../../wrLib/wrMath.h"
-
-// currently getting 30 sinewaves at 48kHz
-osc_sine_t sinewave[4];
-
 void IO_Init( void )
 {
-    // TODO: need block_size for anything?
-    //uint16_t block_size = ADDA_Init();
     ADDA_Init();
 
-    CAL_LL_Init();
+    //CAL_LL_Init();
     //IO_Recalibrate();
-
-    //for( uint8_t j=0; j<4; j++ ){
-    //    osc_sine_init( &sinewave[j] );
-    //    osc_sine_time( &sinewave[j], 0.01*(j*2+1) );
-    //}
 
     S_init();
 }
