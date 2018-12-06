@@ -84,16 +84,11 @@ for chan = 1, #out do
 --                            , level    = 5
 --                            }
                 }
-    out[chan].asl:action( lfo( 1.0
-                             , 'linear'
-                             , 2.0
+    out[chan].asl:action( lfo( function() return out[chan].rate  end
+                             , function() return out[chan].shape end
+                             , function() return out[chan].level end
                              )
                         )
-    --out[k].asl:action( lfo( function() return out[chan].rate end
-    --                      , function() return out[chan].shape end
-    --                      , function() return out[chan].level end
-    --                      )
-    --                 )
     --out[chan].asl:action( toward( 1, 10, 'linear' ) )
 --    out[chan].trig.asl:action( trig( function() return out[chan].trig.polarity end
 --                                , function() return out[chan].trig.time end
