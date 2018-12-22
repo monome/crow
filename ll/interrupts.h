@@ -1,3 +1,9 @@
 #pragma once
 
-#define TIMx_IRQ_Priority     7
+#define ADC_IRQPriority         1
+#define I2C_Priority            2
+#define MIDI_IRQPriority        3
+#define USB_IRQPriority         4
+#define DAC_IRQPriority         5
+#define DEBUG_IRQPriority       7
+#define TIM_IRQPriority         8
