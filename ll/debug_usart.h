@@ -3,6 +3,7 @@
 #include <stm32f7xx.h>
 
 #include "stm32f7xx_hal_conf.h"
+#include "interrupts.h" // DEBUG_IRQPriority
 
 #define DBG_USART_GPIO_RCC()	__HAL_RCC_GPIOC_CLK_ENABLE()
 #define DBG_USART_USART_RCC()	__HAL_RCC_USART3_CLK_ENABLE()
@@ -28,9 +29,9 @@
 
 #define USARTx_IRQn				    USART3_IRQn
 #define USARTx_IRQHandler		    USART3_IRQHandler
-#define USARTx_IRQPriority          5
+#define USARTx_IRQPriority          DEBUG_IRQPriority
 #define USARTx_IRQSubPriority       0
-#define USARTx_DMA_IRQPriority      5
+#define USARTx_DMA_IRQPriority      DEBUG_IRQPriority
 #define USARTx_DMA_TXIRQSubPriority 2
 #define USARTx_DMA_RXIRQSubPriority 1
 

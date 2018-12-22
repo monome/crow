@@ -45,8 +45,6 @@ void Debug_USART_DeInit(void)
 	str_buffer_deinit( &str_buf );
 }
 
-//#include "midi.h"
-
 // LOW LEVEL USART HARDWARE CONFIGURATION FUNCTION
 void HAL_USART_MspInit(USART_HandleTypeDef *hu )
 {
@@ -90,8 +88,6 @@ void HAL_USART_MspInit(USART_HandleTypeDef *hu )
                             , USARTx_IRQSubPriority
                             );
 	    HAL_NVIC_EnableIRQ( USARTx_IRQn );
-    } else {
-        //MIDI_MspInit(hu);
     }
 }
 
