@@ -123,7 +123,7 @@ end
 function seq_coroutines( self, fns )
     for i=1, #fns, 1 do
         repeat
-            local _,wait,nx = coroutine.resume( fns[i], self )
+            local _,wait = coroutine.resume( fns[i], self )
             coroutine.yield( wait )
         until( nx ~= 'loop' )
     end
