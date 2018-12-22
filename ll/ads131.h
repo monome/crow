@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stm32f7xx.h>
+#include "interrupts.h" // ADC_IRQPriority
 
 // Defs for MCLK pin, using hardware timer
 #define TIMa                             TIM2
@@ -59,12 +60,12 @@
 #define SPIa_DMA_TX_IRQHandler           DMA2_Stream3_IRQHandler
 #define SPIa_DMA_RX_IRQHandler           DMA2_Stream0_IRQHandler
 
-#define SPIa_DMA_TX_IRQPriority      0
-#define SPIa_DMA_TX_IRQSubPriority   1
-#define SPIa_DMA_RX_IRQPriority      0
-#define SPIa_DMA_RX_IRQSubPriority   0
-#define SPIa_IRQPriority             0
+#define SPIa_IRQPriority             ADC_IRQPriority
 #define SPIa_IRQSubPriority          2
+#define SPIa_DMA_TX_IRQPriority      ADC_IRQPriority
+#define SPIa_DMA_TX_IRQSubPriority   1
+#define SPIa_DMA_RX_IRQPriority      ADC_IRQPriority
+#define SPIa_DMA_RX_IRQSubPriority   0
 
 // ADS131 commands
 #define ADS_READY   0xFF02
