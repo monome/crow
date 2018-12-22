@@ -40,7 +40,7 @@ STM32_INCLUDES = \
 	-I$(USBD)/Class/CDC/Inc/ \
 	-I$(USBD)/Core/Inc/ \
 
-OPTIMIZE       = -O1
+OPTIMIZE       = -O2
 
 CFLAGS += -std=c99
 CFLAGS += -Wall
@@ -160,7 +160,8 @@ $(BIN): $(EXECUTABLE)
 	@echo "symbol table: $@.dmp"
 	@echo "Release: "$(R)
 	@$(GETSIZE) main.bin | grep 'Size'
-	@echo "        ^ must be less than 320kB (320,000)"
+	@echo "        ^ must be less than 384kB (384,000)"
+	@echo "          can expand by 64kB, leaving 16kB for user?"
 	# 512kb -64kb(bootloader) -128kb(scripts)
 
 flash: $(BIN)
@@ -183,7 +184,7 @@ dfu: $(BIN)
 	@echo $< "->" $@
 	@$(FENNEL) --compile $< > $@
 
-%.lua.h: %.lua
+%.lua.h: %.lua util/l2h.lua
 	@echo $< "->" $@
 	@lua util/l2h.lua $<
 
@@ -206,7 +207,7 @@ clean:
 	@rm -rf Startup.lst $(TARGET).elf.lst $(OBJS) $(AUTOGEN) \
 	$(TARGET).bin  $(TARGET).out  $(TARGET).hex \
 	$(TARGET).map  $(TARGET).dmp  $(EXECUTABLE) $(DEP) \
-	build/ lua/*.lua.h \
+	build/ lua/*.lua.h util/l2h.lua \
 
 splint:
 	splint -I. -I./ $(STM32_INCLUDES) *.c
