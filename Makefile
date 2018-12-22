@@ -94,6 +94,8 @@ SRC = main.c \
 	$(WRLIB)/wrConvert.c \
 	$(WRLIB)/wrMath.c \
 
+TESTS = $(wildcard tests/*.lua) \
+
 # these get converted to bytecode strings wrapped in c-headers
 LUA_SRC = $(wildcard lua/*.lua) \
 
@@ -131,9 +133,15 @@ endif
 all: $(TARGET).hex $(BIN)
 	@mkdir -p build/
 
+.PHONY: tests
+tests:
+	@for t in $(TESTS); do \
+		lua $$t; \
+	done
 
 # include all DEP files in the makefile
 # will rebuild elements if dependent C headers are changed
+# FIXME: currently causes compiler warning due to missing .lua.h files
 -include $(DEP)
 
 $(TARGET).hex: $(EXECUTABLE)
