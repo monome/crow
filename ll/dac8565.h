@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stm32f7xx.h>
+#include "interrupts.h" // DAC_IRQPriority
 
 // Defn for I2S
 #define I2Sx                             SPI2
@@ -37,10 +38,10 @@
 #define I2Sx_DMA_TX_IRQn                 DMA1_Stream4_IRQn
 #define I2Sx_DMA_TX_IRQHandler           DMA1_Stream4_IRQHandler
 
-#define I2Sx_DMA_TX_IRQPriority      6
-#define I2Sx_DMA_TX_IRQSubPriority   1
-#define I2Sx_IRQPriority             6
+#define I2Sx_IRQPriority             DAC_IRQPriority
 #define I2Sx_IRQSubPriority          2
+#define I2Sx_DMA_TX_IRQPriority      DAC_IRQPriority
+#define I2Sx_DMA_TX_IRQSubPriority   1
 
 // dac8565 defines
 #define DAC8565_SET_ONE        ((uint8_t)0b00010000)

@@ -20,6 +20,7 @@ void DAC_Init( uint16_t bsize, uint8_t chan_count )
     // Create the sample buffer for DMA transfer
     samp_count = DAC_BUFFER_COUNT * bsize * chan_count;
     samples = malloc( sizeof(uint32_t) * samp_count );
+    for( int i=0; i<samp_count; i++ ){ samples = 0; } // unnecessary
     if(samples == NULL){ U_PrintLn("DAC_buffer"); }
 
     // Set the SPI parameters
@@ -67,10 +68,13 @@ void DAC_Start(void)
         dbuf++;
     }
     // begin i2s transmission
+uint32_t old_primask = __get_PRIMASK();
+__disable_irq();
     HAL_I2S_Transmit_DMA( &dac_i2s
                         , (uint16_t*)samples
                         , samp_count
                         );
+__set_PRIMASK( old_primask );
 }
 
 /* Does all the work converting a generic representation into serial packets
