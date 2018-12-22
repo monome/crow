@@ -88,12 +88,18 @@ USBD_CDC_ItfTypeDef USBD_CDC_fops = { CDC_Itf_Init
 /* Private functions ---------------------------------------------------------*/
 static int8_t CDC_Itf_Init(void)
 {
-    TIM_Config();
-    U_PrintLn("CDC_Itf_Init");
-    if( HAL_TIM_Base_Start_IT(&USBTimHandle) != HAL_OK ){ U_PrintLn("!tim_start"); }
-
-    USBD_CDC_SetTxBuffer(&USBD_Device, UserTxBuffer, 0);
+    //USBD_CDC_SetTxBuffer(&USBD_Device, UserTxBuffer, 0);
     USBD_CDC_SetRxBuffer(&USBD_Device, UserRxBuffer);
+
+    TIM_Config();
+    if( HAL_TIM_Base_Start_IT(&USBTimHandle) != HAL_OK ){
+        U_PrintLn("!tim_start");
+        return USBD_FAIL;
+    }
+
+    //TODO add lua callback when USB connects/disconnects
+    //     also provide a flag to check that status
+    U_PrintLn("usb_init");
 
     return (USBD_OK);
 }
@@ -106,8 +112,6 @@ static int8_t CDC_Itf_DeInit(void)
 
 static int8_t CDC_Itf_Control (uint8_t cmd, uint8_t* pbuf, uint16_t length)
 { 
-    //static int8_t lcoding = 3; // just a dumb 'ready print'
-
     // Most of this is unimplemented!
     switch( cmd ){
         case CDC_SEND_ENCAPSULATED_COMMAND: U_PrintLn("itf:send_cmd");     break;
@@ -141,6 +145,7 @@ static int8_t CDC_Itf_Control (uint8_t cmd, uint8_t* pbuf, uint16_t length)
     return (USBD_OK);
 }
 
+// user call copies the data to the tx queue
 void USB_tx_enqueue( uint8_t* buf, uint32_t len )
 {
     if( len > APP_TX_DATA_SIZE ){ len = APP_TX_DATA_SIZE; } // clip length
@@ -183,6 +188,7 @@ uint8_t USB_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 
 // RECEIVE
+// on interrupt add to the queue
 static int8_t CDC_Itf_Receive( uint8_t* buf, uint32_t *len )
 {
     if( *len > APP_RX_DATA_SIZE ){ *len = APP_RX_DATA_SIZE; }
@@ -194,13 +200,17 @@ static int8_t CDC_Itf_Receive( uint8_t* buf, uint32_t *len )
     return USBD_OK;
 }
 
+// user function grabs data from the queue
 uint8_t USB_rx_dequeue( uint8_t** buf, uint32_t* len )
 {
     if( UserRxBufPtrIn ){ // non-zero means data is present
         *buf = UserRxBuffer;
         *len = UserRxBufPtrIn;
         UserRxBufPtrIn = 0; // reset rx array
+uint32_t old_primask = __get_PRIMASK();
+__disable_irq();
         USBD_CDC_ReceivePacket(&USBD_Device); // Receive the next packet
+__set_PRIMASK( old_primask );
         return 1;
     }
     return 0;
@@ -225,7 +235,7 @@ static void TIM_Config(void)
     USBTimHandle.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
     if( HAL_TIM_Base_Init(&USBTimHandle) != HAL_OK ){ U_PrintLn("!tim-base"); }
 
-    HAL_NVIC_SetPriority( TIMu_IRQn, 6, 0 );
+    HAL_NVIC_SetPriority( TIMu_IRQn, TIMu_IRQPriority, 0 );
     HAL_NVIC_EnableIRQ( TIMu_IRQn );
 }
 
