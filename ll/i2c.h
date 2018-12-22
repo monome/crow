@@ -2,6 +2,7 @@
 
 #include <stm32f7xx.h>
 #include "../lib/ii.h" // I2C_RxCpltCallback()
+#include "interrupts.h" // I2C_Priority
 
 // #define I2C_TIMING        0x00D00E28 // Rise time = 120ns, Fall time = 25ns
                             // PRESCL
@@ -31,9 +32,9 @@
 #define I2Cx_EV_IRQHandler              I2C1_EV_IRQHandler
 #define I2Cx_ER_IRQHandler              I2C1_ER_IRQHandler
 
-#define I2Cx_ER_Priority                4
+#define I2Cx_ER_Priority                I2C_Priority
 #define I2Cx_ER_SubPriority             3
-#define I2Cx_EV_Priority                4
+#define I2Cx_EV_Priority                I2C_Priority
 #define I2Cx_EV_SubPriority             4
 
 #define I2C_BUFFER_LEN      32
