@@ -7,37 +7,65 @@ local Asl = {}
 Asl.__index = Asl
 
 function Asl.new(id)
-    local slope = {}
-    setmetatable( slope, Asl )
+    local asl = {}
     if id == nil then print'asl needs id of output channel' end
-    slope.id = id or 1
-    slope:init()
-    return slope
+    asl.id      = id or 1  -- id defaults to 1
+    asl.co      = {}       -- a coroutine to be!
+    asl.hold    = false    -- is the slope trigger currently held high
+    asl.in_hold = false    -- is eval currently in a held construct
+    asl.locked  = false    -- flag to lockout bangs during lock{}
+    setmetatable( asl, Asl )
+    return asl
 end
 
 function Asl:init() -- reset to defaults
-    self.co      = nil    -- a coroutine to be!
+    self.co      = {}     -- a coroutine to be!
     self.hold    = false  -- is the slope trigger currently held high
     self.in_hold = false  -- is eval currently in a held construct
     self.locked  = false  -- flag to lockout bangs during lock{}
+    return self     -- functional style
 end
+
 
 -- COMPILER
 
--- use a metamethod so we can can *assign* myAsl:action = lfo()
--- but then *call* myAsl:action(high/low) 
--- need a 'proxy' metatable. see: https://www.lua.org/pil/13.4.4.html
-function Asl:action( thread )
-    if type(thread) == 'table' then
-        -- TODO wrap sequence in a coroutine as it lacks an outer construct
+-- user interacts with this via the 'action' metamethod
+-- myAsl.action = <asl script>
+-- this is a *private* method
+-- FIXME should be local?
+function Asl:set_action( co )
+    if type(co) == 'table' then -- needs to be wrapped in a coroutine
+        self.co = asl_coroutine( co )
+    else
+        self.co = co
     end
-    self.co     = thread
     self.hold   = false
     self.locked = false
 end
 
+-- INTERPRETER
 
--- RUNTIME behaviour
+-- user interacts with this via the 'action' metamethod
+-- myAsl:action() and optional state arg for 'held' interaction
+-- this is a *private* method
+-- FIXME should be local?
+function Asl:do_action( dir )
+    dir = dir or true -- default to rising action
+    self.hold = dir
+    if self.co ~= nil then
+        if self.locked ~= true then
+            -- TODO need to restart if true
+            -- TODO jump to release if false
+            self:step()
+        end
+    end
+end
+
+-- TODO
+-- Init can check if 'callback' is set to nil to know whether an ASL
+-- callback is provided
+-- If no callback, ASL can create it's own timer & assume actions are
+-- completed on time
 
 function Asl:step()
     if self.co == nil then print'no slope' return end
@@ -45,27 +73,26 @@ function Asl:step()
     if wait ~= 'wait' then self:step() end
 end
 
-function Asl:set_hold_state( state )
-    self.hold = state
+--- METAMETHODS
+-- asign to the member 'action' to compile an asl script to a coroutine
+Asl.__newindex = function(self, ix, val)
+    if ix == 'action' then Asl.set_action( self, val) end
 end
 
-function Asl:bang( dir )
-    self.hold = dir
-    if self.co ~= nil then
-        if self.locked ~= true then
-            --TODO release handling
-            self:step()
-        end
-    end
+-- call the member 'action' to start the asl coroutine
+Asl.__index = function(self, ix)
+    if ix == 'action' then
+        return function(...) Asl.do_action( self, ...) end
+    elseif ix == 'step' then return Asl.step
+    elseif ix == 'init' then return Asl.init end
 end
+
+setmetatable(Asl, Asl) -- capture the __index and __newindex metamethods
+
+-- RUNTIME behaviour
 
 -- hw access fn
-    -- TODO
-    -- consider: toward{ 'delay' = time  }
-    -- consider: toward{ 'now'   = level }
-    -- these provide more explicit alternate functionality
-    -- rather than the below which relies on some rote-learned set of defaults
-    -- TODO also consider that toward with missing args should insert closured
+    -- TODO consider that toward with missing args should insert closured
     -- queries to the self.params so that they automatically reflect global
     -- settings!!!!!
 
@@ -73,6 +100,9 @@ function toward( dest, time, shape )
     local d,t,s
     if type(dest) == 'table' then -- accept table syntax
         local tt = dest
+        -- provide 'delay' and 'now' methods
+        if tt.delay then d,t,s = 'here', tt.delay, 'linear'
+        elseif tt.now then d,t,s = tt.now, 0, 'linear' end
         d,t,s = tt.dest or 'here', tt.time or 0, tt.shape or 'linear'
     else
         d,t,s = dest or 'here', time or 0, shape or 'linear'
@@ -88,11 +118,24 @@ end
 
 
 -- WRAPPING functions
+-- TODO: does this allow nested constructs?! seems as though it would
+-- only execute the first stage of each one, before looping?
 function seq_coroutines( self, fns )
     for i=1, #fns, 1 do
-        local _,wait = coroutine.resume( fns[i], self )
-        coroutine.yield( wait )
+        repeat
+            local _,wait,nx = coroutine.resume( fns[i], self )
+            coroutine.yield( wait )
+        until( nx ~= 'loop' )
     end
+end
+
+function asl_coroutine( fns )
+    return coroutine.create(function( self )
+        while true do
+            seq_coroutines( self, fns )
+            coroutine.yield('wait')
+        end
+    end)
 end
 
 function asl_if( fn_to_bool, fns )
@@ -127,20 +170,20 @@ function lock( fns )
                    )
 end
 
-function held( aslT )
+function held( fns )
     return asl_wrap( function( self ) self.in_hold = true end
                    , asl_if( function( self ) return self.hold end
-                           , aslT
+                           , fns
                            )
                    , function( self ) self.in_hold = false end
                    )
 end
 
-function times( count, aslT )
+function times( count, fns )
     local n = count
     return asl_if( function( self ) n = n - 1
                                     return (n > -1) end
-                 , aslT
+                 , fns
                  )
 end
 
