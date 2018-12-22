@@ -2,6 +2,7 @@
 
 #include <stm32f7xx.h>
 #include "debug_usart.h"
+#include "interrupts.h" // MIDI_IRQPriority
 
 //#include "stm32f7xx_hal_conf.h"
 
@@ -29,9 +30,9 @@
 
 #define MIDIx_IRQn				    UART4_IRQn
 #define MIDIx_IRQHandler		    UART4_IRQHandler
-#define MIDIx_IRQPriority           2
+#define MIDIx_IRQPriority           MIDI_IRQPriority
 #define MIDIx_IRQSubPriority        0
-#define MIDIx_DMA_IRQPriority       2
+#define MIDIx_DMA_IRQPriority       MIDI_IRQPriority
 #define MIDIx_DMA_IRQSubPriority    1
 
 

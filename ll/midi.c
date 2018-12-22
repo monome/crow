@@ -19,10 +19,14 @@ void MIDI_Init( void )
     }
 
     while( HAL_UART_GetState( &midiuart ) != HAL_UART_STATE_READY ){}
-    if(HAL_UART_Receive_DMA( &midiuart
-                           , rx_buf
-                           , 1
-    				       )){ U_PrintLn("midi_error"); }
+uint32_t old_primask = __get_PRIMASK();
+__disable_irq();
+    uint8_t err = HAL_UART_Receive_DMA( &midiuart
+                                      , rx_buf
+                                      , 1
+    				                  );
+__set_PRIMASK( old_primask );
+    if( err ){ U_PrintLn("midi_error"); }
     //uint8_t errorcode;
     //if((errorcode = HAL_UART_Receive( &midiuart
     //                     , rx_buf
@@ -95,10 +99,14 @@ void MIDIx_DMA_RX_IRQHandler( void )
 
 void HAL_UART_RxCpltCallback( UART_HandleTypeDef *huart )
 {
-    if(HAL_UART_Receive_DMA( huart
-                         , rx_buf
-                         , 1
-					     )){ U_PrintLn("midi_error"); }
+uint32_t old_primask = __get_PRIMASK();
+__disable_irq();
+    uint8_t err = HAL_UART_Receive_DMA( huart
+                                      , rx_buf
+                                      , 1
+					                  );
+__set_PRIMASK( old_primask );
+    if( err ){ U_PrintLn("midi_error"); }
     U_PrintU8(rx_buf[0]);
 }
 
