@@ -46,10 +46,10 @@
 -- essentially become a bit crusher with continuously variable bits
 --
 
-local shaper = { 'zero' = 0
-               , 'fold' = 1  --volts
-               , 'divs' = 12 --semitones
-               , 'list' = {} --empty means nil
+local shaper = { ['zero'] = 0
+               , ['fold'] = 1  --volts
+               , ['divs'] = 12 --semitones
+               , ['list'] = {} --empty means nil
                }
 --
 --
@@ -59,3 +59,43 @@ local shaper = { 'zero' = 0
 -- eg lissajous curves
 --
 --
+
+function S_absolute( samp, divs, fold )
+    div_sz  = fold / divs
+    bracket = math.floor(samp / fold)
+    shelf   = samp % fold
+    shelf1  = shelf / fold
+    div     = math.floor(0.5 + (shelf1 * divs))
+    return ( div * div_sz
+             + (bracket * fold)
+           )
+end
+
+function S_absolute( samp, divs, fold )
+    local bracket = math.floor(samp / fold)
+    local shelf   = (samp % fold) / fold
+    local plateau = 0
+    if type(divs) == 'table' then
+        if divs[1] == 'ji' then
+            --TODO needs log shaping i believe
+            plateau = divs[2][math.floor(1.5+(shelf * #divs[2]))] - 1
+        else
+            plateau = divs[2][math.floor(1.5+(shelf * #divs))] / divs[1] 
+        end
+    else
+        plateau = fold / divs * math.floor(0.5 + (shelf * divs))
+    end
+
+    --local plateau = type(divs) == 'table'
+    --    and divs[math.floor(0.5 + (shelf * #divs))]
+    --    or fold / divs * math.floor(0.5 + (shelf * divs))
+    return plateau + bracket * fold
+end
+
+lydian = {12,{0,2,4,6,7,9,11}}
+pentatonic = {12,{0,2,4,7,9}}
+just_lydian = {'ji',{ 1/1, 9/8, 4/3, 11/8, 3/2, 10/7, 15/8}}
+S_absolute( 0.1
+          , lydian
+          , 1
+          )

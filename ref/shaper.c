@@ -1,8 +1,14 @@
+// TODO make a multi-dimensional array including:
+//  index number
+//  string name descriptor
+//  function pointer to processor
+// then the caller just invokes the set fnptr
 typedef enum{ S_linear
             , S_square
             , S_log
             , S_sine
 } S_shape_t;
+
 
 // Lookup tables
 int   LUT_sine_sz = 4;
@@ -80,7 +86,7 @@ float S_absolute( float samp
     int bracket  = (int)(samp / fold); // confirm this rounds to -ve
     float shelf  = samp % fold; // 0-fold range
     float shelf1 = shelf / fold; // 0-1 range within fold
-    int div      = (int)(0.5 + (shelf1 * (int)divs)); // select the div
+    int div      = (int)(0.5 + (shelf1 * (float)divs)); // select the div
     return ( (float)div * div_sz
              + ((float)bracket * fold) // add #folds back
            );
