@@ -126,21 +126,33 @@ void Timer_Set_Params( int ix, float seconds )
 
     TimHandle[ix].Init.Period            = (uint16_t)(seconds * (float)0x1000);
     TimHandle[ix].Init.Prescaler         = 0xE000; // TODO
-    if( HAL_TIM_Base_Init( &TimHandle[ix] ) != HAL_OK ){
+uint32_t old_primask = __get_PRIMASK();
+__disable_irq();
+    uint8_t err = HAL_TIM_Base_Init( &TimHandle[ix] );
+__set_PRIMASK( old_primask );
+    if( err != HAL_OK ){
         U_Print("Timer_Set_Params("); U_PrintU8n(ix); U_PrintLn(") failed");
     }
 }
 
 void Timer_Start( int ix )
 {
-    if( HAL_TIM_Base_Start_IT( &TimHandle[ix] ) != HAL_OK ){
+uint32_t old_primask = __get_PRIMASK();
+__disable_irq();
+    uint8_t err = HAL_TIM_Base_Start_IT( &TimHandle[ix] );
+__set_PRIMASK( old_primask );
+    if( err != HAL_OK ){
         U_Print("Timer_Start("); U_PrintU8n(ix); U_PrintLn(") failed");
     }
 }
 
 void Timer_Stop( int ix )
 {
-    if( HAL_TIM_Base_Stop_IT( &TimHandle[ix] ) != HAL_OK ){
+uint32_t old_primask = __get_PRIMASK();
+__disable_irq();
+    uint8_t err = HAL_TIM_Base_Stop_IT( &TimHandle[ix] );
+__set_PRIMASK( old_primask );
+    if( err != HAL_OK ){
         U_Print("Timer_Stop("); U_PrintU8n(ix); U_PrintLn(") failed");
     }
 }

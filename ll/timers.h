@@ -35,7 +35,7 @@
 //
 //#define TIMx_IRQn               TIM3_IRQn
 //#define TIMx_IRQHandler         TIM3_IRQHandler
-//#define TIMx_IRQ_Priority     defined-in-interrupts // must be above audio frame
+#define TIMx_IRQ_Priority       TIM_IRQPriority
 #define TIMx_IRQ_SubPriority    0
 
 typedef void (*Timer_Callback_t)(int);
