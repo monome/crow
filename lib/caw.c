@@ -26,29 +26,18 @@ void Caw_send_raw( uint8_t* buf, uint32_t len )
 // luachunk expects a \0 terminated string
 void Caw_send_luachunk( char* text )
 {
-    uint32_t len = strlen(text);
-    uint8_t s[len + 2];
-    memcpy( s, text, len );
-    s[len] = '\n';
-    s[len+1] = '\r';
-
-    USB_tx_enqueue( s
-                  , len + 2
-                  );
+    USB_tx_enqueue( (uint8_t*)text, strlen(text) );
+    uint8_t newline[] = "\n\r";
+    USB_tx_enqueue( newline, 2 );
 }
 
 void Caw_send_luaerror( char* error_msg )
 {
-    uint32_t len = strlen(error_msg);
-    uint8_t s[len + 3];
-    s[0]     = '\\';
-    memcpy( &s[1], error_msg, len );
-    s[len+1] = '\n';
-    s[len+2] = '\r';
-
-    USB_tx_enqueue( s
-                  , len + 3
-                  );
+    uint8_t leader[] = "\\";
+    USB_tx_enqueue( leader, 1 );
+    USB_tx_enqueue( (uint8_t*)error_msg, strlen(error_msg) );
+    uint8_t newline[] = "\n\r";
+    USB_tx_enqueue( newline, 2 );
 }
 
 void Caw_send_value( uint8_t type, float value )
@@ -61,6 +50,7 @@ uint8_t Caw_try_receive( void )
     // TODO add scanning for 'goto_bootloader' override command. return 2
     // TODO add start_flash_chunk command handling. return 3
     // TODO add end_flash_chunk command handling. return 4
+    static uint8_t  mode = 1;
     static uint8_t* buf;
     static uint32_t len;
 
@@ -70,11 +60,14 @@ uint8_t Caw_try_receive( void )
               , len
               );
         pReader += len;
+        if( reader[pReader-1] == '\0' ){ // null char
+            return mode;
+        }
         if( reader[pReader-1] == '\n'
          || reader[pReader-1] == '\r' ){ // line is finished!
             reader[pReader] = '\0';
             pReader++;
-            return 1;
+            return mode;
         }
     }
     return 0;
