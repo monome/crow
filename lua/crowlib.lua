@@ -91,6 +91,9 @@ for chan = 1, #out do
 --    out[chan].asl:bang(true)
 end
 
+adc_remote = function(chan)
+    get_cv(chan)
+end
 
 
 
@@ -99,11 +102,27 @@ end
 -- they return values wrapped in strings that can be used in Lua directly
 -- via dostring
 get_cv_cb = 'ret_cv' -- make a list of these so they can be queried / changed
+get_out_cb = 'out_cv' -- make a list of these so they can be queried / changed
 function get_cv( channel )
-    --FIXME this is returning *output* state, but should be *input*
     print('^^' .. get_cv_cb .. '(' .. channel .. ',' .. io_get_input(channel) .. ')')
-    --print('^^' .. get_cv_cb .. '(' .. channel .. ',' .. get_state(channel) .. ')')
 end
+function get_out( channel )
+    print('^^' .. get_out_cb .. '(' .. channel .. ',' .. get_state(channel) .. ')')
+end
+
+-- do we always have fixed arg count? do all args always get send to c-fn?
+remotes = { { 'get_cv', 'ret_cv', io_get_input }
+          , { 'get_out', 'out_cv', get_state   }
+          }
+
+--function make_remote_fns()
+--    --TODO
+--end
+--
+--make_remote_fn
+--    function get_out( channel )
+--        print('^^' .. cb .. '(' .. channel .. ',' .. get_state(channel) .. ')')
+--    end
 
 --- Flash program
 function start_flash_chunk()
