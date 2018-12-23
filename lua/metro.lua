@@ -67,7 +67,7 @@ end
 
 --- reset to default state
 function Metro:init()
-    self.id = id
+    self.id = id -- FIXME there's no id here?
     self.time = 1
     self.count = -1
     self.callback = nil
