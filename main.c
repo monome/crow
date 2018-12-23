@@ -23,8 +23,6 @@ int main(void)
     HAL_Init();
     Sys_Clk_Config();
 
-    bootloader_is_i2c_force();
-
     // init debugging
     Debug_Pin_Init();
     Debug_USART_Init();
@@ -34,14 +32,14 @@ int main(void)
     IO_Init();
     Metro_Init();
     Caw_Init();
-    //MIDI_Init();
+    MIDI_Init();
     //II_init( II_FOLLOW );
 
     Lua_Init(); // send this function a list of fnptrs?
 
     IO_Start(); // buffers need to be ready by now
     Lua_crowbegin();
-    //HAL_Delay(100);
+
     CDC_main_init(); // FIXME: stops crash when starting without usb connected
 
     while(1){

@@ -12,9 +12,3 @@ void bootloader_enter( void )
     NVIC_SystemReset();
     while(1){}
 }
-
-#include "../ll/i2c.h"
-void bootloader_is_i2c_force( void )
-{
-    if( I2C_is_boot() ){ bootloader_enter(); }
-}
