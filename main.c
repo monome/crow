@@ -13,6 +13,8 @@
 #include "ll/debug_pin.h"
 #include "ll/midi.h"
 
+#include "usbd/usbd_cdc_interface.h"
+
 static void Sys_Clk_Config(void);
 static void Error_Handler(void);
 
@@ -39,6 +41,8 @@ int main(void)
 
     IO_Start(); // buffers need to be ready by now
     Lua_crowbegin();
+    //HAL_Delay(100);
+    CDC_main_init(); // FIXME: stops crash when starting without usb connected
 
     while(1){
         U_PrintNow();

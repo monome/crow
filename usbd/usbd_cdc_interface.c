@@ -86,6 +86,14 @@ USBD_CDC_ItfTypeDef USBD_CDC_fops = { CDC_Itf_Init
                                     };
 
 /* Private functions ---------------------------------------------------------*/
+void CDC_main_init()
+{
+    //CDC_Itf_Init();
+    USBD_CDC_SetTxBuffer(&USBD_Device, UserTxBuffer, 0);
+    USBD_CDC_SetRxBuffer(&USBD_Device, UserRxBuffer);
+    TIM_Config();
+    HAL_TIM_Base_Start_IT(&USBTimHandle);
+}
 static int8_t CDC_Itf_Init(void)
 {
     USBD_CDC_SetTxBuffer(&USBD_Device, UserTxBuffer, 0);
