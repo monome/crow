@@ -5,9 +5,9 @@
 #include <stdlib.h> // malloc(), free()
 
 // Lua itself
-#include "../../lua/src/lua.h"
-#include "../../lua/src/lauxlib.h"
-#include "../../lua/src/lualib.h"
+#include "../submodules/lua/src/lua.h"
+#include "../submodules/lua/src/lauxlib.h"
+#include "../submodules/lua/src/lualib.h"
 
 // Hardware IO
 #include "ll/debug_usart.h" // U_Print*()
