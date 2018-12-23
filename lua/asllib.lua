@@ -30,9 +30,9 @@ function trig( polarity, time, level )
         level = 0
     end
 
-    return{ toward{ ['level'] = level }
-          , toward{ ['time' ] = time  }
-          , toward{ ['level'] = rest  }
+    return{ toward{ ['now'   ] = level }
+          , toward{ ['delay' ] = time  }
+          , toward{ ['now'   ] = rest  }
           }
 end
 
