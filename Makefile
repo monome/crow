@@ -168,7 +168,8 @@ flash: $(BIN)
 	st-flash write $(BIN) 0x08010000
 
 dfu: $(BIN)
-	dfu-util -s 0x08010000 -D $(BIN) #-S FFFFFFFEFFFF
+	dfu-util -s 0x08010000 -D $(BIN)
+	#-S FFFFFFFEFFFF
 
 %.o: %.c
 	@$(CC) -ggdb $(CFLAGS) -c $< -o $@
