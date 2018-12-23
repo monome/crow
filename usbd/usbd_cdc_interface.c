@@ -88,7 +88,7 @@ USBD_CDC_ItfTypeDef USBD_CDC_fops = { CDC_Itf_Init
 /* Private functions ---------------------------------------------------------*/
 static int8_t CDC_Itf_Init(void)
 {
-    //USBD_CDC_SetTxBuffer(&USBD_Device, UserTxBuffer, 0);
+    USBD_CDC_SetTxBuffer(&USBD_Device, UserTxBuffer, 0);
     USBD_CDC_SetRxBuffer(&USBD_Device, UserRxBuffer);
 
     TIM_Config();
@@ -156,30 +156,31 @@ void USB_tx_enqueue( uint8_t* buf, uint32_t len )
     UserTxBufPtrIn += len;
 }
 
+// interrupt sends out any queued data
 uint8_t USB_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-// This could be called directly from the scheduler in main (not TIM)
-//void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
     if( htim == &USBTimHandle ){ // protect as it's called from timer lib
         uint32_t buffptr;
         uint32_t buffsize;
         if( UserTxBufPtrOut != UserTxBufPtrIn ){
-            if( UserTxBufPtrOut > UserTxBufPtrIn ){
-                buffsize = APP_TX_DATA_SIZE - UserTxBufPtrOut;
-            } else {
-                buffsize = UserTxBufPtrIn - UserTxBufPtrOut;
-            }
-            buffptr = UserTxBufPtrOut;
+            buffsize = UserTxBufPtrIn;
+            if(buffsize >= APP_TX_DATA_SIZE){ buffsize = APP_TX_DATA_SIZE-1; }
+            buffptr = 0;
             USBD_CDC_SetTxBuffer( &USBD_Device
                                 , (uint8_t*)&UserTxBuffer[buffptr]
                                 , buffsize
                                 );
+//uint32_t old_primask = __get_PRIMASK();
+//__disable_irq();
             if( USBD_CDC_TransmitPacket(&USBD_Device) == USBD_OK ){
-                UserTxBufPtrOut += buffsize;
-                if( UserTxBufPtrOut == APP_RX_DATA_SIZE ){
-                    UserTxBufPtrOut = 0;
-                }
+                //UserTxBufPtrOut += buffsize;
+                //if( UserTxBufPtrOut >= APP_TX_DATA_SIZE ){
+                //    UserTxBufPtrOut = 0;
+                //}
             }
+            UserTxBufPtrIn = 0;
+            UserTxBufPtrOut = 0;
+//__set_PRIMASK( old_primask );
         }
         return 1;
     }

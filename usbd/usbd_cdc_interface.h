@@ -51,6 +51,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "usbd_cdc.h"
+#include "../ll/interrupts.h" // USB_IRQPriority
 
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/
@@ -62,6 +63,7 @@
 // Definition for TIMx's NVIC
 #define TIMu_IRQn                        TIM3_IRQn
 #define TIMu_IRQHandler                  TIM3_IRQHandler
+#define TIMu_IRQPriority                 USB_IRQPriority
 
 /* Periodically, the state of the buffer "UserTxBuffer" is checked.
    The period depends on CDC_POLLING_INTERVAL */
