@@ -33,13 +33,6 @@ crow.libs()
 
 
 --- Hardware I/O
---
--- FIXME
--- dummy functions required for testing without C
--- belong in the testing library
---function go_toward( id,d,t,s ) print'go_toward' end
---function get_state( id ) return 1.0 end
-
 
 
 --- Output lib
@@ -84,11 +77,10 @@ for chan = 1, #out do
 --                            , level    = 5
 --                            }
                 }
-    out[chan].asl:action( lfo( function() return out[chan].rate  end
-                             , function() return out[chan].shape end
-                             , function() return out[chan].level end
-                             )
-                        )
+    out[chan].asl.action = lfo( function() return out[chan].rate  end
+                              , function() return out[chan].shape end
+                              , function() return out[chan].level end
+                              )
     --out[chan].asl:action( toward( 1, 10, 'linear' ) )
 --    out[chan].trig.asl:action( trig( function() return out[chan].trig.polarity end
 --                                , function() return out[chan].trig.time end
