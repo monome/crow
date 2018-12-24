@@ -4,8 +4,6 @@
 #include "debug_usart.h"
 #include "interrupts.h" // MIDI_IRQPriority
 
-//#include "stm32f7xx_hal_conf.h"
-
 #define MIDI_GPIO_RCC()	        __HAL_RCC_GPIOA_CLK_ENABLE()
 #define MIDI_UART_RCC()	        __HAL_RCC_UART4_CLK_ENABLE()
 #define MIDI_DMA_CLK_ENABLE()	__HAL_RCC_DMA1_CLK_ENABLE()
@@ -15,13 +13,11 @@
 
 
 #define MIDI_baud			    31250
-//#define MIDI_baud			    38400
 #define MIDIx 				    UART4
 #define MIDI_AF			        GPIO_AF8_UART4
 #define MIDI_GPIO			    GPIOA
 #define MIDI_RXPIN			    GPIO_PIN_1
 
-// Definition for UARTx's DMA
 #define MIDIx_RX_DMA_STREAM	    DMA1_Stream2
 #define MIDIx_RX_DMA_CHANNEL	DMA_CHANNEL_4
 
@@ -35,13 +31,10 @@
 #define MIDIx_DMA_IRQPriority       MIDI_IRQPriority
 #define MIDIx_DMA_IRQSubPriority    1
 
-
 #define DBG_UART_TIMEOUT	0x4000 /* a long time */
 
 void MIDI_Init(void);
 void MIDI_DeInit(void);
-
-//void MIDI_MspInit(UART_HandleTypeDef *hu );
 
 void UARTx_DMA_RX_IRQHandler(void);
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart);
