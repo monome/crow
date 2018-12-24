@@ -62,12 +62,12 @@ void Lua_DeInit(void)
 }
 void check_ram_usage( void )
 {
-    int s; // stack allocation
-    int* h = malloc(sizeof(int)); // heap allocation
-    U_Print("ram left "); U_PrintU32( (int)&s - (int)h );
-    //U_Print("stack "); U_PrintU32( (int)&s );
-    //U_Print("heap  "); U_PrintU32( (int)h );
-    free(h);
+//    int s; // stack allocation
+//    int* h = malloc(sizeof(int)); // heap allocation
+//    U_Print("ram left "); U_PrintU32( (int)&s - (int)h );
+//    //U_Print("stack "); U_PrintU32( (int)&s );
+//    //U_Print("heap  "); U_PrintU32( (int)h );
+//    free(h);
 }
 
 // C-fns accessible to lua
@@ -119,7 +119,7 @@ static int _bootloader( lua_State *L )
 }
 static int _go_toward( lua_State *L )
 {
-    const char* shape = luaL_checkstring(L, 4);
+    //const char* shape = luaL_checkstring(L, 4);
     S_toward( luaL_checkinteger(L, 1)-1 // C is zero-based
             , luaL_checknumber(L, 2)
             , luaL_checknumber(L, 3) * 1000.0
@@ -248,7 +248,8 @@ static void Lua_linkctolua( lua_State *L )
 static void Lua_eval( lua_State* L, const char* script, ErrorHandler_t errfn ){
     int error;
     if( (error = luaL_loadstring( L, script ) || lua_pcall( L, 0, 0, 0 )) ){
-        (*errfn)( (char*)lua_tostring( L, -1 ) );
+        //(*errfn)( (char*)lua_tostring( L, -1 ) );
+        Caw_send_luachunk( (char*)lua_tostring( L, -1 ) );
         lua_pop( L, 1 );
         switch( error ){
             case LUA_ERRSYNTAX: U_PrintLn("!load script: syntax"); break;
@@ -272,8 +273,8 @@ void Lua_crowbegin( void )
 
 void Lua_repl( char* buf, uint32_t len, ErrorHandler_t errfn )
 {
-    //Lua_eval( L, buf, errfn );
-    Lua_eval( L, buf, (*U_PrintLn) );
+    Lua_eval( L, buf, errfn );
+    //Lua_eval( L, buf, (*U_PrintLn) );
     //check_ram_usage();
 }
 
@@ -286,7 +287,8 @@ void Lua_receive_script( char* buf, uint32_t len, ErrorHandler_t errfn )
         // TODO call to Lua to free resources from current script
         new_script = malloc(0xFFFF); // allocate memory to receive 64kB? 16kB?
         if(new_script == NULL){
-            (*errfn)("!script: out of memory");
+            Caw_send_luachunk("!script: out of memory");
+            //(*errfn)("!script: out of memory");
             return; // how to deal with this situation?
             // FIXME: should respond over usb stating out of memory?
             //        try allocating a smaller amount and hope it fits?
@@ -303,12 +305,14 @@ void Lua_load_new_script( ErrorHandler_t errfn )
 {
     int error;
     if( (error = luaL_loadstring( L, new_script )) ){
-        (*errfn)( (char*)lua_tostring( L, -1 ) );
+        //(*errfn)( (char*)lua_tostring( L, -1 ) );
+        Caw_send_luachunk( (char*)lua_tostring( L, -1 ) );
         lua_pop( L, 1 );
     } else {
         // TODO write to non-active flash page?
         if( (error = lua_pcall( L, 0, 0, 0 )) ){
-            (*errfn)( (char*)lua_tostring( L, -1 ) );
+            //(*errfn)( (char*)lua_tostring( L, -1 ) );
+            Caw_send_luachunk( (char*)lua_tostring( L, -1 ) );
             lua_pop( L, 1 );
         } else {
             // TODO keep 2 programs in flash & don't flip the bit until after
@@ -326,8 +330,8 @@ void L_handle_toward( int id )
     lua_getglobal(L, "toward_handler");
     lua_pushinteger(L, id+1); // 1-ix'd
     if( lua_pcall(L, 1, 0, 0) != LUA_OK ){
-        U_PrintLn("error running toward_handler");
-        //TODO should print to USB
+        //U_PrintLn("error running toward_handler");
+        Caw_send_luachunk("error running toward_handler");
         U_PrintLn( (char*)lua_tostring(L, -1) );
         lua_pop( L, 1 );
     }
@@ -340,9 +344,10 @@ void L_handle_metro( const int id, const int stage)
     lua_pushinteger(L, id+1);    // 1-ix'd
     lua_pushinteger(L, stage+1); // 1-ix'd
     if( lua_pcall(L, 2, 0, 0) != LUA_OK ){
-        U_Print("error running "); U_PrintLn("metro_handler");
-        //TODO should print to USB
+        //U_Print("error running "); U_PrintLn("metro_handler");
+        Caw_send_luachunk("error running metro_handler");
         U_PrintLn( (char*)lua_tostring(L, -1) );
         lua_pop( L, 1 );
     }
+
 }

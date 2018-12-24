@@ -12,11 +12,9 @@ void MIDI_Init( void )
 	midiuart.Init.WordLength   = UART_WORDLENGTH_8B;
 	midiuart.Init.StopBits     = UART_STOPBITS_1;
 	midiuart.Init.Parity       = UART_PARITY_NONE;
-	midiuart.Init.Mode         = UART_MODE_RX; // should just be _RX
+	midiuart.Init.Mode         = UART_MODE_RX;
 	midiuart.Init.OverSampling = UART_OVERSAMPLING_16; // 16 or 8. d=16
-    if(HAL_UART_Init( &midiuart ) ){
-        U_PrintLn("!midi_init");
-    }
+    if( HAL_UART_Init( &midiuart ) ){ U_PrintLn("!midi_init"); }
 
     while( HAL_UART_GetState( &midiuart ) != HAL_UART_STATE_READY ){}
 uint32_t old_primask = __get_PRIMASK();
@@ -27,12 +25,6 @@ __disable_irq();
     				                  );
 __set_PRIMASK( old_primask );
     if( err ){ U_PrintLn("midi_error"); }
-    //uint8_t errorcode;
-    //if((errorcode = HAL_UART_Receive( &midiuart
-    //                     , rx_buf
-    //                     , 1
-    //                     , 2000
-    //				     ))){ U_Print("!midi_"); U_PrintU8(errorcode); }
 }
 
 void MIDI_DeInit(void)
@@ -40,13 +32,8 @@ void MIDI_DeInit(void)
 	HAL_UART_DeInit( &midiuart );
 }
 
-
-// LOW LEVEL UART HARDWARE CONFIGURATION FUNCTION
 void HAL_UART_MspInit(UART_HandleTypeDef *hu )
-//void MIDI_MspInit(UART_HandleTypeDef *hu )
 {
-    //if( hu != &midiuart ){ U_PrintLn("bad match"); }
-
     MIDIx_FORCE_RESET();
     MIDIx_RELEASE_RESET();
 
@@ -65,7 +52,6 @@ void HAL_UART_MspInit(UART_HandleTypeDef *hu )
 	gpio.Alternate = MIDI_AF;
 	HAL_GPIO_Init( MIDI_GPIO, &gpio );
 
-	// Configure DMA
 	hdma_rx.Instance				= MIDIx_RX_DMA_STREAM;
 	hdma_rx.Init.Channel			= MIDIx_RX_DMA_CHANNEL;
 	hdma_rx.Init.Direction			= DMA_PERIPH_TO_MEMORY;
@@ -78,7 +64,6 @@ void HAL_UART_MspInit(UART_HandleTypeDef *hu )
     if( HAL_DMA_Init( &hdma_rx ) ){ U_PrintLn("!MIDI_DMA"); }
 	__HAL_LINKDMA( hu, hdmarx, hdma_rx ); // Associate DMA to UART handle
 
-    // Configure NVIC for DMA
 	HAL_NVIC_SetPriority( MIDIx_DMA_RX_IRQn
                         , MIDIx_DMA_IRQPriority
                         , MIDIx_DMA_IRQSubPriority
@@ -99,19 +84,18 @@ void MIDIx_DMA_RX_IRQHandler( void )
 
 void HAL_UART_RxCpltCallback( UART_HandleTypeDef *huart )
 {
-uint32_t old_primask = __get_PRIMASK();
-__disable_irq();
+//uint32_t old_primask = __get_PRIMASK();
+//__disable_irq();
     uint8_t err = HAL_UART_Receive_DMA( huart
                                       , rx_buf
                                       , 1
 					                  );
-__set_PRIMASK( old_primask );
+//__set_PRIMASK( old_primask );
     if( err ){ U_PrintLn("midi_error"); }
-    U_PrintU8(rx_buf[0]);
+    U_Print("midi "); U_PrintU8(rx_buf[0]);
 }
 
 void MIDIx_IRQHandler( void )
 {
-    U_PrintLn("midiIRQ");
 	HAL_UART_IRQHandler( &midiuart );
 }
