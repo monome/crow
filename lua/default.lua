@@ -4,16 +4,16 @@ function init()
         out[c].asl:action()
     end
 
-
     counter = Metro.alloc()
-    counter.time = 1
+    counter.time = 0.001
     counter.count = -1
     counter.callback = count
     counter:start()
 end
 
-position = 0
+local position = 0
 function count(c)
     position = position + 1
-    print(c .. '> ' .. position)
+    print(collectgarbage('count'))
+    print(position)
 end
