@@ -21,7 +21,7 @@ uint16_t aRxBuffer[ADC_BUF_SIZE];
 uint16_t aTxBuffer[ADC_BUF_SIZE];
 
 uint8_t  adc_count = 2;
-uint32_t samp_count = 64;
+uint32_t adc_samp_count = 64;
 
 void ADS_Init_Sequence(void);
 void ADS_Reset_Device(void);
@@ -36,7 +36,7 @@ uint8_t _ADC_CheckErrors( uint16_t error_mask );
 void ADC_Init( uint16_t bsize, uint8_t chan_count )
 {
     adc_count  = chan_count;
-    samp_count = bsize * chan_count;
+    adc_samp_count = bsize * chan_count;
 
     // Set the SPI parameters
     adc_spi.Instance               = SPIa;
