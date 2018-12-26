@@ -271,39 +271,62 @@ void Lua_crowbegin( void )
     lua_pcall(L,0,0,0);
 }
 
+// TODO the repl/state/reception logic should be its own file
+//
+// private declarations for repl
+static void Lua_new_transmission( void );
+static void Lua_load_new_script( ErrorHandler_t errfn );
+
+L_repl_mode repl_mode = REPL_normal;
+void Lua_repl_mode( L_repl_mode mode )
+{
+    repl_mode = mode;
+    if( repl_mode == REPL_reception ){
+        // begin a new transmission
+        Lua_new_transmission();
+    } else { // end of a transmission
+        Lua_load_new_script( Caw_send_luaerror );
+    }
+}
+
 void Lua_repl( char* buf, uint32_t len, ErrorHandler_t errfn )
 {
-    Lua_eval( L, buf, errfn );
-    //Lua_eval( L, buf, (*U_PrintLn) );
-    //check_ram_usage();
+    if( repl_mode == REPL_normal ){
+        Lua_eval( L, buf, errfn );
+    } else {
+        Lua_receive_script( buf, len, errfn );
+    }
 }
 
-uint8_t receiving_new_script = 0;
-char* new_script;
+char*   new_script;
+char* p_new_script;
+static void Lua_new_transmission( void )
+{
+    // TODO call to Lua to free resources from current script
+    U_PrintLn("new transmission");
+    new_script = malloc(0x3FFF); // allocate 16kB (or 0xFFFF, 64kb?)
+    if(new_script == NULL){
+        Caw_send_luachunk("!script: out of memory");
+        //(*errfn)("!script: out of memory");
+        return; // how to deal with this situation?
+        // FIXME: should respond over usb stating out of memory?
+        //        try allocating a smaller amount and hope it fits?
+        //        retry?
+    }
+    p_new_script = new_script;
+}
+
 void Lua_receive_script( char* buf, uint32_t len, ErrorHandler_t errfn )
 {
-    static char* nsp;
-    if( !receiving_new_script ){
-        // TODO call to Lua to free resources from current script
-        new_script = malloc(0xFFFF); // allocate memory to receive 64kB? 16kB?
-        if(new_script == NULL){
-            Caw_send_luachunk("!script: out of memory");
-            //(*errfn)("!script: out of memory");
-            return; // how to deal with this situation?
-            // FIXME: should respond over usb stating out of memory?
-            //        try allocating a smaller amount and hope it fits?
-            //        retry?
-        }
-        receiving_new_script = 1;
-        nsp = new_script;
-    }
-    memcpy( nsp, buf, len );
-    nsp += len;
+    U_Print("> "); U_PrintLn(buf);
+    memcpy( p_new_script, buf, len );
+    p_new_script += len;
 }
 
-void Lua_load_new_script( ErrorHandler_t errfn )
+static void Lua_load_new_script( ErrorHandler_t errfn )
 {
     int error;
+    U_PrintLn("rx complete");
     if( (error = luaL_loadstring( L, new_script )) ){
         //(*errfn)( (char*)lua_tostring( L, -1 ) );
         Caw_send_luachunk( (char*)lua_tostring( L, -1 ) );
@@ -320,9 +343,7 @@ void Lua_load_new_script( ErrorHandler_t errfn )
         }
     }
     free(new_script);
-    receiving_new_script = 0;
 }
-
 
 // Public Callbacks from C to Lua
 void L_handle_toward( int id )

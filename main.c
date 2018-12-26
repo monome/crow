@@ -50,11 +50,8 @@ int main(void)
                                  , Caw_send_luaerror // 'print' continuation
                                  ); break;
             case C_boot: bootloader_enter(); break;
-            case C_flashstart: Lua_receive_script( Caw_get_read()
-                                                 , Caw_get_read_len()
-                                                 , Caw_send_luaerror
-                                                 ); break;
-            case C_flashend: Lua_load_new_script( Caw_send_luaerror ); break;
+            case C_flashstart: Lua_repl_mode( REPL_reception ); break;
+            case C_flashend: Lua_repl_mode( REPL_normal ); break;
             default: break; // 'C_none' does nothing
         }
     }
