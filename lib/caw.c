@@ -45,12 +45,12 @@ void Caw_send_value( uint8_t type, float value )
     //
 }
 
-uint8_t Caw_try_receive( void )
+C_cmd_t Caw_try_receive( void )
 {
     // TODO add scanning for 'goto_bootloader' override command. return 2
     // TODO add start_flash_chunk command handling. return 3
     // TODO add end_flash_chunk command handling. return 4
-    static uint8_t  mode = 1;
+    static C_cmd_t  mode = C_none;
     static uint8_t* buf;
     static uint32_t len;
 
@@ -61,16 +61,17 @@ uint8_t Caw_try_receive( void )
               );
         pReader += len;
         if( reader[pReader-1] == '\0' ){ // null char
-            return mode;
-        }
-        if( reader[pReader-1] == '\n'
-         || reader[pReader-1] == '\r' ){ // line is finished!
+            mode = C_repl;
+        } else if( reader[pReader-1] == '\n'
+                || reader[pReader-1] == '\r' ){ // line is finished!
             reader[pReader] = '\0';
             pReader++;
-            return mode;
+            mode = C_repl;
+        } else {
+            mode = C_none;
         }
-    }
-    return 0;
+    } else { mode = C_none; }
+    return mode;
 }
 
 char* Caw_get_read( void )

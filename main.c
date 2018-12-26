@@ -45,17 +45,17 @@ int main(void)
     while(1){
         U_PrintNow();
         switch( Caw_try_receive() ){ // true on pressing 'enter'
-            case 1: Lua_repl( Caw_get_read()
-                            , Caw_get_read_len() // currently ignored anyway
-                            , Caw_send_luaerror // 'print' continuation
-                            ); break;
-            case 2: bootloader_enter(); break;
-            case 3: Lua_receive_script( Caw_get_read()
-                                      , Caw_get_read_len()
-                                      , Caw_send_luaerror
-                                      ); break;
-            case 4: Lua_load_new_script( Caw_send_luaerror ); break;
-            default: break;
+            case C_repl: Lua_repl( Caw_get_read()
+                                 , Caw_get_read_len() // currently ignored
+                                 , Caw_send_luaerror // 'print' continuation
+                                 ); break;
+            case C_boot: bootloader_enter(); break;
+            case C_flashstart: Lua_receive_script( Caw_get_read()
+                                                 , Caw_get_read_len()
+                                                 , Caw_send_luaerror
+                                                 ); break;
+            case C_flashend: Lua_load_new_script( Caw_send_luaerror ); break;
+            default: break; // 'C_none' does nothing
         }
     }
 }
