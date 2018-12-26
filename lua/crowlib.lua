@@ -2,6 +2,15 @@
 
 local crow = {}
 
+crow.version = '0.0.0'
+
+function whatversion()
+    return crow.version
+end
+
+function printversion()
+    print( 'crow ' .. whatversion() )
+end
 
 --- Library loader
 --
