@@ -45,12 +45,10 @@ int main(void)
     while(1){
         U_PrintNow();
         switch( Caw_try_receive() ){ // true on pressing 'enter'
-            case 1:
-                Lua_repl( Caw_get_read()
-                        , Caw_get_read_len() // len is ignored for \0 anyway
-                        , Caw_send_luaerror // 'print' continuation
-                        );
-                break;
+            case 1: Lua_repl( Caw_get_read()
+                            , Caw_get_read_len() // currently ignored anyway
+                            , Caw_send_luaerror // 'print' continuation
+                            ); break;
             case 2: bootloader_enter(); break;
             case 3: Lua_receive_script( Caw_get_read()
                                       , Caw_get_read_len()
