@@ -25,6 +25,8 @@
 #include "lua/asl.lua.h"
 #include "lua/asllib.lua.h"
 #include "lua/metro.lua.h"
+#include "lua/input.lua.h"
+#include "lua/output.lua.h"
 
 struct lua_lib_locator{ const char* name; const char* addr_of_luacode; };
 const struct lua_lib_locator Lua_libs[] =
@@ -32,6 +34,8 @@ const struct lua_lib_locator Lua_libs[] =
     , { "lua_asl"    , lua_asl     }
     , { "lua_asllib" , lua_asllib  }
     , { "lua_metro"  , lua_metro   }
+    , { "lua_input"  , lua_input   }
+    , { "lua_output" , lua_output  }
     , { NULL         , NULL        }
     };
 
