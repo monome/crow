@@ -49,8 +49,8 @@ static uint8_t Lua_eval( lua_State*     L
 lua_State* L; // global access for 'reset-environment'
 
 // repl / script load stuff (TODO needs its own file)
-char*   new_script;
-char* p_new_script;
+char*    new_script;
+uint16_t new_script_len;
 static void Lua_new_script_buffer( void );
 L_repl_mode repl_mode = REPL_normal;
 
@@ -71,14 +71,17 @@ void Lua_Init(void)
         U_PrintLn("load user script");
         // TODO load user script
         Lua_new_script_buffer();
-        Flash_read_user_script( new_script );
+        if( Flash_read_user_script( new_script ) ){
+            U_PrintLn("can't find user script");
+        }
         // now loadstring & pcall new_script
         if( Lua_eval( L, new_script
-                       , (size_t)(p_new_script - new_script)
+                       , new_script_len
                        , Caw_send_luaerror
                        ) ){
             U_PrintLn("failed to load user script");
         }
+        U_PrintLn("free(script)");
         free(new_script);
     } else {
         U_PrintLn("load default script");
@@ -329,16 +332,18 @@ void Lua_repl_mode( L_repl_mode mode )
         Lua_new_script_buffer();
     } else { // end of a transmission
         if( !Lua_eval( L, new_script
-                        , (size_t)(p_new_script - new_script)
+                        , new_script_len
                         , Caw_send_luaerror
                         ) ){ // successful load
             // TODO if we're setting init() should check it doesn't crash
             if( Flash_write_user_script( new_script
-                                       , (uint32_t)(p_new_script - new_script)
+                                       , new_script_len
                                        ) ){
                 Caw_send_luachunk("flash write failed");
             }
-        }
+            U_PrintLn("script saved");
+        } else { U_PrintLn("new user script failed test"); }
+        U_PrintLn("free(script)");
         free(new_script); // cleanup memory
     }
 }
@@ -358,8 +363,8 @@ void Lua_repl( char* buf, uint32_t len, ErrorHandler_t errfn )
 static void Lua_new_script_buffer( void )
 {
     // TODO call to Lua to free resources from current script
-    U_PrintLn("new transmission");
-    new_script = malloc(0x3FFF); // allocate 16kB (or 0xFFFF, 64kb?)
+    U_PrintLn("malloc(buf)");
+    new_script = malloc(USER_SCRIPT_SIZE);
     if(new_script == NULL){
         Caw_send_luachunk("!script: out of memory");
         //(*errfn)("!script: out of memory");
@@ -368,13 +373,13 @@ static void Lua_new_script_buffer( void )
         //        try allocating a smaller amount and hope it fits?
         //        retry?
     }
-    p_new_script = new_script;
+    new_script_len = 0;
 }
 
 void Lua_receive_script( char* buf, uint32_t len, ErrorHandler_t errfn )
 {
-    memcpy( p_new_script, buf, len );
-    p_new_script += len;
+    memcpy( &new_script[new_script_len], buf, len );
+    new_script_len += len;
 }
 
 // Public Callbacks from C to Lua
