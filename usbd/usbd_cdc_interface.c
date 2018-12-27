@@ -51,8 +51,8 @@
 #include "../ll/debug_usart.h" // debug printing
 
 // Private define
-#define APP_RX_DATA_SIZE  2048
-#define APP_TX_DATA_SIZE  2048
+#define APP_RX_DATA_SIZE  1024
+#define APP_TX_DATA_SIZE  1024
 
 // Private vars
 USBD_CDC_LineCodingTypeDef LineCoding = { 115200 // baud rate

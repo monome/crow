@@ -40,7 +40,11 @@ const struct lua_lib_locator Lua_libs[] =
 
 // Private prototypes
 static void Lua_linkctolua( lua_State* L );
-static uint8_t Lua_eval( lua_State* L, const char* script, ErrorHandler_t errfn );
+static uint8_t Lua_eval( lua_State*     L
+                       , const char*    script
+                       , size_t         script_len
+                       , ErrorHandler_t errfn
+                       );
 
 lua_State* L; // global access for 'reset-environment'
 
@@ -56,7 +60,10 @@ void Lua_Init(void)
     L = luaL_newstate();
     luaL_openlibs(L);                      // lua std lib
     Lua_linkctolua(L);                     // lua can access declared c fns
-    Lua_eval(L, lua_bootstrap, U_PrintLn); // redefine dofile(), print(), load crowlib
+    Lua_eval(L, lua_bootstrap
+              , strlen(lua_bootstrap)
+              , U_PrintLn
+              ); // redefine dofile(), print(), load crowlib
 
     // TODO this will first check for a user script
     // fallback if syntax error
@@ -66,13 +73,19 @@ void Lua_Init(void)
         Lua_new_script_buffer();
         Flash_read_user_script( new_script );
         // now loadstring & pcall new_script
-        if( Lua_eval( L, new_script, Caw_send_luaerror ) ){
+        if( Lua_eval( L, new_script
+                       , (size_t)(p_new_script - new_script)
+                       , Caw_send_luaerror
+                       ) ){
             U_PrintLn("failed to load user script");
         }
         free(new_script);
     } else {
         U_PrintLn("load default script");
-        Lua_eval(L, lua_default, U_PrintLn);   // run default script
+        Lua_eval(L, lua_default
+                  , strlen(lua_default)
+                  , U_PrintLn
+                  ); // run default script
     }
 }
 
@@ -265,9 +278,21 @@ static void Lua_linkctolua( lua_State *L )
     }
 }
 
-static uint8_t Lua_eval( lua_State* L, const char* script, ErrorHandler_t errfn ){
+/*
+LUALIB_API int luaL_loadstring (lua_State *L, const char *s) {
+  return luaL_loadbuffer(L, s, strlen(s), s);
+}
+*/
+
+static uint8_t Lua_eval( lua_State*     L
+                       , const char*    script
+                       , size_t         script_len
+                       , ErrorHandler_t errfn
+                       ){
     int error;
-    if( (error = luaL_loadstring( L, script ) || lua_pcall( L, 0, 0, 0 )) ){
+    if( (error = luaL_loadbuffer( L, script, script_len, "eval" )
+              || lua_pcall( L, 0, 0, 0 )
+        ) ){
         //(*errfn)( (char*)lua_tostring( L, -1 ) );
         Caw_send_luachunk( (char*)lua_tostring( L, -1 ) );
         lua_pop( L, 1 );
@@ -303,9 +328,11 @@ void Lua_repl_mode( L_repl_mode mode )
         // begin a new transmission
         Lua_new_script_buffer();
     } else { // end of a transmission
-        if( !Lua_eval( L, new_script, Caw_send_luaerror ) ){ // successful load
+        if( !Lua_eval( L, new_script
+                        , (size_t)(p_new_script - new_script)
+                        , Caw_send_luaerror
+                        ) ){ // successful load
             // TODO if we're setting init() should check it doesn't crash
-            *p_new_script = '\0'; // always end in null
             if( Flash_write_user_script( new_script
                                        , (uint32_t)(p_new_script - new_script)
                                        ) ){
@@ -319,7 +346,10 @@ void Lua_repl_mode( L_repl_mode mode )
 void Lua_repl( char* buf, uint32_t len, ErrorHandler_t errfn )
 {
     if( repl_mode == REPL_normal ){
-        Lua_eval( L, buf, errfn );
+        Lua_eval( L, buf
+                   , len
+                   , errfn
+                   );
     } else {
         Lua_receive_script( buf, len, errfn );
     }
@@ -345,7 +375,6 @@ void Lua_receive_script( char* buf, uint32_t len, ErrorHandler_t errfn )
 {
     memcpy( p_new_script, buf, len );
     p_new_script += len;
-    p_new_script = '\0';
 }
 
 // Public Callbacks from C to Lua

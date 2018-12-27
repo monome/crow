@@ -47,7 +47,7 @@ int main(void)
         U_PrintNow();
         switch( Caw_try_receive() ){ // true on pressing 'enter'
             case C_repl: Lua_repl( Caw_get_read()
-                                 , Caw_get_read_len() // currently ignored
+                                 , Caw_get_read_len()
                                  , Caw_send_luaerror // 'print' continuation
                                  ); break;
             case C_boot: bootloader_enter(); break;
