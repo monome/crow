@@ -9,7 +9,20 @@ a collaboration by whimsical raps & monome
 
 - fennel: `luarocks install fennel`
 
+## writing crow scripts
+a typical crow script only has a few components:
+- (almost?) always an `init()` function
+- timer events
+- input events
+- i2c events
+- midi events
+
 ## crow commands
+the below commands should be integrated into a host environment as macros
+or commands. in particular, the user shouldn't need to worry about typing
+them explicitly. norns should provide higher-level functions that send these
+low-level commands & split up larger code pieces automatically.
+
 the following commands are parsed directly from usb, so should work
 even if the lua environment has crashed. nb: start/end script won't
 work correctly if the env is down though. use clearscript first.
