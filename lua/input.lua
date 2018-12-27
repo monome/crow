@@ -4,9 +4,11 @@
 local Input = {}
 Input.__index = Input
 
+Input.inputs = {}
+
 function Input.new( chan )
     local i = { channel    = chan
-              , mode       = 'none'
+              , _mode      = 'none'
               , time       = 0.1
               , threshold  = 0.5
               , hysteresis = 0.1
@@ -25,16 +27,26 @@ function Input.new( chan )
               , ji         = function(octave, ix) get_cv(chan) end
               }
     setmetatable( i, Input )
+    Input.inputs[chan] = i -- save reference for callback engine
     return i
 end
 
-function Input:getvalue()
+function Input:get_value()
     return io_get_input( self.channel )
 end
 
 --- METAMETHODS
+Input.__newindex = function(self, ix, val)
+    if ix == 'mode' then
+        self._mode = val
+        set_input_mode( self.channel, val )
+    end
+end
+
 Input.__index = function(self, ix)
-    if ix == 'value' then return Input.get_value(self)
+    if     ix == 'value' then return Input.get_value(self)
+    elseif ix == 'mode'  then
+        return function(...) Input.set_mode( self, ...) end
     end
 end
 
@@ -49,9 +61,9 @@ Input.__call = function(self, ...)
     end
 end
 
-setmetatable(Input, Input) -- capture the __index and __newindex metamethods
+setmetatable(Input, Input) -- capture the metamethods
 
-function Input:mode( mode, ... )
+function Input:set_mode( mode, ... )
     -- TODO short circuit these comparisons by only looking at first char
     local args = {...}
     if     mode == 'stream' then
@@ -76,9 +88,16 @@ function Input:mode( mode, ... )
         print('unknown mode')
         return
     end
-    self.mode = mode
-    -- TODO call C layer to set DSP action & callback
-    _set_input_mode( self.channel, self.mode )
+    self._mode = mode
+    set_input_mode( self.channel, self._mode )
 end
+
+-- callback
+function stream_handler( chan, val )
+    print( 'stream ' .. chan .. ' ' .. val)
+    Input.inputs[chan].stream( val )
+end
+
+print 'input loaded'
 
 return Input
