@@ -169,21 +169,6 @@ uint16_t ADS_Cmd( uint16_t command )
     
     return aRxBuffer[0];
 }
-uint16_t ADC_GetU16( uint8_t channel )
-{
-    //uint32_t* tx = (uint32_t*)aTxBuffer;
-    //*tx = 0; // NULL command
-    //aTxBuffer[0] = 0;
-    //ADC_TxRx( aTxBuffer, aRxBuffer, ADC_BUF_SIZE );
-
-    /*if( _ADC_CheckErrors( aRxBuffer[0] ) ){
-        U_PrintLn("");
-    }
-    */
-
-    //U_PrintU16(aRxBuffer[0]);
-    return aRxBuffer[channel+1];
-}
 
 #define ADC_U16_TO_V        ((float)(15.0 / 65535.0))
 
