@@ -55,6 +55,7 @@ static C_cmd_t _find_cmd( char* str, uint32_t len )
                 else if( *pStr == 's' ){ return C_flashstart; }
                 else if( *pStr == 'e' ){ return C_flashend; }
                 else if( *pStr == 'c' ){ return C_flashclear; }
+                else if( *pStr == 'r' ){ return C_restart; }
             }
         }
     }
@@ -95,6 +96,7 @@ C_cmd_t Caw_try_receive( void )
             case C_flashstart: return C_flashstart;
             case C_flashend:   return C_flashend;
             case C_flashclear: return C_flashclear;
+            case C_restart:    return C_restart;
             default: break;
         }
         if( _is_multiline( (char*)buf ) ){

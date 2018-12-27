@@ -12,3 +12,9 @@ void bootloader_enter( void )
     NVIC_SystemReset();
     while(1){}
 }
+
+void bootloader_restart( void )
+{
+    NVIC_SystemReset();
+    while(1){}
+}
