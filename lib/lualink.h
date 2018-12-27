@@ -15,6 +15,7 @@ void Lua_crowbegin(void);
 void Lua_repl_mode( L_repl_mode mode );
 void Lua_repl( char* buf, uint32_t len, ErrorHandler_t errfn );
 void Lua_receive_script( char* buf, uint32_t len, ErrorHandler_t errfn );
+void Lua_print_script( void );
 
 // Callback declarations
 extern void L_handle_toward( int id );

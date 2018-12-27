@@ -382,6 +382,24 @@ void Lua_receive_script( char* buf, uint32_t len, ErrorHandler_t errfn )
     new_script_len += len;
 }
 
+void Lua_print_script( void )
+{
+    if( Flash_is_user_script() ){
+        Lua_new_script_buffer();
+        Flash_read_user_script( new_script, &new_script_len );
+        uint16_t send_len = new_script_len;
+        uint8_t page_count = 0;
+        while( send_len > 0x200 ){
+            Caw_send_raw( (uint8_t*)&new_script[(page_count++)*0x200], 0x200 );
+            send_len -= 0x200;
+        }
+        Caw_send_raw( (uint8_t*)&new_script[page_count*0x200], send_len );
+        free(new_script);
+    } else {
+        Caw_send_luachunk("no user script.");
+    }
+}
+
 // Public Callbacks from C to Lua
 void L_handle_toward( int id )
 {

@@ -55,6 +55,7 @@ int main(void)
             case C_flashend:   Lua_repl_mode( REPL_normal ); break;
             case C_flashclear: Flash_clear_user_script(); break;
             case C_restart:    bootloader_restart(); break;
+            case C_print:      Lua_print_script(); break;
             default: break; // 'C_none' does nothing
         }
     }
