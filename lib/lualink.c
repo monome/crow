@@ -110,6 +110,9 @@ static int _dofile( lua_State *L )
             if( luaL_dostring( L, Lua_libs[i].addr_of_luacode ) ){
                 U_Print("can't load library: ");
                 U_PrintLn( (char*)Lua_libs[i].name );
+                // lua error
+                U_PrintLn( (char*)lua_tostring( L, -1 ) );
+                lua_pop( L, 1 );
                 goto fail;
             }
             return 1; // table is left on the stack as retval
