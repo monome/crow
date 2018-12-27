@@ -8,6 +8,7 @@
 #include "lib/ii.h"
 #include "lib/lualink.h"
 #include "lib/metro.h"
+#include "lib/flash.h" // Flash_clear_user_script()
 
 #include "ll/debug_usart.h"
 #include "ll/debug_pin.h"
@@ -52,6 +53,7 @@ int main(void)
             case C_boot: bootloader_enter(); break;
             case C_flashstart: Lua_repl_mode( REPL_reception ); break;
             case C_flashend: Lua_repl_mode( REPL_normal ); break;
+            case C_flashclear: Flash_clear_user_script(); break;
             default: break; // 'C_none' does nothing
         }
     }

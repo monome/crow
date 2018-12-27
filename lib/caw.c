@@ -7,7 +7,7 @@
 
 #define USB_RX_BUFFER 256
 static char reader[USB_RX_BUFFER];
-static int8_t pReader = 0;
+static int16_t pReader = 0;
 
 uint8_t Caw_Init( void ) //TODO fnptr of callback )
 {
@@ -47,25 +47,31 @@ void Caw_send_value( uint8_t type, float value )
 
 static uint8_t _packet_complete( char last_char )
 {
+    if( last_char == '\0' ){ U_PrintLn("0"); U_PrintNow(); }
+    if( last_char == '\n' ){ U_PrintLn("n"); U_PrintNow(); }
+    if( last_char == '\r' ){ U_PrintLn("r"); U_PrintNow(); }
+
     if( last_char == '\0'
      || last_char == '\n'
      || last_char == '\r' ){ return 1; }
     return 0;
 }
 
-static uint8_t _find_cmd( char* str, uint32_t len )
+static C_cmd_t _find_cmd( char* str, uint32_t len )
 {
     char* pStr = str;
+    U_PrintU32(len); U_PrintNow();
     while( len-- ){ // FIXME should decrement first?
         if( *pStr++ == '^' ){
             if( *pStr++ == '^' ){
-                if( *pStr == 'b' ){ return 1; }
-                else if( *pStr == 's' ){ return 2; }
-                else if( *pStr == 'e' ){ return 3; }
+                if( *pStr == 'b' ){ return C_boot; }
+                else if( *pStr == 's' ){ return C_flashstart; }
+                else if( *pStr == 'e' ){ return C_flashend; }
+                else if( *pStr == 'c' ){ return C_flashclear; }
             }
         }
     }
-    return 0;
+    return C_repl;
 }
 
 C_cmd_t Caw_try_receive( void )
@@ -78,6 +84,7 @@ C_cmd_t Caw_try_receive( void )
     static uint32_t len;
 
     if( USB_rx_dequeue( &buf, &len ) ){
+        U_PrintU32(len); U_PrintNow();
         memcpy( &(reader[pReader])
               , (char*)buf
               , len
@@ -85,18 +92,21 @@ C_cmd_t Caw_try_receive( void )
         pReader += len;
         if( _packet_complete( reader[pReader-1] ) ){
             switch( _find_cmd( reader, pReader ) ){
-                case 0: // no cmd. use repl. TODO should not set mode. just rtn
-                    reader[pReader] = '\0';
-                    pReader++;
+                case C_repl:
+                    //reader[pReader] = '\0';
+                    //pReader++;
                     return C_repl;
-                case 1: // bootloader
+                case C_boot:
                     return C_boot;
-                case 2: // begin new script receive
+                case C_flashstart:
                     Caw_get_read_len(); // clears buffer
                     return C_flashstart;
-                case 3: // end script reception
+                case C_flashend:
                     Caw_get_read_len(); // clears buffer
                     return C_flashend;
+                case C_flashclear:
+                    Caw_get_read_len(); // clears buffer
+                    return C_flashclear;
                 default: break;
             }
             return mode;

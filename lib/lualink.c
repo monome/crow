@@ -17,6 +17,7 @@
 #include "lib/bootloader.h" // bootloader_enter()
 #include "lib/metro.h"      // metro_start() metro_stop() metro_set_time()
 #include "lib/io.h"         // IO_GetADC()
+#include "lib/flash.h"      // Flash_*()
 
 // Lua libs wrapped in C-headers: Note the extra '.h'
 #include "lua/bootstrap.lua.h" // MUST LOAD THIS MANUALLY FIRST
@@ -39,9 +40,15 @@ const struct lua_lib_locator Lua_libs[] =
 
 // Private prototypes
 static void Lua_linkctolua( lua_State* L );
-static void Lua_eval( lua_State* L, const char* script, ErrorHandler_t errfn );
+static uint8_t Lua_eval( lua_State* L, const char* script, ErrorHandler_t errfn );
 
 lua_State* L; // global access for 'reset-environment'
+
+// repl / script load stuff (TODO needs its own file)
+char*   new_script;
+char* p_new_script;
+static void Lua_new_script_buffer( void );
+L_repl_mode repl_mode = REPL_normal;
 
 // Public functions
 void Lua_Init(void)
@@ -53,7 +60,20 @@ void Lua_Init(void)
 
     // TODO this will first check for a user script
     // fallback if syntax error
-    Lua_eval(L, lua_default, U_PrintLn);   // run script
+    if( Flash_is_user_script() ){
+        U_PrintLn("load user script");
+        // TODO load user script
+        Lua_new_script_buffer();
+        Flash_read_user_script( new_script );
+        // now loadstring & pcall new_script
+        if( Lua_eval( L, new_script, Caw_send_luaerror ) ){
+            U_PrintLn("failed to load user script");
+        }
+        free(new_script);
+    } else {
+        U_PrintLn("load default script");
+        Lua_eval(L, lua_default, U_PrintLn);   // run default script
+    }
 }
 
 void Lua_DeInit(void)
@@ -245,7 +265,7 @@ static void Lua_linkctolua( lua_State *L )
     }
 }
 
-static void Lua_eval( lua_State* L, const char* script, ErrorHandler_t errfn ){
+static uint8_t Lua_eval( lua_State* L, const char* script, ErrorHandler_t errfn ){
     int error;
     if( (error = luaL_loadstring( L, script ) || lua_pcall( L, 0, 0, 0 )) ){
         //(*errfn)( (char*)lua_tostring( L, -1 ) );
@@ -258,7 +278,9 @@ static void Lua_eval( lua_State* L, const char* script, ErrorHandler_t errfn ){
             case LUA_ERRERR:    U_PrintLn("!exec script: err in err handler"); break;
             default: break;
         }
+        return 1;
     }
+    return 0;
 }
 
 void Lua_crowbegin( void )
@@ -274,18 +296,23 @@ void Lua_crowbegin( void )
 // TODO the repl/state/reception logic should be its own file
 //
 // private declarations for repl
-static void Lua_new_transmission( void );
-static void Lua_load_new_script( ErrorHandler_t errfn );
-
-L_repl_mode repl_mode = REPL_normal;
 void Lua_repl_mode( L_repl_mode mode )
 {
     repl_mode = mode;
     if( repl_mode == REPL_reception ){
         // begin a new transmission
-        Lua_new_transmission();
+        Lua_new_script_buffer();
     } else { // end of a transmission
-        Lua_load_new_script( Caw_send_luaerror );
+        if( !Lua_eval( L, new_script, Caw_send_luaerror ) ){ // successful load
+            // TODO if we're setting init() should check it doesn't crash
+            *p_new_script = '\0'; // always end in null
+            if( Flash_write_user_script( new_script
+                                       , (uint32_t)(p_new_script - new_script)
+                                       ) ){
+                Caw_send_luachunk("flash write failed");
+            }
+        }
+        free(new_script); // cleanup memory
     }
 }
 
@@ -298,9 +325,7 @@ void Lua_repl( char* buf, uint32_t len, ErrorHandler_t errfn )
     }
 }
 
-char*   new_script;
-char* p_new_script;
-static void Lua_new_transmission( void )
+static void Lua_new_script_buffer( void )
 {
     // TODO call to Lua to free resources from current script
     U_PrintLn("new transmission");
@@ -318,31 +343,9 @@ static void Lua_new_transmission( void )
 
 void Lua_receive_script( char* buf, uint32_t len, ErrorHandler_t errfn )
 {
-    U_Print("> "); U_PrintLn(buf);
     memcpy( p_new_script, buf, len );
     p_new_script += len;
-}
-
-static void Lua_load_new_script( ErrorHandler_t errfn )
-{
-    int error;
-    U_PrintLn("rx complete");
-    if( (error = luaL_loadstring( L, new_script )) ){
-        //(*errfn)( (char*)lua_tostring( L, -1 ) );
-        Caw_send_luachunk( (char*)lua_tostring( L, -1 ) );
-        lua_pop( L, 1 );
-    } else {
-        // TODO write to non-active flash page?
-        if( (error = lua_pcall( L, 0, 0, 0 )) ){
-            //(*errfn)( (char*)lua_tostring( L, -1 ) );
-            Caw_send_luachunk( (char*)lua_tostring( L, -1 ) );
-            lua_pop( L, 1 );
-        } else {
-            // TODO keep 2 programs in flash & don't flip the bit until after
-            //      pcall'ing the new program and confirming it doesn't crash
-        }
-    }
-    free(new_script);
+    p_new_script = '\0';
 }
 
 // Public Callbacks from C to Lua

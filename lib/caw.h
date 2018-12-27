@@ -7,6 +7,7 @@ typedef enum{ C_none
             , C_boot
             , C_flashstart
             , C_flashend
+            , C_flashclear
 } C_cmd_t;
 
 uint8_t Caw_Init( void );
