@@ -51,7 +51,7 @@ static C_cmd_t _find_cmd( char* str, uint32_t len )
     while( len-- ){ // FIXME should decrement first?
         if( *pStr++ == '^' ){
             if( *pStr++ == '^' ){
-                if( *pStr == 'b' ){ return C_boot; }
+                if(      *pStr == 'b' ){ return C_boot; }
                 else if( *pStr == 's' ){ return C_flashstart; }
                 else if( *pStr == 'e' ){ return C_flashend; }
                 else if( *pStr == 'c' ){ return C_flashclear; }

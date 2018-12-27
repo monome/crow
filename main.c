@@ -50,9 +50,9 @@ int main(void)
                                  , Caw_get_read_len()
                                  , Caw_send_luaerror // 'print' continuation
                                  ); break;
-            case C_boot: bootloader_enter(); break;
+            case C_boot:       bootloader_enter(); break;
             case C_flashstart: Lua_repl_mode( REPL_reception ); break;
-            case C_flashend: Lua_repl_mode( REPL_normal ); break;
+            case C_flashend:   Lua_repl_mode( REPL_normal ); break;
             case C_flashclear: Flash_clear_user_script(); break;
             case C_restart:    bootloader_restart(); break;
             default: break; // 'C_none' does nothing
