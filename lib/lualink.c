@@ -174,7 +174,7 @@ static int _get_state( lua_State *L )
     float s = S_get_state( luaL_checkinteger(L, 1)-1 );
     lua_pop( L, 1 );
     lua_pushnumber( L
-                  , s // testing if functional style causing issues?
+                  , s
                   );
     return 1;
 }
