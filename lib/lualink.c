@@ -62,23 +62,18 @@ L_repl_mode repl_mode = REPL_normal;
 void Lua_Init(void)
 {
     L = luaL_newstate();
-    luaL_openlibs(L);                      // lua std lib
-    Lua_linkctolua(L);                     // lua can access declared c fns
+    luaL_openlibs(L);
+    Lua_linkctolua(L);
     Lua_eval(L, lua_bootstrap
               , strlen(lua_bootstrap)
               , U_PrintLn
               ); // redefine dofile(), print(), load crowlib
-
-    // TODO this will first check for a user script
-    // fallback if syntax error
+    // TODO fallback if error
     if( Flash_is_user_script() ){
-        U_PrintLn("load user script");
-        // TODO load user script
         Lua_new_script_buffer();
         if( Flash_read_user_script( new_script, &new_script_len ) ){
             U_PrintLn("can't find user script");
         }
-        // now loadstring & pcall new_script
         if( Lua_eval( L, new_script
                        , new_script_len
                        , Caw_send_luaerror
@@ -88,7 +83,6 @@ void Lua_Init(void)
         U_PrintLn("free(script)");
         free(new_script);
     } else {
-        U_PrintLn("load default script");
         Lua_eval(L, lua_default
                   , strlen(lua_default)
                   , U_PrintLn
@@ -99,15 +93,6 @@ void Lua_Init(void)
 void Lua_DeInit(void)
 {
     lua_close(L);
-}
-void check_ram_usage( void )
-{
-//    int s; // stack allocation
-//    int* h = malloc(sizeof(int)); // heap allocation
-//    U_Print("ram left "); U_PrintU32( (int)&s - (int)h );
-//    //U_Print("stack "); U_PrintU32( (int)&s );
-//    //U_Print("heap  "); U_PrintU32( (int)h );
-//    free(h);
 }
 
 // C-fns accessible to lua
@@ -127,7 +112,6 @@ static int _dofile( lua_State *L )
                 U_PrintLn( (char*)Lua_libs[i].name );
                 goto fail;
             }
-            //check_ram_usage();
             return 1; // table is left on the stack as retval
         }
         i++;
@@ -135,7 +119,6 @@ static int _dofile( lua_State *L )
     U_Print("can't find library: ");
     U_PrintLn( (char*)l_name );
 fail:
-    // failed to find library
     lua_pushnil(L);
     return 1;
 }
@@ -173,9 +156,7 @@ static int _get_state( lua_State *L )
 {
     float s = S_get_state( luaL_checkinteger(L, 1)-1 );
     lua_pop( L, 1 );
-    lua_pushnumber( L
-                  , s
-                  );
+    lua_pushnumber( L, s );
     return 1;
 }
 static int _io_get_input( lua_State *L )
@@ -222,7 +203,7 @@ static int _metro_start( lua_State* L )
     if (nargs > 3) { stage = (int)luaL_checkinteger(L, 4) - 1; } // 1-ix'd
     lua_pop( L, 4 );
 
-    metro_start( idx, seconds, count, stage ); // TODO implement in C
+    metro_start( idx, seconds, count, stage );
     lua_settop(L, 0);
     return 0;
 }
@@ -285,12 +266,6 @@ static void Lua_linkctolua( lua_State *L )
     }
 }
 
-/*
-LUALIB_API int luaL_loadstring (lua_State *L, const char *s) {
-  return luaL_loadbuffer(L, s, strlen(s), s);
-}
-*/
-
 static uint8_t Lua_eval( lua_State*     L
                        , const char*    script
                        , size_t         script_len
@@ -317,22 +292,16 @@ static uint8_t Lua_eval( lua_State*     L
 
 void Lua_crowbegin( void )
 {
-    // Call init() function
-    // This is all we need to do -> the rest should flow back from Lua
-    // The only callback->Lua *not* declared in Lua is a received command over USB
     U_PrintLn("init()"); // call in C to avoid user seeing in lua
     lua_getglobal(L,"init");
     lua_pcall(L,0,0,0);
 }
 
 // TODO the repl/state/reception logic should be its own file
-//
-// private declarations for repl
 void Lua_repl_mode( L_repl_mode mode )
 {
     repl_mode = mode;
-    if( repl_mode == REPL_reception ){
-        // begin a new transmission
+    if( repl_mode == REPL_reception ){ // begin a new transmission
         Lua_new_script_buffer();
     } else { // end of a transmission
         if( !Lua_eval( L, new_script
@@ -347,7 +316,6 @@ void Lua_repl_mode( L_repl_mode mode )
             }
             U_PrintLn("script saved");
         } else { U_PrintLn("new user script failed test"); }
-        U_PrintLn("free(script)");
         free(new_script); // cleanup memory
     }
 }
@@ -417,17 +385,14 @@ void L_handle_toward( int id )
     }
 }
 
-// probably need no static, and make this extern in header for access from metro lib
 void L_handle_metro( const int id, const int stage)
 {
     lua_getglobal(L, "metro_handler");
     lua_pushinteger(L, id+1);    // 1-ix'd
     lua_pushinteger(L, stage+1); // 1-ix'd
     if( lua_pcall(L, 2, 0, 0) != LUA_OK ){
-        //U_Print("error running "); U_PrintLn("metro_handler");
         Caw_send_luachunk("error running metro_handler");
-        U_PrintLn( (char*)lua_tostring(L, -1) );
+        Caw_send_luachunk( (char*)lua_tostring(L, -1) );
         lua_pop( L, 1 );
     }
-
 }
