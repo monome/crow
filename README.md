@@ -28,7 +28,7 @@ even if the lua environment has crashed. nb: start/end script won't
 work correctly if the env is down though. use clearscript first.
 
 nb: only the first char after the `^^` symbol matters, so the host can
-simply send a 3 char command (eg `^^s`)for brevity & speed
+simply send a 3 char command (eg `^^s`) for brevity & speed
 
 - `^^startscript`: sets crow to reception mode. following code will be saved to a buffer
 - `^^endscript`: buffered code will be error-checked, eval'd, and written to flash. crow returns to repl mode.
