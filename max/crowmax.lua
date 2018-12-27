@@ -48,7 +48,16 @@ end
 --- Helper conversion functions
 
 function tell_crow( str )
-	outlet(0, string_to_serial( str))
+	if string.find( str, "^%^%^" ) then -- 3char command
+		outlet(0, string_to_serial( string.sub( str, 1, 3)))
+	elseif string.len(str) >= 64 then -- multi-line codeblock
+		-- TODO if more than 1kB, need to split into multiple messages
+		outlet(0, string_to_serial( '```'))
+		outlet(0, string_to_serial( str))
+		outlet(0, string_to_serial( '```'))
+	else -- standard code block
+		outlet(0, string_to_serial( str))
+	end
 end
 
 function string_to_serial( str )
