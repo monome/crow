@@ -71,7 +71,7 @@ void Lua_Init(void)
         U_PrintLn("load user script");
         // TODO load user script
         Lua_new_script_buffer();
-        if( Flash_read_user_script( new_script ) ){
+        if( Flash_read_user_script( new_script, &new_script_len ) ){
             U_PrintLn("can't find user script");
         }
         // now loadstring & pcall new_script

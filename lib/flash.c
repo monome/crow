@@ -63,13 +63,13 @@ uint8_t Flash_write_user_script( char* script, uint32_t length )
     return 0;
 }
 
-uint8_t Flash_read_user_script( char* buffer )
+uint8_t Flash_read_user_script( char* buffer, uint16_t* len )
 {
     if( !Flash_is_user_script() ){ return 1; } // no script
     // FIXME: need to add 1 to length for null char?
-    uint16_t length = ((*(__IO uint32_t*)USER_SCRIPT_LOCATION) >> 16);
+    *len = ((*(__IO uint32_t*)USER_SCRIPT_LOCATION) >> 16);
 
-    uint16_t word_length = length >> 2;
+    uint16_t word_length = *len >> 2;
     word_length++;
 
     uint32_t sd_addr = USER_SCRIPT_LOCATION + 4;
