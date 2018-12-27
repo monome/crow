@@ -28,6 +28,8 @@ end
 function crow.libs( lib )
     if lib == nil then
         -- load all
+        Input  = dofile('lua/input.lua')
+        Output = dofile('lua/output.lua')
         Asl    = dofile('lua/asl.lua')
         Asllib = dofile('lua/asllib.lua')
         Metro  = dofile('lua/metro.lua')
@@ -44,12 +46,17 @@ crow.libs()
 
 
 
---- Hardware I/O
+--- Input
+input = {1,2}
+for chan = 1, #input do
+    input[chan] = Input.new( chan )
+end
 
-
---- Output lib
--- 4 outputs
+--- Output
 out = {1,2,3,4}
+for chan = 1, #out do
+    out[chan] = Output.new( chan )
+end
 
 --- Asl
 function toward_handler( id ) end -- do nothing if Asl not active
@@ -65,7 +72,6 @@ function LL_toward( id, d, t, s )
     if type(d) == 'function' then d = d() end
     if type(t) == 'function' then t = t() end
     if type(s) == 'function' then s = s() end
-    --print('id: '..id,'\ttoward '..d,'\tin time: '..t,'\twith shape: '..s)
     go_toward( id, d, t, s )
 end
 
@@ -75,38 +81,9 @@ end
 
 
 
--- MUST setup Asl before applying actions
-for chan = 1, #out do
-    -- pass the result of out.new() ?
-    out[chan] = { channel = chan
-                , level   = 1.0
-                , rate    = 1.0
-                , shape   = 'linear'
-                , asl     = Asl.new(chan) -- the standard LFO
---                , trig    = { asl      = Asl.new(k)
---                            , polarity = 1
---                            , time     = 1
---                            , level    = 5
---                            }
-                }
-    out[chan].asl.action = lfo( function() return out[chan].rate  end
-                              , function() return out[chan].shape end
-                              , function() return out[chan].level end
-                              )
-    --out[chan].asl:action( toward( 1, 10, 'linear' ) )
---    out[chan].trig.asl:action( trig( function() return out[chan].trig.polarity end
---                                , function() return out[chan].trig.time end
---                                , function() return out[chan].trig.level end
---                                )
---                          )
-    -- consider end of trig causing 'bang' of action if it exists?
---    out[chan].asl:bang(true)
-end
-
 adc_remote = function(chan)
     get_cv(chan)
 end
-
 
 
 --- Communication functions
