@@ -56,6 +56,12 @@ float IO_GetADC( uint8_t channel )
     return ADDA_GetADCValue( channel );
 }
 
+void IO_SetADCaction( uint8_t channel, const char* mode )
+{
+    // TODO parse on first/second char of mode
+    // set the appropriate fn to be called in ADC dsp loop
+}
+
 void IO_Recalibrate( void )
 {
     // Only calibrate if no current data saved

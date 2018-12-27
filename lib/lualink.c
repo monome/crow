@@ -169,6 +169,14 @@ static int _io_get_input( lua_State *L )
     lua_pushnumber( L, adc );
     return 1;
 }
+static int _set_input_mode( lua_State *L )
+{
+    IO_SetADCaction( luaL_checkinteger(L, 1)-1
+                   , luaL_checkstring(L, 2)
+                   );
+    lua_pop( L, 2 );
+    return 0;
+}
 static int _send_usb( lua_State *L )
 {
     // pattern match on type: handle values vs strings vs chunk
@@ -245,6 +253,7 @@ static const struct luaL_Reg libCrow[]=
     , { "go_toward"      , _go_toward        }
     , { "get_state"      , _get_state        }
     , { "io_get_input"   , _io_get_input     }
+    , { "set_input_mode" , _set_input_mode   }
         // usb
     , { "send_usb"       , _send_usb         }
         // i2c
@@ -395,6 +404,18 @@ void L_handle_metro( const int id, const int stage)
     lua_pushinteger(L, stage+1); // 1-ix'd
     if( lua_pcall(L, 2, 0, 0) != LUA_OK ){
         Caw_send_luachunk("error running metro_handler");
+        Caw_send_luachunk( (char*)lua_tostring(L, -1) );
+        lua_pop( L, 1 );
+    }
+}
+
+void L_handle_in_stream( int id, float value )
+{
+    lua_getglobal(L, "stream_handler");
+    lua_pushinteger(L, id+1); // 1-ix'd
+    lua_pushnumber(L, value);
+    if( lua_pcall(L, 2, 0, 0) != LUA_OK ){
+        Caw_send_luachunk("error: input stream");
         Caw_send_luachunk( (char*)lua_tostring(L, -1) );
         lua_pop( L, 1 );
     }
