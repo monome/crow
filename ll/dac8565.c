@@ -68,13 +68,15 @@ void DAC_Start(void)
         dbuf++;
     }
     // begin i2s transmission
+    int error;
 uint32_t old_primask = __get_PRIMASK();
 __disable_irq();
-    HAL_I2S_Transmit_DMA( &dac_i2s
+    error = HAL_I2S_Transmit_DMA( &dac_i2s
                         , (uint16_t*)samples
                         , samp_count
                         );
 __set_PRIMASK( old_primask );
+    if(error){ U_PrintLn("i2s failed to start"); }
 }
 
 /* Does all the work converting a generic representation into serial packets
