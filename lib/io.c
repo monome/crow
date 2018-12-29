@@ -1,6 +1,7 @@
 #include "io.h"
 
-#include "main.h"              // FLASH_*_t
+#include "flash.h"              // FLASH_*_t
+#include "stm32f7xx_hal.h"     // HAL_Delay()
 
 #include "../ll/cal_ll.h"      // CAL_LL_Init(),
 #include "../ll/adda.h"        // _Init(), _Start(), _GetADCValue(), IO_block_t

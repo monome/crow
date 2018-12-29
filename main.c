@@ -1,5 +1,3 @@
-#include "main.h"
-
 #include <string.h>
 
 #include "lib/bootloader.h" // bootloader_is_i2c_force()
