@@ -132,12 +132,14 @@ static int _debug( lua_State *L )
     const char* msg = luaL_checkstring(L, 1);
     lua_pop( L, 1 );
     U_PrintLn( (char*)msg);
+    lua_settop(L, 0);
     return 0;
 }
 static int _print_serial( lua_State *L )
 {
     Caw_send_luachunk( (char*)luaL_checkstring(L, 1) );
     lua_pop( L, 1 );
+    lua_settop(L, 0);
     return 0;
 }
 static int _bootloader( lua_State *L )
@@ -155,6 +157,7 @@ static int _go_toward( lua_State *L )
             , L_handle_toward
             );
     lua_pop( L, 4 );
+    lua_settop(L, 0);
     return 0;
 }
 static int _get_state( lua_State *L )
@@ -177,6 +180,7 @@ static int _set_input_mode( lua_State *L )
                    , luaL_checkstring(L, 2)
                    );
     lua_pop( L, 2 );
+    lua_settop(L, 0);
     return 0;
 }
 static int _send_usb( lua_State *L )
@@ -186,6 +190,7 @@ static int _send_usb( lua_State *L )
     lua_pop( L, 1 );
     uint32_t len = strlen(msg);
     Caw_send_raw( (uint8_t*) msg, len );
+    lua_settop(L, 0);
     return 0;
 }
 static int _send_ii( lua_State *L )
@@ -193,6 +198,7 @@ static int _send_ii( lua_State *L )
     // pattern match on broadcast vs query
     uint8_t istate = 4;
     II_broadcast( II_FOLLOW, 1, &istate, 1 );
+    lua_settop(L, 0);
     return 0;
 }
 static int _set_ii_addr( lua_State *L )
@@ -200,6 +206,7 @@ static int _set_ii_addr( lua_State *L )
     // pattern match on broadcast vs query
     uint8_t istate = 4;
     II_broadcast( II_FOLLOW, 1, &istate, 1 );
+    lua_settop(L, 0);
     return 0;
 }
 static int _metro_start( lua_State* L )
@@ -402,7 +409,6 @@ void L_handle_toward( int id )
     lua_getglobal(L, "toward_handler");
     lua_pushinteger(L, id+1); // 1-ix'd
     if( lua_pcall(L, 1, 0, 0) != LUA_OK ){
-        //U_PrintLn("error running toward_handler");
         Caw_send_luachunk("error running toward_handler");
         U_PrintLn( (char*)lua_tostring(L, -1) );
         lua_pop( L, 1 );
