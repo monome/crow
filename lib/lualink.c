@@ -214,7 +214,7 @@ static int _metro_start( lua_State* L )
     if (nargs > 3) { stage = (int)luaL_checkinteger(L, 4) - 1; } // 1-ix'd
     lua_pop( L, 4 );
 
-    metro_start( idx, seconds, count, stage );
+    metro_start( idx+2, seconds, count, stage ); // +2 for adc
     lua_settop(L, 0);
     return 0;
 }
@@ -222,9 +222,9 @@ static int _metro_stop( lua_State* L )
 {
     if( lua_gettop(L) != 1 ){ return luaL_error(L, "wrong number of arguments"); }
 
-    int idx = (int)luaL_checkinteger(L, 1) - 1; // 1-ix'd
+    int idx = (int)luaL_checkinteger(L, 1) - 1 + 2; // 1-ix'd, +2 for adc
     lua_pop( L, 1 );
-    metro_stop(idx); // TODO implement in C
+    metro_stop(idx+2); // +2 for adc
     lua_settop(L, 0);
     return 0;
 }
@@ -232,10 +232,10 @@ static int _metro_set_time( lua_State* L )
 {
     if( lua_gettop(L) != 2 ){ return luaL_error(L, "wrong number of arguments"); }
 
-    int idx = (int)luaL_checkinteger(L, 1) - 1; // 1-ix'd
+    int idx = (int)luaL_checkinteger(L, 1) - 1 + 2; // 1-ix'd, +2 for adc
     float sec = (float) luaL_checknumber(L, 2);
     lua_pop( L, 2 );
-    metro_set_time(idx, sec); // TODO implement in C
+    metro_set_time(idx+2, sec); // +2 for adc
     lua_settop(L, 0);
     return 0;
 }
@@ -400,7 +400,7 @@ void L_handle_toward( int id )
 void L_handle_metro( const int id, const int stage)
 {
     lua_getglobal(L, "metro_handler");
-    lua_pushinteger(L, id+1);    // 1-ix'd
+    lua_pushinteger(L, id+1 -2); // 1-ix'd, less 2 for adc rebase
     lua_pushinteger(L, stage+1); // 1-ix'd
     if( lua_pcall(L, 2, 0, 0) != LUA_OK ){
         Caw_send_luachunk("error running metro_handler");

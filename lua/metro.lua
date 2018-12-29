@@ -7,8 +7,8 @@
 local Metro = {}
 Metro.__index = Metro
 
-Metro.num_metros = 9
-Metro.num_script_metros = 7 -- 8+9 reserved for ADC polls?
+Metro.num_metros = 7
+Metro.num_script_metros = 7
 
 Metro.metros = {}
 Metro.available = {}

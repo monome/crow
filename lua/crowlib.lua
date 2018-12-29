@@ -20,6 +20,8 @@ end
 local function closelibs()
     -- set whole list of libs to nil to close them
     -- TODO does this free the RAM used by 'dofile'?
+    Input  = nil
+    Output = nil
     Asl    = nil
     Asllib = nil
     Metro  = nil

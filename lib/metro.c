@@ -5,6 +5,7 @@
 
 #include "../ll/timers.h"      // _Init() _Start() _Stop() _Set_Params()
 #include "lualink.h"           // L_handle_metro()
+#include "io.h"                // IO_handle_timer
 #include "../ll/debug_usart.h" // U_Print*
 
 enum {
@@ -84,7 +85,11 @@ void metro_set_time( int ix, float sec )
 static void metro_bang( int ix )
 {
     // TODO confirm lua(1) makes a single tick
-    L_handle_metro( ix, metros[ix].stage );
+    if( ix < 2 ){
+        IO_handle_timer( ix );
+    } else {
+        L_handle_metro( ix, metros[ix].stage );
+    }
     metros[ix].stage++;
 //FIXME next line causes system not to load?
     if( metros[ix].stage == 0x7FFFFFFF ){ metros[ix].stage = 0x7FFFFFFE; } // overflow
