@@ -81,9 +81,10 @@ void Lua_Init(void)
                        ) ){
             U_PrintLn("failed to load user script");
         }
-        U_PrintLn("free(script)");
+        U_PrintLn("user_script");
         free(new_script);
     } else {
+        U_PrintLn("default_script");
         Lua_eval(L, lua_default
                   , strlen(lua_default)
                   , U_PrintLn
