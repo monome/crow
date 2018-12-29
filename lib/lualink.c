@@ -49,6 +49,7 @@ static uint8_t Lua_eval( lua_State*     L
                        , size_t         script_len
                        , ErrorHandler_t errfn
                        );
+static float Lua_check_memory( void );
 
 lua_State* L; // global access for 'reset-environment'
 
@@ -300,6 +301,16 @@ static uint8_t Lua_eval( lua_State*     L
         return 1;
     }
     return 0;
+}
+
+static float Lua_check_memory( void )
+{
+    lua_getglobal(L,"collectgarbage");
+    lua_pushstring(L, "count"); // 1-ix'd
+    lua_pcall(L,1,1,0);
+    float mem = luaL_checknumber(L, 1);
+    lua_pop(L,1);
+    return mem;
 }
 
 void Lua_crowbegin( void )
