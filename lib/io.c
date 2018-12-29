@@ -82,8 +82,8 @@ void IO_SetADCaction( uint8_t channel, const char* mode )
     In_mode_t im = _parse_mode(mode);
     // set/unset timer
     if( im == In_stream ){
-        metro_start( channel, 1.0, -1, 0 ); // how to get time?
-    } else { metro_stop( channel ); }
+        Metro_start( channel, 1.0, -1, 0 ); // how to get time?
+    } else { Metro_stop( channel ); }
 
     switch( _parse_mode(mode) ){
         case In_none:
