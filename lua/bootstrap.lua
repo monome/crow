@@ -8,7 +8,8 @@
 -- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 -- must set garbage collection faster than normal or lua VM stack overflows!
 -- TODO: optimize this choice of value
-collectgarbage('setpause', 100)
+collectgarbage('setpause', 100) --default 200
+--collectgarbage('setstepmul', 400) --default 200
 -- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 print = function(...)
@@ -42,6 +43,8 @@ end
 print'lua bootstrapped'
 
 crow = dofile('lua/crowlib.lua')
+
+--collectgarbage('collect')
 
 --- Tests
 -- move these to a diff file & run tests over all the functions from makefile?
