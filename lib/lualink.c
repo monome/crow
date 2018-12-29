@@ -214,7 +214,7 @@ static int _metro_start( lua_State* L )
     if (nargs > 3) { stage = (int)luaL_checkinteger(L, 4) - 1; } // 1-ix'd
     lua_pop( L, 4 );
 
-    metro_start( idx+2, seconds, count, stage ); // +2 for adc
+    Metro_start( idx+2, seconds, count, stage ); // +2 for adc
     lua_settop(L, 0);
     return 0;
 }
@@ -222,9 +222,9 @@ static int _metro_stop( lua_State* L )
 {
     if( lua_gettop(L) != 1 ){ return luaL_error(L, "wrong number of arguments"); }
 
-    int idx = (int)luaL_checkinteger(L, 1) - 1 + 2; // 1-ix'd, +2 for adc
+    int idx = (int)luaL_checkinteger(L, 1) - 1; // 1-ix'd
     lua_pop( L, 1 );
-    metro_stop(idx+2); // +2 for adc
+    Metro_stop(idx+2); // +2 for adc
     lua_settop(L, 0);
     return 0;
 }
@@ -232,10 +232,10 @@ static int _metro_set_time( lua_State* L )
 {
     if( lua_gettop(L) != 2 ){ return luaL_error(L, "wrong number of arguments"); }
 
-    int idx = (int)luaL_checkinteger(L, 1) - 1 + 2; // 1-ix'd, +2 for adc
+    int idx = (int)luaL_checkinteger(L, 1) - 1; // 1-ix'd
     float sec = (float) luaL_checknumber(L, 2);
     lua_pop( L, 2 );
-    metro_set_time(idx+2, sec); // +2 for adc
+    Metro_set_time(idx+2, sec); // +2 for adc
     lua_settop(L, 0);
     return 0;
 }
