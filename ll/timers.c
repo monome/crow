@@ -8,12 +8,12 @@
 
 #include "debug_usart.h"
 
-#define MAX_LL_TIMERS 9 // tell caller how many timers can be allocated
+#define MAX_LL_TIMERS 10 // tell caller how many timers can be allocated
 
 typedef void (*TIM_CLK_ENABLE_t)();
 
 typedef struct{
-    TIM_TypeDef*  Instance;
+    TIM_TypeDef*        Instance;
     const IRQn_Type     IRQn;
     TIM_CLK_ENABLE_t    CLK_ENABLE;
 } Timer_setup_t;
@@ -36,14 +36,14 @@ static void TIM13_CLK_EN(){ __HAL_RCC_TIM13_CLK_ENABLE(); }
 static void TIM14_CLK_EN(){ __HAL_RCC_TIM14_CLK_ENABLE(); }
 
 const Timer_setup_t _timer[]=
-    { //{ TIM1  , TIM1_IRQn  , TIM1_CLK_EN  }
+    { //{ TIM1  , TIM1_IRQn               , TIM1_CLK_EN  }
     //, { TIM2  , TIM2_IRQn               , TIM2_CLK_EN  }
     //, { TIM3  , TIM3_IRQn               , TIM3_CLK_EN  }
-     { TIM4  , TIM4_IRQn               , TIM4_CLK_EN  }
+      { TIM4  , TIM4_IRQn               , TIM4_CLK_EN  }
     , { TIM5  , TIM5_IRQn               , TIM5_CLK_EN  }
     , { TIM6  , TIM6_DAC_IRQn           , TIM6_CLK_EN  }
-    , { TIM7  , TIM7_IRQn               , TIM7_CLK_EN  }
-    //, { TIM8  , TIM8_IRQn  , TIM8_CLK_EN  }
+    , { TIM7  , TIM7_IRQn               , TIM7_CLK_EN  } // seems to work 0x37/d55
+    //, { TIM8  , TIM8_IRQn               , TIM8_CLK_EN  }
     , { TIM9  , TIM1_BRK_TIM9_IRQn      , TIM9_CLK_EN  }
     , { TIM10 , TIM1_UP_TIM10_IRQn      , TIM10_CLK_EN }
     , { TIM11 , TIM1_TRG_COM_TIM11_IRQn , TIM11_CLK_EN }
@@ -56,23 +56,23 @@ TIM_HandleTypeDef TimHandle[MAX_LL_TIMERS];
 Timer_Callback_t callback;
 
 // FIXME have to manually index the following
-//void TIM1_IRQHandler( void ){  HAL_TIM_IRQHandler( &TimHandle[0] ); }
-//void TIM2_IRQHandler( void ){  HAL_TIM_IRQHandler( &TimHandle[0] ); }
-//void TIM3_IRQHandler( void ){  HAL_TIM_IRQHandler( &TimHandle[0] ); }
-void TIM4_IRQHandler( void ){  HAL_TIM_IRQHandler( &TimHandle[0] ); }
-void TIM5_IRQHandler( void ){  HAL_TIM_IRQHandler( &TimHandle[1] ); }
-void TIM6_IRQHandler( void ){  HAL_TIM_IRQHandler( &TimHandle[2] ); }
-void TIM7_IRQHandler( void ){  HAL_TIM_IRQHandler( &TimHandle[3] ); }
-//void TIM8_IRQHandler( void ){  HAL_TIM_IRQHandler( &TimHandle[0] ); }
-void TIM9_IRQHandler( void ){  HAL_TIM_IRQHandler( &TimHandle[4] ); }
-void TIM10_IRQHandler( void ){ HAL_TIM_IRQHandler( &TimHandle[5] ); }
-void TIM11_IRQHandler( void ){ HAL_TIM_IRQHandler( &TimHandle[6] ); }
-void TIM12_IRQHandler( void ){ HAL_TIM_IRQHandler( &TimHandle[7] ); }
-void TIM13_IRQHandler( void ){ HAL_TIM_IRQHandler( &TimHandle[8] ); }
+//void TIM1_IRQHandler( void ){  HAL_TIM_IRQHandler( &(TimHandle[0]) ); }
+//void TIM2_IRQHandler( void ){  HAL_TIM_IRQHandler( &(TimHandle[0]) ); }
+//void TIM3_IRQHandler( void ){  HAL_TIM_IRQHandler( &(TimHandle[0]) ); }
+void TIM4_IRQHandler( void ){  HAL_TIM_IRQHandler( &(TimHandle[0]) ); }
+void TIM5_IRQHandler( void ){  HAL_TIM_IRQHandler( &(TimHandle[1]) ); }
+void TIM6_DAC_IRQHandler( void ){  HAL_TIM_IRQHandler( &(TimHandle[2]) ); }
+void TIM7_IRQHandler( void ){  HAL_TIM_IRQHandler( &(TimHandle[3]) ); }
+//void TIM8_IRQHandler( void ){  HAL_TIM_IRQHandler( &(TimHandle[0]) ); }
+void TIM1_BRK_TIM9_IRQHandler( void ){  HAL_TIM_IRQHandler( &(TimHandle[4]) ); }
+void TIM1_UP_TIM10_IRQHandler( void ){ HAL_TIM_IRQHandler( &(TimHandle[5]) ); }
+void TIM1_TRG_COM_TIM11_IRQHandler( void ){ HAL_TIM_IRQHandler( &(TimHandle[6]) ); }
+void TIM8_BRK_TIM12_IRQHandler( void ){ HAL_TIM_IRQHandler( &(TimHandle[7]) ); }
+void TIM8_UP_TIM13_IRQHandler( void ){ HAL_TIM_IRQHandler( &(TimHandle[8]) ); }
+void TIM8_TRG_COM_TIM14_IRQHandler( void ){ HAL_TIM_IRQHandler( &(TimHandle[9]) ); }
 
 int Timer_Init( Timer_Callback_t cb )
 {
-    U_PrintLn("Timer_Init");
     callback = cb;
     for( int i=0; i<MAX_LL_TIMERS; i++ ){
         TimHandle[i].Instance = _timer[i].Instance;
@@ -85,16 +85,13 @@ int Timer_Init( Timer_Callback_t cb )
 
         Timer_Set_Params( i, 1.0 );
     }
-    //Timer_Start(0);
-
     return MAX_LL_TIMERS;
 }
 
 void HAL_TIM_Base_MspInit(TIM_HandleTypeDef *htim)
 {
     for( int i=0; i<MAX_LL_TIMERS; i++ ){
-        if( htim == &TimHandle[i] ){
-// FIXME how to do this? this is a macro not fn :/
+        if( htim == &(TimHandle[i]) ){
             (_timer[i].CLK_ENABLE)();
             HAL_NVIC_SetPriority( _timer[i].IRQn
                                 , TIMx_IRQ_Priority // global timer priority
@@ -110,7 +107,7 @@ void HAL_TIM_PeriodElapsedCallback( TIM_HandleTypeDef *htim )
     // only iterate if it *doesn't* match the USB handle
     if( !USB_TIM_PeriodElapsedCallback(htim) ){
         for( int i=0; i<MAX_LL_TIMERS; i++ ){
-            if( htim == &TimHandle[i] ){
+            if( htim == &(TimHandle[i]) ){
                 (*callback)(i); // raise callback
                 return;
             }
@@ -123,12 +120,11 @@ void Timer_Set_Params( int ix, float seconds )
     //TODO need to call Timer_Stop(ix); first to deactivate while changing params?
     //FIXME limited to max~16s. possible to decrease speed of clock source?
 
-
     TimHandle[ix].Init.Period            = (uint16_t)(seconds * (float)0x1000);
     TimHandle[ix].Init.Prescaler         = 0xE000; // TODO
 uint32_t old_primask = __get_PRIMASK();
 __disable_irq();
-    uint8_t err = HAL_TIM_Base_Init( &TimHandle[ix] );
+    uint8_t err = HAL_TIM_Base_Init( &(TimHandle[ix]) );
 __set_PRIMASK( old_primask );
     if( err != HAL_OK ){
         U_Print("Timer_Set_Params("); U_PrintU8n(ix); U_PrintLn(") failed");
@@ -139,7 +135,7 @@ void Timer_Start( int ix )
 {
 uint32_t old_primask = __get_PRIMASK();
 __disable_irq();
-    uint8_t err = HAL_TIM_Base_Start_IT( &TimHandle[ix] );
+    uint8_t err = HAL_TIM_Base_Start_IT( &(TimHandle[ix]) );
 __set_PRIMASK( old_primask );
     if( err != HAL_OK ){
         U_Print("Timer_Start("); U_PrintU8n(ix); U_PrintLn(") failed");
@@ -150,7 +146,7 @@ void Timer_Stop( int ix )
 {
 uint32_t old_primask = __get_PRIMASK();
 __disable_irq();
-    uint8_t err = HAL_TIM_Base_Stop_IT( &TimHandle[ix] );
+    uint8_t err = HAL_TIM_Base_Stop_IT( &(TimHandle[ix]) );
 __set_PRIMASK( old_primask );
     if( err != HAL_OK ){
         U_Print("Timer_Stop("); U_PrintU8n(ix); U_PrintLn(") failed");
