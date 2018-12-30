@@ -42,7 +42,7 @@ end
 
 print'lua bootstrapped'
 
-crow = dofile('lua/crowlib.lua')
+_c = dofile('lua/crowlib.lua')
 
 --collectgarbage('collect')
 

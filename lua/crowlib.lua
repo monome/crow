@@ -1,13 +1,13 @@
 --- Crow standard library
 
-local crow = {}
+_crow = {}
 
 --- System functions
 
-crow.version = '0.0.0'
+_crow.version = '0.0.0'
 
 function whatversion()
-    return crow.version
+    return _crow.version
 end
 
 function printversion()
@@ -27,7 +27,7 @@ local function closelibs()
     Metro  = nil
 end
 
-function crow.libs( lib )
+function _crow.libs( lib )
     if lib == nil then
         -- load all
         Input  = dofile('lua/input.lua')
@@ -44,7 +44,7 @@ function crow.libs( lib )
 end
 
 -- open all libs by default
-crow.libs()
+_crow.libs()
 
 
 
@@ -154,4 +154,4 @@ end
 
 print'crowlib loaded'
 
-return crow
+return _crow
