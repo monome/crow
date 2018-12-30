@@ -5,7 +5,7 @@ function init()
     end
 
     counter = Metro.alloc()
-    counter.time = 1.0
+    counter.time = 2.0
     counter.count = -1
     counter.callback = count
     counter:start()
