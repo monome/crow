@@ -37,7 +37,6 @@ end
 
 function Input:set_mode( mode, ... )
     -- TODO short circuit these comparisons by only looking at first char
-    debug_usart('set_mode')
     local args = {...}
     if mode == 'stream' then
         self.time = args[1] or self.time
