@@ -92,28 +92,26 @@ end
 -- these will be called from norns (or the REPL)
 -- they return values wrapped in strings that can be used in Lua directly
 -- via dostring
-get_cv_cb = 'ret_cv' -- make a list of these so they can be queried / changed
-get_out_cb = 'out_cv' -- make a list of these so they can be queried / changed
-function get_cv( channel )
-    print('^^' .. get_cv_cb .. '(' .. channel .. ',' .. io_get_input(channel) .. ')')
-end
-function get_out( channel )
-    print('^^' .. get_out_cb .. '(' .. channel .. ',' .. get_state(channel) .. ')')
+function get_out( channel ) _crow.tell( 'out_cv', channel, get_state(channel)) end
+function get_cv( channel )  _crow.tell( 'ret_cv', channel, io_get_input(channel)) end
+
+function _crow.make_cmd( event_name, ... )
+    local out_string = string.format('^^%s(',event_name)
+    local args = {...}
+    local arg_len = #args
+    if arg_len > 0 then
+        for i=1,arg_len-1 do
+            out_string = out_string .. args[i] .. ',' -- can't use .format bc ?type
+        end
+        out_string = out_string .. args[arg_len]
+    end
+    return out_string .. ')'
 end
 
--- do we always have fixed arg count? do all args always get send to c-fn?
-remotes = { { 'get_cv', 'ret_cv', io_get_input }
-          , { 'get_out', 'out_cv', get_state   }
-          }
+function _crow.tell( event_name, ... )
+    print(_crow.make_cmd( event_name, ... ))
+end
 
---function make_remote_fns()
---    --TODO
---end
---
---make_remote_fn
---    function get_out( channel )
---        print('^^' .. cb .. '(' .. channel .. ',' .. get_state(channel) .. ')')
---    end
 
 --- Flash program
 function start_flash_chunk()
