@@ -59,16 +59,16 @@ Timer_Callback_t callback;
 //void TIM1_IRQHandler( void ){  HAL_TIM_IRQHandler( &(TimHandle[0]) ); }
 //void TIM2_IRQHandler( void ){  HAL_TIM_IRQHandler( &(TimHandle[0]) ); }
 //void TIM3_IRQHandler( void ){  HAL_TIM_IRQHandler( &(TimHandle[0]) ); }
-void TIM4_IRQHandler( void ){  HAL_TIM_IRQHandler( &(TimHandle[0]) ); }
-void TIM5_IRQHandler( void ){  HAL_TIM_IRQHandler( &(TimHandle[1]) ); }
-void TIM6_DAC_IRQHandler( void ){  HAL_TIM_IRQHandler( &(TimHandle[2]) ); }
-void TIM7_IRQHandler( void ){  HAL_TIM_IRQHandler( &(TimHandle[3]) ); }
+void TIM4_IRQHandler(               void ){ HAL_TIM_IRQHandler( &(TimHandle[0]) ); }
+void TIM5_IRQHandler(               void ){ HAL_TIM_IRQHandler( &(TimHandle[1]) ); }
+void TIM6_DAC_IRQHandler(           void ){ HAL_TIM_IRQHandler( &(TimHandle[2]) ); }
+void TIM7_IRQHandler(               void ){ HAL_TIM_IRQHandler( &(TimHandle[3]) ); }
 //void TIM8_IRQHandler( void ){  HAL_TIM_IRQHandler( &(TimHandle[0]) ); }
-void TIM1_BRK_TIM9_IRQHandler( void ){  HAL_TIM_IRQHandler( &(TimHandle[4]) ); }
-void TIM1_UP_TIM10_IRQHandler( void ){ HAL_TIM_IRQHandler( &(TimHandle[5]) ); }
+void TIM1_BRK_TIM9_IRQHandler(      void ){ HAL_TIM_IRQHandler( &(TimHandle[4]) ); }
+void TIM1_UP_TIM10_IRQHandler(      void ){ HAL_TIM_IRQHandler( &(TimHandle[5]) ); }
 void TIM1_TRG_COM_TIM11_IRQHandler( void ){ HAL_TIM_IRQHandler( &(TimHandle[6]) ); }
-void TIM8_BRK_TIM12_IRQHandler( void ){ HAL_TIM_IRQHandler( &(TimHandle[7]) ); }
-void TIM8_UP_TIM13_IRQHandler( void ){ HAL_TIM_IRQHandler( &(TimHandle[8]) ); }
+void TIM8_BRK_TIM12_IRQHandler(     void ){ HAL_TIM_IRQHandler( &(TimHandle[7]) ); }
+void TIM8_UP_TIM13_IRQHandler(      void ){ HAL_TIM_IRQHandler( &(TimHandle[8]) ); }
 void TIM8_TRG_COM_TIM14_IRQHandler( void ){ HAL_TIM_IRQHandler( &(TimHandle[9]) ); }
 
 int Timer_Init( Timer_Callback_t cb )
