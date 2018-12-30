@@ -429,6 +429,7 @@ void L_handle_metro( const int id, const int stage)
 
 void L_handle_in_stream( int id, float value )
 {
+    U_Print("stream");
     lua_getglobal(L, "stream_handler");
     lua_pushinteger(L, id+1); // 1-ix'd
     lua_pushnumber(L, value);

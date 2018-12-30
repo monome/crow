@@ -8,6 +8,8 @@
 #include "slews.h"             // S_init(), S_step_v()
 #include "metro.h"
 
+#include "lualink.h"           // L_handle_in_stream (pass this in as ptr?)
+
 #include "../ll/debug_usart.h" // U_Print*()
 
 // Private Declarations
@@ -108,7 +110,8 @@ void IO_SetADCaction( uint8_t channel, const char* mode )
 void IO_handle_timer( uint8_t channel )
 {
     // TODO
-    U_PrintLn("adc");
+    //U_PrintLn("adc");
+    L_handle_in_stream( channel, IO_GetADC(channel) );
     // only handles the 'stream' type
 }
 

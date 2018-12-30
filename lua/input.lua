@@ -35,11 +35,46 @@ function Input:get_value()
     return io_get_input( self.channel )
 end
 
+function Input:set_mode( mode, ... )
+    -- TODO short circuit these comparisons by only looking at first char
+    debug_usart('set_mode')
+    local args = {...}
+    if mode == 'stream' then
+        self.time = args[1] or self.time
+        metro_start( self.channel - 2 -- -2 jump before metros
+                   , self.time
+                   , -1
+                   , 0
+                   ) -- C function
+    else
+        metro_stop(self.channel - 2) -- C function, -2 jump before metros
+        if mode == 'change' then
+            self.threshold  = args[1] or self.threshold
+            self.hysteresis = args[2] or self.hysteresis
+            self.direction  = args[3] or self.direction
+        elseif mode == 'window' then
+            self.windows    = args[1] or self.windows
+            self.hysteresis = args[2] or self.hysteresis
+            self.direction  = args[3] or self.direction
+        elseif mode == 'scale' then
+            self.notes = args[1] or self.notes
+        elseif mode == 'quantize' then
+            self.tones = args[1] or self.tones
+            self.quants = args[2] or self.scale
+        elseif mode == 'ji' then
+            self.ratios = args[1]
+        else
+
+        end
+    end
+    self._mode = mode
+end
+
 --- METAMETHODS
 Input.__newindex = function(self, ix, val)
     if ix == 'mode' then
         self._mode = val
-        set_input_mode( self.channel, val )
+        Input.set_mode(self, self._mode)
     end
 end
 
@@ -63,38 +98,9 @@ end
 
 setmetatable(Input, Input) -- capture the metamethods
 
-function Input:set_mode( mode, ... )
-    -- TODO short circuit these comparisons by only looking at first char
-    local args = {...}
-    if     mode == 'stream' then
-        self.time = args[1] or self.time
-    elseif mode == 'change' then
-        self.threshold  = args[1] or self.threshold
-        self.hysteresis = args[2] or self.hysteresis
-        self.direction  = args[3] or self.direction
-    elseif mode == 'window' then
-        self.windows    = args[1] or self.windows
-        self.hysteresis = args[2] or self.hysteresis
-        self.direction  = args[3] or self.direction
-    elseif mode == 'scale' then
-        self.notes = args[1] or self.notes
-    elseif mode == 'quantize' then
-        self.tones = args[1] or self.tones
-        self.quants = args[2] or self.scale
-    elseif mode == 'ji' then
-        self.ratios = args[1]
-    elseif mode == 'none' then
-    else
-        print('unknown mode')
-        return
-    end
-    self._mode = mode
-    set_input_mode( self.channel, self._mode )
-end
-
 -- callback
 function stream_handler( chan, val )
-    print( 'stream ' .. chan .. ' ' .. val)
+    --print( 'stream ' .. chan .. ' ' .. val)
     Input.inputs[chan].stream( val )
 end
 

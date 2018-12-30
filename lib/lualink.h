@@ -20,3 +20,4 @@ void Lua_print_script( void );
 // Callback declarations
 extern void L_handle_toward( int id );
 extern void L_handle_metro( const int id, const int stage);
+extern void L_handle_in_stream( int id, float value );

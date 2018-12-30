@@ -9,6 +9,8 @@ function init()
     counter.count = -1
     counter.callback = count
     counter:start()
+
+    input[1].mode('stream', 0.1)
 end
 
 local position = 0
