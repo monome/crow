@@ -121,33 +121,26 @@ function start_flash_chunk()
 end
 
 
-
-
-
 --- Syntax extensions
--- 
--- extend this macro to conditionally take 'once' as first arg
---      if present, fn is only executed on first invocation then reused
 function closure_if_table( f )
     local _f = f
-    f = function( ... ) -- applies globally
-        if type( ... ) == 'table' then
-            local args = ...
-            return function() return _f( table.unpack(args) ) end
-        else
-            return _f( ... )
+    return function( ... )
+            if type( ... ) == 'table' then
+                local args = ...
+                return function() return _f( table.unpack(args) ) end
+            else return _f( ... ) end
         end
-    end
-    return f
 end
 -- these functions are overloaded with the table->closure functionality
--- nb: there is a performance penalty to normal usage due to type()
-wrapped_fns = { math.random
-              , math.min
-              , math.max
+wrapped_fns = { 'math.random'
+              , 'math.min'
+              , 'math.max'
               }
+-- this hack is required to change the identifier (eg math.random) itself(?)
 for _,fn in ipairs( wrapped_fns ) do
-    fn = closure_if_table( fn )
+    load( string.format('%s=closure_if_table(%s)',fn,fn))()
+    -- below is original version that didn't work. nb: wrapped_fns was fns not strs
+    -- fn = closure_if_table( fn ) -- this *doesn't* redirect the identifier
 end
 
 print'crowlib loaded'
