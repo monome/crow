@@ -25,14 +25,16 @@ function from_length( n )
 end
 
 function eval( str )
-    -- parse for 'execute' token vs print
-    if string.find( str, "^%^%^" ) then
-		pcall( loadstring( str:sub(3)))
+	if #str == 0 then return end
+	local split = string.find( str, "\r" )
+	local now = str:sub( 1, split)	
+	if string.find( now, "^%^%^") then
+		pcall( loadstring( now:sub(3)))
     else
-        to_max_print( str )
+        to_max_print( now )
     end
+	eval( str:sub( split+1))
 end
-
 
 --- Request/callback pairs
 -- from max
