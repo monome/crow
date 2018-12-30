@@ -4,7 +4,7 @@
 local Input = {}
 Input.__index = Input
 
-Input.inputs = {}
+Input.inputs = {1,2}
 
 function Input.new( chan )
     local i = { channel    = chan

@@ -87,7 +87,7 @@ void IO_SetADCaction( uint8_t channel, const char* mode )
         Metro_start( channel, 1.0, -1, 0 ); // how to get time?
     } else { Metro_stop( channel ); }
 
-    switch( _parse_mode(mode) ){
+    switch( im ){
         case In_none:
             break;
         case In_stream:
@@ -109,10 +109,7 @@ void IO_SetADCaction( uint8_t channel, const char* mode )
 
 void IO_handle_timer( uint8_t channel )
 {
-    // TODO
-    //U_PrintLn("adc");
     L_handle_in_stream( channel, IO_GetADC(channel) );
-    // only handles the 'stream' type
 }
 
 void IO_Recalibrate( void )

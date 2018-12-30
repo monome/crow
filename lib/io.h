@@ -13,4 +13,4 @@ void IO_Set( uint8_t channel, float volts );
 float IO_GetADC( uint8_t channel );
 void IO_SetADCaction( uint8_t channel, const char* mode );
 
-void IO_handle_timer( uint8_t channel );
+extern void IO_handle_timer( uint8_t channel );

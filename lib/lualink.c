@@ -429,9 +429,10 @@ void L_handle_metro( const int id, const int stage)
 
 void L_handle_in_stream( int id, float value )
 {
-    U_Print("stream");
     lua_getglobal(L, "stream_handler");
     lua_pushinteger(L, id+1); // 1-ix'd
+    if( value > 10.0 ){ value = 10.0; }
+    if( value < -5.0 ){ value = -5.0; }
     lua_pushnumber(L, value);
     if( lua_pcall(L, 2, 0, 0) != LUA_OK ){
         Caw_send_luachunk("error: input stream");
