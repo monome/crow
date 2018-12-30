@@ -25,6 +25,8 @@
 #include "lua/asl.lua.h"
 #include "lua/asllib.lua.h"
 #include "lua/metro.lua.h"
+#include "lua/input.lua.h"
+#include "lua/output.lua.h"
 
 struct lua_lib_locator{ const char* name; const char* addr_of_luacode; };
 const struct lua_lib_locator Lua_libs[] =
@@ -32,6 +34,8 @@ const struct lua_lib_locator Lua_libs[] =
     , { "lua_asl"    , lua_asl     }
     , { "lua_asllib" , lua_asllib  }
     , { "lua_metro"  , lua_metro   }
+    , { "lua_input"  , lua_input   }
+    , { "lua_output" , lua_output  }
     , { NULL         , NULL        }
     };
 
@@ -45,6 +49,7 @@ static uint8_t Lua_eval( lua_State*     L
                        , size_t         script_len
                        , ErrorHandler_t errfn
                        );
+static float Lua_check_memory( void );
 
 lua_State* L; // global access for 'reset-environment'
 
@@ -58,33 +63,28 @@ L_repl_mode repl_mode = REPL_normal;
 void Lua_Init(void)
 {
     L = luaL_newstate();
-    luaL_openlibs(L);                      // lua std lib
-    Lua_linkctolua(L);                     // lua can access declared c fns
+    luaL_openlibs(L);
+    Lua_linkctolua(L);
     Lua_eval(L, lua_bootstrap
               , strlen(lua_bootstrap)
               , U_PrintLn
               ); // redefine dofile(), print(), load crowlib
-
-    // TODO this will first check for a user script
-    // fallback if syntax error
+    // TODO fallback if error
     if( Flash_is_user_script() ){
-        U_PrintLn("load user script");
-        // TODO load user script
         Lua_new_script_buffer();
         if( Flash_read_user_script( new_script, &new_script_len ) ){
             U_PrintLn("can't find user script");
         }
-        // now loadstring & pcall new_script
         if( Lua_eval( L, new_script
                        , new_script_len
                        , Caw_send_luaerror
                        ) ){
             U_PrintLn("failed to load user script");
         }
-        U_PrintLn("free(script)");
+        U_PrintLn("user_script");
         free(new_script);
     } else {
-        U_PrintLn("load default script");
+        U_PrintLn("default_script");
         Lua_eval(L, lua_default
                   , strlen(lua_default)
                   , U_PrintLn
@@ -95,15 +95,6 @@ void Lua_Init(void)
 void Lua_DeInit(void)
 {
     lua_close(L);
-}
-void check_ram_usage( void )
-{
-//    int s; // stack allocation
-//    int* h = malloc(sizeof(int)); // heap allocation
-//    U_Print("ram left "); U_PrintU32( (int)&s - (int)h );
-//    //U_Print("stack "); U_PrintU32( (int)&s );
-//    //U_Print("heap  "); U_PrintU32( (int)h );
-//    free(h);
 }
 
 // C-fns accessible to lua
@@ -121,9 +112,11 @@ static int _dofile( lua_State *L )
             if( luaL_dostring( L, Lua_libs[i].addr_of_luacode ) ){
                 U_Print("can't load library: ");
                 U_PrintLn( (char*)Lua_libs[i].name );
+                // lua error
+                U_PrintLn( (char*)lua_tostring( L, -1 ) );
+                lua_pop( L, 1 );
                 goto fail;
             }
-            //check_ram_usage();
             return 1; // table is left on the stack as retval
         }
         i++;
@@ -131,7 +124,6 @@ static int _dofile( lua_State *L )
     U_Print("can't find library: ");
     U_PrintLn( (char*)l_name );
 fail:
-    // failed to find library
     lua_pushnil(L);
     return 1;
 }
@@ -140,12 +132,14 @@ static int _debug( lua_State *L )
     const char* msg = luaL_checkstring(L, 1);
     lua_pop( L, 1 );
     U_PrintLn( (char*)msg);
+    lua_settop(L, 0);
     return 0;
 }
 static int _print_serial( lua_State *L )
 {
     Caw_send_luachunk( (char*)luaL_checkstring(L, 1) );
     lua_pop( L, 1 );
+    lua_settop(L, 0);
     return 0;
 }
 static int _bootloader( lua_State *L )
@@ -163,15 +157,14 @@ static int _go_toward( lua_State *L )
             , L_handle_toward
             );
     lua_pop( L, 4 );
+    lua_settop(L, 0);
     return 0;
 }
 static int _get_state( lua_State *L )
 {
     float s = S_get_state( luaL_checkinteger(L, 1)-1 );
     lua_pop( L, 1 );
-    lua_pushnumber( L
-                  , s // testing if functional style causing issues?
-                  );
+    lua_pushnumber( L, s );
     return 1;
 }
 static int _io_get_input( lua_State *L )
@@ -181,6 +174,15 @@ static int _io_get_input( lua_State *L )
     lua_pushnumber( L, adc );
     return 1;
 }
+static int _set_input_mode( lua_State *L )
+{
+    IO_SetADCaction( luaL_checkinteger(L, 1)-1
+                   , luaL_checkstring(L, 2)
+                   );
+    lua_pop( L, 2 );
+    lua_settop(L, 0);
+    return 0;
+}
 static int _send_usb( lua_State *L )
 {
     // pattern match on type: handle values vs strings vs chunk
@@ -188,6 +190,7 @@ static int _send_usb( lua_State *L )
     lua_pop( L, 1 );
     uint32_t len = strlen(msg);
     Caw_send_raw( (uint8_t*) msg, len );
+    lua_settop(L, 0);
     return 0;
 }
 static int _send_ii( lua_State *L )
@@ -195,6 +198,7 @@ static int _send_ii( lua_State *L )
     // pattern match on broadcast vs query
     uint8_t istate = 4;
     II_broadcast( II_FOLLOW, 1, &istate, 1 );
+    lua_settop(L, 0);
     return 0;
 }
 static int _set_ii_addr( lua_State *L )
@@ -202,6 +206,7 @@ static int _set_ii_addr( lua_State *L )
     // pattern match on broadcast vs query
     uint8_t istate = 4;
     II_broadcast( II_FOLLOW, 1, &istate, 1 );
+    lua_settop(L, 0);
     return 0;
 }
 static int _metro_start( lua_State* L )
@@ -218,7 +223,7 @@ static int _metro_start( lua_State* L )
     if (nargs > 3) { stage = (int)luaL_checkinteger(L, 4) - 1; } // 1-ix'd
     lua_pop( L, 4 );
 
-    metro_start( idx, seconds, count, stage ); // TODO implement in C
+    Metro_start( idx+2, seconds, count, stage ); // +2 for adc
     lua_settop(L, 0);
     return 0;
 }
@@ -228,7 +233,7 @@ static int _metro_stop( lua_State* L )
 
     int idx = (int)luaL_checkinteger(L, 1) - 1; // 1-ix'd
     lua_pop( L, 1 );
-    metro_stop(idx); // TODO implement in C
+    Metro_stop(idx+2); // +2 for adc
     lua_settop(L, 0);
     return 0;
 }
@@ -239,7 +244,7 @@ static int _metro_set_time( lua_State* L )
     int idx = (int)luaL_checkinteger(L, 1) - 1; // 1-ix'd
     float sec = (float) luaL_checknumber(L, 2);
     lua_pop( L, 2 );
-    metro_set_time(idx, sec); // TODO implement in C
+    Metro_set_time(idx+2, sec); // +2 for adc
     lua_settop(L, 0);
     return 0;
 }
@@ -257,6 +262,7 @@ static const struct luaL_Reg libCrow[]=
     , { "go_toward"      , _go_toward        }
     , { "get_state"      , _get_state        }
     , { "io_get_input"   , _io_get_input     }
+    , { "set_input_mode" , _set_input_mode   }
         // usb
     , { "send_usb"       , _send_usb         }
         // i2c
@@ -280,12 +286,6 @@ static void Lua_linkctolua( lua_State *L )
         fn++;
     }
 }
-
-/*
-LUALIB_API int luaL_loadstring (lua_State *L, const char *s) {
-  return luaL_loadbuffer(L, s, strlen(s), s);
-}
-*/
 
 static uint8_t Lua_eval( lua_State*     L
                        , const char*    script
@@ -311,24 +311,28 @@ static uint8_t Lua_eval( lua_State*     L
     return 0;
 }
 
+static float Lua_check_memory( void )
+{
+    lua_getglobal(L,"collectgarbage");
+    lua_pushstring(L, "count"); // 1-ix'd
+    lua_pcall(L,1,1,0);
+    float mem = luaL_checknumber(L, 1);
+    lua_pop(L,1);
+    return mem;
+}
+
 void Lua_crowbegin( void )
 {
-    // Call init() function
-    // This is all we need to do -> the rest should flow back from Lua
-    // The only callback->Lua *not* declared in Lua is a received command over USB
     U_PrintLn("init()"); // call in C to avoid user seeing in lua
     lua_getglobal(L,"init");
     lua_pcall(L,0,0,0);
 }
 
 // TODO the repl/state/reception logic should be its own file
-//
-// private declarations for repl
 void Lua_repl_mode( L_repl_mode mode )
 {
     repl_mode = mode;
-    if( repl_mode == REPL_reception ){
-        // begin a new transmission
+    if( repl_mode == REPL_reception ){ // begin a new transmission
         Lua_new_script_buffer();
     } else { // end of a transmission
         if( !Lua_eval( L, new_script
@@ -343,7 +347,6 @@ void Lua_repl_mode( L_repl_mode mode )
             }
             U_PrintLn("script saved");
         } else { U_PrintLn("new user script failed test"); }
-        U_PrintLn("free(script)");
         free(new_script); // cleanup memory
     }
 }
@@ -406,24 +409,34 @@ void L_handle_toward( int id )
     lua_getglobal(L, "toward_handler");
     lua_pushinteger(L, id+1); // 1-ix'd
     if( lua_pcall(L, 1, 0, 0) != LUA_OK ){
-        //U_PrintLn("error running toward_handler");
         Caw_send_luachunk("error running toward_handler");
         U_PrintLn( (char*)lua_tostring(L, -1) );
         lua_pop( L, 1 );
     }
 }
 
-// probably need no static, and make this extern in header for access from metro lib
 void L_handle_metro( const int id, const int stage)
 {
     lua_getglobal(L, "metro_handler");
-    lua_pushinteger(L, id+1);    // 1-ix'd
+    lua_pushinteger(L, id+1 -2); // 1-ix'd, less 2 for adc rebase
     lua_pushinteger(L, stage+1); // 1-ix'd
     if( lua_pcall(L, 2, 0, 0) != LUA_OK ){
-        //U_Print("error running "); U_PrintLn("metro_handler");
         Caw_send_luachunk("error running metro_handler");
-        U_PrintLn( (char*)lua_tostring(L, -1) );
+        Caw_send_luachunk( (char*)lua_tostring(L, -1) );
         lua_pop( L, 1 );
     }
+}
 
+void L_handle_in_stream( int id, float value )
+{
+    lua_getglobal(L, "stream_handler");
+    lua_pushinteger(L, id+1); // 1-ix'd
+    if( value > 10.0 ){ value = 10.0; }
+    if( value < -5.0 ){ value = -5.0; }
+    lua_pushnumber(L, value);
+    if( lua_pcall(L, 2, 0, 0) != LUA_OK ){
+        Caw_send_luachunk("error: input stream");
+        Caw_send_luachunk( (char*)lua_tostring(L, -1) );
+        lua_pop( L, 1 );
+    }
 }

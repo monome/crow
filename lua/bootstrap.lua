@@ -2,13 +2,13 @@
 -- dofile() and print() need hardware specific implementations
 -- call this before any other lua code
 --
---
 -- nb: assert() seems to be broken. failed assert does nothing
 
 -- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 -- must set garbage collection faster than normal or lua VM stack overflows!
 -- TODO: optimize this choice of value
-collectgarbage('setpause', 100)
+collectgarbage('setpause', 100) --default 200
+--collectgarbage('setstepmul', 400) --default 200
 -- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 print = function(...)
@@ -41,21 +41,6 @@ end
 
 print'lua bootstrapped'
 
-crow = dofile('lua/crowlib.lua')
+_c = dofile('lua/crowlib.lua')
 
---- Tests
--- move these to a diff file & run tests over all the functions from makefile?
-
---local function run_tests()
---    -- TODO use load() to abstract the called function
---    local test = [[luapath_to_cpath('lua/asl.lua')]]
---    print('test\t'..test)
---    local expect = 'lua_asl'
---    local result = luapath_to_cpath('lua/asl.lua')
---    if expect ~= result then
---        print('FAILED!'..'\texpect\t'..'lua_asl')
---        print('\tresult\t'..result)
---    else print'ok!' end
---end
---
---run_tests()
+--collectgarbage('collect')

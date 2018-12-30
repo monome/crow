@@ -7,8 +7,8 @@
 local Metro = {}
 Metro.__index = Metro
 
-Metro.num_metros = 9
-Metro.num_script_metros = 7 -- 8+9 reserved for ADC polls?
+Metro.num_metros = 7
+Metro.num_script_metros = 7
 
 Metro.metros = {}
 Metro.available = {}
@@ -67,7 +67,7 @@ end
 
 --- reset to default state
 function Metro:init()
-    self.id = id -- FIXME there's no id here?
+    --self.id = id -- FIXME there's no id here?
     self.time = 1
     self.count = -1
     self.callback = nil
@@ -82,9 +82,13 @@ function Metro:start(time, count, stage)
     local vargs = {}
     if time then self.props.time = time end
     if count then self.props.count = count end
-    if stage then self.init_stage = stage end
+    if stage then self.props.init_stage = stage end
     self.is_running = true
-    metro_start(self.props.id, self.props.time, self.props.count, self.props.init_stage) -- C function
+    metro_start( self.props.id
+               , self.props.time
+               , self.props.count
+               , self.props.init_stage
+               ) -- C function
 end
 
 --- stop a metro

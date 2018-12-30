@@ -1,13 +1,13 @@
 --- Crow standard library
 
-local crow = {}
+_crow = {}
 
 --- System functions
 
-crow.version = '0.0.0'
+_crow.version = '0.0.0'
 
 function whatversion()
-    return crow.version
+    return _crow.version
 end
 
 function printversion()
@@ -20,12 +20,14 @@ end
 local function closelibs()
     -- set whole list of libs to nil to close them
     -- TODO does this free the RAM used by 'dofile'?
+    Input  = nil
+    Output = nil
     Asl    = nil
     Asllib = nil
     Metro  = nil
 end
 
-function crow.libs( lib )
+function _crow.libs( lib )
     if lib == nil then
         -- load all
         Input  = dofile('lua/input.lua')
@@ -42,7 +44,7 @@ function crow.libs( lib )
 end
 
 -- open all libs by default
-crow.libs()
+_crow.libs()
 
 
 
@@ -90,28 +92,26 @@ end
 -- these will be called from norns (or the REPL)
 -- they return values wrapped in strings that can be used in Lua directly
 -- via dostring
-get_cv_cb = 'ret_cv' -- make a list of these so they can be queried / changed
-get_out_cb = 'out_cv' -- make a list of these so they can be queried / changed
-function get_cv( channel )
-    print('^^' .. get_cv_cb .. '(' .. channel .. ',' .. io_get_input(channel) .. ')')
-end
-function get_out( channel )
-    print('^^' .. get_out_cb .. '(' .. channel .. ',' .. get_state(channel) .. ')')
+function get_out( channel ) _crow.tell( 'out_cv', channel, get_state(channel)) end
+function get_cv( channel )  _crow.tell( 'ret_cv', channel, io_get_input(channel)) end
+
+function _crow.make_cmd( event_name, ... )
+    local out_string = string.format('^^%s(',event_name)
+    local args = {...}
+    local arg_len = #args
+    if arg_len > 0 then
+        for i=1,arg_len-1 do
+            out_string = out_string .. args[i] .. ',' -- can't use .format bc ?type
+        end
+        out_string = out_string .. args[arg_len]
+    end
+    return out_string .. ')'
 end
 
--- do we always have fixed arg count? do all args always get send to c-fn?
-remotes = { { 'get_cv', 'ret_cv', io_get_input }
-          , { 'get_out', 'out_cv', get_state   }
-          }
+function _crow.tell( event_name, ... )
+    print(_crow.make_cmd( event_name, ... ))
+end
 
---function make_remote_fns()
---    --TODO
---end
---
---make_remote_fn
---    function get_out( channel )
---        print('^^' .. cb .. '(' .. channel .. ',' .. get_state(channel) .. ')')
---    end
 
 --- Flash program
 function start_flash_chunk()
@@ -121,35 +121,28 @@ function start_flash_chunk()
 end
 
 
-
-
-
 --- Syntax extensions
--- 
--- extend this macro to conditionally take 'once' as first arg
---      if present, fn is only executed on first invocation then reused
 function closure_if_table( f )
     local _f = f
-    f = function( ... ) -- applies globally
-        if type( ... ) == 'table' then
-            local args = ...
-            return function() return _f( table.unpack(args) ) end
-        else
-            return _f( ... )
+    return function( ... )
+            if type( ... ) == 'table' then
+                local args = ...
+                return function() return _f( table.unpack(args) ) end
+            else return _f( ... ) end
         end
-    end
-    return f
 end
 -- these functions are overloaded with the table->closure functionality
--- nb: there is a performance penalty to normal usage due to type()
-wrapped_fns = { math.random
-              , math.min
-              , math.max
+wrapped_fns = { 'math.random'
+              , 'math.min'
+              , 'math.max'
               }
+-- this hack is required to change the identifier (eg math.random) itself(?)
 for _,fn in ipairs( wrapped_fns ) do
-    fn = closure_if_table( fn )
+    load( string.format('%s=closure_if_table(%s)',fn,fn))()
+    -- below is original version that didn't work. nb: wrapped_fns was fns not strs
+    -- fn = closure_if_table( fn ) -- this *doesn't* redirect the identifier
 end
 
 print'crowlib loaded'
 
-return crow
+return _crow
