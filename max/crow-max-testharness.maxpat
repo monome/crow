@@ -57,7 +57,7 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 314.666687, 479.333344, 177.0, 49.0 ],
+					"patching_rect" : [ 409.75, 444.333344, 177.0, 49.0 ],
 					"style" : "",
 					"text" : "\"input[1].stream = function(val)\n  print(val)\nend\""
 				}
@@ -520,9 +520,9 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 237.333313, 417.0, 201.500031, 35.0 ],
+					"patching_rect" : [ 237.333313, 417.0, 162.166687, 35.0 ],
 					"style" : "",
-					"text" : "25\t\n\r"
+					"text" : "15\t\n\r"
 				}
 
 			}
@@ -573,7 +573,7 @@
 					"outlettype" : [ "" ],
 					"patching_rect" : [ 81.666664, 464.333344, 84.0, 22.0 ],
 					"style" : "",
-					"text" : "-0.492676"
+					"text" : "-0.429961"
 				}
 
 			}
