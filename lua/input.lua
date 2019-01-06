@@ -35,6 +35,10 @@ function Input:get_value()
     return io_get_input( self.channel )
 end
 
+-- FIXME this whole approach needs to be reconsidered.
+-- really need to use userdata to allow transparent c<->lua data sharing.
+-- basically the set of params being packed into set_input_mode should be
+-- a userdata object. lua just sets the c struct members.
 function Input:set_mode( mode, ... )
     -- TODO short circuit these comparisons by only looking at first char
     local args = {...}
@@ -45,12 +49,20 @@ function Input:set_mode( mode, ... )
                    , -1
                    , 0
                    ) -- C function
+        set_input_mode( self.channel, mode ) -- FIXME
     else
         metro_stop(self.channel - 2) -- C function, -2 jump before metros
         if mode == 'change' then
             self.threshold  = args[1] or self.threshold
             self.hysteresis = args[2] or self.hysteresis
             self.direction  = args[3] or self.direction
+            -- FIXME
+            set_input_mode( self.channel
+                          , mode
+                          , self.threshold
+                          , self.hysteresis
+                          , self.direction
+                          )
         elseif mode == 'window' then
             self.windows    = args[1] or self.windows
             self.hysteresis = args[2] or self.hysteresis
@@ -98,10 +110,8 @@ end
 setmetatable(Input, Input) -- capture the metamethods
 
 -- callback
-function stream_handler( chan, val )
-    --print( 'stream ' .. chan .. ' ' .. val)
-    Input.inputs[chan].stream( val )
-end
+function stream_handler( chan, val ) Input.inputs[chan].stream( val ) end
+function change_handler( chan, val ) Input.inputs[chan].change( val ) end
 
 print 'input loaded'
 

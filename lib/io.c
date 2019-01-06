@@ -6,11 +6,14 @@
 #include "../ll/cal_ll.h"      // CAL_LL_Init(),
 #include "../ll/adda.h"        // _Init(), _Start(), _GetADCValue(), IO_block_t
 #include "slews.h"             // S_init(), S_step_v()
+#include "detect.h"            // Detect_init(), Detect()
 #include "metro.h"
 
 #include "lualink.h"           // L_handle_in_stream (pass this in as ptr?)
 
 #include "../ll/debug_usart.h" // U_Print*()
+
+#define IN_CHANNELS ADDA_ADC_CHAN_COUNT
 
 // Private Declarations
 void _CAL_DAC( uint8_t chan );
@@ -28,6 +31,8 @@ typedef struct {
 
 CAL_t cal;
 
+Detect_t** detect;
+
 void IO_Init( void )
 {
     ADDA_Init();
@@ -35,6 +40,7 @@ void IO_Init( void )
     //CAL_LL_Init();
     //IO_Recalibrate();
 
+    detect = Detect_init( IN_CHANNELS );
     S_init();
 }
 
@@ -46,6 +52,11 @@ void IO_Start( void )
 // DSP process
 IO_block_t* IO_BlockProcess( IO_block_t* b )
 {
+    for( int j=0; j<IN_CHANNELS; j++ ){
+        Detect( detect[j]
+              , b->in[j][b->size-1]
+              );
+    }
     for( int j=0; j<SLEW_CHANNELS; j++ ){
         S_step_v( j
                 , b->out[j]

@@ -12,6 +12,7 @@
 // Hardware IO
 #include "ll/debug_usart.h" // U_Print*()
 #include "lib/slews.h"      // S_toward
+#include "lib/detect.h"     // Detect*
 #include "lib/caw.h"        // Caw_send_*()
 #include "lib/ii.h"         // II_*()
 #include "lib/bootloader.h" // bootloader_enter()
@@ -176,10 +177,20 @@ static int _io_get_input( lua_State *L )
 }
 static int _set_input_mode( lua_State *L )
 {
-    IO_SetADCaction( luaL_checkinteger(L, 1)-1
-                   , luaL_checkstring(L, 2)
-                   );
-    lua_pop( L, 2 );
+    int nargs = lua_gettop(L);
+    D_change_t  changer;
+    D_change_t* pChanger = NULL;
+    if (nargs > 2){
+        changer.threshold  = luaL_checknumber(L, 3);
+        changer.hysteresis = luaL_checknumber(L, 4);
+        changer.direction  = luaL_checkinteger(L, 5);
+        pChanger = &changer;
+    }
+    Detect_mode_ix( luaL_checkinteger(L, 1)-1
+                  , Detect_str_to_mode( luaL_checkstring(L, 2) )
+                  , L_handle_change
+                  , pChanger );
+    lua_pop( L, 5 );
     lua_settop(L, 0);
     return 0;
 }
@@ -436,6 +447,21 @@ void L_handle_in_stream( int id, float value )
     lua_pushnumber(L, value);
     if( lua_pcall(L, 2, 0, 0) != LUA_OK ){
         Caw_send_luachunk("error: input stream");
+        Caw_send_luachunk( (char*)lua_tostring(L, -1) );
+        lua_pop( L, 1 );
+    }
+}
+
+void L_handle_change( int id, float state )
+{
+    U_PrintLn("change");
+    lua_getglobal(L, "change_handler");
+    lua_pushinteger(L, id+1); // 1-ix'd
+    if( state > 10.0 ){ state = 10.0; }
+    if( state < -5.0 ){ state = -5.0; }
+    lua_pushnumber(L, state);
+    if( lua_pcall(L, 2, 0, 0) != LUA_OK ){
+        Caw_send_luachunk("error: input change");
         Caw_send_luachunk( (char*)lua_tostring(L, -1) );
         lua_pop( L, 1 );
     }
