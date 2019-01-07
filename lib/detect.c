@@ -3,18 +3,18 @@
 #include <stdlib.h>
 
 uint8_t channel_count = 0;
+
 Detect_t** selves = NULL;
 
-Detect_t** Detect_init( uint8_t channels )
+void Detect_init( int channels )
 {
-    selves = malloc( sizeof( Detect_t ) * channels );
-    // TODO null check
     channel_count = channels;
-    for( uint8_t j=0; j<channels; j++ ){
-        selves[j]->channel = j;
-        Detect_mode( selves[j], Detect_none, NULL, NULL );
-    }
-    return selves;
+    selves = malloc( sizeof( Detect_t* ) * channels );
+}
+void Detect_ch_init( Detect_t* self, int index )
+{
+    self->channel = index;
+    Detect_mode( self, Detect_none, NULL, NULL );
 }
 
 void Detect_mode_ix( uint8_t           index

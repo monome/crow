@@ -28,7 +28,8 @@ typedef struct{
     uint8_t       state;
 } Detect_t;
 
-Detect_t** Detect_init( uint8_t channels );
+void Detect_init( int channels );
+void Detect_ch_init( Detect_t* self, int index );
 void Detect_mode_ix( uint8_t           index
                    , Detect_mode_t     mode
                    , Detect_callback_t cb

@@ -20,7 +20,7 @@ function Input.new( chan )
               , ratios     = {}
         -- user-customizable events
               , stream     = function(value) get_cv(chan) end
-              , change     = function(state) get_cv(chan) end
+              , change     = function(state) _crow.tell('change',chan,state) end
               , window     = function(ix, direction) get_cv(chan) end
               , scale      = function(octave, ix) get_cv(chan) end
               , quantize   = function(octave, ix) get_cv(chan) end
@@ -49,7 +49,7 @@ function Input:set_mode( mode, ... )
                    , -1
                    , 0
                    ) -- C function
-        set_input_mode( self.channel, mode ) -- FIXME
+        --set_input_mode( self.channel, mode ) -- FIXME
     else
         metro_stop(self.channel - 2) -- C function, -2 jump before metros
         if mode == 'change' then

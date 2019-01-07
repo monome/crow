@@ -183,7 +183,8 @@ static int _set_input_mode( lua_State *L )
     if (nargs > 2){
         changer.threshold  = luaL_checknumber(L, 3);
         changer.hysteresis = luaL_checknumber(L, 4);
-        changer.direction  = luaL_checkinteger(L, 5);
+        //changer.direction  = luaL_checkstring(L, 5);
+        changer.direction  = 0;
         pChanger = &changer;
     }
     Detect_mode_ix( luaL_checkinteger(L, 1)-1

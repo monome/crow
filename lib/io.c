@@ -31,7 +31,7 @@ typedef struct {
 
 CAL_t cal;
 
-Detect_t** detect;
+Detect_t detect[IN_CHANNELS];
 
 void IO_Init( void )
 {
@@ -40,7 +40,10 @@ void IO_Init( void )
     //CAL_LL_Init();
     //IO_Recalibrate();
 
-    detect = Detect_init( IN_CHANNELS );
+    Detect_init( IN_CHANNELS );
+    for( int j=0; j<IN_CHANNELS; j++ ){
+        Detect_ch_init( &(detect[j]), j );
+    }
     S_init();
 }
 
@@ -53,7 +56,7 @@ void IO_Start( void )
 IO_block_t* IO_BlockProcess( IO_block_t* b )
 {
     for( int j=0; j<IN_CHANNELS; j++ ){
-        Detect( detect[j]
+        Detect( &(detect[j])
               , b->in[j][b->size-1]
               );
     }
