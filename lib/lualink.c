@@ -385,7 +385,6 @@ void Lua_repl( char* buf, uint32_t len, ErrorHandler_t errfn )
 static void Lua_new_script_buffer( void )
 {
     // TODO call to Lua to free resources from current script
-    U_PrintLn("malloc(buf)");
     new_script = malloc(USER_SCRIPT_SIZE);
     if(new_script == NULL){
         Caw_send_luachunk("!script: out of memory");
@@ -462,7 +461,6 @@ void L_handle_in_stream( int id, float value )
 
 void L_handle_change( int id, float state )
 {
-    U_PrintLn("change");
     lua_getglobal(L, "change_handler");
     lua_pushinteger(L, id+1); // 1-ix'd
     if( state > 10.0 ){ state = 10.0; }
