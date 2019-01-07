@@ -2,8 +2,8 @@ local Output = {}
 
 function Output.new( chan )
     local o = { channel = chan
-              , level   = 1.0
-              , rate    = 1.0
+              , level   = 5.0
+              , rate    = 1/chan
               , shape   = 'linear'
               , asl     = Asl.new( chan )
 --              , trig    = { asl      = Asl.new(k)
