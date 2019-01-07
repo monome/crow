@@ -98,6 +98,8 @@ void Lua_Init(void)
                   , strlen(lua_default)
                   , U_PrintLn
                   ); // run default script
+    } else {
+        U_PrintLn("user_script");
     }
 }
 
