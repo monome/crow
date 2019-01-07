@@ -301,8 +301,7 @@ static void Lua_linkctolua( lua_State *L )
     // Make C fns available to Lua
     uint8_t fn = 0;
     while( libCrow[fn].func != NULL ){
-        lua_pushcfunction( L, libCrow[fn].func );
-        lua_setglobal( L, libCrow[fn].name );
+        lua_register( L, libCrow[fn].name, libCrow[fn].func );
         fn++;
     }
 }
