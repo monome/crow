@@ -71,20 +71,28 @@ void Lua_Init(void)
               , U_PrintLn
               ); // redefine dofile(), print(), load crowlib
     // TODO fallback if error
+    uint8_t need_default = 0;
     if( Flash_is_user_script() ){
         Lua_new_script_buffer();
         if( Flash_read_user_script( new_script, &new_script_len ) ){
             U_PrintLn("can't find user script");
+            need_default = 1;
+        } else {
+            if( Lua_eval( L, new_script
+                           , new_script_len
+                           , Caw_send_luaerror
+                           ) ){
+                U_PrintLn("failed to load user script");
+                need_default = 1;
+            } else {
+                U_PrintLn("user_script loaded");
+            }
         }
-        if( Lua_eval( L, new_script
-                       , new_script_len
-                       , Caw_send_luaerror
-                       ) ){
-            U_PrintLn("failed to load user script");
+        if( need_default ){
+            free(new_script);
         }
-        U_PrintLn("user_script");
-        free(new_script);
-    } else {
+    }
+    if( need_default ){
         U_PrintLn("default_script");
         Lua_eval(L, lua_default
                   , strlen(lua_default)
