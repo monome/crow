@@ -3,6 +3,8 @@
 //  string name descriptor
 //  function pointer to processor
 // then the caller just invokes the set fnptr
+
+#include <math.h> // floorf()
 typedef enum{ S_linear
             , S_square
             , S_log
@@ -83,7 +85,7 @@ float S_absolute( float samp
     // k-rate
     float div_sz = fold / (float)divs; // abs size of a div
     // a-rate
-    int bracket  = (int)(samp / fold); // confirm this rounds to -ve
+    int bracket  = (int)floorf(samp / fold); // confirm this rounds to -ve
     float shelf  = samp % fold; // 0-fold range
     float shelf1 = shelf / fold; // 0-1 range within fold
     int div      = (int)(0.5 + (shelf1 * (float)divs)); // select the div
