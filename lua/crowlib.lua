@@ -1,6 +1,7 @@
 --- Crow standard library
 
 _crow = {}
+_c = _crow -- alias
 
 --- System functions
 
@@ -46,6 +47,34 @@ end
 -- open all libs by default
 _crow.libs()
 
+--- Communication functions
+-- these will be called from norns (or the REPL)
+-- they return values wrapped in strings that can be used in Lua directly
+-- via dostring
+
+function _crow.make_cmd( event_name, ... )
+    local out_string = string.format('^^%s(',event_name)
+    local args = {...}
+    local arg_len = #args
+    if arg_len > 0 then
+        for i=1,arg_len-1 do
+            out_string = out_string .. args[i] .. ',' -- can't use .format bc ?type
+        end
+        out_string = out_string .. args[arg_len]
+    end
+    return out_string .. ')'
+end
+
+function _crow.tell( event_name, ... )
+    print(_crow.make_cmd( event_name, ... ))
+end
+
+function get_out( channel ) _crow.tell( 'out_cv', channel, get_state(channel)) end
+--function get_cv( channel )  _crow.tell( 'ret_cv', channel, io_get_input(channel)) end
+function get_cv( channel )
+    _c.tell('ret_cv',channel,io_get_input( channel ))
+end
+
 
 
 --- Input
@@ -85,31 +114,6 @@ end
 
 adc_remote = function(chan)
     get_cv(chan)
-end
-
-
---- Communication functions
--- these will be called from norns (or the REPL)
--- they return values wrapped in strings that can be used in Lua directly
--- via dostring
-function get_out( channel ) _crow.tell( 'out_cv', channel, get_state(channel)) end
-function get_cv( channel )  _crow.tell( 'ret_cv', channel, io_get_input(channel)) end
-
-function _crow.make_cmd( event_name, ... )
-    local out_string = string.format('^^%s(',event_name)
-    local args = {...}
-    local arg_len = #args
-    if arg_len > 0 then
-        for i=1,arg_len-1 do
-            out_string = out_string .. args[i] .. ',' -- can't use .format bc ?type
-        end
-        out_string = out_string .. args[arg_len]
-    end
-    return out_string .. ')'
-end
-
-function _crow.tell( event_name, ... )
-    print(_crow.make_cmd( event_name, ... ))
 end
 
 
