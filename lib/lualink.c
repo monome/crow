@@ -1,11 +1,9 @@
 #include "lib/lualink.h"
 
-
 #include <string.h> // strcmp(), strlen()
-#include <stdlib.h> // malloc(), free()
 
 // Lua itself
-#include "../submodules/lua/src/lua.h"
+//#include "../submodules/lua/src/lua.h" // in header
 #include "../submodules/lua/src/lauxlib.h"
 #include "../submodules/lua/src/lualib.h"
 
@@ -18,7 +16,6 @@
 #include "lib/bootloader.h" // bootloader_enter()
 #include "lib/metro.h"      // metro_start() metro_stop() metro_set_time()
 #include "lib/io.h"         // IO_GetADC()
-#include "lib/flash.h"      // Flash_*()
 
 // Lua libs wrapped in C-headers: Note the extra '.h'
 #include "lua/bootstrap.lua.h" // MUST LOAD THIS MANUALLY FIRST
@@ -45,23 +42,12 @@ const struct lua_lib_locator Lua_libs[] =
 
 // Private prototypes
 static void Lua_linkctolua( lua_State* L );
-static uint8_t Lua_eval( lua_State*     L
-                       , const char*    script
-                       , size_t         script_len
-                       , ErrorHandler_t errfn
-                       );
 static float Lua_check_memory( void );
 
 lua_State* L; // global access for 'reset-environment'
 
-// repl / script load stuff (TODO needs its own file)
-char*    new_script;
-uint16_t new_script_len;
-static void Lua_new_script_buffer( void );
-L_repl_mode repl_mode = REPL_normal;
-
 // Public functions
-void Lua_Init(void)
+lua_State* Lua_Init(void)
 {
     L = luaL_newstate();
     luaL_openlibs(L);
@@ -70,37 +56,15 @@ void Lua_Init(void)
               , strlen(lua_bootstrap)
               , U_PrintLn
               ); // redefine dofile(), print(), load crowlib
-    // TODO fallback if error
-    uint8_t need_default = 0;
-    if( Flash_is_user_script() ){
-        Lua_new_script_buffer();
-        if( Flash_read_user_script( new_script, &new_script_len ) ){
-            U_PrintLn("can't find user script");
-            need_default = 1;
-        } else {
-            if( Lua_eval( L, new_script
-                           , new_script_len
-                           , Caw_send_luaerror
-                           ) ){
-                U_PrintLn("failed to load user script");
-                need_default = 1;
-            } else {
-                U_PrintLn("user_script loaded");
-            }
-        }
-        if( need_default ){
-            free(new_script);
-        }
-    }
-    if( need_default ){
-        U_PrintLn("default_script");
-        Lua_eval(L, lua_default
-                  , strlen(lua_default)
-                  , U_PrintLn
-                  ); // run default script
-    } else {
-        U_PrintLn("user_script");
-    }
+    return L;
+}
+
+void Lua_load_default_script( void )
+{
+    Lua_eval(L, lua_default
+              , strlen(lua_default)
+              , U_PrintLn
+              );
 }
 
 void Lua_DeInit(void)
@@ -308,11 +272,11 @@ static void Lua_linkctolua( lua_State *L )
     }
 }
 
-static uint8_t Lua_eval( lua_State*     L
-                       , const char*    script
-                       , size_t         script_len
-                       , ErrorHandler_t errfn
-                       ){
+uint8_t Lua_eval( lua_State*     L
+                , const char*    script
+                , size_t         script_len
+                , ErrorHandler_t errfn
+                ){
     int error;
     if( (error = luaL_loadbuffer( L, script, script_len, "eval" )
               || lua_pcall( L, 0, 0, 0 )
@@ -347,80 +311,6 @@ void Lua_crowbegin( void )
     U_PrintLn("init()"); // call in C to avoid user seeing in lua
     lua_getglobal(L,"init");
     lua_pcall(L,0,0,0);
-}
-
-// TODO the repl/state/reception logic should be its own file
-void Lua_repl_mode( L_repl_mode mode )
-{
-    repl_mode = mode;
-    if( repl_mode == REPL_reception ){ // begin a new transmission
-        Lua_new_script_buffer();
-    } else { // end of a transmission
-        if( !Lua_eval( L, new_script
-                        , new_script_len
-                        , Caw_send_luaerror
-                        ) ){ // successful load
-            // TODO if we're setting init() should check it doesn't crash
-            if( Flash_write_user_script( new_script
-                                       , new_script_len
-                                       ) ){
-                Caw_send_luachunk("flash write failed");
-            }
-            U_PrintLn("script saved");
-        } else { U_PrintLn("new user script failed test"); }
-        free(new_script); // cleanup memory
-    }
-}
-
-void Lua_repl( char* buf, uint32_t len, ErrorHandler_t errfn )
-{
-    if( repl_mode == REPL_normal ){
-        Lua_eval( L, buf
-                   , len
-                   , errfn
-                   );
-    } else {
-        Lua_receive_script( buf, len, errfn );
-    }
-}
-
-static void Lua_new_script_buffer( void )
-{
-    // TODO call to Lua to free resources from current script
-    new_script = malloc(USER_SCRIPT_SIZE);
-    if(new_script == NULL){
-        Caw_send_luachunk("!script: out of memory");
-        //(*errfn)("!script: out of memory");
-        return; // how to deal with this situation?
-        // FIXME: should respond over usb stating out of memory?
-        //        try allocating a smaller amount and hope it fits?
-        //        retry?
-    }
-    new_script_len = 0;
-}
-
-void Lua_receive_script( char* buf, uint32_t len, ErrorHandler_t errfn )
-{
-    memcpy( &new_script[new_script_len], buf, len );
-    new_script_len += len;
-}
-
-void Lua_print_script( void )
-{
-    if( Flash_is_user_script() ){
-        Lua_new_script_buffer();
-        Flash_read_user_script( new_script, &new_script_len );
-        uint16_t send_len = new_script_len;
-        uint8_t page_count = 0;
-        while( send_len > 0x200 ){
-            Caw_send_raw( (uint8_t*)&new_script[(page_count++)*0x200], 0x200 );
-            send_len -= 0x200;
-        }
-        Caw_send_raw( (uint8_t*)&new_script[page_count*0x200], send_len );
-        free(new_script);
-    } else {
-        Caw_send_luachunk("no user script.");
-    }
 }
 
 // Public Callbacks from C to Lua

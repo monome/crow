@@ -5,6 +5,7 @@
 #include "lib/caw.h"
 #include "lib/ii.h"
 #include "lib/lualink.h"
+#include "lib/repl.h"
 #include "lib/metro.h"
 #include "lib/flash.h" // Flash_clear_user_script()
 
@@ -38,7 +39,7 @@ int main(void)
     MIDI_Init();
     //II_init( II_FOLLOW );
 
-    Lua_Init(); // send this function a list of fnptrs?
+    REPL_init( Lua_Init() );
 
     IO_Start(); // buffers need to be ready by now
     Lua_crowbegin();
@@ -48,16 +49,16 @@ int main(void)
     while(1){
         U_PrintNow();
         switch( Caw_try_receive() ){ // true on pressing 'enter'
-            case C_repl: Lua_repl( Caw_get_read()
-                                 , Caw_get_read_len()
-                                 , Caw_send_luaerror // 'print' continuation
-                                 ); break;
+            case C_repl:       REPL_eval( Caw_get_read()
+                                        , Caw_get_read_len()
+                                        , Caw_send_luaerror
+                                        ); break;
             case C_boot:       bootloader_enter(); break;
-            case C_flashstart: Lua_repl_mode( REPL_reception ); break;
-            case C_flashend:   Lua_repl_mode( REPL_normal ); break;
+            case C_flashstart: REPL_mode( REPL_reception ); break;
+            case C_flashend:   REPL_mode( REPL_normal ); break;
             case C_flashclear: Flash_clear_user_script(); break;
             case C_restart:    bootloader_restart(); break;
-            case C_print:      Lua_print_script(); break;
+            case C_print:      REPL_print_script(); break;
             default: break; // 'C_none' does nothing
         }
     }
