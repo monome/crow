@@ -10,7 +10,7 @@ function init()
     counter.callback = count
     counter:start()
 
-    --input[1].mode('stream', 0.1)
+    --input[1].mode('change', 0.5, 0.1, 'both')
 end
 
 local position = 0
