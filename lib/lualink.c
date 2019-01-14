@@ -149,23 +149,48 @@ static int _io_get_input( lua_State *L )
     lua_pushnumber( L, adc );
     return 1;
 }
-static int _set_input_mode( lua_State *L )
+static int _set_input_none( lua_State *L )
 {
-    int nargs = lua_gettop(L);
-    D_change_t  changer;
-    D_change_t* pChanger = NULL;
-    if (nargs > 2){
-        changer.threshold  = luaL_checknumber(L, 3);
-        changer.hysteresis = luaL_checknumber(L, 4);
-        //changer.direction  = luaL_checkstring(L, 5);
-        changer.direction  = 0;
-        pChanger = &changer;
+    uint8_t ix = luaL_checkinteger(L, 1)-1;
+    Detect_t* d = Detect_ix_to_p( ix ); // Lua is 1-based
+    if( d != NULL ){ // valid index
+        Detect_none( d );
+        Metro_stop( ix );
     }
-    Detect_mode_ix( luaL_checkinteger(L, 1)-1
-                  , Detect_str_to_mode( luaL_checkstring(L, 2) )
-                  , L_handle_change
-                  , pChanger );
-    lua_pop( L, 5 );
+    lua_pop( L, 1 );
+    lua_settop(L, 0);
+    return 0;
+}
+static int _set_input_stream( lua_State *L )
+{
+    uint8_t ix = luaL_checkinteger(L, 1)-1;
+    Detect_t* d = Detect_ix_to_p( ix ); // Lua is 1-based
+    if( d != NULL ){ // valid index
+        Detect_none( d );
+        Metro_start( ix
+                   , luaL_checknumber(L, 2)
+                   , -1
+                   , 0
+                   );
+    }
+    lua_pop( L, 2 );
+    lua_settop(L, 0);
+    return 0;
+}
+static int _set_input_change( lua_State *L )
+{
+    uint8_t ix = luaL_checkinteger(L, 1)-1;
+    Detect_t* d = Detect_ix_to_p( ix ); // Lua is 1-based
+    if( d != NULL ){ // valid index
+        Metro_stop( ix );
+        Detect_change( d
+                     , L_handle_change
+                     , luaL_checknumber(L, 2)
+                     , luaL_checknumber(L, 3)
+                     , Detect_str_to_dir( luaL_checkstring(L, 4) )
+                     );
+    }
+    lua_pop( L, 4 );
     lua_settop(L, 0);
     return 0;
 }
@@ -245,10 +270,12 @@ static const struct luaL_Reg libCrow[]=
     , { "sys_bootloader" , _bootloader       }
     //, { "sys_cpu_load"   , _sys_cpu          }
         // io
-    , { "go_toward"      , _go_toward        }
-    , { "get_state"      , _get_state        }
-    , { "io_get_input"   , _io_get_input     }
-    , { "set_input_mode" , _set_input_mode   }
+    , { "go_toward"        , _go_toward        }
+    , { "get_state"        , _get_state        }
+    , { "io_get_input"     , _io_get_input     }
+    , { "set_input_none"   , _set_input_none   }
+    , { "set_input_stream" , _set_input_stream }
+    , { "set_input_change" , _set_input_change }
         // usb
     , { "send_usb"       , _send_usb         }
         // i2c
@@ -355,10 +382,9 @@ void L_handle_change( int id, float state )
 {
     lua_getglobal(L, "change_handler");
     lua_pushinteger(L, id+1); // 1-ix'd
-    if( state > 10.0 ){ state = 10.0; }
-    if( state < -5.0 ){ state = -5.0; }
-    lua_pushnumber(L, state);
+    lua_pushinteger(L, (int)state);
     if( lua_pcall(L, 2, 0, 0) != LUA_OK ){
+        U_PrintLn("ch er");
         Caw_send_luachunk("error: input change");
         Caw_send_luachunk( (char*)lua_tostring(L, -1) );
         lua_pop( L, 1 );

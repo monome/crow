@@ -2,8 +2,8 @@
 
 #include <stm32f7xx.h>
 
-typedef enum{ Detect_none
-            , Detect_change
+typedef enum{ Detect_NONE
+            , Detect_CHANGE
 } Detect_mode_t;
 
 typedef void (*Detect_callback_t)(int channel, float value);
@@ -29,16 +29,20 @@ typedef struct{
 } Detect_t;
 
 void Detect_init( int channels );
-void Detect_ch_init( Detect_t* self, int index );
-void Detect_mode_ix( uint8_t           index
-                   , Detect_mode_t     mode
-                   , Detect_callback_t cb
-                   , void*             data
-                   );
-void Detect_mode( Detect_t*         self
-                , Detect_mode_t     mode
-                , Detect_callback_t cb
-                , void*             data
-                );
+
+// mode functions
+Detect_t* Detect_ix_to_p( uint8_t index );
+int8_t Detect_str_to_dir( const char* str );
+
+void Detect_none( Detect_t* self );
+void Detect_change( Detect_t*         self
+                  , Detect_callback_t cb
+                  , float             threshold
+                  , float             hysteresis
+                  , int8_t            direction
+                  );
+
+// process fns
 void Detect( Detect_t* self, float level );
+
 Detect_mode_t Detect_str_to_mode( const char* str );

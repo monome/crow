@@ -6,7 +6,7 @@
 #include "../ll/cal_ll.h"      // CAL_LL_Init(),
 #include "../ll/adda.h"        // _Init(), _Start(), _GetADCValue(), IO_block_t
 #include "slews.h"             // S_init(), S_step_v()
-#include "detect.h"            // Detect_init(), Detect()
+#include "detect.h"            // Detect_init(), Detect(), Detect_ix_to_p()
 #include "metro.h"
 
 #include "lualink.h"           // L_handle_in_stream (pass this in as ptr?)
@@ -31,8 +31,6 @@ typedef struct {
 
 CAL_t cal;
 
-Detect_t detect[IN_CHANNELS];
-
 void IO_Init( void )
 {
     ADDA_Init();
@@ -41,9 +39,6 @@ void IO_Init( void )
     //IO_Recalibrate();
 
     Detect_init( IN_CHANNELS );
-    for( int j=0; j<IN_CHANNELS; j++ ){
-        Detect_ch_init( &(detect[j]), j );
-    }
     S_init();
 }
 
@@ -56,7 +51,7 @@ void IO_Start( void )
 IO_block_t* IO_BlockProcess( IO_block_t* b )
 {
     for( int j=0; j<IN_CHANNELS; j++ ){
-        Detect( &(detect[j])
+        Detect( Detect_ix_to_p( j )
               , b->in[j][b->size-1]
               );
     }
