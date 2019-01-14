@@ -263,12 +263,12 @@ static int _metro_set_time( lua_State* L )
 // array of all the available functions
 static const struct luaL_Reg libCrow[]=
         // bootstrap
-    { { "c_dofile"       , _dofile           }
-    , { "debug_usart"    , _debug            }
-    , { "print_serial"   , _print_serial     }
+    { { "c_dofile"         , _dofile           }
+    , { "debug_usart"      , _debug            }
+    , { "print_serial"     , _print_serial     }
         // system
-    , { "sys_bootloader" , _bootloader       }
-    //, { "sys_cpu_load"   , _sys_cpu          }
+    , { "sys_bootloader"   , _bootloader       }
+    //, { "sys_cpu_load"     , _sys_cpu          }
         // io
     , { "go_toward"        , _go_toward        }
     , { "get_state"        , _get_state        }
@@ -277,16 +277,16 @@ static const struct luaL_Reg libCrow[]=
     , { "set_input_stream" , _set_input_stream }
     , { "set_input_change" , _set_input_change }
         // usb
-    , { "send_usb"       , _send_usb         }
+    , { "send_usb"         , _send_usb         }
         // i2c
-    , { "send_ii"        , _send_ii          }
-    , { "set_ii_addr"    , _set_ii_addr      }
+    , { "send_ii"          , _send_ii          }
+    , { "set_ii_addr"      , _set_ii_addr      }
         // metro
-    , { "metro_start"    , _metro_start      }
-    , { "metro_stop"     , _metro_stop       }
-    , { "metro_set_time" , _metro_set_time   }
+    , { "metro_start"      , _metro_start      }
+    , { "metro_stop"       , _metro_stop       }
+    , { "metro_set_time"   , _metro_set_time   }
 
-    , { NULL             , NULL              }
+    , { NULL               , NULL              }
     };
 // make functions available to lua
 static void Lua_linkctolua( lua_State *L )
