@@ -382,7 +382,7 @@ void L_handle_change( int id, float state )
 {
     lua_getglobal(L, "change_handler");
     lua_pushinteger(L, id+1); // 1-ix'd
-    lua_pushinteger(L, (int)state);
+    lua_pushnumber(L, state);
     if( lua_pcall(L, 2, 0, 0) != LUA_OK ){
         U_PrintLn("ch er");
         Caw_send_luachunk("error: input change");
