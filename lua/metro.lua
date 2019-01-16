@@ -52,7 +52,7 @@ end
 
 --- helper fn to auto-assign timers in crow env
 --
-function Metro.auto_metros()
+function Metro.assign_all()
     local m = {}
     for c=1,Metro.num_script_metros do
         m[c] = Metro.init{ event = function(count) _c.tell('metro',c,count) end

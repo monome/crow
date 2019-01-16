@@ -190,11 +190,11 @@ running, use the 'start' method call with a time.
 ```
 --- Turn on auto_metros, and set up 3 phasing timers at 1,3 and 5 second intervals
 function init()
-    metro = Metro.auto_metros()
+    metro = Metro.assign_all()
 
-    metro[1]:start( time = 1.0 )
-    metro[2]:start( time = 3.0 )
-    metro[3]:start( time = 5.0 )
+    metro[1]:start( 1.0 )
+    metro[2]:start( 3.0 )
+    metro[3]:start( 5.0 )
 end
 ```
 

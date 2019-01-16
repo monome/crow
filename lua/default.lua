@@ -4,7 +4,7 @@ function init()
         out[c].asl:action()
     end
 
-    metro = Metro.auto_metros()
+    metro = Metro.assign_all()
 
     --input[1].mode('change', 0.5, 0.1, 'both')
 end
