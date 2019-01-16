@@ -4,11 +4,7 @@ function init()
         out[c].asl:action()
     end
 
-    counter = Metro.alloc()
-    counter.time = 2.0
-    counter.count = -1
-    counter.callback = count
-    counter:start()
+    metro = Metro.auto_metros()
 
     --input[1].mode('change', 0.5, 0.1, 'both')
 end

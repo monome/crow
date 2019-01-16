@@ -50,6 +50,19 @@ function Metro.init (arg, arg_time, arg_count)
     return nil
 end
 
+--- helper fn to auto-assign timers in crow env
+--
+function Metro.auto_metros()
+    local m = {}
+    for c=1,Metro.num_script_metros do
+        m[c] = Metro.init{ event = function(count) _c.tell('metro',c,count) end
+                         , time  = 1.0
+                         , count = -1
+                         }
+    end
+    return m
+end
+
 function Metro.free(id)
     Metro.metros[id]:stop()
     Metro.available[id] = true

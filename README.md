@@ -153,6 +153,76 @@ these event handlers can be redefined as you see fit
 
 
 
+### metro lib
+
+## norns style
+each time you want a new timer you can assign it with some default params:
+```
+mycounter = Metro.init{ event = count_event
+                      , time  = 2.0
+                      , count = -1
+                      }
+```
+then start it:
+`mycounter:start()`
+which will begin calling the your 'event', in this case count_event.
+you'll want to set it up like this:
+```
+function count_event( count )
+    -- TODO
+end
+```
+you can change parameters on the fly:
+`mycounter.time = 10.0`
+`mycounter.count = 33`
+
+
+## 'auto_metros'
+sometimes you just need a bunch of timers without wanting to name each timer and set
+explicit actions. in this case there's a shorthand to get all the metros setup and
+running. just add:
+    `metro = Metro.auto_metros()`
+to your `init()` function.
+
+this makes `metro` a table of metros with default events assigned. to start them
+running, use the 'start' method call with a time.
+
+```
+--- Turn on auto_metros, and set up 3 phasing timers at 1,3 and 5 second intervals
+function init()
+    metro = Metro.auto_metros()
+
+    metro[1]:start( time = 1.0 )
+    metro[2]:start( time = 3.0 )
+    metro[3]:start( time = 5.0 )
+end
+```
+
+by default, this will call a remote function:
+```
+function metro(channel, count)
+    -- TODO
+end
+```
+
+you can set custom times:
+`metro[1].time = 0.1`
+
+and stop a metro:
+`metro[1]:stop()`
+
+restart a stopped timer with a new time & count value:
+```
+metro[1].start{ time  = 1.2
+              , count = 100
+              }
+```
+
+or add aliases if you don't want to remember them all by number:
+`my_hourly_reminder = metro[1]`
+
+or redefine the event if you want to change functionality:
+`metro[1].event = function(count) print(count) end`
 
 
 
