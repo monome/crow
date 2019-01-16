@@ -153,9 +153,9 @@ these event handlers can be redefined as you see fit
 
 
 
-### metro lib
+## metro lib
 
-## norns style
+### norns style
 each time you want a new timer you can assign it with some default params:
 ```
 mycounter = Metro.init{ event = count_event
@@ -177,18 +177,18 @@ you can change parameters on the fly:
 `mycounter.count = 33`
 
 
-## 'auto_metros'
+### 'assign_all'
 sometimes you just need a bunch of timers without wanting to name each timer and set
 explicit actions. in this case there's a shorthand to get all the metros setup and
 running. just add:
-    `metro = Metro.auto_metros()`
+    `metro = Metro.assign_all()`
 to your `init()` function.
 
 this makes `metro` a table of metros with default events assigned. to start them
 running, use the 'start' method call with a time.
 
 ```
---- Turn on auto_metros, and set up 3 phasing timers at 1,3 and 5 second intervals
+--- Assign all the metros, and set up 3 phasing timers at 1,3 and 5 second intervals
 function init()
     metro = Metro.assign_all()
 
@@ -231,9 +231,9 @@ or redefine the event if you want to change functionality:
 
 
 
-### input script examples
+## input script examples
 
-## default actions for crow-as-remote
+### default actions for crow-as-remote
 
 set up input 1 to detect rising signals with a small amount of hysteresis
 ```
@@ -279,7 +279,7 @@ end
 ```
 
 
-## using inputs inside a crow script
+### using inputs inside a crow script
 fundamentally the only real change when using the inputs on crow itself is you'll
 need to define your own events.
 
