@@ -1,7 +1,7 @@
 --- Crow standard library
 
-_crow = {}
-_c = _crow -- alias
+local _crow = {}
+local _c = _crow -- alias
 
 --- System functions
 
