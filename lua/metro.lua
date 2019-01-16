@@ -14,9 +14,22 @@ Metro.metros = {}
 Metro.available = {}
 Metro.assigned = {}
 
---- assign
+
+--- init/assign
 -- 'allocate' a metro (assigns unused id)
-function Metro.alloc (cb, time, count)
+function Metro.init (arg, arg_time, arg_count)
+    local event = 0
+    local time  = arg_time or 1
+    local count = arg_count or -1
+
+    if type(arg) == 'table' then
+        event = arg.event
+        time  = arg.time or 1
+        count = arg.count or -1
+    else
+        event = arg
+    end
+
     local id = nil
     for i, val in pairs(Metro.available) do
        if val == true then
@@ -28,13 +41,12 @@ function Metro.alloc (cb, time, count)
         Metro.assigned[id] = true
         Metro.available[id] = false
         local m = Metro.metros[id]
-        m:init()
-        if cb then m.callback = cb end
-        if time then m.time = time end
-        if count then m.count= count end
+        m.event = event
+        m.time  = time
+        m.count = count
         return m
     end
-    print('metro.alloc: already used max number of allocated script metros')
+    print('Metro.init: nothing available')
     return nil
 end
 
@@ -59,19 +71,10 @@ function Metro.new(id)
     m.props.id = id
     m.props.time = 1
     m.props.count = -1
-    m.props.callback = nil
+    m.props.event = nil
     m.props.init_stage = 1
     setmetatable(m, Metro)
     return m
-end
-
---- reset to default state
-function Metro:init()
-    --self.id = id -- FIXME there's no id here?
-    self.time = 1
-    self.count = -1
-    self.callback = nil
-    self.init_stage = 1
 end
 
 --- start a metro
@@ -102,7 +105,7 @@ Metro.__newindex = function(self, idx, val)
     if idx == 'time' then
         self.props.time = val
 -- NB: metro time isn't applied until the next wakeup.
--- this is true even if you are setting time from the metro callback;
+-- this is true even if you are setting time from the metro event;
 -- metro has already gone to sleep when lua main thread gets
 -- if you need a fully dynamic metro, re-schedule on the wakeup
         metro_set_time(self.props.id, self.props.time)
@@ -152,15 +155,16 @@ end
 --- Global Functions
 -- @section globals
 
---- callback on metro tick from C;
+--- event on metro tick from C;
 metro_handler = function(idx, stage)
    if Metro.metros[idx] then
-      if Metro.metros[idx].callback then
-         Metro.metros[idx].callback(stage)
+      if Metro.metros[idx].event then
+         Metro.metros[idx].event(stage)
       end
    end
 end
 
 
+print'metro loaded'
 
 return Metro
