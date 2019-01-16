@@ -12,12 +12,15 @@ collectgarbage('setpause', 100) --default 200
 -- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 print = function(...)
-    local printResult = ''
-    for _,v in ipairs{...} do
-        printResult = printResult .. tostring(v) .. '\t'
+    local args = {...}
+    local arg_len = #args
+    local printResult = args[1]
+    if arg_len > 1 then
+        for i=2,arg_len do
+            printResult = printResult .. '\t' .. args[i]
+        end
     end
-    --debug_usart(printResult) --TODO replace this with formatted print over USB?
-    print_serial(printResult) --FIXME is this causing a crash?
+    print_serial(printResult)
 end
 
 -- nb: this is basically the inverse of l2h.lua (but we don't want that at RT)
