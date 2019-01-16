@@ -231,8 +231,83 @@ or redefine the event if you want to change functionality:
 
 
 
+### input script examples
+
+## default actions for crow-as-remote
+
+set up input 1 to detect rising signals with a small amount of hysteresis
+```
+function init()
+    input[1]{ mode       = 'change'
+            , threshold  = 1.0
+            , hysteresis = 0.1
+            , direction  = 'rising'
+            }
+end
+```
+each time the signal passes above ~1.0V this event will be called on the host:
+```
+function change( channel, state )
+    -- TODO. here's where you do the action!
+    -- nb: 'state' will always be '1' in 'rising' mode
+    --      but will tell you high/low as 1/0 in 'both'
+    --      or remain as all zeroes in 'falling'
+end
+```
+
+setting up a stream is very similar ( and can be different between channels )
+```
+function init()
+    input[2]{ mode = 'stream'
+            , time = 1.0
+            }
+end
+```
+resulting in the following remote event
+```
+function ret_cv( channel, value )
+    -- TODO. do something with the stream of input values!
+end
+```
+
+there is also a standard function call to setup these functions which is more terse:
+```
+function init()
+    input[1].mode( 'none' )
+    input[2].mode( 'time', 0.05 )
+end
+```
 
 
+## using inputs inside a crow script
+fundamentally the only real change when using the inputs on crow itself is you'll
+need to define your own events.
+
+the default stream action is defined as:
+`input[1].stream = function(value) _c.tell('ret_cv',1,value) end`
+
+you can however redefine this to suit your own needs:
+```
+input[1].stream = function(value)
+    -- here we echo the input to output channel 1
+    -- we could set out[1].rate to smooth out changes from step to step
+    out[1].level = value
+end
+```
+
+a great use case for this is to allow crow's inputs to become triggers for i2c
+enabled modules. the following snippet turns crow's first input into a momentary
+gate which controls whether a remote W/ module is recording.
+
+```
+function init()
+    input[1].mode( 'change' ) -- default gate detection
+end
+
+input[1].change = function(state)
+    ii.wslash.record = state
+end
+```
 
 
 
