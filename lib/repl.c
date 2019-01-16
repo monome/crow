@@ -61,10 +61,12 @@ void REPL_mode( L_repl_mode mode )
 void REPL_eval( char* buf, uint32_t len, ErrorHandler_t errfn )
 {
     if( repl_mode == REPL_normal ){
-        Lua_eval( Lua, buf
+        if(Lua_eval( Lua, buf
                      , len
                      , errfn
-                     );
+                   )){
+            U_PrintLn("!eval");
+        }
     } else { // REPL_reception
         REPL_receive_script( buf, len, errfn );
     }
