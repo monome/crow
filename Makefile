@@ -7,6 +7,7 @@ USBD=submodules/STM32_Cube_F7/Middlewares/ST/STM32_USB_Device_Library
 WRLIB=submodules/wrLib
 WRDSP=submodules/wrDsp
 LUAS=submodules/lua/src
+BOOTLOADER=submodules/dfu-stm32f7
 PRJ_DIR=crow
 
 CC=arm-none-eabi-gcc-4.9.3
@@ -169,8 +170,11 @@ flash: $(BIN)
 	st-flash write $(BIN) 0x08010000
 
 dfu: $(BIN)
-	dfu-util -s 0x08010000 -D $(BIN)
-	#-S FFFFFFFEFFFF
+	sudo dfu-util -a 0 -s 0x08010000:leave -D $(BIN) -d ,0483:df11
+
+boot:
+	cd $(BOOTLOADER) && \
+	make flash
 
 %.o: %.c
 	@$(CC) -ggdb $(CFLAGS) -c $< -o $@
