@@ -7,15 +7,48 @@ a collaboration by whimsical raps & monome
 
 ### prereq
 
-- fennel: `luarocks install fennel`
+- arm-none-eabi-gcc 4.9.3: https://launchpad.net/gcc-arm-embedded/4.9
+- fennel: `luarocks install fennel` *nb: requires lua 5.3 for now*
+
+### get the project
+- `git clone --recursive https://github.com/trentgill/crow.git`
+- `cd crow`
+- `git submodule --init` *nb: will take a while to download*
+
+### flashing
+you can either use an stlink / discovery board to flash the firmware using the edge connector.
+you'll need an st-link & an edge-connector adaptor <oshpark link>
+if you want to change the bootloader, you'll need to use this setup
+- stlink: https://github.com/texane/stlink#installation
+
+or you can flash the module over the panel-mount usb jack using dfu-util
+- dfu-util: apt-get install dfu-util
+
+### building
+- `make` / `make all` build the project binary
+- `make clean` remove all binary objects to force a rebuild on next `make`
+
+*for st-link disco board*
+- `make flash` build & flash the main program
+- `make boot` build & flash the bootloader
+- `make erase` only useful to give the module an original position
+
+*for dfu programming over usb*
+- `make dfu` build & flash the main program
 
 ## writing crow scripts
-a typical crow script only has a few components:
-- (almost?) always an `init()` function
-- timer events
-- input events
-- i2c events
-- midi events
+a typical crow script is broken up into two main sections:
+
+### 1: the init() function
+here the script initializes parameters & you can describe the general functionality of your script
+this will likely include declaring events that will be called at runtime
+
+### 2: event functions
+these functions handle events created by:
+- timers
+- input jacks
+- i2c
+- midi input
 
 ## crow commands
 the below commands should be integrated into a host environment as macros
