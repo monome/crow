@@ -41,7 +41,7 @@ _Min_Stack_Size = 0x10000; /* required amount of stack */
 MEMORY
 {
   /* FLASH (rx)      : ORIGIN = 0x00200000, LENGTH = 512K */ /* ITCM interface */
-  FLASH (rx)      : ORIGIN = 0x08010000, LENGTH = 448K /* AXIM interface */
+  FLASH (rx)      : ORIGIN = 0x08020000, LENGTH = 384K /* AXIM interface */
   RAM (xrw)       : ORIGIN = 0x20000000, LENGTH = 256K
   /* MEMORY_B1 (rx)  : ORIGIN = 0x60000000, LENGTH = 0K */
   /* CCMRAM (rw)     : ORIGIN = 0x10000000, LENGTH = 64K */

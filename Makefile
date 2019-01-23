@@ -163,14 +163,13 @@ $(BIN): $(EXECUTABLE)
 	@echo "Release: "$(R)
 	@$(GETSIZE) main.bin | grep 'Size'
 	@echo "        ^ must be less than 384kB (384,000)"
-	@echo "          can expand by 64kB, leaving 16kB for user?"
 	# 512kb -64kb(bootloader) -128kb(scripts)
 
 flash: $(BIN)
-	st-flash write $(BIN) 0x08010000
+	st-flash write $(BIN) 0x08020000
 
 dfu: $(BIN)
-	sudo dfu-util -a 0 -s 0x08010000:leave -D $(BIN) -d ,0483:df11
+	sudo dfu-util -a 0 -s 0x08020000:leave -D $(BIN) -d ,0483:df11
 
 boot:
 	cd $(BOOTLOADER) && \
