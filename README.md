@@ -87,6 +87,34 @@ lua interpreter sees each portion as valid code, as each multi-line segment
 is evaluated upon reception.
 
 
+## recovering from an unresponsive state
+it's entirely possible to upload crow scripts that will make crow unresponsive
+and require clearing of the on-board script.
+
+### requesting user-script-clear
+the gentlest way to deal with this situation is to send the `^^clearscript`
+command over usb. you <will be able to> do this by typing `;c` or `^^c` in the
+crow application<, or pressing a 'clear script' button in maiden?>, or pressing
+the (^^clearscript) message box in max.
+
+### using the bootloader
+in extreme cases, your script might even make the low-level system become
+unresponsive which will stop crow from responding to your `^^clearscript`
+command.
+
+in this case you can enter the bootloader with a `^^b` message, which will
+instantly reset the module and take you to the bootloader.
+
+here you can use `dfu-util` to clear the user-script flash zone.
+
+### forcing the bootloader
+in case both of the above don't work, you can manually force the bootloader to
+run by placing a jumper on the i2c header, and restarting crow.
+
+the jumper should bridge between either of the centre pins to either of the
+ground pins (ie the pins closest to the power connector, indicated by the
+white stripe on the pcb). in a pinch you can hold a (!disconnected!) patch cable
+to bridge the pins while powering on the case.
 
 ## using the [crow] max/pd object
 
