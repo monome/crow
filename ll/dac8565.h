@@ -53,6 +53,8 @@
 void DAC_Init( uint16_t bsize, uint8_t chan_count );
 void DAC_Start(void);
 
+void DAC_CalibrateScalar( uint8_t channel, float scale );
+void DAC_CalibrateOffset( uint8_t channel, float volts );
 void DAC_PickleBlock( uint32_t* dac_pickle_ptr
                     , float*    unpickled_data
                     , uint16_t  bsize

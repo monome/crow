@@ -15,6 +15,12 @@ I2S_HandleTypeDef dac_i2s;
 uint32_t  samp_count;
 uint32_t* samples;
 
+#define DAC_ZERO_VOLTS      ((uint16_t)(((uint32_t)0xFFFF * 2)/3))
+#define DAC_V_TO_U16        ((float)(65535.0 / 15.0))
+#define DAC_CHANNELSS 4
+float dac_calibrated_offset[DAC_CHANNELSS];
+float dac_calibrated_scalar[DAC_CHANNELSS];
+
 void DAC_Init( uint16_t bsize, uint8_t chan_count )
 {
     // Create the sample buffer for DMA transfer
@@ -22,6 +28,11 @@ void DAC_Init( uint16_t bsize, uint8_t chan_count )
     samples = malloc( sizeof(uint32_t) * samp_count );
     for( int i=0; i<samp_count; i++ ){ samples[i] = 0; } // unnecessary
     if(samples == NULL){ U_PrintLn("DAC_buffer"); }
+
+    for( int j=0; j<DAC_CHANNELSS; j++ ){
+        dac_calibrated_offset[j] = 0.0;
+        dac_calibrated_scalar[j] = DAC_V_TO_U16;
+    }
 
     // Set the SPI parameters
     dac_i2s.Instance          = I2Sx;
@@ -79,28 +90,45 @@ __set_PRIMASK( old_primask );
     if(error){ U_PrintLn("i2s failed to start"); }
 }
 
+void DAC_CalibrateScalar( uint8_t channel, float scale )
+{
+    dac_calibrated_scalar[channel] = DAC_V_TO_U16 * scale;
+}
+
+void DAC_CalibrateOffset( uint8_t channel, float volts )
+{
+    dac_calibrated_offset[channel] = volts;
+}
+
 /* Does all the work converting a generic representation into serial packets
  * Convert floats (representing volts) to u16 representation
  * Interleave a block of each channel into a stream
  * */
-#define DAC_ZERO_VOLTS      ((uint16_t)(((uint32_t)0xFFFF * 2)/3))
-#define DAC_V_TO_U16        ((float)(65535.0 / 15.0))
 void DAC_PickleBlock( uint32_t* dac_pickle_ptr
                     , float*    unpickled_data
                     , uint16_t  bsize
                     )
 {
+    for( uint8_t j=0; j<4; j++ ){
+        add_vf_f( &(unpickled_data[j*bsize])
+                , dac_calibrated_offset[j]
+                , &(unpickled_data[j*bsize])
+                , bsize
+                );
+    }
     lim_vf_f( unpickled_data
             , -5.0           // saturate at -5v
             , 10.0           // saturate at +10v
             , unpickled_data
             , bsize * 4
             );
-    mul_vf_f( unpickled_data
-            , DAC_V_TO_U16   // scale volts up to u16
-            , unpickled_data
-            , bsize * 4
-            );
+    for( uint8_t j=0; j<4; j++ ){
+        mul_vf_f( &(unpickled_data[j*bsize])
+                , dac_calibrated_scalar[j] // scale volts up to u16
+                , &(unpickled_data[j*bsize])
+                , bsize
+                );
+    }
 
     uint16_t usixteens[bsize * 4];
     uint16_t* usixp = usixteens;

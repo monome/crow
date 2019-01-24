@@ -20,8 +20,12 @@ TIM_OC_InitTypeDef tim_config;
 uint16_t aRxBuffer[ADC_BUF_SIZE];
 uint16_t aTxBuffer[ADC_BUF_SIZE];
 
-uint8_t  adc_count = 2;
+#define ADC_COUNTT 2
+uint8_t  adc_count = ADC_COUNTT;
 uint32_t adc_samp_count = 64;
+
+float adc_calibrated_scalar[ADC_COUNTT];
+float adc_calibrated_shift[ADC_COUNTT];
 
 void ADS_Init_Sequence(void);
 void ADS_Reset_Device(void);
@@ -32,6 +36,8 @@ void ADC_TxRx( uint16_t* aTxBuffer, uint16_t* aRxBuffer, uint32_t size );
 void ADC_Rx( uint16_t* aRxBuffer, uint32_t size );
 uint8_t _ADC_CheckErrors( uint16_t error_mask );
 //uint8_t _ADC_CheckErrors( uint16_t expect, uint16_t error );
+
+#define ADC_U16_TO_V        ((float)(15.0 / 65535.0))
 
 void ADC_Init( uint16_t bsize, uint8_t chan_count )
 {
@@ -79,6 +85,10 @@ void ADC_Init( uint16_t bsize, uint8_t chan_count )
     for( uint8_t i=0; i<ADC_BUF_SIZE; i++ ){
         aRxBuffer[i] = 0;
         aTxBuffer[i] = 0;
+    }
+    for( uint8_t i=0; i<ADC_COUNTT; i++ ){
+        adc_calibrated_scalar[i] = ADC_U16_TO_V;
+        adc_calibrated_shift[i] = 2.5;
     }
     ADS_Init_Sequence();
 }
@@ -170,8 +180,6 @@ uint16_t ADS_Cmd( uint16_t command )
     return aRxBuffer[0];
 }
 
-#define ADC_U16_TO_V        ((float)(15.0 / 65535.0))
-
 static float last[2] = {0.0,0.0};
 void ADC_UnpickleBlock( float*   unpickled
                       , uint16_t bsize
@@ -181,7 +189,9 @@ void ADC_UnpickleBlock( float*   unpickled
     // Return current buf
     for( uint8_t j=1; j<=adc_count; j++ ){
         // cast to signed -> cast to float -> scale -> shift
-        float once = ((float)((int16_t*)aRxBuffer)[j]) * ADC_U16_TO_V + 2.5;
+        float once = ((float)((int16_t*)aRxBuffer)[j])
+                        * adc_calibrated_scalar[j]
+                        + adc_calibrated_shift[j];
         float c    = 1.0 / bsize;
         for( uint16_t i=0; i<bsize; i++ ){
             *unpick++ = last[j-1] + (c * (i+1))*(once - last[j-1]);
@@ -208,6 +218,16 @@ __disable_irq();
         }
 __set_PRIMASK( old_primask );
     }
+}
+
+void ADC_CalibrateScalar( uint8_t channel, float scale )
+{
+    adc_calibrated_scalar[channel] = ADC_U16_TO_V * scale;
+}
+
+void ADC_CalibrateShift( uint8_t channel, float volts )
+{
+    adc_calibrated_shift[channel] = 2.5 + volts;
 }
 
 float ADC_GetValue( uint8_t channel )

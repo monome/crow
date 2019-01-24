@@ -106,6 +106,10 @@ void ADC_UnpickleBlock( float*   unpickled
                       , uint16_t bsize
                       );
 float ADC_GetValue( uint8_t channel );
+
+void ADC_CalibrateScalar( uint8_t channel, float scale );
+void ADC_CalibrateShift( uint8_t channel, float volts );
+
 void SPIa_DMA_RX_IRQHandler(void);
 void SPIa_DMA_TX_IRQHandler(void);
 void SPIa_IRQHandler(void);

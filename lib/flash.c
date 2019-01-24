@@ -76,7 +76,7 @@ uint8_t Flash_read_user_script( char* buffer, uint16_t* len )
 
 uint8_t Flash_is_calibrated( void )
 {
-    return (0x1 & (*(__IO uint32_t*)CALIBRATION_LOCATION));
+    return ((*(__IO uint32_t*)CALIBRATION_LOCATION) == FLASH_Status_Dirty );
 }
 
 void Flash_clear_calibration( void )
@@ -106,7 +106,7 @@ uint8_t Flash_write_calibration( uint8_t* data, uint32_t length )
     uint32_t sd_addr = CALIBRATION_LOCATION;
 	HAL_FLASH_Program( FLASH_TYPEPROGRAM_WORD
 					 , sd_addr
-					 , 2 // TODO better enum FLASH_Status_Dirty ?
+					 , FLASH_Status_Dirty
 					 );
 // program script
     length >>= 2; length++;
@@ -130,7 +130,7 @@ uint8_t Flash_read_calibration( uint8_t* data, uint32_t length )
     uint16_t word_length = length >> 2;
     word_length++;
 
-    uint32_t sd_addr = CALIBRATION_LOCATION + 4;
+    uint32_t sd_addr = CALIBRATION_LOCATION + 4; // skip status word
     uint32_t* word_buffer = (uint32_t*)data;
     while( word_length-- ){
         *word_buffer++ = (*(__IO uint32_t*)sd_addr);

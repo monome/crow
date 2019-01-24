@@ -34,6 +34,7 @@ int main(void)
 
     // init drivers
     IO_Init();
+    IO_Start(); // buffers need to be ready by now
     Metro_Init();
     Caw_Init();
     MIDI_Init();
