@@ -3,12 +3,12 @@
 #include <stm32f7xx.h>
 
 // Public Interface
-typedef enum { CAL_LL_3
-             , CAL_LL_2
-             , CAL_LL_1
-             , CAL_LL_0
-             , CAL_LL_Reference
-             , CAL_LL_Disable
+typedef enum { CAL_LL_dac3
+             , CAL_LL_dac2
+             , CAL_LL_dac1
+             , CAL_LL_dac0
+             , CAL_LL_2v5
+             , CAL_LL_Ground
              , CAL_LL_ChannelList
 } CAL_LL_Channel_t;
 

@@ -89,6 +89,8 @@ uint8_t Flash_write_calibration( uint8_t* data, uint32_t length )
 {
     if( length > CALIBRATION_SIZE ){ return 1; } // ERROR: data too long
 
+    // TODO: save the module version here? can also be queried from lua
+
 // clear the flash
 	HAL_FLASH_Unlock();
 	FLASH_EraseInitTypeDef erase_setup =

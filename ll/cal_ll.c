@@ -21,7 +21,7 @@ void CAL_LL_Init( void )
     GPIO_InitStruct.Pin    = CAL_2_PIN;
     HAL_GPIO_Init( CAL_2_GPIO_PORT, &GPIO_InitStruct );
 
-    CAL_LL_ActiveChannel( CAL_LL_Disable );
+    CAL_LL_ActiveChannel( CAL_LL_Ground );
 }
 void CAL_LL_ActiveChannel( CAL_LL_Channel_t channel )
 {
