@@ -55,14 +55,10 @@ void CAL_ReadFlash( void )
         for( int j=0; j<2; j++ ){
             ADC_CalibrateShift( j, cal.adc[j].shift );
             ADC_CalibrateScalar( j, cal.adc[j].scale );
-            U_PrintF(cal.adc[j].shift);
-            U_PrintF(cal.adc[j].scale);
         }
         for( int j=0; j<4; j++ ){
             DAC_CalibrateOffset( j, cal.dac[j].shift );
             DAC_CalibrateScalar( j, cal.dac[j].scale );
-            U_PrintF(cal.dac[j].shift);
-            U_PrintF(cal.dac[j].scale);
         }
         cal.stage = CAL_none;
     } else {
@@ -182,9 +178,6 @@ IO_block_t* CAL_BlockProcess( IO_block_t* b )
             cal.adc[1].scale = cal.adc[0].scale;
             ADC_CalibrateShift( 1, cal.adc[1].shift );
             ADC_CalibrateScalar( 1, cal.adc[1].scale );
-
-            U_Print("ins "); U_PrintFn(cal.adc[0].shift);
-            U_Print("\t");   U_PrintF(cal.adc[0].scale);
 
             cal.stage++;
             break;
