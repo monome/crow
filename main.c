@@ -34,7 +34,6 @@ int main(void)
 
     // init drivers
     IO_Init();
-    IO_Start(); // buffers need to be ready by now
     Metro_Init();
     Caw_Init();
     MIDI_Init();
@@ -42,7 +41,7 @@ int main(void)
 
     REPL_init( Lua_Init() );
 
-    IO_Start(); // buffers need to be ready by now
+    IO_Start(); // must start IO before running lua init() script
     Lua_crowbegin();
 
     CDC_main_init(); // FIXME: stops crash when starting without usb connected
