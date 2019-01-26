@@ -3,6 +3,7 @@
 #include "../ll/debug_usart.h"
 #include <stm32f7xx_hal.h>
 #include <string.h>
+#include "ii_modules.h"
 
 // WithType implementation (move to separate file)
 #define II_MAX_BROADCAST_LEN 4 // just u8 or u16
@@ -24,6 +25,20 @@ void II_deinit( void )
 {
     I2C_DeInit();
 }
+
+const char* II_list_modules( void )
+{
+    return ii_module_list;
+}
+
+
+
+
+
+
+
+
+
 
 II_ADDR_t II_get_mode( void )
 {

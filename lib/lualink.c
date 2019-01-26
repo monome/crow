@@ -204,6 +204,14 @@ static int _send_usb( lua_State *L )
     lua_settop(L, 0);
     return 0;
 }
+
+static int _ii_list_modules( lua_State *L )
+{
+    U_PrintLn(",");
+    Caw_send_luachunk( II_list_modules() );
+    U_Print( II_list_modules() );
+    return 0;
+}
 static int _send_ii( lua_State *L )
 {
     // pattern match on broadcast vs query
@@ -279,6 +287,7 @@ static const struct luaL_Reg libCrow[]=
         // usb
     , { "send_usb"         , _send_usb         }
         // i2c
+    , { "ii_list_modules"  , _ii_list_modules  }
     , { "send_ii"          , _send_ii          }
     , { "set_ii_addr"      , _set_ii_addr      }
         // metro

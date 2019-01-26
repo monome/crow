@@ -26,6 +26,13 @@ typedef enum
 uint8_t II_init( uint8_t address );
 void II_deinit( void );
 
+const char* II_list_modules( void );
+
+
+
+
+
+
 II_ADDR_t II_get_mode( void );
 
 void I2C_RxCpltCallback( uint8_t* data );
