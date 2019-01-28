@@ -105,6 +105,10 @@ LUA_SRC = $(wildcard lua/*.lua) \
 
 LUA_PP = $(LUA_SRC:%.lua=%.lua.h)
 
+II_SRC = $(wildcard lua/*/*.lua) \
+
+II_PP = $(BUILD_DIR)/ii_done.lua.p \
+
 FNL_SRC = $(wildcard util/*.fnl) \
 	$(wildcard lua/*.fnl) \
 
@@ -151,7 +155,7 @@ tests:
 $(TARGET).hex: $(EXECUTABLE)
 	@$(CP) -O ihex $^ $@
 
-$(EXECUTABLE): $(FNL_PP) $(LUA_PP) $(OBJS)
+$(EXECUTABLE): $(II_PP) $(FNL_PP) $(LUA_PP) $(OBJS)
 	@$(LD) -g $(MCFLAGS) $(LDFLAGS) $(OBJS) $(LIBS) -o $@
 	@echo "linked:       $@"
 	@$(OBJDUMP) --disassemble $@ > $@.lst
@@ -194,6 +198,9 @@ boot:
 %.lua.h: %.lua util/l2h.lua
 	@echo $< "->" $@
 	@lua util/l2h.lua $<
+
+%.lua.p: util/ii_gen.lua
+	@lua util/ii_gen.lua
 
 Startup.o: $(STARTUP)
 	@$(CC) $(CFLAGS) -c $< -o $@
