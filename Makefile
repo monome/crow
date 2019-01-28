@@ -8,6 +8,7 @@ WRLIB=submodules/wrLib
 WRDSP=submodules/wrDsp
 LUAS=submodules/lua/src
 BOOTLOADER=submodules/dfu-stm32f7
+BUILD_DIR=build
 PRJ_DIR=crow
 
 CC=arm-none-eabi-gcc-4.9.3
@@ -100,6 +101,7 @@ TESTS = $(wildcard tests/*.lua) \
 
 # these get converted to bytecode strings wrapped in c-headers
 LUA_SRC = $(wildcard lua/*.lua) \
+		  $(wildcard build/*.lua) \
 
 LUA_PP = $(LUA_SRC:%.lua=%.lua.h)
 
