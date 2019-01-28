@@ -3,7 +3,7 @@
 #include "../ll/debug_usart.h"
 #include <stm32f7xx_hal.h>
 #include <string.h>
-#include "ii_modules.h"
+#include "../build/ii_modules.h"
 
 // WithType implementation (move to separate file)
 #define II_MAX_BROADCAST_LEN 4 // just u8 or u16
@@ -77,24 +77,46 @@ void I2C_RxCpltCallback( uint8_t* data )
     }
 }
 // Leader Transmit
-void II_broadcast( II_ADDR_t address
-                 , uint8_t   cmd
-                 , uint8_t*  data
-                 , uint8_t   size
+void II_broadcast( uint8_t address
+                 , uint8_t cmd
+                 , float*  data
                  )
 {
-    //U_PrintLn("broadcast");
     // need a queue here to allow repetitive calls to the fn
     // best to implement the DMA
     static uint8_t tx_buf[1+II_MAX_BROADCAST_LEN];
-    tx_buf[0] = cmd;
-    memcpy( &(tx_buf[1])
-          , data
-          , size
-          );
-    if( I2C_LeadTx( address
+    uint8_t byte = 0;
+    tx_buf[byte++] = cmd;
+
+    const II_Cmd_t* c = ii_find_command(address, cmd);
+    for( int i=0; i<(c->args); i++ ){
+        uint16_t u16; int16_t s16;
+        switch( c->argtype[i] ){
+            case II_u8: tx_buf[byte++] = (uint8_t)(*data++);
+                        U_PrintU8(tx_buf[byte-1]);
+                break;
+            case II_s8: tx_buf[byte++] = (int8_t)(*data++);
+                break;
+            case II_u16:
+                u16 = (uint16_t)(*data++);
+                memcpy( &(tx_buf[byte]), &u16, 2 );
+                byte += 2;
+                break;
+            case II_s16:
+                s16 = (int16_t)(*data++);
+                memcpy( &(tx_buf[byte]), &s16, 2 );
+                byte += 2;
+                break;
+            case II_float:
+                memcpy( &(tx_buf[byte]), data++, 4 );
+                byte += 4;
+                break;
+            default: return; // FIXME: ERROR, shouldn't happen
+        }
+    }
+    if( I2C_LeadTx( address << 1
                   , tx_buf
-                  , size+1
+                  , byte
                   ) ){ U_PrintLn("Leader Tx Failed"); }
 }
 
