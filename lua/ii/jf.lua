@@ -1,7 +1,7 @@
 do return
 { module_name  = 'just friends'
 , manufacturer = 'mannequins'
-, i2c_address  = 0xA0
+, i2c_address  = 0x70
 , lua_name     = 'jf'
 , commands     =
   { { name = 'trigger'
