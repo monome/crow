@@ -14,8 +14,7 @@ uint8_t II_init( uint8_t address )
     if( address != II_FOLLOW
      && address != II_LEADER1
      && address != II_LEADER2
-     && address != II_LEADER3
-      ){ address = II_FOLLOW; } // ensure a valid address
+     && address != II_LEADER3 ){ address = II_FOLLOW; } // ensure a valid address
     if( I2C_Init( (uint8_t)address ) ){
         U_PrintLn("I2C Failed to Init");
     }
@@ -30,8 +29,6 @@ const char* II_list_modules( void )
 {
     return ii_module_list;
 }
-
-
 
 
 

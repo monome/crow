@@ -241,7 +241,7 @@ static int _ii_list_commands( lua_State *L )
     //U_PrintLn( (char*)II_list_modules() );
     return 0;
 }
-static int _send_ii( lua_State *L )
+static int _ii_set( lua_State *L )
 {
     U_PrintLn("broadcast");
 
@@ -261,7 +261,7 @@ static int _send_ii( lua_State *L )
     lua_settop(L, 0);
     return 0;
 }
-static int _set_ii_addr( lua_State *L )
+static int _ii_address( lua_State *L )
 {
     // pattern match on broadcast vs query
     //uint8_t istate = 4;
@@ -330,8 +330,8 @@ static const struct luaL_Reg libCrow[]=
         // i2c
     , { "ii_list_modules"  , _ii_list_modules  }
     , { "ii_list_commands" , _ii_list_commands }
-    , { "send_ii"          , _send_ii          }
-    , { "set_ii_addr"      , _set_ii_addr      }
+    , { "ii_set"           , _ii_set           }
+    , { "ii_address"       , _ii_address       }
         // metro
     , { "metro_start"      , _metro_start      }
     , { "metro_stop"       , _metro_stop       }

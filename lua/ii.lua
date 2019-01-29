@@ -23,7 +23,7 @@ end
 
 -- TODO is it possible to just define ii.set from c directly?
 function ii.set( address, cmd, ... )
-    send_ii( address, cmd, ... )
+    ii_set( address, cmd, ... )
 end
 
 
