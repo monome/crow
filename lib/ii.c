@@ -73,63 +73,95 @@ void I2C_RxCpltCallback( uint8_t* data )
         I2C_BufferRx( data );
     }
 }
-// Leader Transmit
-void II_broadcast( uint8_t address
-                 , uint8_t cmd
-                 , float*  data
-                 )
-{
-    // need a queue here to allow repetitive calls to the fn
-    // best to implement the DMA
-    static uint8_t tx_buf[1+II_MAX_BROADCAST_LEN];
-    uint8_t byte = 0;
-    tx_buf[byte++] = cmd;
 
-    const II_Cmd_t* c = ii_find_command(address, cmd);
+uint8_t _II_type_size( II_Type_t t )
+{
+    switch(t){ case II_void:  return 0;
+               case II_u8:    return 1;
+               case II_s8:    return 1;
+               case II_u16:   return 2;
+               case II_s16:   return 2;
+               case II_float: return 4;
+    }
+    return 0;
+}
+
+uint8_t _II_make_packet( uint8_t* buf, const II_Cmd_t* c, uint8_t cmd, float* data )
+{
+    uint8_t byte = 0;
+    uint8_t* b = buf;
+    b[byte++] = cmd;
+
     for( int i=0; i<(c->args); i++ ){
         uint16_t u16; int16_t s16;
         switch( c->argtype[i] ){
-            case II_u8: tx_buf[byte++] = (uint8_t)(*data++);
-                        U_PrintU8(tx_buf[byte-1]);
+            case II_u8: b[byte++] = (uint8_t)(*data++);
+                        U_PrintU8(b[byte-1]);
                 break;
-            case II_s8: tx_buf[byte++] = (int8_t)(*data++);
+            case II_s8: b[byte++] = (int8_t)(*data++);
                 break;
             case II_u16:
                 u16 = (uint16_t)(*data++);
-                memcpy( &(tx_buf[byte]), &u16, 2 );
+                memcpy( &(b[byte]), &u16, 2 );
                 byte += 2;
                 break;
             case II_s16:
                 s16 = (int16_t)(*data++);
-                memcpy( &(tx_buf[byte]), &s16, 2 );
+                memcpy( &(b[byte]), &s16, 2 );
                 byte += 2;
                 break;
             case II_float:
-                memcpy( &(tx_buf[byte]), data++, 4 );
+                memcpy( &(b[byte]), data++, 4 );
                 byte += 4;
                 break;
-            default: return; // FIXME: ERROR, shouldn't happen
+            default: return 0;
         }
     }
+    return byte;
+}
+
+// Leader Transmit
+uint8_t II_broadcast( uint8_t address
+                    , uint8_t cmd
+                    , float*  data
+                    )
+{
+    // need a queue here to allow repetitive calls to the fn
+    // best to implement the DMA
+    static uint8_t tx_buf[1+II_MAX_BROADCAST_LEN];
+    const II_Cmd_t* c = ii_find_command(address, cmd);
+    uint8_t byte = _II_make_packet( tx_buf
+                   , c
+                   , cmd
+                   , data
+                   );
+    if( byte == 0 ){ return 2; }
     if( I2C_LeadTx( address << 1
                   , tx_buf
                   , byte
-                  ) ){ U_PrintLn("Leader Tx Failed"); }
+                  ) ){ return 1; }
+    return 0;
 }
 
 // Leader Request
 // consider how this should be integrated. what args??
-void II_query( void )
+uint8_t II_query( uint8_t address
+                , uint8_t cmd
+                , float*  data
+                )
 {
-    // can remove static after adding queue to LL driver
-    const uint8_t size = 1+II_MAX_BROADCAST_LEN;
     static uint8_t rx_buf[1+II_MAX_BROADCAST_LEN];
-    rx_buf[0] = 1; // choose knob 1
-    for( uint8_t i=1; i<size; i++ ){
-        rx_buf[i] = 0;
-    }
-    if( I2C_LeadRx( TI_1 // TelexI // send this as an address
+    const II_Cmd_t* c = ii_find_command(address, cmd);
+    uint8_t byte = _II_make_packet( rx_buf
+                   , c
+                   , cmd
+                   , data
+                   );
+    if( byte == 0 ){ return 2; }
+    if( I2C_LeadRx( address << 1
                   , rx_buf
-                  , 2 // size limit
-                  ) ){ U_PrintLn("Leader Rx Failed"); }
+                  , byte
+                  , _II_type_size( c->return_type )
+                  ) ){ return 1; }
+    return 0;
 }

@@ -26,6 +26,9 @@ function ii.set( address, cmd, ... )
     ii_set( address, cmd, ... )
 end
 
+function ii.get( address, cmd, ... )
+    ii_get( address, cmd, ... )
+end
 
 
 --ii.cb_list = { ['crow'] = {1 = } }

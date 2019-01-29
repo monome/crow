@@ -374,9 +374,11 @@ __set_PRIMASK( old_primask );
  *  3. (on callback) receive data
  *  4. (on callback) process data
  */
+
 uint8_t I2C_LeadRx( uint8_t  address
                   , uint8_t* data
                   , uint8_t  size
+                  , uint8_t  rx_size
                   )
 {
     //U_PrintLn("leadrx");
@@ -384,7 +386,7 @@ uint8_t I2C_LeadRx( uint8_t  address
     i2c_state.txing = 1;
     i2c_state.lead_rx_address = address;
     i2c_state.lead_rx_data    = data;
-    i2c_state.lead_rx_bytes   = size;
+    i2c_state.lead_rx_bytes   = rx_size;
 
     // before continuing, check if the driver is free
 
@@ -395,7 +397,7 @@ __disable_irq();
 	if( HAL_I2C_Master_Sequential_Transmit_IT( &i2c_handle
             , address
             , data
-	        , 1
+	        , size
             , I2C_FIRST_FRAME//, I2C_FIRST_AND_NEXT_FRAME
 	        ) != HAL_OK ){ error |= 2; }
 __set_PRIMASK( old_primask );

@@ -74,4 +74,5 @@ uint8_t I2C_LeadTx( uint8_t  address
 uint8_t I2C_LeadRx( uint8_t  address
                   , uint8_t* data
                   , uint8_t  size
+                  , uint8_t  rx_size
                   );

@@ -90,9 +90,7 @@ do return
   { { name = 'retune'
     , cmd  = 6 + get_offset
     , args = { 'channel', s8 }
-    , rtrn = { { 'numerator', s8 }
-             , { 'denominator', s8 }
-             }
+    , retval = { 'numerator', s8 }
     }
   }
 }

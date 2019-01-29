@@ -221,6 +221,7 @@ end
 
 
 -- allows descriptor to use shorthand without stringifying
+void = 'II_void'
 s8 = 'II_s8'
 u8 = 'II_u8'
 s16 = 'II_s16'
@@ -230,18 +231,18 @@ float = 'II_float'
 function c_cmds(f)
     local c = ''
 
-    local function make_a_cmd( lua_name, ix, cmd, args )
+    local function make_a_cmd( lua_name, ix, cmd, args, retval )
         local s = 'const II_Cmd_t ' .. lua_name .. ix .. ' = {' .. cmd .. ','
         if args == nil then
-            s = s .. '0,{}'
+            s = s .. '0,' .. retval .. ',{}'
         elseif type(args[1]) == 'table' then -- >1 arg
-            s = s .. #args .. ',{'
+            s = s .. #args .. ',' .. retval .. ',{'
             for i=1,#args-1 do
                 s = s .. args[i][2] .. ','
             end
             s = s .. args[#args][2] .. '}'
         elseif type(args[1]) == 'string' then -- 1 arg
-            s = s .. '1,{' .. args[2] .. '}'
+            s = s .. '1,' .. retval .. ',{' .. args[2] .. '}'
         end
         return s .. '};\n'
     end
@@ -249,9 +250,19 @@ function c_cmds(f)
     local i = 0
     -- setters
     for _,v in ipairs( f.commands ) do
-        c = c .. make_a_cmd( f.lua_name, i, v.cmd, v.args )
+        c = c .. make_a_cmd( f.lua_name, i, v.cmd, v.args, void )
         i = i + 1
     end
+
+    local function get_last_argtype( args )
+        if type(args[1]) == 'table' then -- >1 arg
+            return args[#args][2]
+        elseif type(args[1]) == 'string' then -- 1 arg
+            return args[2]
+        end
+        return void
+    end
+
 
     local function drop_last_arg( args )
         if type(args[1]) == 'table' then -- >1 arg
@@ -272,6 +283,7 @@ function c_cmds(f)
                                , i
                                , v.cmd + get_offset
                                , drop_last_arg( v.args )
+                               , get_last_argtype( v.args )
                                )
             i = i + 1
         end
@@ -283,6 +295,7 @@ function c_cmds(f)
                                , i
                                , v.cmd
                                , v.args
+                               , v.retval[2]
                                )
             i = i + 1
         end
@@ -343,6 +356,7 @@ function make_c(f)
           .. 'typedef struct{\n'
           .. '    uint8_t cmd;\n'
           .. '    uint8_t args;\n'
+          .. '    uint8_t return_type;\n'
           .. '    II_Type_t argtype[];\n'
           .. '} II_Cmd_t;\n\n'
           .. 'const char* ii_module_list =\n'

@@ -261,6 +261,24 @@ static int _ii_set( lua_State *L )
     lua_settop(L, 0);
     return 0;
 }
+static int _ii_get( lua_State *L )
+{
+    U_PrintLn("query");
+    float data[4] = {0,0,0,0}; // always zero out data
+    int nargs = lua_gettop(L);
+    if( nargs > 2
+     && nargs <= 6 ){
+        for( int i=0; i<(nargs-2); i++ ){
+            data[i] = luaL_checknumber(L, i+3); // 1-ix'd
+        }
+    }
+    II_query( luaL_checkinteger(L, 1) // address
+            , luaL_checkinteger(L, 2) // command
+            , data
+            );
+    lua_settop(L, 0);
+    return 0;
+}
 static int _ii_address( lua_State *L )
 {
     // pattern match on broadcast vs query
@@ -331,6 +349,7 @@ static const struct luaL_Reg libCrow[]=
     , { "ii_list_modules"  , _ii_list_modules  }
     , { "ii_list_commands" , _ii_list_commands }
     , { "ii_set"           , _ii_set           }
+    , { "ii_get"           , _ii_get           }
     , { "ii_address"       , _ii_address       }
         // metro
     , { "metro_start"      , _metro_start      }

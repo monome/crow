@@ -39,8 +39,11 @@ void I2C_RxCpltCallback( uint8_t* data );
 
 uint8_t* II_processFollowRx( void );
 uint8_t* II_processLeadRx( void );
-void II_broadcast( uint8_t address
-                 , uint8_t cmd
-                 , float*  data
-                 );
-void II_query( void );
+uint8_t II_broadcast( uint8_t address
+                    , uint8_t cmd
+                    , float*  data
+                    );
+uint8_t II_query( uint8_t address
+                , uint8_t cmd
+                , float*  data
+                );
