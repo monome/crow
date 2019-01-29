@@ -358,19 +358,12 @@ function make_c(f)
 end
 
 
--- TODO just iterate through the lua/ii/ folder making a new pirate for each
 dirname = 'lua/ii/' -- TODO this is the argument from make
 dir = io.popen('/bin/ls ' .. dirname)
 files = {}
 for filename in dir:lines() do
     table.insert(files, dofile('lua/ii/' .. filename))
 end
-
-
-pirate = dofile('lua/ii/jf.lua')
---print('> ii.' .. pirate.lua_name .. '.help()\n\r')
---print(make_help(pirate))
-
 
 for _,f in ipairs(files) do
     filename = 'build/ii_' .. f.lua_name .. '.lua'
@@ -379,7 +372,6 @@ for _,f in ipairs(files) do
     l:write(make_lua(f))
     l:close()
 end
-
 
 filename = 'build/ii_lualink.h'
 print(filename)
