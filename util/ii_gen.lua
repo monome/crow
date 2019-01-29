@@ -5,7 +5,7 @@ function generate_prototypes( d )
     local prototypes = ''
     local proto_prefix = 'ii.' .. d.lua_name .. '.'
     for _,v in ipairs( d.commands ) do
-        local s = proto_prefix .. v.name .. '( '
+        local s = '"' .. proto_prefix .. v.name .. '( '
         if type(v.args[1]) == 'table' then -- more than 1 arg
             local arg_count = #(v.args)
             for i=1,arg_count do
@@ -15,7 +15,7 @@ function generate_prototypes( d )
         else -- only 1 arg
             s = s .. v.args[1]
         end
-        s = s .. ' )\n\r'
+        s = s .. ' )\\n\\r"\n'
         prototypes = prototypes .. s
     end
     return prototypes
@@ -33,7 +33,7 @@ end
 
 function generate_getters( d )
     local getters = ''
-    local get_prefix = 'ii.' .. d.lua_name .. '.get( \''
+    local get_prefix = '"ii.' .. d.lua_name .. '.get( \''
 
     -- commands that have standard getters
     for _,v in ipairs( d.commands ) do
@@ -46,23 +46,25 @@ function generate_getters( d )
                     end
                 end -- if only 1 arg it is ignored!
             end
-            s = s .. ' )\n\r'
+            s = s .. ' )\\n\\r"\n'
             getters = getters .. s
         end
     end
 
     -- get-only commands, or custom getters
-    for _,v in ipairs( d.getters ) do
-        local s = get_prefix .. v.name .. '\''
-        if v.args ~= nil then
-            if type(v.args[1]) == 'table' then -- multiple args
-                for i=1,#(v.args)-1 do -- ignore last
-                    s = s .. ', ' .. v.args[i][1]
-                end
-            else s = s .. ', ' .. v.args[1] end
+    if d.getters ~= nil then
+        for _,v in ipairs( d.getters ) do
+            local s = get_prefix .. v.name .. '\''
+            if v.args ~= nil then
+                if type(v.args[1]) == 'table' then -- multiple args
+                    for i=1,#(v.args)-1 do -- ignore last
+                        s = s .. ', ' .. v.args[i][1]
+                    end
+                else s = s .. ', ' .. v.args[1] end
+            end
+            s = s .. ' )\\n\\r"\n'
+            getters = getters .. s
         end
-        s = s .. ' )\n\r'
-        getters = getters .. s
     end
     return getters
 end
@@ -75,7 +77,7 @@ function generate_events( d )
         return false
     end
 
-    local events = 'ii.' .. d.lua_name .. '.event = function( e, data )\n\r'
+    local events = '"ii.' .. d.lua_name .. '.event = function( e, data )\\n\\r"\n'
 
     local overloaded = has_get_cmd(d)
     if overloaded then
@@ -83,35 +85,37 @@ function generate_events( d )
         for _,v in ipairs( d.commands ) do
             if v.get == true then
                 if heading then
-                    events = events .. '\tif e == \'' .. v.name .. '\' then\n\r'
-                           .. '\t\t-- handle ' .. v.name .. ' param here\n\r'
+                    events = events .. '"\tif e == \'' .. v.name .. '\' then\\n\\r"\n'
+                           .. '"\t\t-- handle ' .. v.name .. ' param here\\n\\r"\n'
                     heading = false
                 else
-                    events = events .. '\telseif e == \'' .. v.name .. '\' then\n\r'
+                    events = events .. '"\telseif e == \'' .. v.name .. '\' then\\n\\r"\n'
                 end
             end
         end
     else
-        events = events .. '\tif e == \'' .. d.getters[1].name .. '\' then\n\r'
-               .. '\t\t-- handle ' .. d.getters[1].name .. ' param here\n\r'
+        events = events .. '"\tif e == \'' .. d.getters[1].name .. '\' then\\n\\r"\n'
+               .. '"\t\t-- handle ' .. d.getters[1].name .. ' param here\\n\\r"\n'
     end
 
-    for i=(overloaded and 1 or 2),#(d.getters) do
-        events = events .. '\telseif e == \'' .. d.getters[i].name .. '\' then\n\r'
+    if d.getters ~= nil then
+        for i=(overloaded and 1 or 2),#(d.getters) do
+            events = events .. '"\telseif e == \'' .. d.getters[i].name .. '\' then\\n\\r"\n'
+        end
     end
-    events = events .. '\tend\n\r'
-                    .. 'end'
+    events = events .. '"\tend\\n\\r"\n'
+                    .. '"end\\n\\r"\n'
     return events
 end
 
 function make_help(f)
-    local h = '-- commands\n\r'
-            .. generate_prototypes(f) .. '\n\r'
+    local h = '"-- commands\\n\\r"\n'
+            .. generate_prototypes(f) .. '"\\n\\r"\n'
     if has_getters(f) then
-        h = h .. '-- request params\n\r'
-              .. generate_getters(f) .. '\n\r'
-              .. '-- then receive\n\r'
-              .. generate_events(f) .. '\n\r'
+        h = h .. '"-- request params\\n\\r"\n'
+              .. generate_getters(f) .. '"\\n\\r"\n'
+              .. '"-- then receive\\n\\r"\n'
+              .. generate_events(f)
     end
     return h
 end
@@ -354,6 +358,18 @@ function make_c(f)
         c = c .. c_cmds(f)
     end
     c = c .. c_switch(files)
+    for _,f in ipairs(files) do
+        c = c .. 'const char* ' .. f.lua_name .. '_help=\n' .. make_help(f) .. ';\n'
+    end
+    c = c .. 'const char* ii_list_commands( uint8_t address )\n'
+          .. '{\n'
+          .. '\tswitch( address  ){\n'
+    for _,f in ipairs(files) do
+        c = c .. '\t\tcase ' .. f.i2c_address .. ': return ' .. f.lua_name .. '_help;\n'
+    end
+    c = c .. '\t\tdefault: return "module not found\\n\\r";\n'
+          .. '\t}\n'
+          .. '}\n'
     return c
 end
 
