@@ -2,7 +2,7 @@ do return
 { module_name  = 'just friends'
 , manufacturer = 'mannequins'
 , i2c_address  = 0x70
-, lua_name     = 'jf'
+, lua_name     = 'jf' -- NB: must match the file name. jf.lua -> 'jf'
 , commands     =
   { { name = 'trigger'
     , cmd  = 1
