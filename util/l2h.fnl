@@ -4,7 +4,9 @@
 
 (global hasmeaning (fn [line]
     (if (= nil (string.find line "^%-%-"))
-        true
+        (if (= nil (string.find line "%S"))
+            false
+            true)
         false)))
 
 (global writeline (fn [src dst]
