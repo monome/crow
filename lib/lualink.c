@@ -263,7 +263,6 @@ static int _ii_set( lua_State *L )
 }
 static int _ii_get( lua_State *L )
 {
-    U_PrintLn("query");
     float data[4] = {0,0,0,0}; // always zero out data
     int nargs = lua_gettop(L);
     if( nargs > 2

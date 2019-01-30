@@ -31,8 +31,8 @@ function ii.get( address, cmd, ... )
 end
 
 function ii_handler( addr, cmd, data )
-    debug_usart(tostring(data))
-    --FIXME reverse lookup on address!
+    local name = ii.is.lu[addr]
+    ii[name].event(ii[name].e[cmd], data)
 end
 
 
