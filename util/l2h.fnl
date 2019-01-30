@@ -2,13 +2,19 @@
 
 ; just stringifys a lua file and wraps it as a char[] in a header
 
+(global hasmeaning (fn [line]
+    (if (= nil (string.find line "^%-%-"))
+        true
+        false)))
+
 (global writeline (fn [src dst]
-    (let [nextline (src.read src "l")]
+    (let [nextline (src.read src)]
         (when (~= nextline nil)
-            (dst.write dst (.. "\""
-                               nextline
-                               "\\n\"\n\t"))
-            (writeline src dst)))))
+            (do (when (= (hasmeaning nextline) true)
+                    (dst.write dst (.. "\""
+                                       nextline
+                                       "\\n\"\n\t")))
+                (writeline src dst))))))
 
 (let [filename (. arg 1)]
     (let [f (io.open (.. filename ".h") "w")]
