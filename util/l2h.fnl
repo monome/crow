@@ -3,8 +3,8 @@
 ; just stringifys a lua file and wraps it as a char[] in a header
 
 (global hasmeaning (fn [line]
-    (if (= nil (string.find line "^%-%-"))
-        (if (= nil (string.find line "%S"))
+    (if (= nil (string.find line "^%-%-"))   ;; strip lines starting with a comment
+        (if (= nil (string.find line "%S"))  ;; strip whitespace lines
             false
             true)
         false)))
@@ -12,7 +12,7 @@
 (global writeline (fn [src dst]
     (let [nextline (src.read src)]
         (when (~= nextline nil)
-            (do (when (= (hasmeaning nextline) true)
+            (do (when (= (hasmeaning nextline) true)  ;; check if we can omit the line
                     (dst.write dst (.. "\""
                                        nextline
                                        "\\n\"\n\t")))
