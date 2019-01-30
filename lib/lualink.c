@@ -281,9 +281,8 @@ static int _ii_get( lua_State *L )
 }
 static int _ii_address( lua_State *L )
 {
-    // pattern match on broadcast vs query
-    //uint8_t istate = 4;
-    //II_broadcast( II_FOLLOW, 1, &istate, 1 );
+    II_set_address( luaL_checkinteger(L, 1) );
+    lua_pop( L, 1 );
     lua_settop(L, 0);
     return 0;
 }
@@ -456,6 +455,20 @@ void L_handle_change( int id, float state )
     if( lua_pcall(L, 2, 0, 0) != LUA_OK ){
         U_PrintLn("ch er");
         Caw_send_luachunk("error: input change");
+        Caw_send_luachunk( (char*)lua_tostring(L, -1) );
+        lua_pop( L, 1 );
+    }
+}
+
+void L_handle_ii( uint8_t address, uint8_t cmd, float data )
+{
+    lua_getglobal(L, "ii_handler");
+    lua_pushinteger(L, address);
+    lua_pushinteger(L, cmd);
+    lua_pushnumber(L, data); // TODO currently limited to single retval
+    if( lua_pcall(L, 3, 0, 0) != LUA_OK ){
+        U_PrintLn("ii ev err");
+        Caw_send_luachunk("error: ii event");
         Caw_send_luachunk( (char*)lua_tostring(L, -1) );
         lua_pop( L, 1 );
     }

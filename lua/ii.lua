@@ -30,6 +30,11 @@ function ii.get( address, cmd, ... )
     ii_get( address, cmd, ... )
 end
 
+function ii_handler( addr, cmd, data )
+    debug_usart(tostring(data))
+    --FIXME reverse lookup on address!
+end
+
 
 --ii.cb_list = { ['crow'] = {1 = } }
 --

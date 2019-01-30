@@ -24,3 +24,4 @@ extern void L_handle_toward( int id );
 extern void L_handle_metro( const int id, const int stage);
 extern void L_handle_in_stream( int id, float value );
 extern void L_handle_change( int id, float state );
+extern void L_handle_ii( uint8_t address, uint8_t cmd, float data );

@@ -15,6 +15,7 @@ typedef struct{
 
     volatile uint8_t  txing;
     uint8_t           lead_rx_address;
+    uint8_t           lead_rx_cmd;
     uint8_t*          lead_rx_data;
     uint8_t           lead_rx_bytes;
 
@@ -229,7 +230,7 @@ __disable_irq();
                 , i2c_state.lead_rx_address
 		        , i2c_state.lead_rx_data
 	            , i2c_state.lead_rx_bytes
-                , I2C_LAST_FRAME
+                , I2C_NEXT_FRAME
 	            ) != HAL_OK ){ U_PrintLn("LeadRx"); }
 __set_PRIMASK( old_primask );
     } else {
@@ -250,6 +251,10 @@ void HAL_I2C_MasterRxCpltCallback( I2C_HandleTypeDef* h )
     // last stage of a master receive
 
     i2c_state.txing = 0;
+    I2C_RxCpltCallback( i2c_state.lead_rx_address>>1
+                      , i2c_state.lead_rx_cmd
+                      , i2c_state.lead_rx_data
+                      );
 uint32_t old_primask = __get_PRIMASK();
 __disable_irq();
     if( HAL_I2C_EnableListen_IT( &i2c_handle ) != HAL_OK ){
@@ -264,7 +269,7 @@ void HAL_I2C_SlaveRxCpltCallback( I2C_HandleTypeDef* h )
     // prob doesn't ever occur as we always allow endless transmission
     // instead callback is triggered by a STOPF flag in EV_IrqHandler
     //U_Print("follow_rx"); // left on to see if it ever occurs
-    I2C_RxCpltCallback( _I2C_GetBuffer( &i2c_state ) );
+    I2C_RxCpltCallback( 0x0, 0x0, _I2C_GetBuffer( &i2c_state ) );
     i2c_state.rxing = 0; // expecting data now
 }
 void HAL_I2C_SlaveTxCpltCallback( I2C_HandleTypeDef* h )
@@ -321,6 +326,12 @@ uint8_t I2C_GetAddress( void )
 {
     return i2c_handle.Init.OwnAddress1;
 }
+
+void I2C_SetAddress( uint8_t address )
+{
+	i2c_handle.Init.OwnAddress1 = address;
+}
+
 uint8_t* I2C_PopFollowBuffer( void )
 {
     uint8_t* retval = i2c_state.buffer[i2c_state.b_head];
@@ -356,6 +367,8 @@ uint8_t I2C_LeadTx( uint8_t  address
                   , uint8_t  size
                   )
 {
+    address <<= 1;
+    //U_PrintLn("leadtx");
     uint8_t error = 0;
     if( HAL_I2C_DisableListen_IT( &i2c_handle ) != HAL_OK ){ error |= 1; }
 uint32_t old_primask = __get_PRIMASK();
@@ -381,11 +394,13 @@ uint8_t I2C_LeadRx( uint8_t  address
                   , uint8_t  rx_size
                   )
 {
+    address <<= 1;
     //U_PrintLn("leadrx");
     uint8_t error = 0;
     i2c_state.txing = 1;
     i2c_state.lead_rx_address = address;
-    i2c_state.lead_rx_data    = data;
+    i2c_state.lead_rx_cmd     = data[0];
+    i2c_state.lead_rx_data    = data;//&data[1];
     i2c_state.lead_rx_bytes   = rx_size;
 
     // before continuing, check if the driver is free
@@ -398,7 +413,7 @@ __disable_irq();
             , address
             , data
 	        , size
-            , I2C_FIRST_FRAME//, I2C_FIRST_AND_NEXT_FRAME
+            , I2C_FIRST_FRAME
 	        ) != HAL_OK ){ error |= 2; }
 __set_PRIMASK( old_primask );
     return error;
