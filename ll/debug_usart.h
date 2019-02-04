@@ -35,27 +35,15 @@
 #define USARTx_DMA_TXIRQSubPriority 2
 #define USARTx_DMA_RXIRQSubPriority 1
 
-
 #define DBG_USART_TIMEOUT	0x4000 /* a long time */
 
 // Setup functions & DMA/IT Handlers
 void Debug_USART_Init(void);
 void Debug_USART_DeInit(void);
 void USARTx_DMA_TX_IRQHandler(void);
-//void USARTx_DMA_RX_IRQHandler(void);
 void HAL_USART_TxCpltCallback(USART_HandleTypeDef *husart);
-//void HAL_USART_RxCpltCallback(USART_HandleTypeDef *husart);
 void USARTx_IRQHandler(void);
 
 // Communication Fns
 void U_PrintNow(void);
 void U_Print(char* s);
-void U_PrintLn(char* s);
-void U_PrintU32(uint32_t n);
-void U_PrintU32n(uint32_t n);
-void U_PrintU16(uint16_t n);
-void U_PrintU16n(uint16_t n);
-void U_PrintU8(uint8_t n);
-void U_PrintU8n(uint8_t n);
-void U_PrintF(float n);
-void U_PrintFn(float n);

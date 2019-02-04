@@ -8,7 +8,6 @@
 #include "../submodules/lua/src/lualib.h"
 
 // Hardware IO
-#include "ll/debug_usart.h" // U_Print*()
 #include "lib/slews.h"      // S_toward
 #include "lib/detect.h"     // Detect*
 #include "lib/caw.h"        // Caw_send_*()
@@ -49,6 +48,11 @@ const struct lua_lib_locator Lua_libs[] =
 static void Lua_linkctolua( lua_State* L );
 static float Lua_check_memory( void );
 
+void _printf(char* error_message)
+{
+    printf("%s\n",error_message);
+}
+
 lua_State* L; // global access for 'reset-environment'
 
 // Public functions
@@ -59,7 +63,7 @@ lua_State* Lua_Init(void)
     Lua_linkctolua(L);
     Lua_eval(L, lua_bootstrap
               , strlen(lua_bootstrap)
-              , U_PrintLn
+              , _printf
               ); // redefine dofile(), print(), load crowlib
     return L;
 }
@@ -68,7 +72,7 @@ void Lua_load_default_script( void )
 {
     Lua_eval(L, lua_default
               , strlen(lua_default)
-              , U_PrintLn
+              , _printf
               );
 }
 
@@ -89,10 +93,9 @@ static int _find_lib( const struct lua_lib_locator* lib, const char* name )
     while( lib[i].addr_of_luacode != NULL ){
         if( !strcmp( name, lib[i].name ) ){ // if the strings match
             if( luaL_dostring( L, lib[i].addr_of_luacode ) ){
-                U_Print("can't load library: ");
-                U_PrintLn( (char*)lib[i].name );
+                printf("can't load library: %s\n", (char*)lib[i].name );
                 // lua error
-                U_PrintLn( (char*)lua_tostring( L, -1 ) );
+                printf( "%s\n", (char*)lua_tostring( L, -1 ) );
                 lua_pop( L, 1 );
                 return -1; // error
             }
@@ -117,8 +120,7 @@ static int _dofile( lua_State *L )
         case 1: return 1;
         default: break;
     }
-    U_Print("can't find library: ");
-    U_PrintLn( (char*)l_name );
+    printf("can't find library: %s\n", (char*)l_name);
 fail:
     lua_pushnil(L);
     return 1;
@@ -127,7 +129,7 @@ static int _debug( lua_State *L )
 {
     const char* msg = luaL_checkstring(L, 1);
     lua_pop( L, 1 );
-    U_PrintLn( (char*)msg);
+    printf( "%s\n",(char*)msg);
     lua_settop(L, 0);
     return 0;
 }
@@ -229,21 +231,20 @@ static int _send_usb( lua_State *L )
 static int _ii_list_modules( lua_State *L )
 {
     Caw_send_luachunk( (char*)II_list_modules() );
-    U_PrintLn( (char*)II_list_modules() );
+    printf( "%s\n",(char*)II_list_modules() );
     return 0;
 }
 
 static int _ii_list_commands( lua_State *L )
 {
     uint8_t address = luaL_checkinteger(L, 1);
-    U_Print("i2c help "); U_PrintU8(address);
+    printf("i2c help %i\n", address);
     //Caw_send_luachunk( (char*)II_list_modules() );
-    //U_PrintLn( (char*)II_list_modules() );
     return 0;
 }
 static int _ii_set( lua_State *L )
 {
-    U_PrintLn("broadcast");
+    printf("broadcast\n");
 
     // FIXME: 4 is max number of arguments. is this ok?
     float data[4] = {0,0,0,0}; // always zero out data
@@ -380,10 +381,10 @@ uint8_t Lua_eval( lua_State*     L
         Caw_send_luachunk( (char*)lua_tostring( L, -1 ) );
         lua_pop( L, 1 );
         switch( error ){
-            case LUA_ERRSYNTAX: U_PrintLn("!load script: syntax"); break;
-            case LUA_ERRMEM:    U_PrintLn("!load script: memory"); break;
-            case LUA_ERRRUN:    U_PrintLn("!exec script: runtime"); break;
-            case LUA_ERRERR:    U_PrintLn("!exec script: err in err handler"); break;
+            case LUA_ERRSYNTAX: printf("!load script: syntax\n"); break;
+            case LUA_ERRMEM:    printf("!load script: memory\n"); break;
+            case LUA_ERRRUN:    printf("!exec script: runtime\n"); break;
+            case LUA_ERRERR:    printf("!exec script: err in err handler\n"); break;
             default: break;
         }
         return 1;
@@ -403,7 +404,7 @@ static float Lua_check_memory( void )
 
 void Lua_crowbegin( void )
 {
-    U_PrintLn("init()"); // call in C to avoid user seeing in lua
+    printf("init()\n"); // call in C to avoid user seeing in lua
     lua_getglobal(L,"init");
     lua_pcall(L,0,0,0);
 }
@@ -415,7 +416,7 @@ void L_handle_toward( int id )
     lua_pushinteger(L, id+1); // 1-ix'd
     if( lua_pcall(L, 1, 0, 0) != LUA_OK ){
         Caw_send_luachunk("error running toward_handler");
-        U_PrintLn( (char*)lua_tostring(L, -1) );
+        printf( "%s\n", (char*)lua_tostring(L, -1) );
         lua_pop( L, 1 );
     }
 }
@@ -452,7 +453,7 @@ void L_handle_change( int id, float state )
     lua_pushinteger(L, id+1); // 1-ix'd
     lua_pushnumber(L, state);
     if( lua_pcall(L, 2, 0, 0) != LUA_OK ){
-        U_PrintLn("ch er");
+        printf("ch er\n");
         Caw_send_luachunk("error: input change");
         Caw_send_luachunk( (char*)lua_tostring(L, -1) );
         lua_pop( L, 1 );
@@ -466,7 +467,7 @@ void L_handle_ii( uint8_t address, uint8_t cmd, float data )
     lua_pushinteger(L, cmd);
     lua_pushnumber(L, data); // TODO currently limited to single retval
     if( lua_pcall(L, 3, 0, 0) != LUA_OK ){
-        U_PrintLn("ii ev err");
+        printf("ii ev err\n");
         Caw_send_luachunk("error: ii event");
         Caw_send_luachunk( (char*)lua_tostring(L, -1) );
         lua_pop( L, 1 );

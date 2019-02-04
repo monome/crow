@@ -1,7 +1,6 @@
 #include "dac8565.h"
 
 #include "stdlib.h" // malloc()
-#include "debug_usart.h"
 #include "debug_pin.h"
 
 #include "adda.h"   // ADDA_BlockProcess()
@@ -27,7 +26,7 @@ void DAC_Init( uint16_t bsize, uint8_t chan_count )
     samp_count = DAC_BUFFER_COUNT * bsize * chan_count;
     samples = malloc( sizeof(uint32_t) * samp_count );
     for( int i=0; i<samp_count; i++ ){ samples[i] = 0; } // unnecessary
-    if(samples == NULL){ U_PrintLn("DAC_buffer"); }
+    if(samples == NULL){ printf("DAC_buffer\n"); }
 
     for( int j=0; j<DAC_CHANNELSS; j++ ){
         dac_calibrated_offset[j] = 0.0;
@@ -44,7 +43,7 @@ void DAC_Init( uint16_t bsize, uint8_t chan_count )
     dac_i2s.Init.CPOL         = I2S_CPOL_LOW;
     dac_i2s.Init.ClockSource  = I2S_CLOCK_SYSCLK;
 
-    if(HAL_I2S_Init(&dac_i2s) != HAL_OK){ U_PrintLn("i2s_init"); }
+    if(HAL_I2S_Init(&dac_i2s) != HAL_OK){ printf("i2s_init\n"); }
 
     // NRST & NSS both high
     HAL_GPIO_WritePin( I2Sx_NRST_GPIO_PORT, I2Sx_NRST_PIN, 0 );
@@ -87,7 +86,7 @@ __disable_irq();
                         , samp_count
                         );
 __set_PRIMASK( old_primask );
-    if(error){ U_PrintLn("i2s failed to start"); }
+    if(error){ printf("i2s failed to start\n"); }
 }
 
 void DAC_CalibrateScalar( uint8_t channel, float scale )
@@ -169,7 +168,7 @@ void HAL_I2S_TxCpltCallback( I2S_HandleTypeDef *hi2s )
 }
 void HAL_I2S_ErrorCallback( I2S_HandleTypeDef *hi2s )
 {
-    U_PrintLn("i2s_tx_error");
+    printf("i2s_tx_error\n");
 }
 
 

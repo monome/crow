@@ -101,20 +101,20 @@ static int8_t CDC_Itf_Init(void)
 
     TIM_Config();
     if( HAL_TIM_Base_Start_IT(&USBTimHandle) != HAL_OK ){
-        U_PrintLn("!tim_start");
+        printf("!tim_start\n");
         return USBD_FAIL;
     }
 
     //TODO add lua callback when USB connects/disconnects
     //     also provide a flag to check that status
-    U_PrintLn("usb_init");
+    printf("usb_init\n");
 
     return (USBD_OK);
 }
 
 static int8_t CDC_Itf_DeInit(void)
 {
-    U_PrintLn("TODO: CDC_Itf_DeInit");
+    printf("TODO: CDC_Itf_DeInit\n");
     return (USBD_OK);
 }
 
@@ -122,11 +122,11 @@ static int8_t CDC_Itf_Control (uint8_t cmd, uint8_t* pbuf, uint16_t length)
 { 
     // Most of this is unimplemented!
     switch( cmd ){
-        case CDC_SEND_ENCAPSULATED_COMMAND: U_PrintLn("itf:send_cmd");     break;
-        case CDC_GET_ENCAPSULATED_RESPONSE: U_PrintLn("itf:get_response"); break;
-        case CDC_SET_COMM_FEATURE:          U_PrintLn("itf:set_feature");  break;
-        case CDC_GET_COMM_FEATURE:          U_PrintLn("itf:get_feature");  break;
-        case CDC_CLEAR_COMM_FEATURE:        U_PrintLn("itf:clr_feature");  break;
+        case CDC_SEND_ENCAPSULATED_COMMAND: printf("itf:send_cmd\n");     break;
+        case CDC_GET_ENCAPSULATED_RESPONSE: printf("itf:get_response\n"); break;
+        case CDC_SET_COMM_FEATURE:          printf("itf:set_feature\n");  break;
+        case CDC_GET_COMM_FEATURE:          printf("itf:get_feature\n");  break;
+        case CDC_CLEAR_COMM_FEATURE:        printf("itf:clr_feature\n");  break;
         case CDC_SET_LINE_CODING:
             LineCoding.bitrate    = (uint32_t)(  pbuf[0]
                                               | (pbuf[1] << 8)
@@ -137,7 +137,7 @@ static int8_t CDC_Itf_Control (uint8_t cmd, uint8_t* pbuf, uint16_t length)
             LineCoding.paritytype = pbuf[5];
             LineCoding.datatype   = pbuf[6];
             break;
-        case CDC_GET_LINE_CODING: U_PrintLn("itf:g_line_coding");
+        case CDC_GET_LINE_CODING: printf("itf:g_line_coding\n");
             pbuf[0] = (uint8_t)(LineCoding.bitrate);
             pbuf[1] = (uint8_t)(LineCoding.bitrate >> 8);
             pbuf[2] = (uint8_t)(LineCoding.bitrate >> 16);
@@ -146,9 +146,9 @@ static int8_t CDC_Itf_Control (uint8_t cmd, uint8_t* pbuf, uint16_t length)
             pbuf[5] = LineCoding.paritytype;
             pbuf[6] = LineCoding.datatype;
             break;
-        case CDC_SET_CONTROL_LINE_STATE: break;//U_PrintLn("itf:s_ctrl_state"); break;
-        case CDC_SEND_BREAK:             U_PrintLn("itf:send_brk");     break;
-        default: U_PrintLn("default"); break;
+        case CDC_SET_CONTROL_LINE_STATE: break;//printf("itf:s_ctrl_state\n"); break;
+        case CDC_SEND_BREAK:             printf("itf:send_brk\n");     break;
+        default: printf("default\n"); break;
     }
     return (USBD_OK);
 }
@@ -242,7 +242,7 @@ static void TIM_Config(void)
     USBTimHandle.Init.ClockDivision = 0;
     USBTimHandle.Init.CounterMode = TIM_COUNTERMODE_UP;
     USBTimHandle.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-    if( HAL_TIM_Base_Init(&USBTimHandle) != HAL_OK ){ U_PrintLn("!tim-base"); }
+    if( HAL_TIM_Base_Init(&USBTimHandle) != HAL_OK ){ printf("!tim-base\n"); }
 
     HAL_NVIC_SetPriority( TIMu_IRQn, TIMu_IRQPriority, 0 );
     HAL_NVIC_EnableIRQ( TIMu_IRQn );

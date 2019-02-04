@@ -1,7 +1,6 @@
 #include "adda.h"
 
 #include "debug_pin.h"
-#include "debug_usart.h"
 #include "ads131.h"
 #include "dac8565.h"
 
@@ -48,7 +47,7 @@ IO_block_t* CAL_BlockProcess( IO_block_t* b );
 
 void CAL_ReadFlash( void )
 {
-    U_PrintLn("loading calibration data");
+    printf("loading calibration data\n");
     if( !Flash_read_calibration( (uint8_t*)(&cal)
                                , sizeof(CAL_chan_t) * (2+4)
                                ) ){
@@ -62,17 +61,17 @@ void CAL_ReadFlash( void )
         }
         cal.stage = CAL_none;
     } else {
-        U_PrintLn("calibration readout failed");
+        printf("calibration readout failed\n");
     }
 }
 
 void CAL_WriteFlash( void )
 {
-    U_PrintLn("saving calibration data");
+    printf("saving calibration data\n");
     if( Flash_write_calibration( (uint8_t*)(&cal)
                                , sizeof(CAL_chan_t) * (2+4)
                                ) ){
-        U_PrintLn("calibration writing failed");
+        printf("calibration writing failed\n");
     }
 }
 

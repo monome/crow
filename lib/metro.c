@@ -6,7 +6,6 @@
 #include "../ll/timers.h"      // _Init() _Start() _Stop() _Set_Params()
 #include "lualink.h"           // L_handle_metro()
 #include "io.h"                // IO_handle_timer
-#include "../ll/debug_usart.h" // U_Print*
 
 typedef enum { METRO_STATUS_RUNNING
              , METRO_STATUS_STOPPED
@@ -48,7 +47,7 @@ void Metro_start( int   ix
                 )
 {
     if( ix < 0
-     || ix >= max_num_metros ){ U_PrintLn("metro_start: bad index"); return; }
+     || ix >= max_num_metros ){ printf("metro_start: bad index\n"); return; }
 
     Metro_t* t = &(metros[ix]);
     t->status = METRO_STATUS_RUNNING;
@@ -63,7 +62,7 @@ void Metro_start( int   ix
 void Metro_stop( int ix )
 {
     if( ix < 0
-     || ix >= max_num_metros ){ U_PrintLn("metro_stop: bad index"); return; }
+     || ix >= max_num_metros ){ printf("metro_stop: bad index\n"); return; }
 
     Metro_t* t = &(metros[ix]);
     if( t->status == METRO_STATUS_RUNNING ){
@@ -76,7 +75,7 @@ void Metro_stop( int ix )
 void Metro_set_time( int ix, float sec )
 {
     if( ix < 0
-     || ix >= max_num_metros ){ U_PrintLn("metro_set_time: bad index"); return; }
+     || ix >= max_num_metros ){ printf("metro_set_time: bad index\n"); return; }
 
     Timer_Set_Params( ix, sec ); // only using struct accessor
 }

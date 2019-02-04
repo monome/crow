@@ -138,7 +138,7 @@ void HAL_I2C_MspDeInit( I2C_HandleTypeDef* h )
 void HAL_I2C_ErrorCallback( I2C_HandleTypeDef* h )
 {
     if( h->ErrorCode == HAL_I2C_ERROR_AF ){
-	    U_PrintLn("I2C_ERROR_AF");
+	    printf("I2C_ERROR_AF\n");
         // Seems to lock up i2c bus until whole driver is reset
         // Software reset
 /* A software reset can be performed by clearing the PE bit in the I2C_CR1 register. In that
@@ -164,13 +164,12 @@ PE=0 - Write PE=1.
 	    I2C_DeInit();
         I2C_Init( temp_addr );
     } else {
-	    //U_PrintLn("I2C_ERROR");
-	    //U_PrintU32( (uint32_t)h->ErrorCode );
+	    printf("I2C_ERROR %i\n", (int)h->ErrorCode);
     }
 uint32_t old_primask = __get_PRIMASK();
 __disable_irq();
 	if( HAL_I2C_EnableListen_IT( &i2c_handle ) != HAL_OK ){
-        U_PrintLn("enable listen failed");
+        printf("enable listen failed\n");
     }
 __set_PRIMASK( old_primask );
 }
@@ -190,7 +189,7 @@ __disable_irq();
                 , i2c_state.tx_bytes
                 , I2C_FIRST_AND_LAST_FRAME
                 ) != HAL_OK ){
-            //U_PrintLn("i2c seq tx failed");
+            printf("i2c seq tx failed\n");
         }
 __set_PRIMASK( old_primask );
     } else {
@@ -201,7 +200,7 @@ __disable_irq();
                 , I2C_MAX_CMD_BYTES
                 , I2C_NEXT_FRAME
 	            ) != HAL_OK ){
-	        //U_PrintLn("i2c seq rx failed");
+	        printf("i2c seq rx failed\n");
 	    }
 __set_PRIMASK( old_primask );
         i2c_state.rxing = 1;
@@ -213,14 +212,14 @@ void HAL_I2C_ListenCpltCallback( I2C_HandleTypeDef* hi2c )
 uint32_t old_primask = __get_PRIMASK();
 __disable_irq();
 	if( HAL_I2C_EnableListen_IT( &i2c_handle ) != HAL_OK ){
-	    //U_PrintLn("i2c enable listen failed");
+	    printf("i2c enable listen failed\n");
 	}
 __set_PRIMASK( old_primask );
 }
 void HAL_I2C_MasterTxCpltCallback( I2C_HandleTypeDef* h )
 {
     if( i2c_state.txing == 1 ){
-        //U_PrintLn("lead_tx -> rx");
+        //printf("lead_tx -> rx\n");
         // leader has transmitted a request
         // now ready to leader_receive the data
         i2c_state.txing = 2;
@@ -231,23 +230,23 @@ __disable_irq();
 		        , i2c_state.lead_rx_data
 	            , i2c_state.lead_rx_bytes
                 , I2C_NEXT_FRAME
-	            ) != HAL_OK ){ U_PrintLn("LeadRx"); }
+	            ) != HAL_OK ){ printf("LeadRx failed\n"); }
 __set_PRIMASK( old_primask );
     } else {
-        //U_PrintLn("lead_tx");
+        //printf("lead_tx\n");
         // leader_transmission has completed
         // return to follower_listen state
 uint32_t old_primask = __get_PRIMASK();
 __disable_irq();
         if( HAL_I2C_EnableListen_IT( &i2c_handle ) != HAL_OK ){
-		    U_PrintLn("i2c enable listen failed");
+		    printf("i2c enable listen failed\n");
 	    }
 __set_PRIMASK( old_primask );
     }
 }
 void HAL_I2C_MasterRxCpltCallback( I2C_HandleTypeDef* h )
 {
-    //U_PrintLn("lead_rx");
+    //printf("lead_rx\n");
     // last stage of a master receive
 
     i2c_state.txing = 0;
@@ -258,7 +257,7 @@ void HAL_I2C_MasterRxCpltCallback( I2C_HandleTypeDef* h )
 uint32_t old_primask = __get_PRIMASK();
 __disable_irq();
     if( HAL_I2C_EnableListen_IT( &i2c_handle ) != HAL_OK ){
-        U_PrintLn("i2c enable listen failed");
+        printf("i2c enable listen failed\n");
 	}
 __set_PRIMASK( old_primask );
 }
@@ -268,14 +267,14 @@ void HAL_I2C_SlaveRxCpltCallback( I2C_HandleTypeDef* h )
     // does *not* occur when command sent from TT
     // prob doesn't ever occur as we always allow endless transmission
     // instead callback is triggered by a STOPF flag in EV_IrqHandler
-    //U_Print("follow_rx"); // left on to see if it ever occurs
+    //printf("follow_rx\n"); // left on to see if it ever occurs
     I2C_RxCpltCallback( 0x0, 0x0, _I2C_GetBuffer( &i2c_state ) );
     i2c_state.rxing = 0; // expecting data now
 }
 void HAL_I2C_SlaveTxCpltCallback( I2C_HandleTypeDef* h )
 {
     // called when TT requests value
-    //U_Print("slave_tx");
+    //printf("slave_tx\n");
 }
 
 void I2Cx_EV_IRQHandler( void )
@@ -293,18 +292,17 @@ void I2Cx_EV_IRQHandler( void )
         // the losing module seems to cancel it's transmission
         // just need to check that rxing & txing are in a good state
         // also make sure any lib functions are cancelled
-        U_PrintLn("Arbitration Lost");
+        printf("Arbitration Lost\n");
     }
     if( __HAL_I2C_GET_FLAG( &i2c_handle, I2C_FLAG_AF ) ){
-        U_PrintLn("Ack failure");
+        printf("Ack failure\n");
     }
 	HAL_I2C_EV_IRQHandler( &i2c_handle );
 }
 
 void I2Cx_ER_IRQHandler( void )
 {
-    U_Print("ER:");
-    U_PrintU8(HAL_I2C_GetError( &i2c_handle ));
+    printf("ER: %i\n", (int)HAL_I2C_GetError( &i2c_handle ));
     i2c_state.txing = 0;
     i2c_state.rxing = 0;
 	HAL_I2C_ER_IRQHandler( &i2c_handle );
@@ -368,7 +366,7 @@ uint8_t I2C_LeadTx( uint8_t  address
                   )
 {
     address <<= 1;
-    //U_PrintLn("leadtx");
+    //printf("leadtx\n");
     uint8_t error = 0;
     if( HAL_I2C_DisableListen_IT( &i2c_handle ) != HAL_OK ){ error |= 1; }
 uint32_t old_primask = __get_PRIMASK();
@@ -395,7 +393,7 @@ uint8_t I2C_LeadRx( uint8_t  address
                   )
 {
     address <<= 1;
-    //U_PrintLn("leadrx");
+    //printf("leadrx\n");
     uint8_t error = 0;
     i2c_state.txing = 1;
     i2c_state.lead_rx_address = address;

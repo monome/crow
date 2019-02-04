@@ -8,6 +8,7 @@
 #include "lib/repl.h"
 #include "lib/metro.h"
 #include "lib/flash.h" // Flash_clear_user_script()
+#include "syscalls.c" // printf() redirection
 
 #include "ll/debug_usart.h"
 #include "ll/debug_pin.h"
@@ -27,10 +28,11 @@ int main(void)
     HAL_Init();
     Sys_Clk_Config();
 
+    printf("\n\nhi from crow!\n");
+
     // init debugging
     Debug_Pin_Init();
     Debug_USART_Init();
-    U_PrintLn("\n\rcrow"); U_PrintNow();
 
     // init drivers
     IO_Init();
@@ -138,7 +140,7 @@ static void CPU_CACHE_Enable(void)
 static void Error_Handler(void)
 {
     // print debug message after USART is running
-    U_PrintLn("Error Handler");
+    printf("Error Handler\n");
     U_PrintNow();
     while(1){;;}
 }

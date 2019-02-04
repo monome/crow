@@ -1,6 +1,5 @@
 #include "ii.h"
 
-#include "../ll/debug_usart.h"
 #include <stm32f7xx_hal.h>
 #include <string.h>
 #include "../build/ii_modules.h"
@@ -18,7 +17,7 @@ uint8_t II_init( uint8_t address )
      && address != II_LEADER2
      && address != II_LEADER3 ){ address = II_FOLLOW; } // ensure a valid address
     if( I2C_Init( (uint8_t)address ) ){
-        U_PrintLn("I2C Failed to Init");
+        printf("I2C Failed to Init\n");
     }
     return address;
 }
@@ -75,7 +74,6 @@ float _II_decode_packet( uint8_t* data, const II_Cmd_t* c )
 
     float retval = 0.0;
     uint16_t u16 = 0;
-    //U_PrintU8(c->return_type);
     switch( c->return_type ){
         case II_u8: retval = (float)(*data); break;
         case II_s8: retval = (float)(*(int8_t*)data); break;
@@ -90,7 +88,7 @@ float _II_decode_packet( uint8_t* data, const II_Cmd_t* c )
             retval = (float)*(int16_t*)&u16;
             break;
         case II_float: retval = *data; break;
-        default: retval = 0.0; U_PrintLn("dfaul"); break;
+        default: retval = 0.0; printf("dfaul\n"); break;
     }
     return retval;
 }
@@ -103,9 +101,6 @@ void I2C_RxCpltCallback( uint8_t address, uint8_t cmd, uint8_t* data )
 {
     const II_Cmd_t* c = ii_find_command(address, cmd);
     float val = _II_decode_packet( data, c );
-    //U_PrintF(val);
-
-
 
     // FIXME should set a flag, and callback from main loop
     L_handle_ii( address, cmd, val );

@@ -11,21 +11,12 @@ str_buffer_t str_buf;
 void Debug_USART_Init(void){ return; }
 void U_PrintNow(void){ return; }
 void U_Print(char* s){ return; }
-void U_PrintLn(char* s){ return; }
-void U_PrintU32(uint32_t n){ return; }
-void U_PrintU32n(uint32_t n){ return; }
-void U_PrintU16(uint16_t n){ return; }
-void U_PrintU16n(uint16_t n){ return; }
-void U_PrintU8(uint8_t n){ return; }
-void U_PrintU8n(uint8_t n){ return; }
-void U_PrintF(float n){ return; }
-void U_PrintFn(float n){ return; }
-void U_PrintVar(char* name, uint32_t n, uint8_t ret_flag){ return; }
 #endif // RELEASE
 
 #ifndef RELEASE
 void Debug_USART_Init( void )
 {
+#ifndef TRACE // ie using USART to debug
 	handusart.Instance = DBG_USARTx;
 
 	handusart.Init.BaudRate   = DBG_USART_baud;
@@ -35,13 +26,15 @@ void Debug_USART_Init( void )
 	handusart.Init.Mode       = USART_MODE_TX;
 
 	HAL_USART_Init( &handusart );
-
+#endif // TRACE
 	str_buffer_init( &str_buf, 511 ); // fifo for DMA buffer
 }
 
 void Debug_USART_DeInit(void)
 {
+#ifndef TRACE
 	HAL_USART_DeInit( &handusart );
+#endif // TRACE
 	str_buffer_deinit( &str_buf );
 }
 
@@ -102,8 +95,7 @@ void HAL_USART_TxCpltCallback( USART_HandleTypeDef *husart )
 
 void HAL_USART_ErrorCallback( USART_HandleTypeDef *husart )
 {
-    U_Print("errorcode: ");
-    U_PrintU8( husart->ErrorCode );
+    printf( "errorcode %i\n", (int)husart->ErrorCode );
 }
 void USARTx_IRQHandler( void )
 {
@@ -113,6 +105,7 @@ void USARTx_IRQHandler( void )
 // Communication Functions
 void U_PrintNow( void )
 {
+#ifndef TRACE
 	if( HAL_USART_GetState( &handusart ) == HAL_USART_STATE_READY
 	 && !str_buffer_empty( &str_buf ) ){
 // mask interrupts to ensure transmission!
@@ -126,6 +119,7 @@ __disable_irq();
 __set_PRIMASK( old_primask );
 // irqs reenabled
     }
+#endif // TRACE
 }
 
 void U_Print(char* s)
@@ -134,147 +128,5 @@ uint32_t old_primask = __get_PRIMASK();
 __disable_irq();
 	str_buffer_enqueue( &str_buf, s );
 __set_PRIMASK( old_primask );
-}
-void U_PrintLn(char* s)
-{
-	uint8_t len = strlen( (const char*)s );
-	char my_str[len+3]; // space for escape sequence
-	
-	strcpy( my_str, s );
-	strcpy( &my_str[len], "\n\r" );
-    
-    U_Print( my_str );
-}
-void U_PrintU32(uint32_t n)
-{
-	char str[] = "0xFFFFFFFF";
-	for( int8_t i=7; i >= 0; i-- ){
-	    uint32_t temp;
-		temp = n >> (i<<2);
-		temp &= 0x0000000F; // mask lowest nibble
-		if( temp < 10 ) { // numeric
-			str[9-i] = 48 + (char)temp;
-		} else { // alpha
-			str[9-i] = 55 + (char)temp;
-		}
-	}
-    U_PrintLn( str );
-}
-void U_PrintU32n(uint32_t n)
-{
-	char str[] = "0xFFFFFFFF";
-	for( int8_t i=7; i >= 0; i-- ){
-	    uint32_t temp;
-		temp = n >> (i<<2);
-		temp &= 0x0000000F; // mask lowest nibble
-		if( temp < 10 ) { // numeric
-			str[9-i] = 48 + (char)temp;
-		} else { // alpha
-			str[9-i] = 55 + (char)temp;
-		}
-	}
-    U_Print( str );
-}
-void U_PrintU16(uint16_t n)
-{
-	char str[] = "0xFFFF";
-	for( int8_t i=3; i >= 0; i-- ){
-	    uint32_t temp;
-		temp = n >> (i<<2);
-		temp &= 0x000F; // mask lowest nibble
-		if( temp < 10 ) { // numeric
-			str[5-i] = 48 + (char)temp;
-		} else { // alpha
-			str[5-i] = 55 + (char)temp;
-		}
-	}
-    U_PrintLn( str );
-}
-void U_PrintU16n(uint16_t n)
-{
-	char str[] = "0xFFFF";
-	for( int8_t i=3; i >= 0; i-- ){
-	    uint32_t temp;
-		temp = n >> (i<<2);
-		temp &= 0x000F; // mask lowest nibble
-		if( temp < 10 ) { // numeric
-			str[5-i] = 48 + (char)temp;
-		} else { // alpha
-			str[5-i] = 55 + (char)temp;
-		}
-	}
-    U_Print( str );
-}
-void U_PrintU8(uint8_t n)
-{
-	char str[] = "FF";
-	for( int8_t i=1; i >= 0; i-- ){
-	    uint32_t temp;
-		temp = n >> (i<<2);
-		temp &= 0x0F; // mask lowest nibble
-		if( temp < 10 ) { // numeric
-			str[1-i] = 48 + (char)temp;
-		} else { // alpha
-			str[1-i] = 55 + (char)temp;
-		}
-	}
-    U_PrintLn( str );
-}
-void U_PrintU8n(uint8_t n)
-{
-	char str[] = "FF";
-	for( int8_t i=1; i >= 0; i-- ){
-	    uint32_t temp;
-		temp = n >> (i<<2);
-		temp &= 0x0F; // mask lowest nibble
-		if( temp < 10 ) { // numeric
-			str[1-i] = 48 + (char)temp;
-		} else { // alpha
-			str[1-i] = 55 + (char)temp;
-		}
-	}
-    U_Print( str );
-}
-void U_PrintF(float n)
-{
-	char str[] = "+000.000";
-    if(n >= 999.999){ strcpy( str, "+999.999" ); }
-    else if(n <= -999.999){ strcpy( str, "-999.999" ); }
-    else{
-        if( n >= 0.0 ){
-            str[0] = '+';
-        } else {
-            str[0] = '-';
-            n = -n;
-        }
-        str[1] = 48 + (int)(n / 100);
-        str[2] = 48 + (int)(n / 10) % 10;
-        str[3] = 48 + (int)(n) % 10;
-        str[5] = 48 + (int)(n * 10) % 10;
-        str[6] = 48 + (int)(n * 100) % 10;
-        str[7] = 48 + (int)(n * 1000) % 10;
-    }
-    U_PrintLn( str );
-}
-void U_PrintFn(float n)
-{
-	char str[] = "+000.000";
-    if(n >= 999.999){ strcpy( str, "+999.999" ); }
-    else if(n <= -999.999){ strcpy( str, "-999.999" ); }
-    else{
-        if( n >= 0.0 ){
-            str[0] = '+';
-        } else {
-            str[0] = '-';
-            n = -n;
-        }
-        str[1] = 48 + (int)(n / 100);
-        str[2] = 48 + (int)(n / 10) % 10;
-        str[3] = 48 + (int)(n) % 10;
-        str[5] = 48 + (int)(n * 10) % 10;
-        str[6] = 48 + (int)(n * 100) % 10;
-        str[7] = 48 + (int)(n * 1000) % 10;
-    }
-    U_Print( str );
 }
 #endif // DEBUG
