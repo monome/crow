@@ -62,3 +62,7 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+trace*
+build/
+util/l2h.lua
