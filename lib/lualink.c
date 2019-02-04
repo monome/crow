@@ -25,8 +25,11 @@
 #include "lua/metro.lua.h"
 #include "lua/input.lua.h"
 #include "lua/output.lua.h"
+#include "lua/ii.lua.h"
+#include "build/iihelp.lua.h"    // generated lua stub for loading i2c modules
 
-struct lua_lib_locator{ const char* name; const char* addr_of_luacode; };
+#include "build/ii_lualink.h" // generated C header for linking to lua
+
 const struct lua_lib_locator Lua_libs[] =
     { { "lua_crowlib", lua_crowlib }
     , { "lua_asl"    , lua_asl     }
@@ -34,6 +37,8 @@ const struct lua_lib_locator Lua_libs[] =
     , { "lua_metro"  , lua_metro   }
     , { "lua_input"  , lua_input   }
     , { "lua_output" , lua_output  }
+    , { "lua_ii"     , lua_ii      }
+    , { "build_iihelp", build_iihelp }
     , { NULL         , NULL        }
     };
 
@@ -77,24 +82,40 @@ void Lua_DeInit(void)
 // NB these static functions are prefixed  with '_'
 // to avoid shadowing similar-named extern functions in other modules
 // and also to distinguish from extern 'L_' functions.
-static int _dofile( lua_State *L )
+
+static int _find_lib( const struct lua_lib_locator* lib, const char* name )
 {
-    const char* l_name = luaL_checkstring(L, 1);
-    lua_pop( L, 1 );
     uint8_t i = 0;
-    while( Lua_libs[i].addr_of_luacode != NULL ){
-        if( !strcmp( l_name, Lua_libs[i].name ) ){ // if the strings match
-            if( luaL_dostring( L, Lua_libs[i].addr_of_luacode ) ){
+    while( lib[i].addr_of_luacode != NULL ){
+        if( !strcmp( name, lib[i].name ) ){ // if the strings match
+            if( luaL_dostring( L, lib[i].addr_of_luacode ) ){
                 U_Print("can't load library: ");
-                U_PrintLn( (char*)Lua_libs[i].name );
+                U_PrintLn( (char*)lib[i].name );
                 // lua error
                 U_PrintLn( (char*)lua_tostring( L, -1 ) );
                 lua_pop( L, 1 );
-                goto fail;
+                return -1; // error
             }
             return 1; // table is left on the stack as retval
         }
         i++;
+    }
+    return 0; // not found
+}
+
+static int _dofile( lua_State *L )
+{
+    const char* l_name = luaL_checkstring(L, 1);
+    lua_pop( L, 1 );
+    switch( _find_lib( Lua_libs, l_name ) ){
+        case -1: goto fail;
+        case 1: return 1;
+        default: break;
+    }
+    switch( _find_lib( Lua_ii_libs, l_name ) ){
+        case -1: goto fail;
+        case 1: return 1;
+        default: break;
     }
     U_Print("can't find library: ");
     U_PrintLn( (char*)l_name );
@@ -204,19 +225,63 @@ static int _send_usb( lua_State *L )
     lua_settop(L, 0);
     return 0;
 }
-static int _send_ii( lua_State *L )
+
+static int _ii_list_modules( lua_State *L )
 {
-    // pattern match on broadcast vs query
-    uint8_t istate = 4;
-    II_broadcast( II_FOLLOW, 1, &istate, 1 );
+    Caw_send_luachunk( (char*)II_list_modules() );
+    U_PrintLn( (char*)II_list_modules() );
+    return 0;
+}
+
+static int _ii_list_commands( lua_State *L )
+{
+    uint8_t address = luaL_checkinteger(L, 1);
+    U_Print("i2c help "); U_PrintU8(address);
+    //Caw_send_luachunk( (char*)II_list_modules() );
+    //U_PrintLn( (char*)II_list_modules() );
+    return 0;
+}
+static int _ii_set( lua_State *L )
+{
+    U_PrintLn("broadcast");
+
+    // FIXME: 4 is max number of arguments. is this ok?
+    float data[4] = {0,0,0,0}; // always zero out data
+    int nargs = lua_gettop(L);
+    if( nargs > 2
+     && nargs <= 6 ){
+        for( int i=0; i<(nargs-2); i++ ){
+            data[i] = luaL_checknumber(L, i+3); // 1-ix'd
+        }
+    }
+    II_broadcast( luaL_checkinteger(L, 1) // address
+                , luaL_checkinteger(L, 2) // command
+                , data
+                );
     lua_settop(L, 0);
     return 0;
 }
-static int _set_ii_addr( lua_State *L )
+static int _ii_get( lua_State *L )
 {
-    // pattern match on broadcast vs query
-    uint8_t istate = 4;
-    II_broadcast( II_FOLLOW, 1, &istate, 1 );
+    float data[4] = {0,0,0,0}; // always zero out data
+    int nargs = lua_gettop(L);
+    if( nargs > 2
+     && nargs <= 6 ){
+        for( int i=0; i<(nargs-2); i++ ){
+            data[i] = luaL_checknumber(L, i+3); // 1-ix'd
+        }
+    }
+    II_query( luaL_checkinteger(L, 1) // address
+            , luaL_checkinteger(L, 2) // command
+            , data
+            );
+    lua_settop(L, 0);
+    return 0;
+}
+static int _ii_address( lua_State *L )
+{
+    II_set_address( luaL_checkinteger(L, 1) );
+    lua_pop( L, 1 );
     lua_settop(L, 0);
     return 0;
 }
@@ -279,8 +344,11 @@ static const struct luaL_Reg libCrow[]=
         // usb
     , { "send_usb"         , _send_usb         }
         // i2c
-    , { "send_ii"          , _send_ii          }
-    , { "set_ii_addr"      , _set_ii_addr      }
+    , { "ii_list_modules"  , _ii_list_modules  }
+    , { "ii_list_commands" , _ii_list_commands }
+    , { "ii_set"           , _ii_set           }
+    , { "ii_get"           , _ii_get           }
+    , { "ii_address"       , _ii_address       }
         // metro
     , { "metro_start"      , _metro_start      }
     , { "metro_stop"       , _metro_stop       }
@@ -386,6 +454,20 @@ void L_handle_change( int id, float state )
     if( lua_pcall(L, 2, 0, 0) != LUA_OK ){
         U_PrintLn("ch er");
         Caw_send_luachunk("error: input change");
+        Caw_send_luachunk( (char*)lua_tostring(L, -1) );
+        lua_pop( L, 1 );
+    }
+}
+
+void L_handle_ii( uint8_t address, uint8_t cmd, float data )
+{
+    lua_getglobal(L, "ii_handler");
+    lua_pushinteger(L, address);
+    lua_pushinteger(L, cmd);
+    lua_pushnumber(L, data); // TODO currently limited to single retval
+    if( lua_pcall(L, 3, 0, 0) != LUA_OK ){
+        U_PrintLn("ii ev err");
+        Caw_send_luachunk("error: ii event");
         Caw_send_luachunk( (char*)lua_tostring(L, -1) );
         lua_pop( L, 1 );
     }

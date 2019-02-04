@@ -37,7 +37,7 @@ int main(void)
     Metro_Init();
     Caw_Init();
     MIDI_Init();
-    //II_init( II_FOLLOW );
+    II_init( II_LEADER1 );
 
     REPL_init( Lua_Init() );
 

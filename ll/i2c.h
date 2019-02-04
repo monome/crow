@@ -39,7 +39,7 @@
 
 #define I2C_BUFFER_LEN      32
 
-extern void I2C_RxCpltCallback( uint8_t* data );
+extern void I2C_RxCpltCallback( uint8_t address, uint8_t cmd, uint8_t* data );
 
 uint8_t I2C_Init( uint8_t address );
 void I2C_DeInit( void );
@@ -62,6 +62,7 @@ void HAL_I2C_AddrCallback( I2C_HandleTypeDef* h
 	                     );
 void I2C_BufferRx( uint8_t* data );
 uint8_t I2C_GetAddress( void );
+void I2C_SetAddress( uint8_t address );
 uint8_t* I2C_PopFollowBuffer( void );
 uint8_t I2C_FollowBufferNotEmpty( void );
 uint8_t* I2C_PopLeadBuffer( void );
@@ -74,4 +75,5 @@ uint8_t I2C_LeadTx( uint8_t  address
 uint8_t I2C_LeadRx( uint8_t  address
                   , uint8_t* data
                   , uint8_t  size
+                  , uint8_t  rx_size
                   );

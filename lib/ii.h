@@ -26,15 +26,29 @@ typedef enum
 uint8_t II_init( uint8_t address );
 void II_deinit( void );
 
-II_ADDR_t II_get_mode( void );
+const char* II_list_modules( void );
 
-void I2C_RxCpltCallback( uint8_t* data );
+uint8_t II_get_address( void );
+void II_set_address( uint8_t address );
+// ^^ good
+
+
+
+// unknown >>
+void I2C_RxCpltCallback( uint8_t address, uint8_t cmd, uint8_t* data );
 
 uint8_t* II_processFollowRx( void );
 uint8_t* II_processLeadRx( void );
-void II_broadcast( II_ADDR_t address
-                 , uint8_t cmd
-                 , uint8_t* data
-                 , uint8_t size
-                 );
-void II_query( void );
+
+
+
+
+// good
+uint8_t II_broadcast( uint8_t address
+                    , uint8_t cmd
+                    , float*  data
+                    );
+uint8_t II_query( uint8_t address
+                , uint8_t cmd
+                , float*  data
+                );

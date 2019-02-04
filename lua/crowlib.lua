@@ -26,6 +26,7 @@ local function closelibs()
     Asl    = nil
     Asllib = nil
     Metro  = nil
+    ii     = nil
 end
 
 function _crow.libs( lib )
@@ -36,6 +37,7 @@ function _crow.libs( lib )
         Asl    = dofile('lua/asl.lua')
         Asllib = dofile('lua/asllib.lua')
         Metro  = dofile('lua/metro.lua')
+        ii     = dofile('lua/ii.lua')
     elseif type(lib) == 'table' then
         -- load the list 
     else

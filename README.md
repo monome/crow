@@ -341,6 +341,7 @@ end
 
 
 ### using inputs inside a crow script
+
 fundamentally the only real change when using the inputs on crow itself is you'll
 need to define your own events.
 
@@ -371,6 +372,170 @@ end
 ```
 
 
+## i2c support
+
+crow supports acting as an i2c leader or follower. this allows it to control
+other devices on a connected network, query those devices state, or itself
+be controlled or queried by other devices. these many possibilities suggest
+a wide range of varied use cases for you to discover!
+
+### using i2c
+you can get a list of supported i2c devices by typing:
+`ii.help()`
+
+all the returned devices can themselves be queried for their available functions.
+`ii.<module>.help()`, or eg: `ii.jf.help()`
+
+these functions are formatted in such a way that you can directly copy-and-paste
+these help files into your script.
+
+#### commands / setters
+remote devices can be controlled with `commands`. these are listed first by the
+help() functions. eg: `ii.jf.trigger( channel, state )`. these are typically called
+'setters' when described in the teletype context.
+
+you can call these like regular functions and they will send their commands over the
+i2c bus to their destination.
+
+#### queries / getters
+queries are values that can be requested from a connected device. this could be
+asking a clock device for it's *tempo*, or an analog input device for the *voltage*
+at one of it's inputs.
+
+crow uses a query -> event model, which is different from teletype which has a
+functional approach. in teletype, you call the getter, it requests the value,
+waits to receive it, then returns that value as it's result directly.
+
+crow's query -> event model separates the *request* from the *response*. while
+this approach is a little more complex, it allows crow to do a great many *other*
+things while it waits for a response to it's request.
+
+first you use `ii.<module>.get( name, ... )`, which again can be copied directly
+from the device's help() call. the `...` here refers to a variable list of arguments
+which might be none at all! eg:
+`ii.jf.get( 'run_mode' )`
+
+then you can declare an `event` action to handle the response from the device.
+copy it from the help() printout! it should look something like:
+```
+ii.jf.event( event, data )
+    if event == 'run_mode' then
+        -- the state of 'run_mode' is in the 'data' variable!
+    end
+end
+
+```
+
+### adding i2c support for a new device
+in order to encourage wide-ranging support for all i2c capable devices, crow
+requires only a single file to be added per device. this lua file is a simple
+declarative specification of how that device communicates on the i2c bus.
+
+these files live in `crow/lua/ii/<device_name>.lua`
+
+#### beyond the obvious
+take a look at `jf.lua` as an example which adds support for mannequins'
+'just friends' module. this module takes advantage of most of the existing
+features of the build system.
+
+the first 4 lines are global settings stating this module is called 'just friends',
+made by 'mannequins' and can be talked to at the hexadecimal address 0x70. the
+`lua_name` field *must* match the filename (jf.lua -> 'jf'), and is the name
+by which users will refer to this device in their scripts eg: `ii.jf.trigger()`.
+
+following this header is a big table called 'commands' which is itself full of
+tables, one for each 'setter' command the device can receive. a 'setter' in this
+context typically allows crow to remotely-control a parameter or event. more
+generally a 'setter' is any command that doesn't return any values.
+
+- 'name' is how the user will refer to this command: eg: name=trigger -> ii.jf.trigger()
+- 'cmd' is the number the remote device expects to trigger the 'name'd function. see https://github.com/monome/libavr32/blob/master/src/ii.h for a starting point.
+- 'docs' is an optional string describing the functionality of the command.
+- 'args' is a table of tables, each inner-table describing a command argument.
+
+##### no arguments
+in the simplest case, the command doesn't require *any* arguments, eg: ii.jf.reset()
+in which case you can omit the 'args' descriptor altogether.
+
+##### 1 argument
+if the command expects a single argument you can declare it as a table directly.
+eg: args = `{ 'name', type }`
+it is also allowed to use the nested table syntax: `args = { { 'name', type } }`
+
+##### 2+ arguments
+the most general case allows for any number of arguments, each defined as a table
+within the args table like so:
+```
+args = { { 'arg1', type }
+       , { 'arg2', type }
+       }
+```
+
+##### what's a type?!
+each argument has both a *name* and *type*. the *name* is purely for documentation, so
+the user knows at a glance what that argument means. the *type* refers to the
+low-level representation of the value.
+
+available types are:
+- void  -- the lack of an argument (typically not needed)
+- u8    -- unsigned 8-bit integer (0,255)
+- s8    -- signed 8-bit integer (-128,127)
+- u16   -- unsigned 16-bit integer (0,65535)
+- s16   -- signed 16-bit integer (-32768, 32767) {teletype's default}
+- float -- 32bit floating point number
+
+*u16* and *s16* expect MSB before LSB.
+*float* is little-endian
+
+refer to the documentation or source-code for the device you're supporting to
+determine what types are used for these types.
+
+##### get
+many devices built for use within the teletype ecosystem have a matching 'getter' to
+go with each 'setter'. so while `JF.RMODE 1` sets 'run_mode' to 1, `JF.RMODE` without
+any argument, will *query* the value of 'run_mode' returning that as a result.
+
+under the hood, these matching getters & setters are typically given the same 'cmd'
+value, with the getter offset by 0x80. the *last* argument in the list is omitted
+when calling the command, and instead is expected as the return value.
+
+by setting `get = true`, a getter will be auto-generated with the above assumptions.
+
+if you have getters that *don't* use these conventions, you can articulate them
+explicitly. >>>
+
+##### getters
+a single function is provided for getting, or *querying*, values from a connected
+device. this is: `ii.jf.get( name, ... )`. to define 'gettable' values, you add them
+to the 'getters' table in much the same way as the 'commands' table.
+
+- `name` is the name by which to query the state
+- `cmd` is the number corresponding the above name (see your devices docs)
+- `docs` is an optional string describing what will be returned
+- `args` is identical to the 'commands' version. can be omitted if no arguments.
+- 'retval' is like a single `arg`. it should be a table with a string then a type.
+
+
+#### some gotchas
+to simplify the build process, the 'lua_name' variable currently must match
+the name of the .lua file (ie. `jf.lua` must have `lua_name = 'jf'`)
+
+#### future development
+while extensive, this descriptive framework could be extended to add any or all of
+the below features. see the github issues list for discussion:
+
+- remove requirement that filename match lua_name
+- lua_name aliases to allow eg: 'jf' or 'justfriends' to access the same table
+- additional argument & return_value types
+    - fractional types with radix. eg: fract13 converts a 13bit int to 0-1.0 float
+- multiple return values (eg: ii.jf.get('retune',1)) could return both `num` and `denom`
+
+
+#### the below is really for a time when we have fract types
+different values require different levels of precision depending on their use. the
+i2c bus began with monome's teletype device, a system itself based on a *signed 16bit
+integer* virtual machine. crow on the other hand, is based around a *32bit floating
+point* virtual machine.
 
 
 

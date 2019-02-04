@@ -6,7 +6,18 @@ function init()
 
     metro = Metro.assign_all()
 
+    ii.txi.get( 'value', 1 )
     --input[1].mode('change', 0.5, 0.1, 'both')
+end
+
+-- FIXME need to access 'ii.<mod>' before defining event bc it gets trampled
+-- by the setup otherwise? i don't understand why the table access doesn't cause
+-- the library to be loaded, have default event, then apply the .event here to
+-- overwrite it?
+local ignore = ii.txi.get
+ii.txi.event = function( e, data )
+    if e == 'value' then print('txi='..data)
+    end
 end
 
 local position = 0
