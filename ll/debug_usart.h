@@ -46,4 +46,4 @@ void USARTx_IRQHandler(void);
 
 // Communication Fns
 void U_PrintNow(void);
-void U_Print(char* s);
+void U_Print(char* s, int len);

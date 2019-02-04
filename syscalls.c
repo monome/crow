@@ -11,7 +11,7 @@ int _write(int file, char* data, int len)
         fputc((uint32_t)*data++, (FILE*)file);
     }
 #else // TRACE using USART to debug
-    U_Print(data); // enqueues a string
+    U_Print(data,len); // enqueues a string
 #endif // TRACE
     return len;
 }

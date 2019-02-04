@@ -122,11 +122,15 @@ __set_PRIMASK( old_primask );
 #endif // TRACE
 }
 
-void U_Print(char* s)
+void U_Print(char* s, int len)
 {
+    char str[len+2];
+    memcpy( str, s, len );
+    str[len] = '\r';
+    str[len+1] = '\0';
 uint32_t old_primask = __get_PRIMASK();
 __disable_irq();
-	str_buffer_enqueue( &str_buf, s );
+	str_buffer_enqueue( &str_buf, str );
 __set_PRIMASK( old_primask );
 }
 #endif // DEBUG

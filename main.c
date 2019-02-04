@@ -28,11 +28,11 @@ int main(void)
     HAL_Init();
     Sys_Clk_Config();
 
-    printf("\n\nhi from crow!\n");
-
     // init debugging
     Debug_Pin_Init();
-    Debug_USART_Init();
+    Debug_USART_Init(); // ignored in TRACE mode
+
+    printf("\n\nhi from crow!\n");
 
     // init drivers
     IO_Init();
