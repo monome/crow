@@ -8,17 +8,17 @@ void USB_CDC_Init(void)
 {
     // Init Device Library
     if( USBD_Init(&USBD_Device, &VCP_Desc, 0) != USBD_OK ){
-        U_PrintLn("Invalid Device handle");
+        printf("Invalid Device handle\n");
     }
 
     // Add Supported Class
     if( USBD_RegisterClass(&USBD_Device, USBD_CDC_CLASS) != USBD_OK ){
-        U_PrintLn("Invalid class handle");
+        printf("Invalid class handle\n");
     }
 
     // Add CDC Interface Class
     if( USBD_CDC_RegisterInterface(&USBD_Device, &USBD_CDC_fops) != USBD_OK ){
-        U_PrintLn("Failed to register interface");
+        printf("Failed to register interface\n");
     }
 
     // Start Device Process

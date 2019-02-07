@@ -54,6 +54,11 @@ CFLAGS += -fsingle-precision-constant -Wdouble-promotion
 CFLAGS += -DLUA_32BITS -DLUA_COMPAT_5_2
 CFLAGS += -fno-common
 
+TRACE ?= 0
+ifeq ($(TRACE), 1)
+    CFLAGS += -DTRACE
+endif
+
 R ?= 0
 ifeq ($(R), 1)
     CFLAGS += -DRELEASE
@@ -173,6 +178,11 @@ $(BIN): $(EXECUTABLE)
 
 flash: $(BIN)
 	st-flash write $(BIN) 0x08020000
+
+debug:
+	make flash TRACE=1
+	#st-flash write $(BIN) 0x08020000
+	stlink-trace -c 216
 
 dfu: $(BIN)
 	sudo dfu-util -a 0 -s 0x08020000:leave -D $(BIN) -d ,0483:df11

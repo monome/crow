@@ -20,7 +20,7 @@ void MIDI_Init( void )
 	midiuart.Init.Parity       = UART_PARITY_NONE;
 	midiuart.Init.Mode         = UART_MODE_RX;
 	midiuart.Init.OverSampling = UART_OVERSAMPLING_16; // 16 or 8. d=16
-    if( HAL_UART_Init( &midiuart ) ){ U_PrintLn("!midi_init"); }
+    if( HAL_UART_Init( &midiuart ) ){ printf("!midi_init\n"); }
 
     while( HAL_UART_GetState( &midiuart ) != HAL_UART_STATE_READY ){}
 
@@ -60,7 +60,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef *hu )
 	hdma_rx.Init.MemDataAlignment	= DMA_MDATAALIGN_BYTE;
 	hdma_rx.Init.Mode 				= DMA_NORMAL;
 	hdma_rx.Init.Priority 			= DMA_PRIORITY_HIGH;
-    if( HAL_DMA_Init( &hdma_rx ) ){ U_PrintLn("!MIDI_DMA"); }
+    if( HAL_DMA_Init( &hdma_rx ) ){ printf("!MIDI_DMA\n"); }
 	__HAL_LINKDMA( hu, hdmarx, hdma_rx ); // Associate DMA to UART handle
 
 	HAL_NVIC_SetPriority( MIDIx_DMA_RX_IRQn
@@ -92,7 +92,7 @@ static uint8_t MIDI_rx_cmd( void )
                                       , 1
 					                  );
 //__set_PRIMASK( old_primask );
-    if( err ){ U_PrintLn("midi_cmd_error"); }
+    if( err ){ printf("midi_cmd_error\n"); }
     return err;
 }
 
@@ -106,7 +106,7 @@ static uint8_t MIDI_rx_data( uint8_t count )
                                       , count
 					                  );
 //__set_PRIMASK( old_primask );
-    if( err ){ U_PrintLn("midi_data_error"); }
+    if( err ){ printf("midi_data_error\n"); }
     return err;
 }
 
@@ -165,10 +165,7 @@ void HAL_UART_RxCpltCallback( UART_HandleTypeDef *huart )
             }
         } else {
             if( rx_buf[0] == MIDI_NOTEON ){
-                U_Print("noteon ");
-                U_PrintU8n(rx_buf[0]); U_Print(" ");
-                U_PrintU8n(rx_buf[1]); U_Print(" ");
-                U_PrintU8(rx_buf[2]);
+                printf("noteon %i %i %i\n", rx_buf[0], rx_buf[1], rx_buf[2]);
             }
             MIDI_event(); }
     }

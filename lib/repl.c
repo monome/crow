@@ -5,7 +5,6 @@
 
 #include "lib/flash.h"     // Flash_write_(), Flash_is_userscript(), Flash_read()
 #include "lib/caw.h"       // Caw_send_raw(), Caw_send_luachunk(), Caw_send_luaerror()
-#include "ll/debug_usart.h"// U_Print*()
 
 // global variables
 lua_State*  Lua;
@@ -29,7 +28,7 @@ void REPL_init( lua_State* lua )
                          , new_script_len
                          , Caw_send_luaerror
                          ) ){
-            U_PrintLn("failed to load user script");
+            printf("failed to load user script\n");
             Lua_load_default_script(); // fall back to default
         }
         free(new_script);
@@ -52,8 +51,8 @@ void REPL_mode( L_repl_mode mode )
                                        ) ){
                 Caw_send_luachunk("flash write failed");
             }
-            U_PrintLn("script saved");
-        } else { U_PrintLn("new user script failed test"); }
+            printf("script saved\n");
+        } else { printf("new user script failed test\n"); }
         free(new_script); // cleanup memory
     }
 }
@@ -65,7 +64,7 @@ void REPL_eval( char* buf, uint32_t len, ErrorHandler_t errfn )
                      , len
                      , errfn
                    )){
-            U_PrintLn("!eval");
+            printf("!eval\n");
         }
     } else { // REPL_reception
         REPL_receive_script( buf, len, errfn );

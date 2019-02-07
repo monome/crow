@@ -3,7 +3,6 @@
 #include <string.h>
 
 #include "../usbd/usbd_main.h"
-#include "../ll/debug_usart.h"
 
 #define USB_RX_BUFFER 1024
 static char reader[USB_RX_BUFFER];
@@ -103,7 +102,7 @@ C_cmd_t Caw_try_receive( void )
         }
         if( _is_multiline( (char*)buf ) ){
             multiline ^= 1;
-            if(!multiline){ U_PrintLn(reader); }
+            if(!multiline){ printf("%s\n",reader); }
             return (multiline) ? C_none : C_repl;
         }
     // receive code for repl/flash

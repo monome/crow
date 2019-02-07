@@ -2,7 +2,6 @@
 
 #include <stm32f7xx_hal.h>
 
-#include "debug_usart.h"
 #include "debug_pin.h"
 
 #define ADC_FRAMES     3 // status word, plus 2 channels
@@ -57,7 +56,7 @@ void ADC_Init( uint16_t bsize, uint8_t chan_count )
     adc_spi.Init.TIMode            = SPI_TIMODE_DISABLE;
     adc_spi.Init.CRCCalculation    = SPI_CRCCALCULATION_DISABLE;
     adc_spi.Init.CRCPolynomial     = 7;
-    if(HAL_SPI_Init(&adc_spi) != HAL_OK){ U_PrintLn("spi_init"); }
+    if(HAL_SPI_Init(&adc_spi) != HAL_OK){ printf("spi_init\n"); }
 
     //uint32_t prescaler = (uint32_t)((SystemCoreClock / 10000)-1);
     uint32_t period_value = 0x06; // ~8.3MHz
@@ -66,7 +65,7 @@ void ADC_Init( uint16_t bsize, uint8_t chan_count )
     adc_tim.Init.Prescaler = 1; //prescaler;
     adc_tim.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
     adc_tim.Init.CounterMode = TIM_COUNTERMODE_UP;
-    if(HAL_TIM_PWM_Init(&adc_tim) != HAL_OK){ U_PrintLn("tim_init"); }
+    if(HAL_TIM_PWM_Init(&adc_tim) != HAL_OK){ printf("tim_init\n"); }
 
     tim_config.OCMode       = TIM_OCMODE_PWM1;
     tim_config.OCPolarity   = TIM_OCPOLARITY_HIGH;
@@ -76,10 +75,10 @@ void ADC_Init( uint16_t bsize, uint8_t chan_count )
     tim_config.OCIdleState  = TIM_OCIDLESTATE_RESET;
     tim_config.Pulse        = period_value/2;
     if(HAL_TIM_PWM_ConfigChannel(&adc_tim, &tim_config, TIMa_CHANNEL) != HAL_OK){
-        U_PrintLn("tim_config");
+        printf("tim_config\n");
     }
     if(HAL_TIM_PWM_Start( &adc_tim, TIMa_CHANNEL ) != HAL_OK){
-        U_PrintLn("tim_st");
+        printf("tim_st\n");
     }
 
     for( uint8_t i=0; i<ADC_BUF_SIZE; i++ ){
@@ -98,11 +97,11 @@ void ADS_Init_Sequence(void)
     ADS_Reset_Device();
 
     ADS_Cmd(ADS_UNLOCK);
-    if( ADS_Cmd(ADS_NULL) != ADS_UNLOCK ){ U_PrintLn("Can't Unlock"); }
+    if( ADS_Cmd(ADS_NULL) != ADS_UNLOCK ){ printf("Can't Unlock\n"); }
 
     // CONFIGURE REGS HERE
     ADS_Reg(ADS_WRITE_REG | ADS_CLK1, 0x01 << 1); // MCLK/8 // 0x02 before
-    //U_PrintU16( ADS_Cmd(ADS_NULL) ); // assert ADS_CLK1
+    //printf( "%i\n",ADS_Cmd(ADS_NULL) ); // assert ADS_CLK1
         // 0x02 is /2 which is least divisions (fastest internal)
         // meaning slowest clkout from uc and least noise?
         // CLKIN divider. see p63 of ads131 datasheet
@@ -153,8 +152,8 @@ uint16_t ADS_Reg( uint8_t reg_mask, uint8_t val )
                           | val
                           );
         if( status != expect ){
-            U_Print("!WREG expect: "); U_PrintU16(expect);
-            U_Print("received: "); U_PrintU16(status);
+            printf("!WREG expect: %i\n", expect);
+            printf("received: %i\n", status);
         }
     }
     return retval;
@@ -214,7 +213,7 @@ __disable_irq();
                                       , (uint8_t*)aRxBuffer
                                       , ADC_BUF_SIZE
                                       ) != HAL_OK ){
-            U_PrintLn("spi_txrx_fail");
+            printf("spi_txrx_fail\n");
         }
 __set_PRIMASK( old_primask );
     }
@@ -246,7 +245,7 @@ __disable_irq();
                           , (uint8_t*)aRxBuffer
                           , size
                           ) != HAL_OK ){
-        U_PrintLn("spi_rx_fail");
+        printf("spi_rx_fail\n");
     }
 __set_PRIMASK( old_primask );
     // just wait til it's done (for now)
@@ -265,7 +264,7 @@ __disable_irq();
                                   , (uint8_t*)aRxBuffer
                                   , size
                                   ) != HAL_OK ){
-        U_PrintLn("spi_txrx_fail");
+        printf("spi_txrx_fail\n");
     }
 __set_PRIMASK( old_primask );
     // just wait til it's done (for now)
@@ -280,23 +279,20 @@ uint8_t _ADC_CheckErrors( uint16_t error )
         retval = 1;
         if( error & 0x2 ){} // Data ready fault
         if( error & 0x4 ){ // Resync fault
-            //U_PrintLn("sync");
+            //printf("sync\n");
         }
         if( error & 0x8 ){ // Watchdog timer
-            U_PrintLn("watchdog");
+            printf("watchdog\n");
         }
         if( error & 0x10 ){ // ADC input fault
-            //U_Print("adc_p: ");
-            //U_PrintU16(ADS_Reg( ADS_READ_REG | ADS_STAT_P, 0 ));
-            //U_Print("adc_n: ");
-            //U_PrintU16(ADS_Reg( ADS_READ_REG | ADS_STAT_N, 0 ));
+            //printf("adc_p: %i\n", ADS_Reg( ADS_READ_REG | ADS_STAT_P, 0 ));
+            //printf("adc_n: %i\n", ADS_Reg( ADS_READ_REG | ADS_STAT_N, 0 ));
         }
         if( error & 0x20  ){ // SPI fault
-            //U_Print("spi: ");
-            //U_PrintU16(ADS_Reg( ADS_READ_REG | ADS_STAT_S, 0 ));
+            //printf("spi: %i\n", ADS_Reg( ADS_READ_REG | ADS_STAT_S, 0 ));
         }
         if( error & 0x40 ){ // Command fault
-            //U_PrintLn("bad_cmd");
+            //printf("ADS bad_cmd\n");
             return 2;
         }
     }
@@ -304,7 +300,7 @@ uint8_t _ADC_CheckErrors( uint16_t error )
 }
 void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi)
 {
-    U_PrintLn("spi_error");
+    printf("ads spi_error\n");
     // pull NSS high to cancel any ongoing transmission
     //DELAY_usec(NSS_DELAY);
     HAL_GPIO_WritePin( SPIa_NSS_GPIO_PORT, SPIa_NSS_PIN, 1 );
@@ -312,7 +308,7 @@ void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi)
 
 void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 {
-    //U_PrintLn("txrx-cb");
+    //printf("txrx-cb\n");
     // signal end of transmission by pulling NSS high
     //DELAY_usec(NSS_DELAY);
     HAL_GPIO_WritePin( SPIa_NSS_GPIO_PORT, SPIa_NSS_PIN, 1 );
@@ -320,7 +316,7 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 
 void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
 {
-    //U_PrintLn("rx-cb");
+    //printf("rx-cb\n");
     // signal end of transmission by pulling NSS high
     //_ADC_CheckErrors( aRxBuffer[0] );
     //DELAY_usec(NSS_DELAY);

@@ -14,7 +14,7 @@ uint8_t Flash_is_user_script( void )
 
 void Flash_clear_user_script( void )
 {
-    U_PrintLn("clear user script");
+    printf("clear user script\n");
     clear_flash( USER_SCRIPT_SECTOR, USER_SCRIPT_LOCATION );
 }
 
@@ -81,7 +81,7 @@ uint8_t Flash_is_calibrated( void )
 
 void Flash_clear_calibration( void )
 {
-    U_PrintLn("clear user script");
+    printf("clear user script\n");
     clear_flash( CALIBRATION_SECTOR, CALIBRATION_LOCATION );
 }
 

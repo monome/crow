@@ -6,8 +6,6 @@
 #include "interrupts.h"
 #include "../usbd/usbd_cdc_interface.h" // USB_TIM_PeriodElapsedCallback()
 
-#include "debug_usart.h"
-
 #define MAX_LL_TIMERS 10 // tell caller how many timers can be allocated
 
 typedef void (*TIM_CLK_ENABLE_t)();
@@ -127,7 +125,7 @@ __disable_irq();
     uint8_t err = HAL_TIM_Base_Init( &(TimHandle[ix]) );
 __set_PRIMASK( old_primask );
     if( err != HAL_OK ){
-        U_Print("Timer_Set_Params("); U_PrintU8n(ix); U_PrintLn(") failed");
+        printf("Timer_Set_Params(%i) failed\n", ix);
     }
 }
 
@@ -138,7 +136,7 @@ __disable_irq();
     uint8_t err = HAL_TIM_Base_Start_IT( &(TimHandle[ix]) );
 __set_PRIMASK( old_primask );
     if( err != HAL_OK ){
-        U_Print("Timer_Start("); U_PrintU8n(ix); U_PrintLn(") failed");
+        printf("Timer_Start(%i) failed\n", ix);
     }
 }
 
@@ -149,6 +147,6 @@ __disable_irq();
     uint8_t err = HAL_TIM_Base_Stop_IT( &(TimHandle[ix]) );
 __set_PRIMASK( old_primask );
     if( err != HAL_OK ){
-        U_Print("Timer_Stop("); U_PrintU8n(ix); U_PrintLn(") failed");
+        printf("Timer_Stop(%i)\n", ix);
     }
 }

@@ -9,8 +9,6 @@
 
 #include "lualink.h"           // L_handle_in_stream (pass this in as ptr?)
 
-#include "../ll/debug_usart.h" // U_Print*()
-
 #define IN_CHANNELS ADDA_ADC_CHAN_COUNT
 
 void IO_Init( void )

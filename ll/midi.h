@@ -1,7 +1,6 @@
 #pragma once
 
 #include <stm32f7xx.h>
-#include "debug_usart.h"
 #include "interrupts.h" // MIDI_IRQPriority
 
 #define MIDI_GPIO_RCC()	        __HAL_RCC_GPIOA_CLK_ENABLE()
