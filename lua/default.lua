@@ -16,7 +16,7 @@ end
 -- overwrite it?
 local ignore = ii.txi.get
 ii.txi.event = function( e, data )
-    if e == 'value' then print('txi='..data)
+    if e == 'value' then debug_usart('value='..data)
     end
 end
 

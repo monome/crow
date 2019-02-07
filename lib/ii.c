@@ -12,10 +12,10 @@
 // public defns
 uint8_t II_init( uint8_t address )
 {
-    if( address != II_FOLLOW
-     && address != II_LEADER1
-     && address != II_LEADER2
-     && address != II_LEADER3 ){ address = II_FOLLOW; } // ensure a valid address
+    if( address != II_CROW
+     && address != II_CROW2
+     && address != II_CROW3
+     && address != II_CROW4 ){ address = II_CROW; } // ensure a valid address
     if( I2C_Init( (uint8_t)address ) ){
         printf("I2C Failed to Init\n");
     }
@@ -64,69 +64,51 @@ uint8_t* II_processLeadRx( void )
     return pRetval; // NULL for finished
 }
 
-
-
-
-float _II_decode_packet( uint8_t* data, const II_Cmd_t* c )
+float* _II_decode_packet( float* decoded
+                        , uint8_t* data
+                        , const II_Cmd_t* c
+                        , int is_following
+                        )
 {
-    //uint8_t* b = buf;
-    //b[byte++] = cmd;
-
-    float retval = 0.0;
+    float* d = decoded;
     uint16_t u16 = 0;
-    switch( c->return_type ){
-        case II_u8: retval = (float)(*data); break;
-        case II_s8: retval = (float)(*(int8_t*)data); break;
-        case II_u16:
-            u16  = ((uint16_t)*data++)<<8;
-            u16 |= *data;
-            retval = (float)u16;
-            break;
-        case II_s16:
-            u16  = ((uint16_t)*data++)<<8;
-            u16 |= *data;
-            retval = (float)*(int16_t*)&u16;
-            break;
-        case II_float: retval = *data; break;
-        default: retval = 0.0; printf("dfaul\n"); break;
+    for( int i=0; i<(is_following ? c->args : 1); i++ ){
+        switch( (is_following) ? c->argtype[i] : c->return_type ){
+            case II_u8: *d++ = (float)(*data++); break;
+            case II_s8: *d++ = (float)(*(int8_t*)data++); break;
+            case II_u16:
+                u16  = ((uint16_t)*data++)<<8;
+                u16 |= *data++;
+                *d++ = (float)u16;
+                break;
+            case II_s16:
+                u16  = ((uint16_t)*data++)<<8;
+                u16 |= *data++;
+                *d++ = (float)*(int16_t*)&u16;
+                break;
+            case II_float: *d++ = *data; data += 4; break;
+            default: printf("ii_decode unmatched\n"); break;
+        }
     }
-    return retval;
+    return decoded;
 }
 
 uint8_t rx_address;
 
-// Transfer functions
 // Handles both follower cases
-void I2C_RxCpltCallback( uint8_t address, uint8_t cmd, uint8_t* data )
+void I2C_Lead_RxCallback( uint8_t address, uint8_t cmd, uint8_t* data )
 {
+    printf("ii_lead_rx: addr %i, cmd %i, data %i, %i, %i\n", address, cmd, data[0], data[1], data[2]);
     const II_Cmd_t* c = ii_find_command(address, cmd);
-    float val = _II_decode_packet( data, c );
 
-    // FIXME should set a flag, and callback from main loop
-    L_handle_ii( address, cmd, val );
-
-
-
-
-
-
-
-
-    //if( data[0] >= II_GET ){
-    //    // bounds check cmd
-    //    // same as II_process() in terms of fnptr
-    //    // but fns just grab a data pointer
-    //    I2C_SetTxData( &testo, 1 );
-    //} else {
-    //    I2C_BufferRx( data );
-    //}
+    float val;
+    L_handle_ii( address
+               , cmd
+               , *_II_decode_packet( &val, data, c, 0 )
+               );
+    // TODO note: the 'follow' case above allows multiple vals!
+    // TODO should set a flag, and callback from main loop
 }
-
-
-
-
-
-
 
 uint8_t _II_type_size( II_Type_t t )
 {
@@ -138,6 +120,24 @@ uint8_t _II_type_size( II_Type_t t )
                case II_float: return 4;
     }
     return 0;
+}
+
+void I2C_Follow_RxCallback( uint8_t* data )
+{
+    printf("ii_follow_rx: cmd %i, data %i, %i\n", data[0], data[1], data[2]);
+    uint8_t cmd = *data++; // first data holds command
+    const II_Cmd_t* c = ii_find_command(0x28, cmd);
+    float args[c->args];
+    L_handle_iiself( cmd
+                   , c->args
+                   , _II_decode_packet( args, data, c, 1 )
+                   );
+    // nb: we run the callback directly bc all devices on the i2c bus can
+    // potentially lockup while the transfer is in progress.
+    static uint8_t d[2] = {0,0}; // FIXME this needs to be response from lua
+    //I2C_SetTxData( d, _II_type_size( c->return_type ) );
+    //FIXME _II_type_size doesn't work on an auto-generated retval for a getter
+    I2C_SetTxData( d, 1 );
 }
 
 uint8_t _II_make_packet( uint8_t* buf, const II_Cmd_t* c, uint8_t cmd, float* data )
