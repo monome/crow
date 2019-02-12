@@ -1,64 +1,140 @@
 # crow
-an embedded lua interpreting usb<->cv bridge (for norns).
-a collaboration by whimsical raps & monome
 
+An embedded lua interpreting usb<->cv bridge (sometimes for norns).
+A collaboration by whimsical raps & monome
 
-## toolchain setup
+## what's a crow?
 
-### prereq
+crow is many things, but here's some starters:
+- Eurorack module. 2hp. +60mA, -15mA (TODO confirm).
+- Hardware i/o: 2inputs, 2outputs, 16bit, [-5v,+10v] range
+- Full lua environment, 64kB of local script storage
+- USB device, for communicating text(!)
+- i2c leader & follower, multiple crows can share responsibilities
+- MIDI input on TRS cable (top-most input only)
 
-- arm-none-eabi-gcc 4.9.3: https://launchpad.net/gcc-arm-embedded/4.9
-- fennel: `luarocks install fennel` *nb: requires lua 5.3 for now*
+With such a wide range of features, crow may become many different things to many
+different people. The focus has been to create an infrastructure where minimal
+customization is required to achieve many standard functions.
 
-### get the project
-- `git clone --recursive https://github.com/trentgill/crow.git`
-- `cd crow`
-- `git submodule --init` *nb: will take a while to download*
+In general there are two classes of use-case, crow as *satellite*, and crow
+*standalone*. Separating crow's functions along this boundary is useful for
+some descriptive purposes, but of course your use-case my cross the division.
+It's quite possible that a *satellite* use case may want to have crow running a
+local script to enrich the remote features.
 
-### flashing
-you can either use an stlink / discovery board to flash the firmware using the edge connector.
-you'll need an st-link & an edge-connector adaptor <oshpark link>
-if you want to change the bootloader, you'll need to use this setup
-- stlink: https://github.com/texane/stlink#installation
+### satellites
 
-or you can flash the module over the panel-mount usb jack using dfu-util
-- dfu-util: apt-get install dfu-util
+crow was originally conceptualized as a CV-expander for *norns*, enabling close
+integration with modular systems, or other devices with voltage control. The
+*satellite* idea is a generalization of this proposition, where crow is subsidiary
+to a host device.
 
-### building
-- `make` / `make all` build the project binary
-- `make clean` remove all binary objects to force a rebuild on next `make`
+These modes work by sending and receiving chunks of lua code over the USB connection.
+crow will execute a received chunk immediately, enabling the host environment to
+direct crow to act, or query crow's state such as the level at an input jack.
 
-*for st-link disco board*
-- `make flash` build & flash the main program
-- `make boot` build & flash the bootloader
-- `make erase` only useful to give the module an original position
+#### druid
 
-*for dfu programming over usb*
-- `make dfu` build & flash the main program
+TODO
 
-## writing crow scripts
-a typical crow script is broken up into two main sections:
+This is the standalone computer REPL. Like a command-line hosted maiden. It is
+designed to be a simple interface for live-coding & configuring crow.
 
-### 1: the init() function
-here the script initializes parameters & you can describe the general functionality of your script
-this will likely include declaring events that will be called at runtime
+General use-case would be a split terminal with text-editor on one side, and
+druid on the other. druid provides direct access to crow's REPL so you can test out
+code directly, then copy & paste into your script. Some hotkeys for auto-uploading
+a file to crow would be useful.
 
-### 2: event functions
-these functions handle events created by:
+crow has a lot of built-in documentation which can be queried with the 'help()'
+method on most of the libraries. This will cause crow to send a chunk of lua code
+which will be printed in the REPL window. These code chunks are specifically made
+to enable a user to copy/paste them directly into their script.
+
+#### norns
+
+TODO
+
+norns will add a set of functions for communicating with crow.
+
+norns will create a set of event handlers that the user can redefine.
+
+#### Max
+
+A max object called [crow] is included in this project, though in future will be
+included in the Max distribution. It is a thin layer over a [serial] object which
+communicates to crow. The [crow] object accepts specific messages to query inputs,
+set functionality, and drive outputs. Additionally chunks of lua code can be sent
+directly to the object to control crow in a totally open manner.
+
+The object then returns the default events (inputs, trigger events, timers etc)
+in a form easily integrated into a Max patch. A simple usage would send new values
+to the output jacks, and turn on 'change' mode for the inputs such that bangs are
+received when the inputs pass a threshold.
+
+#### Ableton
+
+Leveraging the above max object, a set of Max4Live devices will soon be created
+enabling some simple yet powerful interfacing between Ableton and a modular synth.
+
+Initially these will be focused around using Ableton as the center of a system:
+- Creating clocks, and clock-synced ramps
+- Automatable CV outputs with variable smoothing
+- Recording CV inputs as MIDI
+- Using CV inputs to remote-control Ableton
+
+In future this could be extended to allow the modular to drive Ableton directly
+via clocks, but perhaps some other parameters too. We're hoping some more active
+Ableton users will help extend these ideas, if not the implementation.
+
+### Standalone
+
+*Standalone* mode is intended to let crow perform functions without needing to
+connect to a host device. To support this, the user can upload scripts to crow
+which will run whenever the system is powered up.
+
+The defining difference of using crow standalone is the manner in which events are
+handled. While in *satellite* mode, events send messages over USB, when *standalone*
+the user must handle these events in their script.
+
+In order to get your standalone program onto crow you'll need a text editor and a
+mechanism to talk to the serial port. *druid* above will be the typical choice for
+those familiar with the command line. The Max object can be used too if you are
+comfortable in that environment. Eventually maiden may support uploading directly
+to crow(?).
+
+**would love to hear thoughts on what kind of tool is best suited for this**
+
+## Standalone: Writing crow scripts
+
+A typical crow script is broken up into two main sections:
+
+TODO
+
+extend this...
+
+### 1: The init() function
+Here the script initializes parameters & you can describe the general functionality
+of your script this will likely include declaring events that will be called at
+runtime.
+
+### 2: Event handlers
+These functions handle events created by:
 - timers
 - input jacks
 - i2c
 - midi input
 
-## crow commands
-the below commands should be integrated into a host environment as macros
-or commands. in particular, the user shouldn't need to worry about typing
-them explicitly. norns should provide higher-level functions that send these
-low-level commands & split up larger code pieces automatically.
+## crow commands: Controlling the crow environment
 
-the following commands are parsed directly from usb, so should work
-even if the lua environment has crashed. nb: start/end script won't
-work correctly if the env is down though. use clearscript first.
+The below commands should be integrated into a host environment as macros or
+commands. In particular, the user shouldn't need to worry about typing them
+explicitly. norns should provide higher-level functions that send these low-level
+commands & split up larger code pieces automatically.
+
+The following commands are parsed directly from usb, so should work even if the lua
+environment has crashed. nb: start/end script won't work correctly if the env is
+down though. Use clearscript first.
 
 nb: only the first char after the `^^` symbol matters, so the host can
 simply send a 3 char command (eg `^^s`) for brevity & speed
@@ -70,87 +146,75 @@ simply send a 3 char command (eg `^^s`) for brevity & speed
 - `^^bootloader`: jump directly to the bootloader.
 - `^^reset` / `^^restart`: reboots crow (not just lua env). nb: causes usb connection to be reset.
 
-### communication details
-if you're writing a host environment to control/upload to crow, there are some
-limitations to keep in mind:
 
-the usb connection will break up any messages into 64byte blocks. if you want
-to send a codeblock longer than this, you need to use the multiline helper.
-first send a command of 3 backticks "```", then your codeblock, then another
-3 backticks. this should be hidden from the end-user.
+### recovering from an unresponsive state
 
-however! if you are sending a full lua script and it's over 1kB, it must
-be broken up into smaller chunks. if you are in script-transmission-mode then
-you can arbitrarily break up the message every 1kB. if you're sending a giant
-codeblock directly to the lua repl, you'll need to split the message so the
-lua interpreter sees each portion as valid code, as each multi-line segment
-is evaluated upon reception.
-
-
-## recovering from an unresponsive state
-it's entirely possible to upload crow scripts that will make crow unresponsive
+It's entirely possible to upload crow scripts that will make crow unresponsive
 and require clearing of the on-board script.
 
-### requesting user-script-clear
-the gentlest way to deal with this situation is to send the `^^clearscript`
-command over usb. you <will be able to> do this by typing `;c` or `^^c` in the
+#### Requesting user-script-clear
+
+The gentlest way to deal with this situation is to send the `^^clearscript`
+command over usb. You <will be able to> do this by typing `;c` or `^^c` in the
 crow application<, or pressing a 'clear script' button in maiden?>, or pressing
 the (^^clearscript) message box in max.
 
-### using the bootloader
-in extreme cases, your script might even make the low-level system become
+#### Using the bootloader
+
+In extreme cases, your script might even make the low-level system become
 unresponsive which will stop crow from responding to your `^^clearscript`
 command.
 
-in this case you can enter the bootloader with a `^^b` message, which will
+In this case you can enter the bootloader with a `^^b` message, which will
 instantly reset the module and take you to the bootloader.
 
-here you can use `dfu-util` to clear the user-script flash zone.
+Here you can use `dfu-util` to clear the user-script flash zone.
 
-### forcing the bootloader
-in case both of the above don't work, you can manually force the bootloader to
+TODO
+
+Actually describe how to use the bootloader in the different contexts!
+
+#### Forcing the bootloader
+
+In case both of the above don't work, you can manually force the bootloader to
 run by placing a jumper on the i2c header, and restarting crow.
 
-the jumper should bridge between either of the centre pins to either of the
+The jumper should bridge between either of the centre pins to either of the
 ground pins (ie the pins closest to the power connector, indicated by the
-white stripe on the pcb). in a pinch you can hold a (!disconnected!) patch cable
+white stripe on the pcb). In a pinch you can hold a (!disconnected!) patch cable
 to bridge the pins while powering on the case.
 
-## using the [crow] max/pd object
+## Input Library
 
+crow's cv inputs can be used in three different ways: 'none', 'stream' and 'change'.
+This setting is chosen independently for each of the two inputs, allowing each jack
+to take on different roles.
 
-### accessing cv inputs
-crow's cv inputs can be used in three different ways when acting as a remote via
-max/pd: 'none', 'stream' and 'change'. this setting is chosen independently for
-each of the two inputs, allowing each jack to take on different roles.
+- 'none' is the default, requiring you to manually query input values.
+- 'stream' returns values at regular time intervals.
+- 'change' sends an event when the input crosses a predefined threshold.
 
-    'none' is the default, requiring you to manually query input values.
-    'stream' returns values at regular time intervals.
-    'change' sends an event when the input crosses a predefined threshold.
+This choice of functionality is referred to as the input's 'mode'. to set input 1 to
+'none' mode you can use `input[1].mode('none')`.
 
-this choice of functionality is referred to as the input's 'mode'. to set input 1 to
-'none' mode you can use:
-    `input[1].mode('none')`
+Or set the second input to 'stream' mode where values will be sent 10 times a second
+(aka every 0.1 seconds) `input[2].mode('stream', 0.1)`.
 
-or set the second input to 'stream' mode where values will be sent 10 times a second
-(aka every 0.1 seconds) use:
-    `input[2].mode('stream', 0.1)`
-
-in this way the `mode` function takes a variable number of arguments, depending on
-which mode you've selected. if you don't supply all the arguments, the last value
+In this way the `mode` function takes a variable number of arguments, depending on
+which mode you've selected. If you don't supply all the arguments, the last value
 you used will be applied, falling back to the default if it's your first time.
 
-remembering the number and order of these arguments can be a pain, so you can also
+Remembering the number and order of these arguments can be a pain, so you can also
 setup the mode in a different manner, explicitly naming your parameters:
 ```
 input[2]{ mode    = 'stream'
         , time    = 0.1
         }
 ```
-the above code will act identically to our above `mode` function call, but now it's
+The above code will act identically to our above `mode` function call, but now it's
 clear to us (and *future* us) what the `0.1` refers to, time!
 
-this style is more useful for 'change' mode as there are more arguments:
+This style is more useful for 'change' mode as there are more arguments:
 ```
 input[1]{ mode       = 'change'
         , threshold  = 1.0
@@ -162,62 +226,135 @@ input[1]{ mode       = 'change'
 `mode = 'change'` means we'll receive events when the threshold is crossed.
 `threshold = 1.0` sets the detection level to 1 volt. above this is 'high', and below is 'low'
 `hysteresis = 0.2` modifies the 'threshold' value depending on which direction the
-signal is moving. if the signal is low, output won't switch high until reaching 1.1V,
+signal is moving. If the signal is low, output won't switch high until reaching 1.1V,
 but once the signal has gone high it won't switch low until passing beneath 0.9V.
-the difference here is 0.2V and is known as hysteresis. hysteresis is useful to avoid
+The difference here is 0.2V and is known as hysteresis. Hysteresis is useful to avoid
 'bouncy' switching when the input signal is near the threshold point.
 `direction = 'rising'` means the event will *only* happen when the threshold goes
-from low to high. when the signal returns to the low state, no event is created.
-other options are 'falling' for only at the *end* or a gate, or 'both' which creates
+from low to high. When the signal returns to the low state, no event is created.
+Other options are 'falling' for only at the *end* or a gate, or 'both' which creates
 events on both the high and low going transitions.
 
-additional modes are forthcoming in future updates for more sophisticated event
+Additional modes are forthcoming in future updates for more sophisticated event
 detection.
 
->>> receiving the messages
-each of the above modes interact differently with the [crow] object.
+### Defaults for crow satellite
 
-to use 'none' mode, you can send the message `(get_cv x)` where `x` is either 1 or 2
-for the input channel you want to access. this will cause the first outlet to return
-a message `(return_cv x v)` where `x` is the same channel, and `v` is the value.
-*important*: unlike other objects, [crow] will not wait for the response from the
-crow module, instead it will request the value, then allow max to carry on with other
-processes. when the response is received, it will continue out of the [crow] object
-left output. this can affect ordering of events in your patch!
-
-'stream' mode reception is identical to 'none', creating `(return_cv x v)` messages
-the difference being these messages are not individually requested, but automatically
-received.
-
-'change' mode instead creates a `(return_change x s)` message, where `x` is the
-channel, and `s` is the state, `1` for high and `0` for low. note: if you set
-direction to 'rising' you'll only ever receive the number `1`.
-
->>> advanced return values
-while the above describes the standard usage, it's possible to redefine what happens
-when a 'stream' or 'change' message is returned. under the hood, these are
-implemented as simple functions in the input tables. the defaults being:
+Set up input 1 to detect rising signals with a small amount of hysteresis
 ```
-in[1].stream = function( value )
-    get_cv(1)
-end
+input[1]{ mode       = 'change'
+        , threshold  = 1.0
+        , hysteresis = 0.1
+        , direction  = 'rising'
+        }
+```
+Each time the signal passes above ~1.0V an event will be created on the host:
 
+On norns:
 ```
-and
-```
-in[1].change = function( state )
-    _crow.tell( 'change', 1, state )
+function crow.change( channel, state )
+    -- TODO. here's where you do the action!
+    -- nb: 'state' will always be '1' in 'rising' mode
+    --      but will tell you high/low as 1/0 in 'both'
+    --      or remain as all zeroes in 'falling'
 end
 ```
-these event handlers can be redefined as you see fit
+
+In Max the [crow] object will emit a message from the left output (change a b) where
+'a' is the channel and 'b' the state.
+
+Setting up a stream is very similar.
+```
+input[2]{ mode = 'stream'
+        , time = 1.0
+        }
+```
+resulting in the following remote event:
+```
+function ret_cv( channel, value )
+    -- TODO. do something with the stream of input values!
+end
+```
+Or for Max, the message is similar: (input a b) where 'b' is the value.
+
+The inputs can also be queried directly, rather than setting up a stream on a timer.
+`input[1].query()` will send a response in the same manner as the stream above.
+
+To do the same from Max, you can send the (get_cv x) message to the left input.
 
 
+There is also a standard function call to setup these functions which is more terse:
+```
+input[1].mode( 'none' ) -- deactivated, but can still be queried
+input[2].mode( 'stream', 0.05 ) -- sends 20 values per second
+input[1].mode( 'change' ) -- default gate detector
+```
 
+### Standalone Inputs
 
-## metro lib
+The only real change when using the inputs on crow itself is you'll need to define
+your own events.
 
-### norns style
-each time you want a new timer you can assign it with some default params:
+The default stream action is defined as:
+`input[1].stream = function(value) _c.tell('ret_cv',1,value) end`
+
+You can however redefine this to suit your own needs:
+```
+input[1].stream = function(value)
+    -- here we echo the input to output channel 1
+    -- we could set out[1].rate to smooth out changes from step to step
+    output[1].level = value
+end
+```
+
+A great use case for this is to allow crow's inputs to become triggers for i2c
+enabled modules. The following snippet turns crow's first input into a momentary
+gate which controls whether a remote W/ module is recording.
+
+```
+function init()
+    input[1].mode( 'change' ) -- default gate detection
+end
+
+input[1].change = function(state)
+    ii.wslash.record(state)
+end
+```
+
+## Output Library & ASL
+
+TODO
+
+See `ref/asl-spec.lua` for some discussion of ASL.
+
+### examples
+
+Activate a pre-defined ASL action. By default there is a +/-5v LFO on every channel:
+`output[1].asl:action()` will start the LFO on output 1.
+
+Or set the output to a value directly:
+`output[1].value = 2.0` 2 volts.
+
+You can assign a new action:
+`output[1].asl:action = lfo( 1.0, 'linear', 4.0 )`
+
+There's a list of different default actions like `lfo()`, `adsr()` in the 'Asl lib'
+located in `lua/asllib.lua`.
+
+You can of course define your own ASL generator functions, or use it directly. Below
+we assign a sawtooth LFO jumping instantly to 5 volts, then falling to 0 volts in
+one second, before repeating infinitely.
+```
+output[1].asl:action =
+    loop{ toward( 5.0, 0.0, 'linear' )
+        , toward( 0.0, 1.0, 'linear' )
+        }
+```
+Then start it as above with `output[1].asl:action()`
+
+## Metro library
+
+Each time you want a new timer you can assign it with some default params:
 ```
 mycounter = Metro.init{ event = count_event
                       , time  = 2.0
@@ -226,30 +363,33 @@ mycounter = Metro.init{ event = count_event
 ```
 then start it:
 `mycounter:start()`
-which will begin calling the your 'event', in this case count_event.
-you'll want to set it up like this:
+Which will begin calling your 'event', in this case count_event.
+You'll want to set it up like this:
 ```
 function count_event( count )
     -- TODO
 end
 ```
-you can change parameters on the fly:
+You can change parameters on the fly:
 `mycounter.time = 10.0`
 `mycounter.count = 33`
 
 
 ### 'assign_all'
-sometimes you just need a bunch of timers without wanting to name each timer and set
-explicit actions. in this case there's a shorthand to get all the metros setup and
-running. just add:
+
+*nb: this will likely be converted to the default behaviour*
+
+Sometimes you just need a bunch of timers without wanting to name each timer and set
+explicit actions. In this case there's a shorthand to get all the metros setup and
+running. Just add:
     `metro = Metro.assign_all()`
 to your `init()` function.
 
-this makes `metro` a table of metros with default events assigned. to start them
+This makes `metro` a table of metros with default events assigned. To start them
 running, use the 'start' method call with a time.
 
 ```
---- Assign all the metros, and set up 3 phasing timers at 1,3 and 5 second intervals
+--- Assign all the metros, and set up 3 phasing timers at 1, 3 and 5 second intervals
 function init()
     metro = Metro.assign_all()
 
@@ -259,164 +399,149 @@ function init()
 end
 ```
 
-by default, this will call a remote function:
+By default, this will call a remote function:
 ```
 function metro(channel, count)
     -- TODO
 end
 ```
+In satellite mode, this will create the Max message (metro channel count).
 
-you can set custom times:
+You can set custom times:
 `metro[1].time = 0.1`
 
-and stop a metro:
+And stop a metro:
 `metro[1]:stop()`
 
-restart a stopped timer with a new time & count value:
+Restart a stopped timer with a new time & count value:
 ```
 metro[1].start{ time  = 1.2
               , count = 100
               }
 ```
 
-or add aliases if you don't want to remember them all by number:
+Or add aliases if you don't want to remember them all by number:
 `my_hourly_reminder = metro[1]`
 
-or redefine the event if you want to change functionality:
+Or redefine the event if you want to change functionality:
 `metro[1].event = function(count) print(count) end`
-
-
-
-
-
-
-
-
-## input script examples
-
-### default actions for crow-as-remote
-
-set up input 1 to detect rising signals with a small amount of hysteresis
-```
-function init()
-    input[1]{ mode       = 'change'
-            , threshold  = 1.0
-            , hysteresis = 0.1
-            , direction  = 'rising'
-            }
-end
-```
-each time the signal passes above ~1.0V this event will be called on the host:
-```
-function change( channel, state )
-    -- TODO. here's where you do the action!
-    -- nb: 'state' will always be '1' in 'rising' mode
-    --      but will tell you high/low as 1/0 in 'both'
-    --      or remain as all zeroes in 'falling'
-end
-```
-
-setting up a stream is very similar ( and can be different between channels )
-```
-function init()
-    input[2]{ mode = 'stream'
-            , time = 1.0
-            }
-end
-```
-resulting in the following remote event
-```
-function ret_cv( channel, value )
-    -- TODO. do something with the stream of input values!
-end
-```
-
-there is also a standard function call to setup these functions which is more terse:
-```
-function init()
-    input[1].mode( 'none' )
-    input[2].mode( 'time', 0.05 )
-end
-```
-
-
-### using inputs inside a crow script
-
-fundamentally the only real change when using the inputs on crow itself is you'll
-need to define your own events.
-
-the default stream action is defined as:
-`input[1].stream = function(value) _c.tell('ret_cv',1,value) end`
-
-you can however redefine this to suit your own needs:
-```
-input[1].stream = function(value)
-    -- here we echo the input to output channel 1
-    -- we could set out[1].rate to smooth out changes from step to step
-    out[1].level = value
-end
-```
-
-a great use case for this is to allow crow's inputs to become triggers for i2c
-enabled modules. the following snippet turns crow's first input into a momentary
-gate which controls whether a remote W/ module is recording.
-
-```
-function init()
-    input[1].mode( 'change' ) -- default gate detection
-end
-
-input[1].change = function(state)
-    ii.wslash.record = state
-end
-```
-
 
 ## i2c support
 
-crow supports acting as an i2c leader or follower. this allows it to control
+crow supports acting as an i2c leader or follower. This allows it to control
 other devices on a connected network, query those devices state, or itself
-be controlled or queried by other devices. these many possibilities suggest
+be controlled or queried by other devices. These many possibilities suggest
 a wide range of varied use cases for you to discover!
 
-### using i2c
-you can get a list of supported i2c devices by typing:
+### Following i2c
+
+At it's most basic, crow can be treated as a simple expander for the i2c bus.
+It provides 2 inputs & 4 outputs to extend teletype's IO capabilities. To use these
+no changes are required to the default setup on crow. Simply use:
+
+`CROW.IN a` where a is 1 or 2. crow will return the current value of that input.
+`CROW.OUT a b` setting output 'a' to the value 'b'
+`CROW.SLEW a b` setting the slew rate of output 'a' to the time 'b'
+`CROW.PULSE a` performs a pulse on output 'a'
+
+crow has default actions to handle these messages, though like most things in crow
+they can be redefined for our own purposes by editing the functions in the table
+`ii._c`. Try printing the follower-help with `ii._c.help()` for a list of functions
+that can be redefined.
+
+#### A crow call
+
+crow is capable of far more than reporting the state of its inputs and setting the
+output values, but so vast are the possibilities that we couldn't make an i2c
+command for every one! To deal with this flexibility, we 'CALL' to crow and define
+the expected function on crow itself.
+
+eg: I want teletype to be able to add a voltage to a given output. There's no way
+to query the state of crow output via i2c, so we'll need to do it natively on crow
+itself. Something like:
+
+```
+function add_to_output( channel, amount_to_add )
+    output[channel].offset = output[channel].offset + amount_to_add
+end
+```
+
+To execute the above from i2c we use one of the 'CALL' functions, in this case
+`CALL2` as we need to send 2 arguments. There are commands for 1-4 arguments. From
+teletype:
+`CROW.CALL2 1 V 1`
+This should add 1 volt to the first output jack on crow.
+
+We can then redefine the function at `ii._c.call2()` to call our `add_to_output()`
+function.
+
+#### Calling with context
+
+The above function is great when you just want to add a single additional function,
+but what about if you want to do a number of things that all need 1 argument.
+In this case you can use `CALL` with 1 extra argument than your function needs, but
+use the first number to choose which function to execute.
+
+*nb: unfortunately, i don't think we can index this table after naming the functions.*
+
+```
+local actions=
+{ add_an_octave = function(arg) add_to_output(arg, octave(1.0)) end
+, add_a_fifth   = function(arg) add_to_output(arg, semitone(7/12)) end
+, add_random    = function(arg) add_to_output(arg, semitone(Math.rand())) end
+}
+
+ii._c.call2 = function(cmd, arg2)
+    actions[cmd](arg2)
+end
+```
+
+Then on teletype:
+`CROW.CALL2 1 1`  adds an octave to output 1
+`CROW.CALL2 1 2`  adds an octave to output 2
+`CROW.CALL2 2 1`  add a fith to output 1
+`CROW.CALL2 3 4`  move output 4 by a random number of semitones
+
+
+### Leading the i2c bus
+
+You can get a list of supported i2c devices by typing:
 `ii.help()`
 
-all the returned devices can themselves be queried for their available functions.
+All the returned devices can themselves be queried for their available functions.
 `ii.<module>.help()`, or eg: `ii.jf.help()`
 
-these functions are formatted in such a way that you can directly copy-and-paste
+These functions are formatted in such a way that you can directly copy-and-paste
 these help files into your script.
 
-#### commands / setters
-remote devices can be controlled with `commands`. these are listed first by the
-help() functions. eg: `ii.jf.trigger( channel, state )`. these are typically called
+#### Commands / Setters
+Remote devices can be controlled with `commands`. These are listed first by the
+help() functions. eg: `ii.jf.trigger( channel, state )`. These are typically called
 'setters' when described in the teletype context.
 
-you can call these like regular functions and they will send their commands over the
+You can call these like regular functions and they will send their commands over the
 i2c bus to their destination.
 
-#### queries / getters
-queries are values that can be requested from a connected device. this could be
+#### Queries / Getters
+Queries are values that can be requested from a connected device. This could be
 asking a clock device for it's *tempo*, or an analog input device for the *voltage*
 at one of it's inputs.
 
 crow uses a query -> event model, which is different from teletype which has a
-functional approach. in teletype, you call the getter, it requests the value,
+functional approach. In teletype, you call the getter, it requests the value,
 waits to receive it, then returns that value as it's result directly.
 
-crow's query -> event model separates the *request* from the *response*. while
+crow's query -> event model separates the *request* from the *response*. While
 this approach is a little more complex, it allows crow to do a great many *other*
 things while it waits for a response to it's request.
 
-first you use `ii.<module>.get( name, ... )`, which again can be copied directly
-from the device's help() call. the `...` here refers to a variable list of arguments
+First you use `ii.<module>.get( name, ... )`, which again can be copied directly
+from the device's help() call. The `...` here refers to a variable list of arguments
 which might be none at all! eg:
 `ii.jf.get( 'run_mode' )`
 
-then you can declare an `event` action to handle the response from the device.
-copy it from the help() printout! it should look something like:
+Then you can declare an `event` action to handle the response from the device.
+Copy it from the help() printout! it should look something like:
 ```
 ii.jf.event( event, data )
     if event == 'run_mode' then
@@ -425,123 +550,3 @@ ii.jf.event( event, data )
 end
 
 ```
-
-### adding i2c support for a new device
-in order to encourage wide-ranging support for all i2c capable devices, crow
-requires only a single file to be added per device. this lua file is a simple
-declarative specification of how that device communicates on the i2c bus.
-
-these files live in `crow/lua/ii/<device_name>.lua`
-
-#### beyond the obvious
-take a look at `jf.lua` as an example which adds support for mannequins'
-'just friends' module. this module takes advantage of most of the existing
-features of the build system.
-
-the first 4 lines are global settings stating this module is called 'just friends',
-made by 'mannequins' and can be talked to at the hexadecimal address 0x70. the
-`lua_name` field *must* match the filename (jf.lua -> 'jf'), and is the name
-by which users will refer to this device in their scripts eg: `ii.jf.trigger()`.
-
-following this header is a big table called 'commands' which is itself full of
-tables, one for each 'setter' command the device can receive. a 'setter' in this
-context typically allows crow to remotely-control a parameter or event. more
-generally a 'setter' is any command that doesn't return any values.
-
-- 'name' is how the user will refer to this command: eg: name=trigger -> ii.jf.trigger()
-- 'cmd' is the number the remote device expects to trigger the 'name'd function. see https://github.com/monome/libavr32/blob/master/src/ii.h for a starting point.
-- 'docs' is an optional string describing the functionality of the command.
-- 'args' is a table of tables, each inner-table describing a command argument.
-
-##### no arguments
-in the simplest case, the command doesn't require *any* arguments, eg: ii.jf.reset()
-in which case you can omit the 'args' descriptor altogether.
-
-##### 1 argument
-if the command expects a single argument you can declare it as a table directly.
-eg: args = `{ 'name', type }`
-it is also allowed to use the nested table syntax: `args = { { 'name', type } }`
-
-##### 2+ arguments
-the most general case allows for any number of arguments, each defined as a table
-within the args table like so:
-```
-args = { { 'arg1', type }
-       , { 'arg2', type }
-       }
-```
-
-##### what's a type?!
-each argument has both a *name* and *type*. the *name* is purely for documentation, so
-the user knows at a glance what that argument means. the *type* refers to the
-low-level representation of the value.
-
-available types are:
-- void  -- the lack of an argument (typically not needed)
-- u8    -- unsigned 8-bit integer (0,255)
-- s8    -- signed 8-bit integer (-128,127)
-- u16   -- unsigned 16-bit integer (0,65535)
-- s16   -- signed 16-bit integer (-32768, 32767) {teletype's default}
-- float -- 32bit floating point number
-
-*u16* and *s16* expect MSB before LSB.
-*float* is little-endian
-
-refer to the documentation or source-code for the device you're supporting to
-determine what types are used for these types.
-
-##### get
-many devices built for use within the teletype ecosystem have a matching 'getter' to
-go with each 'setter'. so while `JF.RMODE 1` sets 'run_mode' to 1, `JF.RMODE` without
-any argument, will *query* the value of 'run_mode' returning that as a result.
-
-under the hood, these matching getters & setters are typically given the same 'cmd'
-value, with the getter offset by 0x80. the *last* argument in the list is omitted
-when calling the command, and instead is expected as the return value.
-
-by setting `get = true`, a getter will be auto-generated with the above assumptions.
-
-if you have getters that *don't* use these conventions, you can articulate them
-explicitly. >>>
-
-##### getters
-a single function is provided for getting, or *querying*, values from a connected
-device. this is: `ii.jf.get( name, ... )`. to define 'gettable' values, you add them
-to the 'getters' table in much the same way as the 'commands' table.
-
-- `name` is the name by which to query the state
-- `cmd` is the number corresponding the above name (see your devices docs)
-- `docs` is an optional string describing what will be returned
-- `args` is identical to the 'commands' version. can be omitted if no arguments.
-- 'retval' is like a single `arg`. it should be a table with a string then a type.
-
-
-#### some gotchas
-to simplify the build process, the 'lua_name' variable currently must match
-the name of the .lua file (ie. `jf.lua` must have `lua_name = 'jf'`)
-
-#### future development
-while extensive, this descriptive framework could be extended to add any or all of
-the below features. see the github issues list for discussion:
-
-- remove requirement that filename match lua_name
-- lua_name aliases to allow eg: 'jf' or 'justfriends' to access the same table
-- additional argument & return_value types
-    - fractional types with radix. eg: fract13 converts a 13bit int to 0-1.0 float
-- multiple return values (eg: ii.jf.get('retune',1)) could return both `num` and `denom`
-
-
-#### the below is really for a time when we have fract types
-different values require different levels of precision depending on their use. the
-i2c bus began with monome's teletype device, a system itself based on a *signed 16bit
-integer* virtual machine. crow on the other hand, is based around a *32bit floating
-point* virtual machine.
-
-
-
-
-
-
-
-
-

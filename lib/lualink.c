@@ -8,7 +8,7 @@
 #include "../submodules/lua/src/lualib.h"
 
 // Hardware IO
-#include "lib/slews.h"      // S_toward
+#include "lib/slopes.h"     // S_toward
 #include "lib/detect.h"     // Detect*
 #include "lib/caw.h"        // Caw_send_*()
 #include "lib/ii.h"         // II_*()
@@ -244,7 +244,7 @@ static int _ii_list_commands( lua_State *L )
 }
 static int _ii_set( lua_State *L )
 {
-    printf("broadcast\n");
+    printf("lua ii broadcast\n");
 
     // FIXME: 4 is max number of arguments. is this ok?
     float data[4] = {0,0,0,0}; // always zero out data
@@ -264,6 +264,7 @@ static int _ii_set( lua_State *L )
 }
 static int _ii_get( lua_State *L )
 {
+    printf("lua ii query\n");
     float data[4] = {0,0,0,0}; // always zero out data
     int nargs = lua_gettop(L);
     if( nargs > 2
@@ -467,6 +468,22 @@ void L_handle_ii( uint8_t address, uint8_t cmd, float data )
     lua_pushinteger(L, cmd);
     lua_pushnumber(L, data); // TODO currently limited to single retval
     if( lua_pcall(L, 3, 0, 0) != LUA_OK ){
+        printf("ii ev err\n");
+        Caw_send_luachunk("error: ii event");
+        Caw_send_luachunk( (char*)lua_tostring(L, -1) );
+        lua_pop( L, 1 );
+    }
+}
+
+void L_handle_iiself( uint8_t cmd, int args, float* data )
+{
+    lua_getglobal(L, "ii_self_handler");
+    lua_pushinteger(L, cmd);
+    int a = args;
+    while(a-- > 0){
+        lua_pushnumber(L, *data++);
+    }
+    if( lua_pcall(L, 1+args, 0, 0) != LUA_OK ){
         printf("ii ev err\n");
         Caw_send_luachunk("error: ii event");
         Caw_send_luachunk( (char*)lua_tostring(L, -1) );

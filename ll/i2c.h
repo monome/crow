@@ -39,7 +39,8 @@
 
 #define I2C_BUFFER_LEN      32
 
-extern void I2C_RxCpltCallback( uint8_t address, uint8_t cmd, uint8_t* data );
+extern void I2C_Follow_RxCallback( uint8_t* data );
+extern void I2C_Lead_RxCallback( uint8_t address, uint8_t cmd, uint8_t* data );
 
 uint8_t I2C_Init( uint8_t address );
 void I2C_DeInit( void );

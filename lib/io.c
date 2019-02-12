@@ -3,7 +3,7 @@
 #include "stm32f7xx_hal.h"     // HAL_Delay()
 
 #include "../ll/adda.h"        // _Init(), _Start(), _GetADCValue(), IO_block_t
-#include "slews.h"             // S_init(), S_step_v()
+#include "slopes.h"            // S_init(), S_step_v()
 #include "detect.h"            // Detect_init(), Detect(), Detect_ix_to_p()
 #include "metro.h"
 
@@ -34,7 +34,7 @@ IO_block_t* IO_BlockProcess( IO_block_t* b )
               , b->in[j][b->size-1]
               );
     }
-    for( int j=0; j<SLEW_CHANNELS; j++ ){
+    for( int j=0; j<SLOPE_CHANNELS; j++ ){
         S_step_v( j
                 , b->out[j]
                 , b->size

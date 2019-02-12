@@ -1,7 +1,7 @@
 function init()
     -- start all the lfos
     for c=1, 4 do
-        out[c].asl:action()
+        output[c].asl:action()
     end
 
     metro = Metro.assign_all()
@@ -16,7 +16,7 @@ end
 -- overwrite it?
 local ignore = ii.txi.get
 ii.txi.event = function( e, data )
-    if e == 'value' then print('txi='..data)
+    if e == 'value' then debug_usart('value='..data)
     end
 end
 

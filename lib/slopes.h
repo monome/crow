@@ -24,9 +24,9 @@ typedef struct{
     float       scalar;    // one ms in samples
     float       last;
     float       countdown; // samples until breakpoint
-} Slew_t;
+} Slope_t;
 
-#define SLEW_CHANNELS 4
+#define SLOPE_CHANNELS 4
 
 // register a new destination
 void S_init( void );

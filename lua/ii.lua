@@ -35,6 +35,28 @@ function ii_handler( addr, cmd, data )
     ii[name].event(ii[name].e[cmd], data)
 end
 
+ii._c =
+    { cmds = { [1]='out'
+             , [2]='slew'
+             , [3]='input'
+             , [4]='call'
+             , [5]='call2'
+             , [6]='call3'
+             , [7]='call4'
+             }
+    , out = function(chan,val) print('out '..chan..' to '..val)end
+    , slew = function(chan,slew) print('slew '..chan..' at '..slew)end
+    , input = function(chan) print('input '..chan..' NEED RESPONSE')end
+    , call = function(arg) print('call '..arg)end
+    , call2 = function(a,a2) print('call2 '..a..' '..a2)end
+    , call3 = function(a,a2,a3) print('call3 '..a..' '..a2..' '..a3)end
+    , call4 = function(a,a2,a3,a4) print('call4 '..a..' '..a2..' '..a3..' '..a4)end
+}
+
+function ii_self_handler( cmd, ... )
+    local name = ii._c.cmds[cmd]
+    --ii._c[name](...)
+end
 
 --ii.cb_list = { ['crow'] = {1 = } }
 --
