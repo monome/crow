@@ -3,6 +3,8 @@
 An embedded lua interpreting usb<->cv bridge (sometimes for norns).
 A collaboration by whimsical raps & monome
 
+For a developer focused intro, see [readme-development.md](readme-development.md).
+
 ## what's a crow?
 
 crow is many things, but here's some starters:
