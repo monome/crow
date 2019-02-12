@@ -1,28 +1,28 @@
-#include "slews.h"
+#include "slopes.h"
 #include "stm32f7xx.h"
 
-Slew_t slews[SLEW_CHANNELS];
+Slope_t slopes[SLOPE_CHANNELS];
 
 // register a new destination
 void S_init( void )
 {
-    for( int j=0; j<SLEW_CHANNELS; j++ ){
-        slews[j].dest   = 0.0;
-        slews[j].shape  = SHAPE_Linear;
-        slews[j].action = NULL;
-        slews[j].here   = 0.0;
-        slews[j].delta  = 0.0; //
-        slews[j].scalar = SAMPLE_RATE / 1000.0; // TODO send SR as arg
-        slews[j].last   = 0.0;
+    for( int j=0; j<SLOPE_CHANNELS; j++ ){
+        slopes[j].dest   = 0.0;
+        slopes[j].shape  = SHAPE_Linear;
+        slopes[j].action = NULL;
+        slopes[j].here   = 0.0;
+        slopes[j].delta  = 0.0; //
+        slopes[j].scalar = SAMPLE_RATE / 1000.0; // TODO send SR as arg
+        slopes[j].last   = 0.0;
 
-        slews[j].countdown = -1.0;
+        slopes[j].countdown = -1.0;
     }
 }
 
 float S_get_state( int index )
 {
-    if( index < 0 || index >= SLEW_CHANNELS ){ return 0.0; }
-    Slew_t* self = &slews[index]; // safe pointer
+    if( index < 0 || index >= SLOPE_CHANNELS ){ return 0.0; }
+    Slope_t* self = &slopes[index]; // safe pointer
     return self->here;
 }
 
@@ -33,8 +33,8 @@ void S_toward( int        index
              , Callback_t cb
              )
 {
-    if( index < 0 || index >= SLEW_CHANNELS ){ return; }
-    Slew_t* self = &slews[index]; // safe pointer
+    if( index < 0 || index >= SLOPE_CHANNELS ){ return; }
+    Slope_t* self = &slopes[index]; // safe pointer
 
     // save current destination (for future shaping)
     self->last   = self->here;
@@ -62,8 +62,8 @@ float* S_step_v( int     index
                )
 {
     // turn index into pointer
-    if( index < 0 || index >= SLEW_CHANNELS ){ return out; }
-    Slew_t* self = &slews[index]; // safe pointer
+    if( index < 0 || index >= SLOPE_CHANNELS ){ return out; }
+    Slope_t* self = &slopes[index]; // safe pointer
 
     //TODO wrap the below in a function
     // then apply it to a 'shaper' function that uses last & dest to calc

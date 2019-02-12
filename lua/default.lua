@@ -1,7 +1,7 @@
 function init()
     -- start all the lfos
     for c=1, 4 do
-        out[c].asl:action()
+        output[c].asl:action()
     end
 
     metro = Metro.assign_all()

@@ -8,7 +8,7 @@
 #include "../submodules/lua/src/lualib.h"
 
 // Hardware IO
-#include "lib/slews.h"      // S_toward
+#include "lib/slopes.h"     // S_toward
 #include "lib/detect.h"     // Detect*
 #include "lib/caw.h"        // Caw_send_*()
 #include "lib/ii.h"         // II_*()

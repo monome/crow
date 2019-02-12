@@ -6,7 +6,7 @@
 
 #include "../lib/flash.h"              // FLASH_*_t
 #include "cal_ll.h"      // CAL_LL_Init(),
-#include "../lib/slews.h"             // S_toward()
+#include "../lib/slopes.h"             // S_toward()
 
 float _CAL_ADC_GetAverage( uint8_t chan );
 
@@ -232,7 +232,7 @@ IO_block_t* CAL_BlockProcess( IO_block_t* b )
     }
 
     // run slopes to set output levels
-    for( int j=0; j<SLEW_CHANNELS; j++ ){
+    for( int j=0; j<SLOPE_CHANNELS; j++ ){
         S_step_v( j
                 , b->out[j]
                 , b->size
