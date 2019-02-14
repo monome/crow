@@ -13,6 +13,7 @@
 #include "ll/debug_usart.h"
 #include "ll/debug_pin.h"
 #include "ll/midi.h"
+#include "ll/random.h"
 
 #include "usbd/usbd_cdc_interface.h"
 
@@ -40,6 +41,7 @@ int main(void)
     Caw_Init();
     MIDI_Init();
     II_init( II_CROW );
+    Random_Init();
 
     REPL_init( Lua_Init() );
 
@@ -63,6 +65,7 @@ int main(void)
             case C_print:      REPL_print_script(); break;
             default: break; // 'C_none' does nothing
         }
+        Random_Update();
     }
 }
 

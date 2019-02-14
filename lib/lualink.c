@@ -15,6 +15,7 @@
 #include "lib/bootloader.h" // bootloader_enter()
 #include "lib/metro.h"      // metro_start() metro_stop() metro_set_time()
 #include "lib/io.h"         // IO_GetADC()
+#include "../ll/random.h"      // Random_Get()
 
 // Lua libs wrapped in C-headers: Note the extra '.h'
 #include "lua/bootstrap.lua.h" // MUST LOAD THIS MANUALLY FIRST
@@ -327,6 +328,12 @@ static int _metro_set_time( lua_State* L )
     return 0;
 }
 
+static int _random_get( lua_State* L )
+{
+    lua_pushnumber( L, Random_Get() );
+    return 1;
+}
+
 // array of all the available functions
 static const struct luaL_Reg libCrow[]=
         // bootstrap
@@ -355,6 +362,8 @@ static const struct luaL_Reg libCrow[]=
     , { "metro_start"      , _metro_start      }
     , { "metro_stop"       , _metro_stop       }
     , { "metro_set_time"   , _metro_set_time   }
+        // random
+    , { "random_get"       , _random_get       }
 
     , { NULL               , NULL              }
     };
