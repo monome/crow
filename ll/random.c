@@ -58,7 +58,7 @@ void HAL_RNG_ReadyDataCallback( RNG_HandleTypeDef* hr, uint32_t rand32 )
 {
     if( rrrCount < rrrMAX ){ // make sure we have room to store the val
         int8_t ix = (rrrNext + rrrCount++) % rrrMAX;
-        rrrFm[ix] = (float)rand32 / (float)(uint32_t)0xFFFFFFFF;
+        rrrFm[ix] = (float)rand32 / (1.0 + (float)(uint32_t)0xFFFFFFFF);
         Random_Update();
     }
 }

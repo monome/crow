@@ -118,6 +118,14 @@ adc_remote = function(chan)
     get_cv(chan)
 end
 
+--- True Random Number Generator
+-- redefine library function to use stm native rng
+math.random = function(a,b)
+    if a == nil then return random_get()
+    elseif b == nil then return random_get() * a
+    else return (b-a)*random_get() + a
+    end
+end
 
 --- Flash program
 function start_flash_chunk()
@@ -131,8 +139,11 @@ end
 function closure_if_table( f )
     local _f = f
     return function( ... )
-            if type( ... ) == 'table' then
+            if ... == nil then
+                return _f()
+            elseif type( ... ) == 'table' then
                 local args = ...
+                debug_usart('table')
                 return function() return _f( table.unpack(args) ) end
             else return _f( ... ) end
         end
