@@ -72,7 +72,7 @@ function run_tests()
            , {times(0,{}) , 'thread'}
            )
 
-    -- test raw toward in asl
+    -- coroutine
     _t.run( function(id,d,t,s)
                 local sl = Asl.new(id)
                 sl.action = toward( d,t,s )
@@ -82,7 +82,7 @@ function run_tests()
           , {{1,2,2,'linear'}, {1,2,2,'linear'}}
           )
 
-    -- tests seq_coroutines
+    -- sequence
     _t.run( function(count)
                 local sl = Asl.new(1)
                 sl.action = { toward( 1,1,'linear' )
@@ -98,7 +98,7 @@ function run_tests()
           )
 
 
-    -- tests step correctly instantly recurs on 'here'
+    -- sequence with instant actions
     _t.run( function(count)
                 local sl = Asl.new(1)
                 sl.action = { toward( 1,1,'linear' )
@@ -114,7 +114,7 @@ function run_tests()
           , {2, {1,3,3,'expo'}}
           )
 
-    -- test loop{} standalone
+    -- loop{}
     _t.run( function(count)
                 local sl = Asl.new(1)
                 sl.action = loop{ toward( 1,1 )
@@ -129,8 +129,7 @@ function run_tests()
           , {2, {1,1,1,'linear'}}
           )
 
-    -- test nested loop{}
-    print('\nloop{}')
+    -- nested loop{}
     _t.run( function(count)
                 local sl = Asl.new(1)
                 sl.action = loop{ loop{ toward( 1, 1 )
@@ -145,73 +144,126 @@ function run_tests()
                 return get_last_toward()
             end
           , {0, {1,1,1,'linear'}}
--- FIXME: failing due to incorrect nesting of loop execution
           , {1, {1,2,1,'linear'}}
           , {2, {1,1,1,'linear'}}
           , {3, {1,2,1,'linear'}}
           )
---
---    -- asl_if{}
---    print('\nasl_if()')
---    _t.run( function(bool)
---                local sl = Asl.new(1)
---                sl.action = { asl_if( function(bool) return bool end
---                                    , { toward( 3,3 )
---                                      , toward( 4,4 )
---                                      }
---                                    )
---                            , toward( 2,2 )
---                            }
---                sl:action()
---                --for i=1,count do sl:step() end
---                return get_last_toward()
---            end
---          , {true , {1,3,3,'linear'}}
----- FIXME: false fails bc asl_if doesn't call the following fn after if(false)
----- FIXME: also after sl:step() jumps out of if
---          , {false, {1,2,2,'linear'}}
---          )
---
---    -- asl_wrap{}
---    print('\nasl_wrap()')
---    _t.run( function(count)
---                local sl = Asl.new(1)
---                sl.action = asl_wrap( function() set_last_toward( 'before' ) end
---                                    , { toward( 3,3 )
---                                      , toward( 4,4 )
---                                      }
---                                    , function() set_last_toward( 'after' ) end
---                                    )
---                sl:action()
---                for i=1,count do sl:step() end
---                return get_last_toward()
---            end
---          , {0, {1,3,3,'linear'}}
---          , {1, {1,4,4,'linear'}}
----- FIXME: last line that reaches 'after' causing stack overflow in step()
---          --, {2, {1,4,4,'after'}}
---          )
---
---    -- times{}
---    print('\ntimes()')
---    _t.run( function(count)
---                local sl = Asl.new(1)
---                sl.action = { times( 2
---                                   , { toward( 3,3 ) }
---                                   )
---                            , toward( 5,5 )
---                            }
---                sl:action()
---                for i=1,count do sl:step() end
---                return get_last_toward()
---            end
---          , {0, {1,3,3,'linear'}}
----- FIXME: repeat is *not* happening as re-entry jumps passed toward(as for loop etc)
---          , {1, {1,3,3,'linear'}}
---          , {2, {1,5,5,'linear'}}
---          )
---
----- TODO add test for held & lock (after fixing wrap & if above)
+
+    -- asl_if{}
+    _t.run( function(bool)
+                local sl = Asl.new(1)
+                sl.action = { asl_if( function(self) return bool end
+                                    , { toward( 3,3 )
+                                      , toward( 4,4 )
+                                      }
+                                    )
+                            , toward( 2,2 )
+                            }
+                sl:action()
+                --for i=1,count do sl:step() end
+                return get_last_toward()
+            end
+          , {true , {1,3,3,'linear'}}
+          , {false, {1,2,2,'linear'}}
+          )
+
+    -- asl_wrap{}
+    _t.run( function(count)
+                local sl = Asl.new(1)
+                sl.action = asl_wrap( function() set_last_toward( 'before' ) end
+                                    , { toward( 3,3 )
+                                      , toward( 4,4 )
+                                      }
+                                    , function() set_last_toward( 'after' ) end
+                                    )
+                sl:action()
+                for i=1,count do sl:step() end
+                return get_last_toward()
+            end
+          , {0, {1,3,3,'linear'}}
+          , {1, {1,4,4,'linear'}}
+          , {2, {1,4,4,'after'}}
+          )
+
+    -- nested asl_wrap{}
+    _t.run( function(count)
+                local sl = Asl.new(1)
+                sl.action = loop{ asl_wrap( function() set_last_toward( 'before' ) end
+                                          , { toward( 3,3 )
+                                            , toward( 4,4 )
+                                            }
+                                          , function() set_last_toward( 'after' ) end
+                                          )
+                                , toward( 5,5 )
+                                }
+                sl:action()
+                for i=1,count do sl:step() end
+                return get_last_toward()
+            end
+          , {0, {1,3,3,'linear'}}
+          , {1, {1,4,4,'linear'}}
+          , {2, {1,5,5,'linear'}}
+          , {3, {1,3,3,'linear'}}
+          )
+
+    -- times{}
+    _t.run( function(count)
+                local sl = Asl.new(1)
+                sl.action = { times( 2
+                                   , { toward( 3,3 ) }
+                                   )
+                            , toward( 5,5 )
+                            }
+                sl:action()
+                for i=1,count do sl:step() end
+                return get_last_toward()
+            end
+          , {0, {1,3,3,'linear'}}
+          , {1, {1,3,3,'linear'}}
+          , {2, {1,5,5,'linear'}}
+          )
+
+    -- nested times{}
+    _t.run( function(count)
+                local sl = Asl.new(1)
+                sl.action = loop{ times( 2
+                                       , { toward( 3,3 ) }
+                                       )
+                                , toward( 5,5 )
+                                }
+                sl:action()
+                for i=1,count do sl:step() end
+                return get_last_toward()
+            end
+          , {0, {1,3,3,'linear'}}
+          , {1, {1,3,3,'linear'}}
+          , {2, {1,5,5,'linear'}}
+          , {3, {1,3,3,'linear'}}
+          )
+
+    -- thread{}
+    _t.run( function(count)
+                local sl = Asl.new(1)
+                sl.action = thread{ loop{ toward( 1, 1 )
+                                        , toward( 2, 1 )
+                                        }
+                                  , loop{ toward( 3, 1 )
+                                        , toward( 4, 1 )
+                                        }
+                                  }
+                sl:action()
+                for i=1,count do sl:step() end
+                return get_last_toward()
+            end
+          , {0, {1,1,1,'linear'}}
+          , {1, {1,3,1,'linear'}}
+          , {2, {1,2,1,'linear'}}
+          , {3, {1,4,1,'linear'}}
+          , {4, {1,1,1,'linear'}}
+          )
+
+
+---- TODO add test for held & lock
 end
 
 run_tests()

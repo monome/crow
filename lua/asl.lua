@@ -14,6 +14,7 @@ function Asl.new(id)
     asl.hold    = false    -- is the slope trigger currently held high
     asl.in_hold = false    -- is eval currently in a held construct
     asl.locked  = false    -- flag to lockout bangs during lock{}
+    asl.cc      = false    -- flag for whether coroutine can be continued
     setmetatable( asl, Asl )
     return asl
 end
@@ -23,6 +24,7 @@ function Asl:init() -- reset to defaults
     self.hold    = false  -- is the slope trigger currently held high
     self.in_hold = false  -- is eval currently in a held construct
     self.locked  = false  -- flag to lockout bangs during lock{}
+    self.cc      = false
     return self     -- functional style
 end
 
@@ -41,6 +43,7 @@ function Asl:set_action( co )
     end
     self.hold   = false
     self.locked = false
+    self.cc     = true -- ready to coroutine!
 end
 
 -- INTERPRETER
@@ -68,9 +71,11 @@ end
 -- completed on time
 
 function Asl:step()
-    if self.co == nil then print'no slope' return end
-    _,wait = coroutine.resume( self.co, self )
-    if wait ~= 'wait' then self:step() end
+    if     self.cc == false then print'done' return
+    elseif self.co == nil then print'no slope' return end
+    local _,wait = coroutine.resume( self.co, self )
+    if     wait == 'exit' then self.cc = false
+    elseif wait == nil then self:step() end
 end
 
 --- METAMETHODS
@@ -118,39 +123,44 @@ end
 
 
 -- WRAPPING functions
--- TODO: does this allow nested constructs?! seems as though it would
--- only execute the first stage of each one, before looping?
-function seq_coroutines( self, fns )
-    for i=1, #fns, 1 do
+function seq_coroutines( self, fns, priority )
+    for i=1, #fns do
         repeat
-            local _,wait = coroutine.resume( fns[i], self )
-            coroutine.yield( wait )
-        until( nx ~= 'loop' )
+            local _,wait,greedy = coroutine.resume( fns[i], self )
+            coroutine.yield( (wait~='exit') and wait or nil, priority )
+        until( not greedy or priority > greedy )
     end
 end
 
+-- TODO does this need diff seq handling?
 function asl_coroutine( fns )
     return coroutine.create(function( self )
         while true do
-            seq_coroutines( self, fns )
-            coroutine.yield('wait')
+            seq_coroutines( self, fns, 1 )
+            coroutine.yield('exit')
         end
     end)
 end
 
 function asl_if( fn_to_bool, fns )
     return coroutine.create(function( self )
-        if fn_to_bool( self ) then
-            seq_coroutines( self, fns )
+        while true do
+            if fn_to_bool( self ) then
+                seq_coroutines( self, fns, 1 )
+            end
+            coroutine.yield('exit')
         end
     end)
 end
 
 function asl_wrap( enter_fn, fns, exit_fn )
     return coroutine.create(function( self )
-        enter_fn( self )
-        seq_coroutines( self, fns )
-        exit_fn( self )
+        while true do
+            enter_fn( self )
+            seq_coroutines( self, fns, 1 )
+            exit_fn( self )
+            coroutine.yield('exit')
+        end
     end)
 end
 
@@ -158,7 +168,15 @@ end
 function loop( fns )
     return coroutine.create(function( self )
         while true do
-            seq_coroutines( self, fns )
+            seq_coroutines( self, fns, 1 )
+        end
+    end)
+end
+
+function thread( fns )
+    return coroutine.create(function( self )
+        while true do
+            seq_coroutines( self, fns, 2 )
         end
     end)
 end
@@ -180,11 +198,16 @@ function held( fns )
 end
 
 function times( count, fns )
-    local n = count
-    return asl_if( function( self ) n = n - 1
-                                    return (n > -1) end
-                 , fns
-                 )
+    return coroutine.create(function( self )
+        while true do
+            local n = count
+            while n > 0 do
+                n = n - 1
+                seq_coroutines( self, fns, 1 )
+            end
+            coroutine.yield('exit')
+        end
+    end)
 end
 
 print 'asl loaded'
