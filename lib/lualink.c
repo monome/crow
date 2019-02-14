@@ -242,6 +242,13 @@ static int _ii_list_commands( lua_State *L )
     //Caw_send_luachunk( (char*)II_list_modules() );
     return 0;
 }
+
+static int _ii_pullup( lua_State *L )
+{
+    II_set_pullups( luaL_checkinteger(L, 1) );
+    return 0;
+}
+
 static int _ii_set( lua_State *L )
 {
     printf("lua ii broadcast\n");
@@ -348,6 +355,7 @@ static const struct luaL_Reg libCrow[]=
         // i2c
     , { "ii_list_modules"  , _ii_list_modules  }
     , { "ii_list_commands" , _ii_list_commands }
+    , { "ii_pullup"        , _ii_pullup        }
     , { "ii_set"           , _ii_set           }
     , { "ii_get"           , _ii_get           }
     , { "ii_address"       , _ii_address       }

@@ -327,6 +327,19 @@ void I2C_BufferRx( uint8_t* data )
     i2c_state.b_count++;
 }
 
+void I2C_SetPullups( uint8_t state )
+{
+    // FIXME is this possible? do we need to deinit first?
+	GPIO_InitTypeDef gpio;
+	gpio.Pin       = I2Cx_SCL_PIN
+	               | I2Cx_SDA_PIN;
+	gpio.Mode      = GPIO_MODE_AF_OD;
+	gpio.Pull      = (state) ? GPIO_PULLUP : GPIO_NOPULL;
+	gpio.Speed     = GPIO_SPEED_FREQ_HIGH;
+	gpio.Alternate = I2Cx_SCL_SDA_AF;
+	HAL_GPIO_Init( I2Cx_SCL_GPIO_PORT, &gpio );
+}
+
 uint8_t I2C_GetAddress( void )
 {
     return i2c_handle.Init.OwnAddress1;

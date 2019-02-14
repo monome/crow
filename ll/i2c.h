@@ -62,6 +62,9 @@ void HAL_I2C_AddrCallback( I2C_HandleTypeDef* h
 	                     , uint16_t           AddrMatchCode
 	                     );
 void I2C_BufferRx( uint8_t* data );
+
+void I2C_SetPullups( uint8_t state );
+
 uint8_t I2C_GetAddress( void );
 void I2C_SetAddress( uint8_t address );
 uint8_t* I2C_PopFollowBuffer( void );

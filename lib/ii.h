@@ -24,6 +24,8 @@ void II_deinit( void );
 
 const char* II_list_modules( void );
 
+void II_set_pullups( uint8_t state );
+
 uint8_t II_get_address( void );
 void II_set_address( uint8_t address );
 

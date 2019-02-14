@@ -21,6 +21,10 @@ function ii.m_help( address )
     ii_list_commands( address )
 end
 
+function ii.pullup( state )
+    ii_pullup(state)
+end
+
 -- TODO is it possible to just define ii.set from c directly?
 function ii.set( address, cmd, ... )
     ii_set( address, cmd, ... )
