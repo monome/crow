@@ -78,8 +78,10 @@ Input.__newindex = function(self, ix, val)
 end
 
 Input.__index = function(self, ix)
-    if     ix == 'value' then return Input.get_value(self)
-    if     ix == 'query' then _c.tell('query',Input.channel,Input.get_value(self))
+    if     ix == 'value' then
+      return Input.get_value(self)
+    elseif ix == 'query' then
+      _c.tell('query',Input.channel,Input.get_value(self))
     elseif ix == 'mode'  then
         return function(...) Input.set_mode( self, ...) end
     end
