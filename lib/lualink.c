@@ -15,8 +15,7 @@
 #include "lib/bootloader.h" // bootloader_enter()
 #include "lib/metro.h"      // metro_start() metro_stop() metro_set_time()
 #include "lib/io.h"         // IO_GetADC()
-#include "../ll/random.h"   // Random_Get()
-#include "../ll/adda.h"     // CAL_Recalibrate() CAL_PrintCalibration()
+#include "../ll/random.h"      // Random_Get()
 
 // Lua libs wrapped in C-headers: Note the extra '.h'
 #include "lua/bootstrap.lua.h" // MUST LOAD THIS MANUALLY FIRST
@@ -28,21 +27,19 @@
 #include "lua/output.lua.h"
 #include "lua/ii.lua.h"
 #include "build/iihelp.lua.h"    // generated lua stub for loading i2c modules
-#include "lua/calibrate.lua.h"
 
 #include "build/ii_lualink.h" // generated C header for linking to lua
 
 const struct lua_lib_locator Lua_libs[] =
-    { { "lua_crowlib"   , lua_crowlib   }
-    , { "lua_asl"       , lua_asl       }
-    , { "lua_asllib"    , lua_asllib    }
-    , { "lua_metro"     , lua_metro     }
-    , { "lua_input"     , lua_input     }
-    , { "lua_output"    , lua_output    }
-    , { "lua_ii"        , lua_ii        }
-    , { "build_iihelp"  , build_iihelp  }
-    , { "lua_calibrate" , lua_calibrate }
-    , { NULL            , NULL          }
+    { { "lua_crowlib", lua_crowlib }
+    , { "lua_asl"    , lua_asl     }
+    , { "lua_asllib" , lua_asllib  }
+    , { "lua_metro"  , lua_metro   }
+    , { "lua_input"  , lua_input   }
+    , { "lua_output" , lua_output  }
+    , { "lua_ii"     , lua_ii      }
+    , { "build_iihelp", build_iihelp }
+    , { NULL         , NULL        }
     };
 
 // Basic crow script
@@ -337,18 +334,6 @@ static int _random_get( lua_State* L )
     return 1;
 }
 
-static int _calibrate_now( lua_State* L )
-{
-    CAL_Recalibrate( (lua_gettop(L)) ); // if arg present, use defaults
-    lua_settop(L, 0);
-    return 0;
-}
-static int _calibrate_print( lua_State* L )
-{
-    CAL_PrintCalibration();
-    return 0;
-}
-
 // array of all the available functions
 static const struct luaL_Reg libCrow[]=
         // bootstrap
@@ -379,9 +364,6 @@ static const struct luaL_Reg libCrow[]=
     , { "metro_set_time"   , _metro_set_time   }
         // random
     , { "random_get"       , _random_get       }
-        // calibration
-    , { "calibrate_now"    , _calibrate_now    }
-    , { "calibrate_print"  , _calibrate_print  }
 
     , { NULL               , NULL              }
     };
