@@ -24,4 +24,5 @@ float ADDA_GetADCValue( uint8_t channel );
 IO_block_t* IO_BlockProcess( IO_block_t* b );
 
 // calibration
-void CAL_Recalibrate( void );
+void CAL_Recalibrate( uint8_t use_defaults );
+void CAL_PrintCalibration( void );
