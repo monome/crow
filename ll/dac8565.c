@@ -99,6 +99,11 @@ void DAC_CalibrateOffset( uint8_t channel, float volts )
     dac_calibrated_offset[channel] = volts;
 }
 
+int32_t lim_i32_u16( int32_t v )
+{
+    return (v > (int32_t)(uint16_t)0xFFFF) ? 0xFFFF : (v < (int32_t)0) ? 0 : v;
+}
+
 /* Does all the work converting a generic representation into serial packets
  * Convert floats (representing volts) to u16 representation
  * Interleave a block of each channel into a stream
@@ -115,12 +120,6 @@ void DAC_PickleBlock( uint32_t* dac_pickle_ptr
                 , bsize
                 );
     }
-    lim_vf_f( unpickled_data
-            , -5.0           // saturate at -5v
-            , 10.0           // saturate at +10v
-            , unpickled_data
-            , bsize * 4
-            );
     for( uint8_t j=0; j<4; j++ ){
         mul_vf_f( &(unpickled_data[j*bsize])
                 , dac_calibrated_scalar[j] // scale volts up to u16
@@ -134,7 +133,7 @@ void DAC_PickleBlock( uint32_t* dac_pickle_ptr
 
     for( uint16_t i=0; i<bsize; i++ ){
         for( uint8_t j=0; j<4; j++ ){
-            *usixp++ = (uint16_t)( DAC_ZERO_VOLTS
+            *usixp++ = (uint16_t)lim_i32_u16( DAC_ZERO_VOLTS
                                    //- (int32_t)(*u[j]++)
                                    - (int32_t)(unpickled_data[i+j*bsize])
                                  );
