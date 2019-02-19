@@ -7,6 +7,7 @@
 #include "../lib/flash.h"              // FLASH_*_t
 #include "cal_ll.h"      // CAL_LL_Init(),
 #include "../lib/slopes.h"             // S_toward()
+#include "../lib/caw.h" // Caw_send_raw
 
 float _CAL_ADC_GetAverage( uint8_t chan );
 
@@ -47,7 +48,6 @@ IO_block_t* CAL_BlockProcess( IO_block_t* b );
 
 void CAL_ReadFlash( void )
 {
-    printf("loading calibration data\n");
     if( !Flash_read_calibration( (uint8_t*)(&cal)
                                , sizeof(CAL_chan_t) * (2+4)
                                ) ){
@@ -59,6 +59,7 @@ void CAL_ReadFlash( void )
             DAC_CalibrateOffset( j, cal.dac[j].shift );
             DAC_CalibrateScalar( j, cal.dac[j].scale );
         }
+        //CAL_PrintCalibration();
         cal.stage = CAL_none;
     } else {
         printf("calibration readout failed\n");
@@ -67,7 +68,7 @@ void CAL_ReadFlash( void )
 
 void CAL_WriteFlash( void )
 {
-    printf("saving calibration data\n");
+    printf("Saving calibration data\n");
     if( Flash_write_calibration( (uint8_t*)(&cal)
                                , sizeof(CAL_chan_t) * (2+4)
                                ) ){
@@ -85,7 +86,7 @@ uint16_t ADDA_Init( void )
             );
     CAL_LL_Init();
     cal.stage = CAL_none;
-    if( !Flash_is_calibrated() ){ CAL_Recalibrate(); }
+    if( !Flash_is_calibrated() ){ CAL_Recalibrate(0); }
     else{                         CAL_ReadFlash(); }
     return ADDA_BLOCK_SIZE;
 }
@@ -246,7 +247,7 @@ CAL_stage_t CAL_is_calibrating( void )
     return cal.stage;
 }
 
-void CAL_Recalibrate( void )
+void CAL_Recalibrate( uint8_t use_defaults )
 {
     // use default values
     for( int j=0; j<2; j++ ){
@@ -257,6 +258,28 @@ void CAL_Recalibrate( void )
         DAC_CalibrateOffset( j, 0.0 );
         DAC_CalibrateScalar( j, 1.0 );
     }
-    cal.stage = CAL_in_shift;
-    cal.avg_count = AVERAGE_COUNT;
+    if( !use_defaults ){ // causes recalibration to run
+        cal.stage = CAL_in_shift;
+        cal.avg_count = AVERAGE_COUNT;
+    }
+}
+
+void CAL_PrintCalibration( void )
+{
+    char pc[64];
+    uint8_t len = 0;
+    snprintf(pc,63,"IO Calibration Data:");
+    Caw_send_raw( (uint8_t*)pc, len );
+    for( int j=0; j<2; j++ ){
+        len = snprintf(pc, 63, " adc %f, %f\n"
+                      , (double)cal.adc[j].shift, (double)cal.adc[j].scale );
+        if(len > 63){ len = 63; }
+        Caw_send_raw( (uint8_t*)pc, len );
+    }
+    for( int j=0; j<4; j++ ){
+        len = snprintf(pc, 63, " dac %f, %f\n"
+                      , (double)cal.dac[j].shift, (double)cal.dac[j].scale );
+        if(len > 63){ len = 63; }
+        Caw_send_raw( (uint8_t*)pc, len );
+    }
 }
