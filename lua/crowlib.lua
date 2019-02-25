@@ -21,23 +21,23 @@ end
 local function closelibs()
     -- set whole list of libs to nil to close them
     -- TODO does this free the RAM used by 'dofile'?
-    input  = nil
-    output = nil
-    asl    = nil
-    asllib = nil
-    metro  = nil
-    ii     = nil
+    Input  = nil
+    Output = nil
+    Asl    = nil
+    Asllib = nil
+    Metro  = nil
+    II     = nil
 end
 
 function _crow.libs( lib )
     if lib == nil then
         -- load all
-        input  = dofile('lua/input.lua')
-        output = dofile('lua/output.lua')
-        asl    = dofile('lua/asl.lua')
-        asllib = dofile('lua/asllib.lua')
-        metro  = dofile('lua/metro.lua')
-        ii     = dofile('lua/ii.lua')
+        Input  = dofile('lua/input.lua')
+        Output = dofile('lua/output.lua')
+        Asl    = dofile('lua/asl.lua')
+        Asllib = dofile('lua/asllib.lua')
+        Metro  = dofile('lua/metro.lua')
+        II     = dofile('lua/ii.lua')
     elseif type(lib) == 'table' then
         -- load the list 
     else
@@ -82,21 +82,21 @@ end
 --- Input
 input = {1,2}
 for chan = 1, #input do
-    input[chan] = input.new( chan )
+    input[chan] = Input.new( chan )
 end
 
 --- Output
-out = {1,2,3,4}
-for chan = 1, #out do
-    out[chan] = output.new( chan )
+output = {1,2,3,4}
+for chan = 1, #output do
+    output[chan] = Output.new( chan )
 end
 
 --- Asl
 function toward_handler( id ) end -- do nothing if Asl not active
 -- if defined, make sure active before setting up actions and banging
-if asl then
+if Asl then
     toward_handler = function( id )
-        out[id].asl:step()
+        output[id].asl:step()
     end
 end
 -- TODO should 'go_toward' be called 'slew'???
@@ -118,6 +118,14 @@ adc_remote = function(chan)
     get_cv(chan)
 end
 
+--- True Random Number Generator
+-- redefine library function to use stm native rng
+math.random = function(a,b)
+    if a == nil then return random_get()
+    elseif b == nil then return random_get() * a
+    else return (b-a)*random_get() + a
+    end
+end
 
 --- Flash program
 function start_flash_chunk()
@@ -131,8 +139,11 @@ end
 function closure_if_table( f )
     local _f = f
     return function( ... )
-            if type( ... ) == 'table' then
+            if ... == nil then
+                return _f()
+            elseif type( ... ) == 'table' then
                 local args = ...
+                debug_usart('table')
                 return function() return _f( table.unpack(args) ) end
             else return _f( ... ) end
         end

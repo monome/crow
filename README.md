@@ -552,3 +552,29 @@ ii.jf.event( event, data )
 end
 
 ```
+
+## Calibration
+
+crow has an in-built calibration mechansim to allow the inputs and outputs to
+accurately follow and output values. This functionality is primarily for use with
+volt-per-octave signals, though of course this accuracy can be used for any number
+of other purposes!
+
+All modules come pre-calibrated from the factory, so you'll likely never need to
+think about this, but just in case, recalibration and data inspection is allowed.
+
+### Cal.test()
+
+The `Cal.test()` function causes crow to re-run the calibration process.
+
+**You must remove all patch cables from the jacks for this process to work correctly!**
+Calling `test` without any arguments runs the calibration as per normal, while
+runing `test('default')` will not run the calibration process, but instead return
+to default values, in case you're having problems with the calibration process.
+
+### Cal.print()
+
+This helper function is just for debugging purposes. Calling it will simply dump
+a list of values showing the scaling & translation of voltages that were measured
+during the calibratin process. If you're really curious try resetting to the defaults
+then printing, followed by a `test()` and `print` to see the difference.
