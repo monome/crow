@@ -100,6 +100,10 @@ C_cmd_t Caw_try_receive( void )
             case C_print:      return C_print;
             default: break;
         }
+        if( *buf == '\e' ){ // escape key
+            pReader = 0;    // clear buffer
+            return C_none;  // no action
+        }
         if( _is_multiline( (char*)buf ) ){
             multiline ^= 1;
             if(!multiline){ printf("%s\n",reader); }
