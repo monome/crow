@@ -23,6 +23,7 @@ uint8_t II_init( uint8_t address );
 void II_deinit( void );
 
 const char* II_list_modules( void );
+const char* II_list_cmds( uint8_t address );
 
 void II_set_pullups( uint8_t state );
 

@@ -185,7 +185,7 @@ function make_iihelp(files)
 .. '    rawset(II,n,dofile(string.format(\'build/ii_%s.lua\',n)))\n'
 .. '    new = rawget(II,n)\n'
 .. '    --rawset(new,name,n)\n'
-.. '    --rawset(new,help,self.help)\n'
+.. '    rawset(rawget(II,n),\'help\',self.help)\n'
 .. '    return rawget(new, ix)\n'
 .. 'end\n'
 .. 'setmetatable(is, is)\n\n'

@@ -235,7 +235,7 @@ static int _send_usb( lua_State *L )
 static int _ii_list_modules( lua_State *L )
 {
     Caw_send_luachunk( (char*)II_list_modules() );
-    printf( "%s\n",(char*)II_list_modules() );
+    printf( "printing ii help\n" );
     return 0;
 }
 
@@ -243,7 +243,7 @@ static int _ii_list_commands( lua_State *L )
 {
     uint8_t address = luaL_checkinteger(L, 1);
     printf("i2c help %i\n", address);
-    //Caw_send_luachunk( (char*)II_list_modules() );
+    Caw_send_luachunk( (char*)II_list_cmds(address) );
     return 0;
 }
 

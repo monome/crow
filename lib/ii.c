@@ -30,6 +30,12 @@ const char* II_list_modules( void )
 {
     return ii_module_list;
 }
+
+const char* II_list_cmds( uint8_t address )
+{
+    return ii_list_commands(address);
+}
+
 void II_set_pullups( uint8_t state )
 {
     I2C_SetPullups(state);
