@@ -88,6 +88,7 @@ uint8_t I2C_is_boot( void )
     // set to OD to ensure no damage by i2c line
     // FIXME is this necessary, or does DeInit set the pin to tristate?
 	gpio.Mode      = GPIO_MODE_AF_OD;
+	gpio.Pull      = GPIO_NOPULL;
 	HAL_GPIO_Init( I2Cx_SCL_GPIO_PORT, &gpio );
 
 	HAL_GPIO_DeInit( I2Cx_SCL_GPIO_PORT, I2Cx_SCL_PIN );
@@ -169,7 +170,10 @@ PE=0 - Write PE=1.
 	    I2C_DeInit();
         I2C_Init( temp_addr );
     } else {
-	    printf("I2C_ERROR %i\n", (int)h->ErrorCode);
+        if( h->ErrorCode == 2 ){ printf("!I2C: lines are low. try II.pullup(1)\n"); }
+        else{
+	        printf("I2C_ERROR %i\n", (int)h->ErrorCode);
+        }
     }
 uint32_t old_primask = __get_PRIMASK();
 __disable_irq();
@@ -337,6 +341,9 @@ void I2C_SetPullups( uint8_t state )
 	gpio.Pull      = (state) ? GPIO_PULLUP : GPIO_NOPULL;
 	gpio.Speed     = GPIO_SPEED_FREQ_HIGH;
 	gpio.Alternate = I2Cx_SCL_SDA_AF;
+
+	HAL_GPIO_DeInit( I2Cx_SCL_GPIO_PORT, I2Cx_SCL_PIN );
+	HAL_GPIO_DeInit( I2Cx_SDA_GPIO_PORT, I2Cx_SDA_PIN );
 	HAL_GPIO_Init( I2Cx_SCL_GPIO_PORT, &gpio );
 }
 
