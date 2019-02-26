@@ -319,7 +319,7 @@ function init()
 end
 
 input[1].change = function(state)
-    ii.wslash.record(state)
+    II.wslash.record(state)
 end
 ```
 
