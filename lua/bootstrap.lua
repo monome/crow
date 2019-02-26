@@ -20,7 +20,7 @@ print = function(...)
             printResult = printResult .. '\t' .. args[i]
         end
     end
-    print_serial(printResult)
+    print_serial(tostring(printResult))
 end
 
 -- nb: this is basically the inverse of l2h.lua (but we don't want that at RT)
