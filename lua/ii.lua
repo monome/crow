@@ -39,6 +39,8 @@ function ii_handler( addr, cmd, data )
     ii[name].event(ii[name].e[cmd], data)
 end
 
+function ii.e( name, event, data ) _c.tell('II.'..name,event,data) end
+
 ii._c =
     { cmds = { [1]='out'
              , [2]='slew'

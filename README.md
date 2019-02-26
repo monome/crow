@@ -553,6 +553,11 @@ end
 
 ```
 
+Note that by default the `event()` defaults to a satellite action which is
+`^^II.<module>(<event>,<value>)`
+for eg:
+`^^II.txi('value', 0.1)`
+
 ## Calibration
 
 crow has an in-built calibration mechansim to allow the inputs and outputs to
