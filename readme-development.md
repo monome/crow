@@ -1,4 +1,4 @@
-#crow development setup
+# crow development setup
 
 crow development can mean many things, but if you want to write anything beyond a user script, you'll need to setup the dev environment so you can build binaries. A binary can then be flash to crow using the DFU bootloader over USB. If you want to work on the bootloader itself, or want a slightly easier workflow you'll need an ST-Link and an edge-connector (see below).
 
@@ -19,10 +19,10 @@ crow development can mean many things, but if you want to write anything beyond 
 
 ### Building
 
-- `make` build the project binary (** see nb below**)
+- `make` build the project binary (**see nb below**)
 - `make clean` remove all binary objects to force a rebuild on next `make`
 
-*nb: currently the Makefile is a little broken and you'll need this*: (see issue #42)
+*nb: currently the Makefile is a little broken and you'll need this*: (see issue [#42](https://github.com/monome/crow/issues/42))
 - `make clean`
 - `mkdir build`
 - `lua util/ii_gen.lua`
@@ -93,8 +93,8 @@ The makefile is pretty unwieldy, but here's the basic approach:
 
 Then you can upload to the device automatically with `make dfu` or `make flash`.
 
-If you want to improve the makefile see issue #42.
-If you want to improve the way lua code is included in the binary see issue #40.
+If you want to improve the makefile see issue [#42](https://github.com/monome/crow/issues/42).
+If you want to improve the way lua code is included in the binary see issue [#40](https://github.com/monome/crow/issues/40).
 
 ## Project structure
 
@@ -320,7 +320,7 @@ Additional modes in the style of `change` will be added specifically covering:
 - quantize: like 'scale' but with arbitrary divisions. (ie 'scale' is 12tone ET)
 - ji: a just-intonation version of 'scale' where the scale is defined as ratios
 
-The syntax of these are described in Issue #14.
+The syntax of these are described in Issue [#14](https://github.com/monome/crow/issues/14).
 A working example in Lua is available in `crow/ref/shaper.lua` at the end of file.
 
 #### Outputs
