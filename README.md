@@ -593,6 +593,8 @@ ground pins (ie the pins closest to the power connector, indicated by the
 white stripe on the pcb). In a pinch you can hold a (!disconnected!) patch cable
 to bridge the pins while powering on the case.
 
+![](doc/img/crow-dfu.jpg)
+
 ### Flashing the update
 
 Execute the `flash.sh` command which is included in the release .zip file. The actual firmware file that is uploaded is`crow.bin`.
