@@ -273,7 +273,7 @@ function c_cmds(f)
         if type(args[1]) == 'table' then -- >1 arg
             local r = {}
             for i=1,#args-1 do
-                r = table.append( args[i] )
+                table.insert( r, args[i] )
             end
             return r
         else -- 1 or none

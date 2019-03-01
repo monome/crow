@@ -34,80 +34,53 @@ function ii.get( address, cmd, ... )
     ii_get( address, cmd, ... )
 end
 
-function ii_handler( addr, cmd, data )
+function ii_LeadRx_handler( addr, cmd, data )
     local name = ii.is.lu[addr]
     ii[name].event(ii[name].e[cmd], data)
 end
 
-function ii.e( name, event, data ) _c.tell('II.'..name,event,data) end
+function ii.e( name, event, data ) _c.tell('II.'..name,tostring(event),data) end
 
 ii._c =
-    { cmds = { [1]='out'
+    { cmds = { [1]='output'
              , [2]='slew'
-             , [3]='input'
-             , [4]='call'
+             , [4]='call1'
              , [5]='call2'
              , [6]='call3'
              , [7]='call4'
+             , [3+128]='input'
+             , [4+128]='query0'
+             , [5+128]='query1'
+             , [6+128]='query2'
+             , [7+128]='query3'
+             , [8+128]='inputF'
              }
-    , out = function(chan,val) print('out '..chan..' to '..val)end
+    , output = function(chan,val) print('output '..chan..' to '..val)end
     , slew = function(chan,slew) print('slew '..chan..' at '..slew)end
-    , input = function(chan) print('input '..chan..' NEED RESPONSE')end
-    , call = function(arg) print('call '..arg)end
-    , call2 = function(a,a2) print('call2 '..a..' '..a2)end
-    , call3 = function(a,a2,a3) print('call3 '..a..' '..a2..' '..a3)end
-    , call4 = function(a,a2,a3,a4) print('call4 '..a..' '..a2..' '..a3..' '..a4)end
+    , call1 = function(arg) print('call1('..arg..')')end
+    , call2 = function(a,a2) print('call2('..a..','..a2..')')end
+    , call3 = function(a,a2,a3) print('call3('..a..','..a2..','..a3..')')end
+    , call4 = function(a,a2,a3,a4) print('call4('..a..','..a2..','..a3..','..a4..')')end
+
+    , input = function(chan) print('input('..chan..')') return 3 end
+    , query0 = function() print('query0()'); return 4 end
+    , query1 = function(a) print('query1('..a..')'); return 5 end
+    , query2 = function(a,a2) print('query2('..a..','..a2..')'); return 6 end
+    , query3 = function(a,a2,a3) print('query3('..a..','..a2..','..a3..')')
+        return 7
+    end
+    , inputF = function(chan) print('input('..chan..')') return 8 end
 }
 
-function ii_self_handler( cmd, ... )
-    local name = ii._c.cmds[cmd]
-    --ii._c[name](...)
+function ii_followRx_handler( cmd, ... )
+    local name = II._c.cmds[cmd]
+    II._c[name](...)
 end
 
---ii.cb_list = { ['crow'] = {1 = } }
---
---function ii.callback( addr, cmd, ... )
---    -- if addr is in ii.cb_list
---
---
---    -- CW.OUT       chan (value)-> (value)
---    -- CW.OUT.SLEW  chan (slew) -> (slew)
---    -- CW.IN        chan        -> input_val
---    -- CW.CALL      1arg
---    -- CW.CALL2     2args
---    -- CW.CALL3     3args
---    -- CW.CALL4     4args
---    --      triggers a callback in lua for the user to customize
---    --      specific meaning. if 1-less-than-expected in TT it is
---    --      considered a request and crow should return a value.
---end
---
---- triggered by received ii msg 'CW.CALL'
---function ii.call1( arg )
---    if arg == nil then  -- this is a data request
---        ii.send()       -- return *something* to leader
---    else
---                        -- this is where you define your action
---    end
---end
---
---ii.callback_list = [[
---
---if the last arg is nil, this is a *request*
---   return something with ii.send()
---CW.CALL  -> function ii.call1( arg ) end
---CW.CALL2 -> function ii.call2( arg, arg2 ) end
---CW.CALL3 -> function ii.call3( arg, arg2, arg3 ) end
---CW.CALL4 -> function ii.call4( arg, arg2, arg3, arg4 ) end
---]]
---
----- prints a list of connected devices
---function ii.get_devices()
---    -- requires update to the ii tech across the board
---    -- 1. send 'ping' to universal channel
---    -- 2. record responses in a table
---    -- 3. print a list of those responses (with id numbers?)
---end
+function ii_followRxTx_handler( cmd, ... )
+    local name = II._c.cmds[cmd]
+    return II._c[name](...)
+end
 
 print 'ii loaded'
 

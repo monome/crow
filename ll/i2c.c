@@ -190,9 +190,8 @@ void HAL_I2C_AddrCallback( I2C_HandleTypeDef* h
 {
     uint8_t error = 0;
     if( TransferDirection ){ // Request data
-        // change direction in follow mode to respond to request
-        while( i2c_state.rxing ){;;} // wait for cmd to be received
-            // add a timeout     ^^
+        I2C_Follow_TxCallback( _I2C_GetBuffer( &i2c_state ) );
+        i2c_state.rxing = 0;
 uint32_t old_primask = __get_PRIMASK();
 __disable_irq();
         error = HAL_I2C_Slave_Sequential_Transmit_IT( &i2c_handle
@@ -227,7 +226,6 @@ __set_PRIMASK( old_primask );
 void HAL_I2C_MasterTxCpltCallback( I2C_HandleTypeDef* h )
 {
     if( i2c_state.txing == 1 ){
-        printf("lead_tx -> rx CB\n");
         // leader has transmitted a request
         // now ready to leader_receive the data
         i2c_state.txing = 2;
@@ -237,11 +235,10 @@ __disable_irq();
                 , i2c_state.lead_rx_address
 		        , i2c_state.lead_rx_data
 	            , i2c_state.lead_rx_bytes
-                , I2C_NEXT_FRAME
+                , I2C_LAST_FRAME
 	            ) != HAL_OK ){ printf("LeadRx failed\n"); }
 __set_PRIMASK( old_primask );
     } else {
-        printf("lead_tx CB\n");
         // leader_transmission has completed
         // return to follower_listen state
 uint32_t old_primask = __get_PRIMASK();
@@ -254,9 +251,7 @@ __set_PRIMASK( old_primask );
 }
 void HAL_I2C_MasterRxCpltCallback( I2C_HandleTypeDef* h )
 {
-    printf("lead_rx cb\n");
     // last stage of a master receive
-
     i2c_state.txing = 0;
     I2C_Lead_RxCallback( i2c_state.lead_rx_address>>1
                       , i2c_state.lead_rx_cmd
@@ -280,6 +275,7 @@ void HAL_I2C_SlaveRxCpltCallback( I2C_HandleTypeDef* h )
 }
 void HAL_I2C_SlaveTxCpltCallback( I2C_HandleTypeDef* h )
 {
+    // TODO free the i2c interface to lead
     // receiving is complete and we're able to be master again
 }
 
@@ -349,12 +345,12 @@ void I2C_SetPullups( uint8_t state )
 
 uint8_t I2C_GetAddress( void )
 {
-    return i2c_handle.Init.OwnAddress1;
+    return i2c_handle.Init.OwnAddress1 >> 1;
 }
 
 void I2C_SetAddress( uint8_t address )
 {
-	i2c_handle.Init.OwnAddress1 = address;
+	i2c_handle.Init.OwnAddress1 = address << 1;
 }
 
 uint8_t* I2C_PopFollowBuffer( void )
@@ -393,7 +389,6 @@ uint8_t I2C_LeadTx( uint8_t  address
                   )
 {
     address <<= 1;
-    printf("leadtx\n");
     uint8_t error = 0;
     if( HAL_I2C_DisableListen_IT( &i2c_handle ) != HAL_OK ){ error |= 1; }
 uint32_t old_primask = __get_PRIMASK();
@@ -427,8 +422,6 @@ uint8_t I2C_LeadRx( uint8_t  address
     i2c_state.lead_rx_data    = &data[1];
     i2c_state.lead_rx_bytes   = rx_size;
 
-    printf("leadrx: add %i, cmd %i, data %i\n",address, data[0], data[1]);
-    printf("cont: size %i, rx_size %i\n", size, rx_size);
     // before continuing, check if the driver is free
 
     // below happens in a 'pop' fn (responses are non-blocking on IRQ)

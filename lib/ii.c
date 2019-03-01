@@ -51,12 +51,6 @@ void II_set_address( uint8_t address )
     I2C_SetAddress( address );
 }
 
-
-
-
-
-
-
 uint8_t* II_processFollowRx( void )
 {
     uint8_t* pRetval = NULL;
@@ -96,7 +90,7 @@ float* _II_decode_packet( float* decoded
                 u16 |= *data++;
                 *d++ = (float)*(int16_t*)&u16;
                 break;
-            case II_float: *d++ = *data; data += 4; break;
+            case II_float: *d++ = *(float*)data; data += 4; break;
             default: printf("ii_decode unmatched\n"); break;
         }
     }
@@ -105,19 +99,15 @@ float* _II_decode_packet( float* decoded
 
 uint8_t rx_address;
 
-// Handles both follower cases
 void I2C_Lead_RxCallback( uint8_t address, uint8_t cmd, uint8_t* data )
 {
-    printf("ii_lead_rx: addr %i, cmd %i, data %i, %i, %i\n", address, cmd, data[0], data[1], data[2]);
+    printf("ii_lead_rx: cmd %i, data %i, %i\n", data[0], data[1], data[2]);
     const II_Cmd_t* c = ii_find_command(address, cmd);
-
     float val;
-    L_handle_ii( address
+    L_handle_ii_leadRx( address
                , cmd
                , *_II_decode_packet( &val, data, c, 0 )
                );
-    // TODO note: the 'follow' case above allows multiple vals!
-    // TODO should set a flag, and callback from main loop
 }
 
 uint8_t _II_type_size( II_Type_t t )
@@ -136,20 +126,65 @@ void I2C_Follow_RxCallback( uint8_t* data )
 {
     printf("ii_follow_rx: cmd %i, data %i, %i\n", data[0], data[1], data[2]);
     uint8_t cmd = *data++; // first data holds command
-    const II_Cmd_t* c = ii_find_command(0x28, cmd);
+    const II_Cmd_t* c = ii_find_command(II_get_address(), cmd);
     float args[c->args];
-    L_handle_iiself( cmd
+    // run the callback directly
+    L_handle_ii_followRx( cmd
                    , c->args
                    , _II_decode_packet( args, data, c, 1 )
                    );
-    // nb: we run the callback directly bc all devices on the i2c bus can
-    // potentially lockup while the transfer is in progress.
-    static uint8_t d[2] = {0,0}; // FIXME this needs to be response from lua
-    //I2C_SetTxData( d, _II_type_size( c->return_type ) );
-    //FIXME _II_type_size doesn't work on an auto-generated retval for a getter
-    I2C_SetTxData( d, 1 );
 }
 
+uint8_t _II_make_return( uint8_t* buf, const II_Cmd_t* c, uint8_t cmd, float* data )
+{
+    uint8_t byte = 0;
+    uint8_t* b = buf;
+
+    uint16_t u16; int16_t s16;
+    switch( c->return_type ){
+        case II_u8: b[byte++] = (uint8_t)(*data++);
+            break;
+        case II_s8: b[byte++] = (int8_t)(*data++);
+            break;
+        case II_u16:
+            u16 = (uint16_t)(*data++);
+            b[byte++] = (uint8_t)(u16>>8);          // High byte first
+            b[byte++] = (uint8_t)(u16 & 0x00FF);    // Low byte
+            break;
+        case II_s16:
+            s16 = (int16_t)(*data++);
+            u16 = *(uint16_t*)&s16;
+            b[byte++] = (uint8_t)(u16>>8);          // High byte first
+            b[byte++] = (uint8_t)(u16 & 0x00FF);    // Low byte
+            break;
+        case II_float:
+            memcpy( &(b[byte]), data++, 4 );
+            byte += 4;
+            break;
+        default: printf("no retval found\n"); return 0;
+    }
+    return byte;
+}
+
+void I2C_Follow_TxCallback( uint8_t* data )
+{
+    printf("ii_follow_tx: cmd %i, data %i, %i\n", data[0], data[1], data[2]);
+    uint8_t cmd = *data++; // first data holds command
+    const II_Cmd_t* c = ii_find_command(II_get_address(), cmd);
+    float args[c->args];
+    // run the callback directly!
+    float response = L_handle_ii_followRxTx( cmd
+                   , c->args
+                   , _II_decode_packet( args, data, c, 1 )
+                   );
+    static uint8_t d[4];
+    uint8_t length = _II_make_return( d, c, cmd, &response );
+    //I2C_SetTxData( d, _II_type_size( c->return_type ) );
+    //FIXME _II_type_size doesn't work on an auto-generated retval for a getter
+    I2C_SetTxData( d, length );
+}
+
+// TODO merge with _II_make_return with a 'is_return' flag
 uint8_t _II_make_packet( uint8_t* buf, const II_Cmd_t* c, uint8_t cmd, float* data )
 {
     uint8_t byte = 0;
@@ -165,13 +200,14 @@ uint8_t _II_make_packet( uint8_t* buf, const II_Cmd_t* c, uint8_t cmd, float* da
                 break;
             case II_u16:
                 u16 = (uint16_t)(*data++);
-                memcpy( &(b[byte]), &u16, 2 );
-                byte += 2;
+                b[byte++] = (uint8_t)(u16>>8);          // High byte first
+                b[byte++] = (uint8_t)(u16 & 0x00FF);    // Low byte
                 break;
             case II_s16:
                 s16 = (int16_t)(*data++);
-                memcpy( &(b[byte]), &s16, 2 );
-                byte += 2;
+                u16 = *(uint16_t*)&s16;
+                b[byte++] = (uint8_t)(u16>>8);          // High byte first
+                b[byte++] = (uint8_t)(u16 & 0x00FF);    // Low byte
                 break;
             case II_float:
                 memcpy( &(b[byte]), data++, 4 );

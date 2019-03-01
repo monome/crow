@@ -496,32 +496,51 @@ void L_handle_change( int id, float state )
     }
 }
 
-void L_handle_ii( uint8_t address, uint8_t cmd, float data )
+void L_handle_ii_leadRx( uint8_t address, uint8_t cmd, float data )
 {
-    lua_getglobal(L, "ii_handler");
+    lua_getglobal(L, "ii_LeadRx_handler");
     lua_pushinteger(L, address);
     lua_pushinteger(L, cmd);
     lua_pushnumber(L, data); // TODO currently limited to single retval
     if( lua_pcall(L, 3, 0, 0) != LUA_OK ){
-        printf("ii ev err\n");
-        Caw_send_luachunk("error: ii event");
+        printf("!ii.leadRx\n");
+        Caw_send_luachunk("error: ii lead event");
         Caw_send_luachunk( (char*)lua_tostring(L, -1) );
         lua_pop( L, 1 );
     }
 }
 
-void L_handle_iiself( uint8_t cmd, int args, float* data )
+void L_handle_ii_followRx( uint8_t cmd, int args, float* data )
 {
-    lua_getglobal(L, "ii_self_handler");
+    lua_getglobal(L, "ii_followRx_handler");
     lua_pushinteger(L, cmd);
     int a = args;
     while(a-- > 0){
         lua_pushnumber(L, *data++);
     }
     if( lua_pcall(L, 1+args, 0, 0) != LUA_OK ){
-        printf("ii ev err\n");
-        Caw_send_luachunk("error: ii event");
+        printf("!ii.followRx\n");
+        Caw_send_luachunk("error: ii follow rx");
         Caw_send_luachunk( (char*)lua_tostring(L, -1) );
         lua_pop( L, 1 );
     }
+}
+
+float L_handle_ii_followRxTx( uint8_t cmd, int args, float* data )
+{
+    lua_getglobal(L, "ii_followRxTx_handler");
+    lua_pushinteger(L, cmd);
+    int a = args;
+    while(a-- > 0){
+        lua_pushnumber(L, *data++);
+    }
+    if( lua_pcall(L, 1+args, 1, 0) != LUA_OK ){
+        printf("!ii.followRxTx\n");
+        Caw_send_luachunk("error: ii follow query");
+        Caw_send_luachunk( (char*)lua_tostring(L, -1) );
+        lua_pop( L, 1 );
+    }
+    float n = luaL_checknumber(L, 1);
+    lua_pop( L, 1 );
+    return n;
 }
