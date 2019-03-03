@@ -50,6 +50,7 @@ void REPL_mode( L_repl_mode mode )
             if( Flash_write_user_script( new_script
                                        , new_script_len
                                        ) ){
+                printf("flash write failed\n");
                 Caw_send_luachunk("flash write failed");
             }
             printf("script saved\n");
@@ -102,6 +103,7 @@ static void REPL_new_script_buffer( uint32_t len )
     // TODO call to Lua to free resources from current script
     new_script = malloc(len);
     if(new_script == NULL){
+        printf("out of mem\n");
         Caw_send_luachunk("!script: out of memory");
         //(*errfn)("!script: out of memory");
         return; // how to deal with this situation?
