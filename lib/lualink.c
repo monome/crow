@@ -255,7 +255,7 @@ static int _ii_pullup( lua_State *L )
 
 static int _ii_set( lua_State *L )
 {
-    printf("lua ii broadcast\n");
+    printf("\nlua ii broadcast\n");
 
     // FIXME: 4 is max number of arguments. is this ok?
     float data[4] = {0,0,0,0}; // always zero out data
@@ -275,7 +275,7 @@ static int _ii_set( lua_State *L )
 }
 static int _ii_get( lua_State *L )
 {
-    printf("lua ii query\n");
+    printf("\nlua ii query\n");
     float data[4] = {0,0,0,0}; // always zero out data
     int nargs = lua_gettop(L);
     if( nargs > 2
@@ -284,10 +284,10 @@ static int _ii_get( lua_State *L )
             data[i] = luaL_checknumber(L, i+3); // 1-ix'd
         }
     }
-    II_query( luaL_checkinteger(L, 1) // address
+    if(II_query( luaL_checkinteger(L, 1) // address
             , luaL_checkinteger(L, 2) // command
             , data
-            );
+            )){ printf("II_query failed\n"); }
     lua_settop(L, 0);
     return 0;
 }

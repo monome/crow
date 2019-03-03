@@ -97,11 +97,9 @@ float* _II_decode_packet( float* decoded
     return decoded;
 }
 
-uint8_t rx_address;
-
 void I2C_Lead_RxCallback( uint8_t address, uint8_t cmd, uint8_t* data )
 {
-    printf("ii_lead_rx: cmd %i, data %i, %i\n", data[0], data[1], data[2]);
+    printf("ii_lead_rx: cmd %i, data %i %i %i\n", cmd, data[0], data[1], data[2]);
     const II_Cmd_t* c = ii_find_command(address, cmd);
     float val;
     L_handle_ii_leadRx( address
