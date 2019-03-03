@@ -59,15 +59,19 @@ void Detect( Detect_t* self, float level )
             break;
 
         case Detect_CHANGE:
-            if( self->state ){
+            if( self->state ){ // high to low
                 if( level < (self->change.threshold - self->change.hysteresis) ){
                     self->state = 0;
-                    (*self->action)( self->channel, (float)self->state );
+                    if( self->direction != 1 ){ // not 'rising' only
+                        (*self->action)( self->channel, (float)self->state );
+                    }
                 }
-            } else {
+            } else { // low to high
                 if( level > (self->change.threshold + self->change.hysteresis) ){
                     self->state = 1;
-                    (*self->action)( self->channel, (float)self->state );
+                    if( self->direction != -1 ){ // not 'falling' only
+                        (*self->action)( self->channel, (float)self->state );
+                    }
                 }
             }
             break;
