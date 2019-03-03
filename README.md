@@ -321,7 +321,7 @@ Or set the output to a value directly:
 `output[1].value = 2.0` 2 volts.
 
 You can assign a new action:
-`output[1].asl:action = lfo( 1.0, 'linear', 4.0 )`
+`output[1].asl.action = lfo( 1.0, 'linear', 4.0 )`
 
 There's a list of different default actions like `lfo()`, `adsr()` in the 'Asl lib'
 located in `lua/asllib.lua`.
@@ -330,12 +330,12 @@ You can of course define your own ASL generator functions, or use it directly. B
 we assign a sawtooth LFO jumping instantly to 5 volts, then falling to 0 volts in
 one second, before repeating infinitely.
 ```
-output[1].asl:action =
+output[1].asl.action =
     loop{ toward( 5.0, 0.0, 'linear' )
         , toward( 0.0, 1.0, 'linear' )
         }
 ```
-Then start it as above with `output[1].asl:action()`
+Then start it as above with `output[1].asl:action()`, note the colon call!
 
 ## Metro library
 
