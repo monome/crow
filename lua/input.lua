@@ -92,10 +92,13 @@ Input.__call = function(self, ...)
     if #args == 0 then
         return Input.get_value(self)
     else -- table call
+        local m = 0
+        --if #args[1] == 0 then _ end -- implies empty table call
         for k,v in pairs( args[1] ) do
-            --if k == nil then _ end -- implies empty table call
+            if k == 'mode' then m = v end -- defer mode change after setting params
             self[k] = v
         end
+        if m ~= 0 then self.mode = m end -- apply mode change
     end
 end
 
