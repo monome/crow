@@ -89,9 +89,9 @@ end
 
 Input.__call = function(self, ...)
     local args = {...}
-    if args == nil then
+    if #args == 0 then
         return Input.get_value(self)
-    else -- assume table
+    else -- table call
         for k,v in pairs( args ) do
             self.k = v
         end
