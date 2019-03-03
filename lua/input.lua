@@ -92,8 +92,9 @@ Input.__call = function(self, ...)
     if #args == 0 then
         return Input.get_value(self)
     else -- table call
-        for k,v in pairs( args ) do
-            self.k = v
+        for k,v in pairs( args[1] ) do
+            --if k == nil then _ end -- implies empty table call
+            self[k] = v
         end
     end
 end
