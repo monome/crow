@@ -79,9 +79,9 @@ end
 
 Input.__index = function(self, ix)
     if     ix == 'value' then
-      return Input.get_value(self)
+        return Input.get_value(self)
     elseif ix == 'query' then
-      _c.tell('query',self.channel,Input.get_value(self))
+        return function() _c.tell('ret_cv',self.channel,Input.get_value(self)) end
     elseif ix == 'mode'  then
         return function(...) Input.set_mode( self, ...) end
     end
