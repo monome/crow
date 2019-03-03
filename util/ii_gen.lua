@@ -3,7 +3,7 @@ get_offset = 0x80
 -- generate a printable c-string describing the module's commands
 function generate_prototypes( d )
     local prototypes = ''
-    local proto_prefix = 'ii.' .. d.lua_name .. '.'
+    local proto_prefix = 'II.' .. d.lua_name .. '.'
     for _,v in ipairs( d.commands ) do
         local s = '"' .. proto_prefix .. v.name .. '( '
         if type(v.args[1]) == 'table' then -- more than 1 arg
@@ -33,7 +33,7 @@ end
 
 function generate_getters( d )
     local getters = ''
-    local get_prefix = '"ii.' .. d.lua_name .. '.get( \''
+    local get_prefix = '"II.' .. d.lua_name .. '.get( \''
 
     -- commands that have standard getters
     for _,v in ipairs( d.commands ) do
@@ -77,7 +77,7 @@ function generate_events( d )
         return false
     end
 
-    local events = '"ii.' .. d.lua_name .. '.event = function( e, data )\\n\\r"\n'
+    local events = '"II.' .. d.lua_name .. '.event = function( e, data )\\n\\r"\n'
 
     local overloaded = has_get_cmd(d)
     if overloaded then
@@ -123,7 +123,7 @@ end
 function lua_cmds(f)
     local c = ''
     for _,v in ipairs( f.commands ) do
-        c = c .. 'function ' .. f.lua_name .. '.' .. v.name .. '(...)ii.set('
+        c = c .. 'function ' .. f.lua_name .. '.' .. v.name .. '(...)II.set('
           .. f.i2c_address .. ',' .. v.cmd .. ',...)end\n'
     end
     return c
@@ -143,7 +143,7 @@ function lua_getters(f)
     end
     g = g .. '}\n'
 
-    g = g .. 'function ' .. f.lua_name .. '.get(name,...)ii.get('
+    g = g .. 'function ' .. f.lua_name .. '.get(name,...)II.get('
       .. f.i2c_address .. ',' .. f.lua_name .. '.g[name],...)end\n'
     return g
 end
@@ -173,7 +173,7 @@ function make_iihelp(files)
 .. 'function is.new( name, address )\n'
 .. '    local self = {}\n'
 .. '    self.name = name\n'
-.. '    self.help = function() ii.m_help(address) end\n'
+.. '    self.help = function() II.m_help(address) end\n'
 .. '    setmetatable( self, is )\n'
 .. '    is.lu[address] = name\n'
 .. '    return self\n'
@@ -182,10 +182,10 @@ function make_iihelp(files)
 .. 'is.__index = function( self, ix )\n'
 .. '    local n = self.name\n'
 .. '    local h = self.help\n'
-.. '    rawset(ii,n,dofile(string.format(\'build/ii_%s.lua\',n)))\n'
-.. '    new = rawget(ii,n)\n'
+.. '    rawset(II,n,dofile(string.format(\'build/ii_%s.lua\',n)))\n'
+.. '    new = rawget(II,n)\n'
 .. '    --rawset(new,name,n)\n'
-.. '    --rawset(new,help,self.help)\n'
+.. '    rawset(rawget(II,n),\'help\',self.help)\n'
 .. '    return rawget(new, ix)\n'
 .. 'end\n'
 .. 'setmetatable(is, is)\n\n'
@@ -202,7 +202,8 @@ function make_lua(f)
             .. lua_cmds(f)
             .. lua_getters(f)
             .. lua_events(f)
-            .. 'function ' .. f.lua_name .. '.event(e,data)end\n'
+            .. 'function ' .. f.lua_name
+                .. '.event(e,data)II.e(\'' .. f.lua_name .. '\',e,data)end\n'
             .. 'print\'' .. f.lua_name .. ' loaded\'\n'
             .. 'return ' .. f.lua_name .. '\n'
     return l
@@ -272,7 +273,7 @@ function c_cmds(f)
         if type(args[1]) == 'table' then -- >1 arg
             local r = {}
             for i=1,#args-1 do
-                r = table.append( args[i] )
+                table.insert( r, args[i] )
             end
             return r
         else -- 1 or none
@@ -369,8 +370,8 @@ function make_c(f)
         c = c .. '"' .. f.lua_name .. '\\t-- ' .. f.module_name .. '\\n\\r"\n'
     end
     c = c .. '"\\n\\r"\n'
-          .. '"--- See a module\'s commands with \'ii.<module>.help()\'\\n\\r"\n'
-          .. '"ii.jf.help()\\n\\r"\n'
+          .. '"--- See a module\'s commands with \'II.<module>.help()\'\\n\\r"\n'
+          .. '"II.jf.help()\\n\\r"\n'
           .. ';\n'
     for _,f in ipairs(files) do
         c = c .. c_cmds(f)
