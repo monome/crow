@@ -23,6 +23,9 @@ uint8_t II_init( uint8_t address );
 void II_deinit( void );
 
 const char* II_list_modules( void );
+const char* II_list_cmds( uint8_t address );
+
+void II_set_pullups( uint8_t state );
 
 uint8_t II_get_address( void );
 void II_set_address( uint8_t address );
@@ -30,6 +33,7 @@ void II_set_address( uint8_t address );
 // callbacks from i2c LL library
 void I2C_Lead_RxCallback( uint8_t address, uint8_t cmd, uint8_t* data );
 void I2C_Follow_RxCallback( uint8_t* data );
+void I2C_Follow_TxCallback( uint8_t* data );
 // ^^ good
 
 

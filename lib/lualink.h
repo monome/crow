@@ -24,5 +24,6 @@ extern void L_handle_toward( int id );
 extern void L_handle_metro( const int id, const int stage);
 extern void L_handle_in_stream( int id, float value );
 extern void L_handle_change( int id, float state );
-extern void L_handle_ii( uint8_t address, uint8_t cmd, float data );
-extern void L_handle_iiself( uint8_t cmd, int args, float* data );
+extern void L_handle_ii_leadRx( uint8_t address, uint8_t cmd, float data );
+extern void L_handle_ii_followRx( uint8_t cmd, int args, float* data );
+extern float L_handle_ii_followRxTx( uint8_t cmd, int args, float* data );

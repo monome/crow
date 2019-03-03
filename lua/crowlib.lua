@@ -118,6 +118,30 @@ adc_remote = function(chan)
     get_cv(chan)
 end
 
+--- II default actions
+--TODO int16 conversion should be rolled into i2c generation tool
+II._c.input = function(chan)
+    if chan == 1 or chan == 2 then
+        return (1638.4 * input[chan]())
+    else return 0 end
+end
+
+--TODO deprecate to the single `input` after format conversion added
+II._c.inputF = function(chan)
+    if chan == 1 or chan == 2 then return input[chan]()
+    else return 0 end
+end
+
+--TODO int16 conversion should be rolled into i2c generation tool
+II._c.output = function(chan,val)
+    output[chan].level = val/1638.4
+    --TODO step ASL
+end
+
+II._c.slew = function(chan,slew)
+    output[chan].rate = slew/1000 -- ms
+end
+
 --- True Random Number Generator
 -- redefine library function to use stm native rng
 math.random = function(a,b)
