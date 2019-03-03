@@ -88,6 +88,7 @@ uint8_t I2C_is_boot( void )
     // set to OD to ensure no damage by i2c line
     // FIXME is this necessary, or does DeInit set the pin to tristate?
 	gpio.Mode      = GPIO_MODE_AF_OD;
+	gpio.Pull      = GPIO_NOPULL;
 	HAL_GPIO_Init( I2Cx_SCL_GPIO_PORT, &gpio );
 
 	HAL_GPIO_DeInit( I2Cx_SCL_GPIO_PORT, I2Cx_SCL_PIN );
@@ -169,7 +170,10 @@ PE=0 - Write PE=1.
 	    I2C_DeInit();
         I2C_Init( temp_addr );
     } else {
-	    printf("I2C_ERROR %i\n", (int)h->ErrorCode);
+        if( h->ErrorCode == 2 ){ printf("!I2C: lines are low. try II.pullup(1)\n"); }
+        else{
+	        printf("I2C_ERROR %i\n", (int)h->ErrorCode);
+        }
     }
 uint32_t old_primask = __get_PRIMASK();
 __disable_irq();
@@ -178,32 +182,38 @@ __disable_irq();
     }
 __set_PRIMASK( old_primask );
 }
-uint8_t FAKE_TX_DATA[4] = {0,0,0,0};
+
 void HAL_I2C_AddrCallback( I2C_HandleTypeDef* h
 	                     , uint8_t            TransferDirection
 	                     , uint16_t           AddrMatchCode
 	                     )
 {
     uint8_t error = 0;
+    printf("addr\n");
     if( TransferDirection ){ // Request data
-        // change direction in follow mode to respond to request
-        while( i2c_state.rxing ){;;} // wait for cmd to be received
-            // add a timeout     ^^
+        printf("tx\n");
+        I2C_Follow_TxCallback( _I2C_GetBuffer( &i2c_state ) );
+        i2c_state.rxing = 0;
 uint32_t old_primask = __get_PRIMASK();
 __disable_irq();
-        error = HAL_I2C_Slave_Sequential_Transmit_IT( &i2c_handle
+        //error = HAL_I2C_Slave_Sequential_Transmit_IT( &i2c_handle
+        error = HAL_I2C_Slave_Transmit_IT( &i2c_handle
                 , i2c_state.tx_data
                 , i2c_state.tx_bytes
-                , I2C_LAST_FRAME
+                //, I2C_LAST_FRAME
                 );
 __set_PRIMASK( old_primask );
     } else {
+        printf("rx\n");
 uint32_t old_primask = __get_PRIMASK();
 __disable_irq();
         error = HAL_I2C_Slave_Sequential_Receive_IT( &i2c_handle
+        //error = HAL_I2C_Slave_Receive_IT( &i2c_handle
                 , _I2C_GetBuffer( &i2c_state )
                 , I2C_MAX_CMD_BYTES
                 , I2C_NEXT_FRAME
+                //, I2C_NEXT_FRAME // NEXT works for receiving a LeadTx
+                            // FIRST works once, then fails
 	            );
 __set_PRIMASK( old_primask );
         i2c_state.rxing = 1;
@@ -223,23 +233,26 @@ __set_PRIMASK( old_primask );
 void HAL_I2C_MasterTxCpltCallback( I2C_HandleTypeDef* h )
 {
     if( i2c_state.txing == 1 ){
-        printf("lead_tx -> rx CB\n");
+        printf("tx'd now rx\n");
         // leader has transmitted a request
         // now ready to leader_receive the data
         i2c_state.txing = 2;
 uint32_t old_primask = __get_PRIMASK();
 __disable_irq();
-        if( HAL_I2C_Master_Sequential_Receive_IT( &i2c_handle
+        //if( HAL_I2C_Master_Sequential_Receive_IT( &i2c_handle
+        if( HAL_I2C_Master_Receive_IT( &i2c_handle
                 , i2c_state.lead_rx_address
 		        , i2c_state.lead_rx_data
 	            , i2c_state.lead_rx_bytes
-                , I2C_NEXT_FRAME
+                //, I2C_FIRST_AND_LAST_FRAME // must be LAST to correctly free i2c bus
+                    // FIRST_AND_LAST ie non-sequential
+                    // or LAST work ok with txI
 	            ) != HAL_OK ){ printf("LeadRx failed\n"); }
 __set_PRIMASK( old_primask );
     } else {
-        printf("lead_tx CB\n");
         // leader_transmission has completed
         // return to follower_listen state
+        printf("tx'd now listen\n");
 uint32_t old_primask = __get_PRIMASK();
 __disable_irq();
         if( HAL_I2C_EnableListen_IT( &i2c_handle ) != HAL_OK ){
@@ -250,9 +263,7 @@ __set_PRIMASK( old_primask );
 }
 void HAL_I2C_MasterRxCpltCallback( I2C_HandleTypeDef* h )
 {
-    printf("lead_rx cb\n");
     // last stage of a master receive
-
     i2c_state.txing = 0;
     I2C_Lead_RxCallback( i2c_state.lead_rx_address>>1
                       , i2c_state.lead_rx_cmd
@@ -276,6 +287,7 @@ void HAL_I2C_SlaveRxCpltCallback( I2C_HandleTypeDef* h )
 }
 void HAL_I2C_SlaveTxCpltCallback( I2C_HandleTypeDef* h )
 {
+    // TODO free the i2c interface to lead
     // receiving is complete and we're able to be master again
 }
 
@@ -302,9 +314,9 @@ void I2Cx_EV_IRQHandler( void )
     // happen in some non-error cases. perhaps it makes sense to check here, after
     // we've run the callback and see if the flags remain?
     // perhaps all the flags are crushed by the event handler?
-    //if( __HAL_I2C_GET_FLAG( &i2c_handle, I2C_FLAG_AF ) ){
-    //    printf("Ack failure\n");
-    //}
+    if( __HAL_I2C_GET_FLAG( &i2c_handle, I2C_FLAG_AF ) ){
+        printf("Ack failure\n");
+    }
 }
 
 void I2Cx_ER_IRQHandler( void )
@@ -327,14 +339,30 @@ void I2C_BufferRx( uint8_t* data )
     i2c_state.b_count++;
 }
 
+void I2C_SetPullups( uint8_t state )
+{
+    // FIXME is this possible? do we need to deinit first?
+	GPIO_InitTypeDef gpio;
+	gpio.Pin       = I2Cx_SCL_PIN
+	               | I2Cx_SDA_PIN;
+	gpio.Mode      = GPIO_MODE_AF_OD;
+	gpio.Pull      = (state) ? GPIO_PULLUP : GPIO_NOPULL;
+	gpio.Speed     = GPIO_SPEED_FREQ_HIGH;
+	gpio.Alternate = I2Cx_SCL_SDA_AF;
+
+	HAL_GPIO_DeInit( I2Cx_SCL_GPIO_PORT, I2Cx_SCL_PIN );
+	HAL_GPIO_DeInit( I2Cx_SDA_GPIO_PORT, I2Cx_SDA_PIN );
+	HAL_GPIO_Init( I2Cx_SCL_GPIO_PORT, &gpio );
+}
+
 uint8_t I2C_GetAddress( void )
 {
-    return i2c_handle.Init.OwnAddress1;
+    return i2c_handle.Init.OwnAddress1 >> 1;
 }
 
 void I2C_SetAddress( uint8_t address )
 {
-	i2c_handle.Init.OwnAddress1 = address;
+	i2c_handle.Init.OwnAddress1 = address << 1;
 }
 
 uint8_t* I2C_PopFollowBuffer( void )
@@ -373,7 +401,6 @@ uint8_t I2C_LeadTx( uint8_t  address
                   )
 {
     address <<= 1;
-    printf("leadtx\n");
     uint8_t error = 0;
     if( HAL_I2C_DisableListen_IT( &i2c_handle ) != HAL_OK ){ error |= 1; }
 uint32_t old_primask = __get_PRIMASK();
@@ -407,19 +434,21 @@ uint8_t I2C_LeadRx( uint8_t  address
     i2c_state.lead_rx_data    = &data[1];
     i2c_state.lead_rx_bytes   = rx_size;
 
-    printf("leadrx: add %i, cmd %i, data %i\n",address, data[0], data[1]);
-    printf("cont: size %i, rx_size %i\n", size, rx_size);
+    printf("lRx %i %i %i %i\n",address, data[0], data[1], data[2]);
+
     // before continuing, check if the driver is free
 
     // below happens in a 'pop' fn (responses are non-blocking on IRQ)
     if( HAL_I2C_DisableListen_IT( &i2c_handle ) != HAL_OK ){ error |= 1; }
 uint32_t old_primask = __get_PRIMASK();
 __disable_irq();
-	if( HAL_I2C_Master_Sequential_Transmit_IT( &i2c_handle
+	//if( HAL_I2C_Master_Sequential_Transmit_IT( &i2c_handle
+	if( HAL_I2C_Master_Transmit_IT( &i2c_handle
             , address
             , data
 	        , size
-            , I2C_FIRST_FRAME
+            //, I2C_FIRST_FRAME // confirmed MUST be FIRST_FRAME only
+            //, I2C_FIRST_AND_LAST_FRAME // confirmed MUST be FIRST_FRAME only
 	        ) != HAL_OK ){ error |= 2; }
 __set_PRIMASK( old_primask );
     return error;

@@ -302,7 +302,7 @@ function init()
 end
 
 input[1].change = function(state)
-    ii.wslash.record(state)
+    II.wslash.record(state)
 end
 ```
 
@@ -431,7 +431,7 @@ no changes are required to the default setup on crow. Simply use:
 
 crow has default actions to handle these messages, though like most things in crow
 they can be redefined for our own purposes by editing the functions in the table
-`ii._c`. Try printing the follower-help with `ii._c.help()` for a list of functions
+`II._c`. Try printing the follower-help with `II._c.help()` for a list of functions
 that can be redefined.
 
 #### A crow call
@@ -457,7 +457,7 @@ teletype:
 `CROW.CALL2 1 V 1`
 This should add 1 volt to the first output jack on crow.
 
-We can then redefine the function at `ii._c.call2()` to call our `add_to_output()`
+We can then redefine the function at `II._c.call2()` to call our `add_to_output()`
 function.
 
 #### Calling with context
@@ -476,7 +476,7 @@ local actions=
 , add_random    = function(arg) add_to_output(arg, semitone(Math.rand())) end
 }
 
-ii._c.call2 = function(cmd, arg2)
+II._c.call2 = function(cmd, arg2)
     actions[cmd](arg2)
 end
 ```
@@ -491,17 +491,17 @@ Then on teletype:
 ### Leading the i2c bus
 
 You can get a list of supported i2c devices by typing:
-`ii.help()`
+`II.help()`
 
 All the returned devices can themselves be queried for their available functions.
-`ii.<module>.help()`, or eg: `ii.jf.help()`
+`II.<module>.help()`, or eg: `II.jf.help()`
 
 These functions are formatted in such a way that you can directly copy-and-paste
 these help files into your script.
 
 #### Commands / Setters
 Remote devices can be controlled with `commands`. These are listed first by the
-help() functions. eg: `ii.jf.trigger( channel, state )`. These are typically called
+`help()` functions. eg: `II.jf.trigger( channel, state )`. These are typically called
 'setters' when described in the teletype context.
 
 You can call these like regular functions and they will send their commands over the
@@ -520,21 +520,26 @@ crow's query -> event model separates the *request* from the *response*. While
 this approach is a little more complex, it allows crow to do a great many *other*
 things while it waits for a response to it's request.
 
-First you use `ii.<module>.get( name, ... )`, which again can be copied directly
+First you use `II.<module>.get( name, ... )`, which again can be copied directly
 from the device's help() call. The `...` here refers to a variable list of arguments
 which might be none at all! eg:
-`ii.jf.get( 'run_mode' )`
+`II.jf.get( 'run_mode' )`
 
 Then you can declare an `event` action to handle the response from the device.
 Copy it from the help() printout! it should look something like:
 ```
-ii.jf.event( event, data )
+II.jf.event( event, data )
     if event == 'run_mode' then
         -- the state of 'run_mode' is in the 'data' variable!
     end
 end
 
 ```
+
+Note that by default the `event()` defaults to a satellite action which is
+`^^II.<module>(<event>,<value>)`
+for eg:
+`^^II.txi('value', 0.1)`
 
 ## Calibration
 

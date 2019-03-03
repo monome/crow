@@ -235,7 +235,7 @@ static int _send_usb( lua_State *L )
 static int _ii_list_modules( lua_State *L )
 {
     Caw_send_luachunk( (char*)II_list_modules() );
-    printf( "%s\n",(char*)II_list_modules() );
+    printf( "printing ii help\n" );
     return 0;
 }
 
@@ -243,12 +243,19 @@ static int _ii_list_commands( lua_State *L )
 {
     uint8_t address = luaL_checkinteger(L, 1);
     printf("i2c help %i\n", address);
-    //Caw_send_luachunk( (char*)II_list_modules() );
+    Caw_send_luachunk( (char*)II_list_cmds(address) );
     return 0;
 }
+
+static int _ii_pullup( lua_State *L )
+{
+    II_set_pullups( luaL_checkinteger(L, 1) );
+    return 0;
+}
+
 static int _ii_set( lua_State *L )
 {
-    printf("lua ii broadcast\n");
+    printf("\nlua ii broadcast\n");
 
     // FIXME: 4 is max number of arguments. is this ok?
     float data[4] = {0,0,0,0}; // always zero out data
@@ -268,7 +275,7 @@ static int _ii_set( lua_State *L )
 }
 static int _ii_get( lua_State *L )
 {
-    printf("lua ii query\n");
+    printf("\nlua ii query\n");
     float data[4] = {0,0,0,0}; // always zero out data
     int nargs = lua_gettop(L);
     if( nargs > 2
@@ -277,10 +284,10 @@ static int _ii_get( lua_State *L )
             data[i] = luaL_checknumber(L, i+3); // 1-ix'd
         }
     }
-    II_query( luaL_checkinteger(L, 1) // address
+    if(II_query( luaL_checkinteger(L, 1) // address
             , luaL_checkinteger(L, 2) // command
             , data
-            );
+            )){ printf("II_query failed\n"); }
     lua_settop(L, 0);
     return 0;
 }
@@ -370,6 +377,7 @@ static const struct luaL_Reg libCrow[]=
         // i2c
     , { "ii_list_modules"  , _ii_list_modules  }
     , { "ii_list_commands" , _ii_list_commands }
+    , { "ii_pullup"        , _ii_pullup        }
     , { "ii_set"           , _ii_set           }
     , { "ii_get"           , _ii_get           }
     , { "ii_address"       , _ii_address       }
@@ -488,32 +496,51 @@ void L_handle_change( int id, float state )
     }
 }
 
-void L_handle_ii( uint8_t address, uint8_t cmd, float data )
+void L_handle_ii_leadRx( uint8_t address, uint8_t cmd, float data )
 {
-    lua_getglobal(L, "ii_handler");
+    lua_getglobal(L, "ii_LeadRx_handler");
     lua_pushinteger(L, address);
     lua_pushinteger(L, cmd);
     lua_pushnumber(L, data); // TODO currently limited to single retval
     if( lua_pcall(L, 3, 0, 0) != LUA_OK ){
-        printf("ii ev err\n");
-        Caw_send_luachunk("error: ii event");
+        printf("!ii.leadRx\n");
+        Caw_send_luachunk("error: ii lead event");
         Caw_send_luachunk( (char*)lua_tostring(L, -1) );
         lua_pop( L, 1 );
     }
 }
 
-void L_handle_iiself( uint8_t cmd, int args, float* data )
+void L_handle_ii_followRx( uint8_t cmd, int args, float* data )
 {
-    lua_getglobal(L, "ii_self_handler");
+    lua_getglobal(L, "ii_followRx_handler");
     lua_pushinteger(L, cmd);
     int a = args;
     while(a-- > 0){
         lua_pushnumber(L, *data++);
     }
     if( lua_pcall(L, 1+args, 0, 0) != LUA_OK ){
-        printf("ii ev err\n");
-        Caw_send_luachunk("error: ii event");
+        printf("!ii.followRx\n");
+        Caw_send_luachunk("error: ii follow rx");
         Caw_send_luachunk( (char*)lua_tostring(L, -1) );
         lua_pop( L, 1 );
     }
+}
+
+float L_handle_ii_followRxTx( uint8_t cmd, int args, float* data )
+{
+    lua_getglobal(L, "ii_followRxTx_handler");
+    lua_pushinteger(L, cmd);
+    int a = args;
+    while(a-- > 0){
+        lua_pushnumber(L, *data++);
+    }
+    if( lua_pcall(L, 1+args, 1, 0) != LUA_OK ){
+        printf("!ii.followRxTx\n");
+        Caw_send_luachunk("error: ii follow query");
+        Caw_send_luachunk( (char*)lua_tostring(L, -1) );
+        lua_pop( L, 1 );
+    }
+    float n = luaL_checknumber(L, 1);
+    lua_pop( L, 1 );
+    return n;
 }
