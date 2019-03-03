@@ -26,7 +26,8 @@ typedef struct FLASH_Store {
 uint8_t Flash_is_user_script( void );
 void Flash_clear_user_script( void );
 uint8_t Flash_write_user_script( char* script, uint32_t length );
-uint8_t Flash_read_user_script( char* buffer, uint16_t* len );
+uint16_t Flash_read_user_scriptlen( void );
+uint8_t Flash_read_user_script( char* buffer );
 
 uint8_t Flash_is_calibrated( void );
 void Flash_clear_calibration( void );

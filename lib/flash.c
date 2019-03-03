@@ -2,6 +2,9 @@
 
 #include "../ll/debug_usart.h"
 
+#define USER_MAGIC 0xA  // bit pattern
+#define _VERSION   0x000 // crow semantic version
+
 // private declarations
 static void clear_flash( uint32_t sector, uint32_t location );
 
@@ -9,7 +12,7 @@ static void clear_flash( uint32_t sector, uint32_t location );
 
 uint8_t Flash_is_user_script( void )
 {
-    return (0x1 & (*(__IO uint32_t*)USER_SCRIPT_LOCATION));
+    return (USER_MAGIC == (0xF & (*(__IO uint32_t*)USER_SCRIPT_LOCATION)));
 }
 
 void Flash_clear_user_script( void )
@@ -37,7 +40,9 @@ uint8_t Flash_write_user_script( char* script, uint32_t length )
     uint32_t sd_addr = USER_SCRIPT_LOCATION;
 	HAL_FLASH_Program( FLASH_TYPEPROGRAM_WORD
 					 , sd_addr
-					 , 1 | (length << 16) // script present | length in bytes
+					 , USER_MAGIC       // user script present
+                     | (_VERSION << 4)  // version control
+                     | (length << 16)   // length in bytes
 					 );
 // program script
     length >>= 2; length++;
@@ -54,13 +59,17 @@ uint8_t Flash_write_user_script( char* script, uint32_t length )
     return 0;
 }
 
-uint8_t Flash_read_user_script( char* buffer, uint16_t* len )
+uint16_t Flash_read_user_scriptlen( void )
+{
+    return ((*(__IO uint32_t*)USER_SCRIPT_LOCATION) >> 16);
+}
+
+uint8_t Flash_read_user_script( char* buffer )
 {
     if( !Flash_is_user_script() ){ return 1; } // no script
     // FIXME: need to add 1 to length for null char?
-    *len = ((*(__IO uint32_t*)USER_SCRIPT_LOCATION) >> 16);
 
-    uint16_t word_length = *len >> 2;
+    uint16_t word_length = ((*(__IO uint32_t*)USER_SCRIPT_LOCATION) >> 16) >> 2;
     word_length++;
 
     uint32_t sd_addr = USER_SCRIPT_LOCATION + 4;
@@ -76,7 +85,7 @@ uint8_t Flash_read_user_script( char* buffer, uint16_t* len )
 
 uint8_t Flash_is_calibrated( void )
 {
-    return ((*(__IO uint32_t*)CALIBRATION_LOCATION) == FLASH_Status_Dirty );
+    return ((*(__IO uint32_t*)CALIBRATION_LOCATION) == USER_MAGIC );
 }
 
 void Flash_clear_calibration( void )
@@ -106,7 +115,7 @@ uint8_t Flash_write_calibration( uint8_t* data, uint32_t length )
     uint32_t sd_addr = CALIBRATION_LOCATION;
 	HAL_FLASH_Program( FLASH_TYPEPROGRAM_WORD
 					 , sd_addr
-					 , FLASH_Status_Dirty
+					 , USER_MAGIC
 					 );
 // program script
     length >>= 2; length++;

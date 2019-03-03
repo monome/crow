@@ -13,7 +13,7 @@ char*       new_script;
 uint16_t    new_script_len;
 
 // prototypes
-static void REPL_new_script_buffer( void );
+static void REPL_new_script_buffer( uint32_t len );
 static void REPL_receive_script( char* buf, uint32_t len, ErrorHandler_t errfn );
 
 // public interface
@@ -22,8 +22,9 @@ void REPL_init( lua_State* lua )
     Lua = lua;
 
     if( Flash_is_user_script() ){
-        REPL_new_script_buffer();
-        if( Flash_read_user_script( new_script, &new_script_len )
+        new_script_len = Flash_read_user_scriptlen();
+        REPL_new_script_buffer( new_script_len );
+        if( Flash_read_user_script( new_script )
          || Lua_eval( Lua, new_script
                          , new_script_len
                          , Caw_send_luaerror
@@ -39,7 +40,7 @@ void REPL_mode( L_repl_mode mode )
 {
     repl_mode = mode;
     if( repl_mode == REPL_reception ){ // begin a new transmission
-        REPL_new_script_buffer();
+        REPL_new_script_buffer( USER_SCRIPT_SIZE );
     } else { // end of a transmission
         if( !Lua_eval( Lua, new_script
                           , new_script_len
@@ -74,9 +75,9 @@ void REPL_eval( char* buf, uint32_t len, ErrorHandler_t errfn )
 void REPL_print_script( void )
 {
     if( Flash_is_user_script() ){
-        REPL_new_script_buffer();
-        Flash_read_user_script( new_script, &new_script_len );
-        uint16_t send_len = new_script_len;
+        REPL_new_script_buffer( Flash_read_user_scriptlen() );
+        Flash_read_user_script( new_script );
+        uint16_t send_len = Flash_read_user_scriptlen();
         uint8_t page_count = 0;
         while( send_len > 0x200 ){
             Caw_send_raw( (uint8_t*)&new_script[(page_count++)*0x200], 0x200 );
@@ -96,10 +97,10 @@ static void REPL_receive_script( char* buf, uint32_t len, ErrorHandler_t errfn )
     new_script_len += len;
 }
 
-static void REPL_new_script_buffer( void )
+static void REPL_new_script_buffer( uint32_t len )
 {
     // TODO call to Lua to free resources from current script
-    new_script = malloc(USER_SCRIPT_SIZE);
+    new_script = malloc(len);
     if(new_script == NULL){
         Caw_send_luachunk("!script: out of memory");
         //(*errfn)("!script: out of memory");
