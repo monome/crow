@@ -9,7 +9,7 @@ For a developer focused intro, see [readme-development.md](readme-development.md
 
 crow is many things, but here's some starters:
 - Eurorack module. 2hp. +60mA, -15mA (TODO confirm).
-- Hardware i/o: 2inputs, 2outputs, 16bit, [-5v,+10v] range
+- Hardware i/o: 2inputs, 4outputs, 16bit, [-5v,+10v] range
 - Full lua environment, 64kB of local script storage
 - USB device, for communicating text(!)
 - i2c leader & follower, multiple crows can share responsibilities
@@ -192,12 +192,12 @@ you used will be applied, falling back to the default if it's your first time.
 Remembering the number and order of these arguments can be a pain, so you can also
 setup the mode in a different manner, explicitly naming your parameters:
 ```
-input[2]{ mode    = 'stream'
-        , time    = 0.1
+input[2]{ mode = 'stream'
+        , time = 0.1
         }
 ```
 The above code will act identically to our above `mode` function call, but now it's
-clear to us (and *future* us) what the `0.1` refers to, time!
+clear to us (and *future* us) what the `0.1` refers to- *time*!
 
 This style is more useful for 'change' mode as there are more arguments:
 ```
@@ -209,7 +209,7 @@ input[1]{ mode       = 'change'
 ```
 `input[1]` chooses the first channel (upper most jack on crow).
 `mode = 'change'` means we'll receive events when the threshold is crossed.
-`threshold = 1.0` sets the detection level to 1 volt. above this is 'high', and below is 'low'
+`threshold = 1.0` sets the detection level to +1 volt. above this is 'high', and below is 'low'
 `hysteresis = 0.2` modifies the 'threshold' value depending on which direction the
 signal is moving. If the signal is low, output won't switch high until reaching 1.1V,
 but once the signal has gone high it won't switch low until passing beneath 0.9V.
@@ -217,7 +217,7 @@ The difference here is 0.2V and is known as hysteresis. Hysteresis is useful to 
 'bouncy' switching when the input signal is near the threshold point.
 `direction = 'rising'` means the event will *only* happen when the threshold goes
 from low to high. When the signal returns to the low state, no event is created.
-Other options are 'falling' for only at the *end* or a gate, or 'both' which creates
+Other options are 'falling' for only at the *end* of a gate, or 'both' which creates
 events on both the high and low going transitions.
 
 Additional modes are forthcoming in future updates for more sophisticated event
@@ -270,7 +270,7 @@ To do the same from Max, you can send the (get_cv x) message to the left input.
 
 There is also a standard function call to setup these functions which is more terse:
 ```
-input[1].mode( 'none' ) -- deactivated, but can still be queried
+input[1].mode( 'none' ) -- deactivated, but can still be queried with `.query()`
 input[2].mode( 'stream', 0.05 ) -- sends 20 values per second
 input[1].mode( 'change' ) -- default gate detector
 ```
