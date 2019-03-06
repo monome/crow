@@ -186,16 +186,16 @@ void ADC_UnpickleBlock( float*   unpickled
 {
     float* unpick = unpickled;
     // Return current buf
-    for( uint8_t j=1; j<=adc_count; j++ ){
+    for( uint8_t j=0; j<adc_count; j++ ){
         // cast to signed -> cast to float -> scale -> shift
-        float once = ((float)((int16_t*)aRxBuffer)[j])
+        float once = ((float)((int16_t*)aRxBuffer)[j+1]) // +1 past status byte
                         * adc_calibrated_scalar[j]
                         + adc_calibrated_shift[j];
         float c    = 1.0 / bsize;
         for( uint16_t i=0; i<bsize; i++ ){
-            *unpick++ = last[j-1] + (c * (i+1))*(once - last[j-1]);
+            *unpick++ = last[j] + (c * (i+1))*(once - last[j]);
         }
-        last[j-1] = once;
+        last[j] = once;
     }
 
 

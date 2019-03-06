@@ -79,9 +79,9 @@ end
 
 Input.__index = function(self, ix)
     if     ix == 'value' then
-      return Input.get_value(self)
+        return Input.get_value(self)
     elseif ix == 'query' then
-      _c.tell('query',Input.channel,Input.get_value(self))
+        return function() _c.tell('ret_cv',self.channel,Input.get_value(self)) end
     elseif ix == 'mode'  then
         return function(...) Input.set_mode( self, ...) end
     end
@@ -89,12 +89,16 @@ end
 
 Input.__call = function(self, ...)
     local args = {...}
-    if args == nil then
+    if #args == 0 then
         return Input.get_value(self)
-    else -- assume table
-        for k,v in pairs( args ) do
-            self.k = v
+    else -- table call
+        local m = 0
+        --if #args[1] == 0 then _ end -- implies empty table call
+        for k,v in pairs( args[1] ) do
+            if k == 'mode' then m = v end -- defer mode change after setting params
+            self[k] = v
         end
+        if m ~= 0 then self.mode = m end -- apply mode change
     end
 end
 
