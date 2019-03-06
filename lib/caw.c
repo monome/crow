@@ -106,7 +106,7 @@ C_cmd_t Caw_try_receive( void )
         }
         if( _is_multiline( (char*)buf ) ){
             multiline ^= 1;
-            if(!multiline){ printf("%s\n",reader); }
+            //if(!multiline){ printf("%s\n",reader); } // prints complete multiline
             return (multiline) ? C_none : C_repl;
         }
     // receive code for repl/flash
