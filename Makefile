@@ -190,7 +190,7 @@ dfu: $(BIN)
 
 boot:
 	cd $(BOOTLOADER) && \
-	make flash
+	make R=1 flash
 
 %.o: %.c
 	@$(CC) -ggdb $(CFLAGS) -c $< -o $@
