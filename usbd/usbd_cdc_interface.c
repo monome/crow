@@ -241,7 +241,7 @@ static void TIM_Config(void)
     //     + Counter direction = Up
     //
     USBTimHandle.Init.Period = (CDC_POLLING_INTERVAL*1000) - 1;
-    USBTimHandle.Init.Prescaler = 84-1;
+    USBTimHandle.Init.Prescaler = 108-1;//84-1;
     USBTimHandle.Init.ClockDivision = 0;
     USBTimHandle.Init.CounterMode = TIM_COUNTERMODE_UP;
     USBTimHandle.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
