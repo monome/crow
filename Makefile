@@ -194,6 +194,13 @@ boot:
 	cd $(BOOTLOADER) && \
 	make R=1 flash
 
+zip: $(BIN)
+	mkdir -p $(TARGET)-$(VERSION)
+	cp flash.sh $(TARGET)-$(VERSION)/
+	cp $(BIN) $(TARGET)-$(VERSION)/
+	zip -r $(TARGET)-$(VERSION).zip $(TARGET)-$(VERSION)/
+	# needs semantic versioning
+
 %.o: %.c
 	@$(CC) -ggdb $(CFLAGS) -c $< -o $@
 	@echo $@
@@ -235,6 +242,7 @@ clean:
 	$(TARGET).bin  $(TARGET).out  $(TARGET).hex \
 	$(TARGET).map  $(TARGET).dmp  $(EXECUTABLE) $(DEP) \
 	build/ lua/*.lua.h util/l2h.lua \
+	$(TARGET)-$(VERSION)  *.zip \
 
 splint:
 	splint -I. -I./ $(STM32_INCLUDES) *.c
