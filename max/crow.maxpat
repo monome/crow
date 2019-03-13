@@ -217,7 +217,6 @@
 									"numoutlets" : 1,
 									"outlettype" : [ "" ],
 									"patching_rect" : [ 11.0, 146.0, 137.0, 22.0 ],
-									"presentation_rect" : [ 11.0, 146.0, 0.0, 0.0 ],
 									"style" : "",
 									"text" : "symbol usbmodem1411"
 								}
@@ -231,7 +230,6 @@
 									"numoutlets" : 1,
 									"outlettype" : [ "" ],
 									"patching_rect" : [ 21.0, 185.0, 138.0, 22.0 ],
-									"presentation_rect" : [ 21.0, 183.0, 0.0, 0.0 ],
 									"style" : "",
 									"text" : "symbol usbmodem1421"
 								}
@@ -629,9 +627,9 @@
 									"numinlets" : 1,
 									"numoutlets" : 2,
 									"outlettype" : [ "int", "" ],
-									"patching_rect" : [ 364.0, 156.0, 93.0, 22.0 ],
+									"patching_rect" : [ 364.0, 156.0, 99.0, 22.0 ],
 									"style" : "",
-									"text" : "serial a 460800"
+									"text" : "serial a 1000000"
 								}
 
 							}
