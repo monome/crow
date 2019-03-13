@@ -1,5 +1,7 @@
-TARGET=main
-EXECUTABLE=main.elf
+TARGET=crow
+EXECUTABLE=$(TARGET).elf
+
+VERSION=0.0.0
 
 CUBE=submodules/STM32_Cube_F7/Drivers
 HALS=$(CUBE)/STM32F7xx_HAL_Driver/Src
@@ -173,7 +175,7 @@ $(BIN): $(EXECUTABLE)
 	@$(OBJDUMP) -x --syms $< > $(addsuffix .dmp, $(basename $<))
 	@echo "symbol table: $@.dmp"
 	@echo "Release: "$(R)
-	@$(GETSIZE) main.bin | grep 'Size'
+	@$(GETSIZE) $(BIN) | grep 'Size'
 	@echo "        ^ must be less than 384kB (384,000)"
 	# 512kb -64kb(bootloader) -128kb(scripts)
 
@@ -191,6 +193,13 @@ dfu: $(BIN)
 boot:
 	cd $(BOOTLOADER) && \
 	make R=1 flash
+
+zip: $(BIN)
+	mkdir -p $(TARGET)-$(VERSION)
+	cp flash.sh $(TARGET)-$(VERSION)/
+	cp $(BIN) $(TARGET)-$(VERSION)/
+	zip -r $(TARGET)-$(VERSION).zip $(TARGET)-$(VERSION)/
+	# needs semantic versioning
 
 %.o: %.c
 	@$(CC) -ggdb $(CFLAGS) -c $< -o $@
@@ -233,6 +242,7 @@ clean:
 	$(TARGET).bin  $(TARGET).out  $(TARGET).hex \
 	$(TARGET).map  $(TARGET).dmp  $(EXECUTABLE) $(DEP) \
 	build/ lua/*.lua.h util/l2h.lua \
+	$(TARGET)-$(VERSION)  *.zip \
 
 splint:
 	splint -I. -I./ $(STM32_INCLUDES) *.c
