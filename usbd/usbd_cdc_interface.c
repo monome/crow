@@ -51,14 +51,14 @@
 #include "../ll/debug_usart.h" // debug printing
 
 // Private define
-#define APP_RX_DATA_SIZE  1024
-#define APP_TX_DATA_SIZE  1024
+#define APP_RX_DATA_SIZE  256
+#define APP_TX_DATA_SIZE  256
 
 // Private vars
-USBD_CDC_LineCodingTypeDef LineCoding = { 115200 // baud rate
-                                        , 0x00   // stop bits-1
-                                        , 0x00   // parity - none
-                                        , 0x08   // nb. of bits 8
+USBD_CDC_LineCodingTypeDef LineCoding = { 1000000 // baud rate
+                                        , 0x00    // stop bits-1
+                                        , 0x00    // parity - none
+                                        , 0x08    // nb. of bits 8
                                         };
 
 uint8_t UserRxBuffer[APP_RX_DATA_SIZE];
@@ -172,7 +172,10 @@ uint8_t USB_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         uint32_t buffsize;
         if( UserTxBufPtrOut != UserTxBufPtrIn ){
             buffsize = UserTxBufPtrIn;
-            if(buffsize >= APP_TX_DATA_SIZE){ buffsize = APP_TX_DATA_SIZE-1; }
+            if(buffsize >= APP_TX_DATA_SIZE){
+                printf("overflow %i\n",buffsize);
+                buffsize = APP_TX_DATA_SIZE-1;
+            }
             buffptr = 0;
             USBD_CDC_SetTxBuffer( &USBD_Device
                                 , (uint8_t*)&UserTxBuffer[buffptr]
@@ -180,14 +183,14 @@ uint8_t USB_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
                                 );
 //uint32_t old_primask = __get_PRIMASK();
 //__disable_irq();
-            if( USBD_CDC_TransmitPacket(&USBD_Device) == USBD_OK ){
-                //UserTxBufPtrOut += buffsize;
-                //if( UserTxBufPtrOut >= APP_TX_DATA_SIZE ){
-                //    UserTxBufPtrOut = 0;
-                //}
+            int error = USBD_OK;
+            if( (error = USBD_CDC_TransmitPacket(&USBD_Device)) == USBD_OK ){
+                // only clear data if no error
+                UserTxBufPtrIn = 0;
+                UserTxBufPtrOut = 0;
+            } else if( error == USBD_FAIL ){
+                printf("CDC_tx failed %i\n", error);
             }
-            UserTxBufPtrIn = 0;
-            UserTxBufPtrOut = 0;
 //__set_PRIMASK( old_primask );
         }
         return 1;
@@ -238,7 +241,7 @@ static void TIM_Config(void)
     //     + Counter direction = Up
     //
     USBTimHandle.Init.Period = (CDC_POLLING_INTERVAL*1000) - 1;
-    USBTimHandle.Init.Prescaler = 84-1;
+    USBTimHandle.Init.Prescaler = 108-1;//84-1;
     USBTimHandle.Init.ClockDivision = 0;
     USBTimHandle.Init.CounterMode = TIM_COUNTERMODE_UP;
     USBTimHandle.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;

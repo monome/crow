@@ -9,7 +9,7 @@
 			"modernui" : 1
 		}
 ,
-		"rect" : [ 781.0, 696.0, 570.0, 347.0 ],
+		"rect" : [ 230.0, 640.0, 570.0, 347.0 ],
 		"bglocked" : 0,
 		"openinpresentation" : 0,
 		"default_fontsize" : 12.0,
@@ -78,7 +78,7 @@
 , 			{
 				"box" : 				{
 					"id" : "obj-2",
-					"items" : [ "Bluetooth-Modem", ",", "Bluetooth-Incoming-Port", ",", "BoseColorIISoundLink-SP", ",", "BoseColorIISoundLink-SP-1", ",", "usbmodem1411" ],
+					"items" : [ "Bluetooth-Modem", ",", "Bluetooth-Incoming-Port", ",", "BoseColorIISoundLink-SP", ",", "BoseColorIISoundLink-SP-1", ",", "usbmodem1431" ],
 					"maxclass" : "umenu",
 					"numinlets" : 1,
 					"numoutlets" : 3,
@@ -182,7 +182,7 @@
 							"modernui" : 1
 						}
 ,
-						"rect" : [ 1310.0, 138.0, 902.0, 411.0 ],
+						"rect" : [ 217.0, 173.0, 902.0, 411.0 ],
 						"bglocked" : 0,
 						"openinpresentation" : 0,
 						"default_fontsize" : 12.0,
@@ -210,6 +210,45 @@
 						"style" : "",
 						"subpatcher_template" : "",
 						"boxes" : [ 							{
+								"box" : 								{
+									"id" : "obj-19",
+									"maxclass" : "message",
+									"numinlets" : 2,
+									"numoutlets" : 1,
+									"outlettype" : [ "" ],
+									"patching_rect" : [ 11.0, 146.0, 137.0, 22.0 ],
+									"style" : "",
+									"text" : "symbol usbmodem1411"
+								}
+
+							}
+, 							{
+								"box" : 								{
+									"id" : "obj-10",
+									"maxclass" : "message",
+									"numinlets" : 2,
+									"numoutlets" : 1,
+									"outlettype" : [ "" ],
+									"patching_rect" : [ 21.0, 185.0, 138.0, 22.0 ],
+									"style" : "",
+									"text" : "symbol usbmodem1421"
+								}
+
+							}
+, 							{
+								"box" : 								{
+									"id" : "obj-53",
+									"maxclass" : "newobj",
+									"numinlets" : 3,
+									"numoutlets" : 3,
+									"outlettype" : [ "bang", "bang", "" ],
+									"patching_rect" : [ 389.0, 264.0, 50.0, 22.0 ],
+									"style" : "",
+									"text" : "sel 0 -1"
+								}
+
+							}
+, 							{
 								"box" : 								{
 									"id" : "obj-7",
 									"maxclass" : "newobj",
@@ -280,7 +319,7 @@
 									"numinlets" : 1,
 									"numoutlets" : 1,
 									"outlettype" : [ "" ],
-									"patching_rect" : [ 389.0, 266.0, 121.0, 22.0 ],
+									"patching_rect" : [ 389.0, 306.0, 121.0, 22.0 ],
 									"style" : "",
 									"text" : "prepend from_length"
 								}
@@ -293,9 +332,9 @@
 									"numinlets" : 2,
 									"numoutlets" : 1,
 									"outlettype" : [ "" ],
-									"patching_rect" : [ 32.0, 221.0, 137.0, 22.0 ],
+									"patching_rect" : [ 32.0, 221.0, 138.0, 22.0 ],
 									"style" : "",
-									"text" : "symbol usbmodem1411"
+									"text" : "symbol usbmodem1431"
 								}
 
 							}
@@ -575,9 +614,9 @@
 									"numinlets" : 2,
 									"numoutlets" : 1,
 									"outlettype" : [ "bang" ],
-									"patching_rect" : [ 431.0, 101.0, 58.0, 22.0 ],
+									"patching_rect" : [ 431.0, 101.0, 51.0, 22.0 ],
 									"style" : "",
-									"text" : "metro 30"
+									"text" : "metro 5"
 								}
 
 							}
@@ -588,9 +627,9 @@
 									"numinlets" : 1,
 									"numoutlets" : 2,
 									"outlettype" : [ "int", "" ],
-									"patching_rect" : [ 364.0, 156.0, 92.0, 22.0 ],
+									"patching_rect" : [ 364.0, 156.0, 99.0, 22.0 ],
 									"style" : "",
-									"text" : "serial a 115200"
+									"text" : "serial a 1000000"
 								}
 
 							}
@@ -614,7 +653,7 @@
 									"maxclass" : "outlet",
 									"numinlets" : 1,
 									"numoutlets" : 0,
-									"patching_rect" : [ 364.0, 319.0, 30.0, 30.0 ],
+									"patching_rect" : [ 364.0, 359.0, 30.0, 30.0 ],
 									"style" : ""
 								}
 
@@ -642,6 +681,15 @@
 									"disabled" : 0,
 									"hidden" : 0,
 									"source" : [ "obj-1", 0 ]
+								}
+
+							}
+, 							{
+								"patchline" : 								{
+									"destination" : [ "obj-35", 0 ],
+									"disabled" : 0,
+									"hidden" : 0,
+									"source" : [ "obj-10", 0 ]
 								}
 
 							}
@@ -728,6 +776,15 @@
 							}
 , 							{
 								"patchline" : 								{
+									"destination" : [ "obj-35", 0 ],
+									"disabled" : 0,
+									"hidden" : 0,
+									"source" : [ "obj-19", 0 ]
+								}
+
+							}
+, 							{
+								"patchline" : 								{
 									"destination" : [ "obj-8", 0 ],
 									"disabled" : 0,
 									"hidden" : 0,
@@ -764,10 +821,28 @@
 							}
 , 							{
 								"patchline" : 								{
-									"destination" : [ "obj-57", 0 ],
+									"destination" : [ "obj-53", 0 ],
 									"disabled" : 0,
 									"hidden" : 0,
 									"source" : [ "obj-28", 0 ]
+								}
+
+							}
+, 							{
+								"patchline" : 								{
+									"destination" : [ "obj-10", 0 ],
+									"disabled" : 0,
+									"hidden" : 0,
+									"source" : [ "obj-29", 0 ]
+								}
+
+							}
+, 							{
+								"patchline" : 								{
+									"destination" : [ "obj-19", 0 ],
+									"disabled" : 0,
+									"hidden" : 0,
+									"source" : [ "obj-29", 0 ]
 								}
 
 							}
@@ -854,6 +929,15 @@
 							}
 , 							{
 								"patchline" : 								{
+									"destination" : [ "obj-57", 0 ],
+									"disabled" : 0,
+									"hidden" : 0,
+									"source" : [ "obj-53", 2 ]
+								}
+
+							}
+, 							{
+								"patchline" : 								{
 									"destination" : [ "obj-8", 0 ],
 									"disabled" : 0,
 									"hidden" : 0,
@@ -899,10 +983,28 @@
 							}
 , 							{
 								"patchline" : 								{
+									"destination" : [ "obj-10", 0 ],
+									"disabled" : 0,
+									"hidden" : 0,
+									"source" : [ "obj-7", 0 ]
+								}
+
+							}
+, 							{
+								"patchline" : 								{
 									"destination" : [ "obj-11", 0 ],
 									"disabled" : 0,
 									"hidden" : 0,
 									"source" : [ "obj-7", 1 ]
+								}
+
+							}
+, 							{
+								"patchline" : 								{
+									"destination" : [ "obj-19", 0 ],
+									"disabled" : 0,
+									"hidden" : 0,
+									"source" : [ "obj-7", 0 ]
 								}
 
 							}

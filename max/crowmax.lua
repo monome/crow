@@ -10,6 +10,7 @@ local cmd_rxd    = 0
 function from( byte )
 	table.insert( cmd_bytes, byte )
 	cmd_rxd = cmd_rxd + 1
+	--TODO split on '\n\r' pair not just end-of-packet
 	if cmd_rxd == cmd_length then
     	eval( bytes_to_string( cmd_bytes))
 		cmd_bytes  = {}
@@ -27,13 +28,15 @@ end
 function eval( str )
 	if #str == 0 then return end
 	local split = string.find( str, "\r" )
-	local now = str:sub( 1, split)	
+	local now = str:sub( 1, split)
 	if string.find( now, "^%^%^") then
 		pcall( loadstring( now:sub(3)))
     else
         to_max_print( now )
     end
-	eval( str:sub( split+1))
+	if split ~= nil then --in case of dropped \r
+		eval( str:sub( split+1))
+	end
 end
 
 --- Request/callback pairs

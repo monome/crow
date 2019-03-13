@@ -38,14 +38,42 @@
 		"subpatcher_template" : "",
 		"boxes" : [ 			{
 				"box" : 				{
+					"id" : "obj-17",
+					"maxclass" : "message",
+					"numinlets" : 2,
+					"numoutlets" : 1,
+					"outlettype" : [ "" ],
+					"patching_rect" : [ 199.5, 249.666687, 135.0, 22.0 ],
+					"presentation_rect" : [ 183.999985, 246.666687, 0.0, 0.0 ],
+					"style" : "",
+					"text" : "input[1].mode('change')"
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-4",
+					"maxclass" : "message",
+					"numinlets" : 2,
+					"numoutlets" : 1,
+					"outlettype" : [ "" ],
+					"patching_rect" : [ 231.999985, 312.666687, 122.0, 22.0 ],
+					"presentation_rect" : [ 231.999985, 312.666687, 0.0, 0.0 ],
+					"style" : "",
+					"text" : "input[1].mode('none')"
+				}
+
+			}
+, 			{
+				"box" : 				{
 					"id" : "obj-31",
 					"maxclass" : "message",
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 213.999985, 280.666687, 164.0, 22.0 ],
+					"patching_rect" : [ 213.999985, 280.666687, 171.0, 22.0 ],
 					"style" : "",
-					"text" : "\"input[1].mode('stream', 0.1)\""
+					"text" : "\"input[1].mode('stream', 0.01)\""
 				}
 
 			}
@@ -520,9 +548,9 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 237.333313, 417.0, 162.166687, 35.0 ],
+					"patching_rect" : [ 237.333313, 417.0, 20.166687, 35.0 ],
 					"style" : "",
-					"text" : "15\t\n\r"
+					"text" : "15"
 				}
 
 			}
@@ -717,6 +745,15 @@
 			}
 , 			{
 				"patchline" : 				{
+					"destination" : [ "obj-13", 0 ],
+					"disabled" : 0,
+					"hidden" : 0,
+					"source" : [ "obj-17", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
 					"destination" : [ "obj-15", 0 ],
 					"disabled" : 0,
 					"hidden" : 0,
@@ -802,6 +839,15 @@
 					"disabled" : 0,
 					"hidden" : 0,
 					"source" : [ "obj-31", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
+					"destination" : [ "obj-13", 0 ],
+					"disabled" : 0,
+					"hidden" : 0,
+					"source" : [ "obj-4", 0 ]
 				}
 
 			}

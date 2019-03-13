@@ -25,18 +25,24 @@ void Caw_send_raw( uint8_t* buf, uint32_t len )
 // luachunk expects a \0 terminated string
 void Caw_send_luachunk( char* text )
 {
+    const uint8_t newline[] = "\n\r";
+uint32_t old_primask = __get_PRIMASK();
+__disable_irq();
     USB_tx_enqueue( (uint8_t*)text, strlen(text) );
-    uint8_t newline[] = "\n\r";
-    USB_tx_enqueue( newline, 2 );
+    USB_tx_enqueue( (uint8_t*)newline, 2 );
+__set_PRIMASK( old_primask );
 }
 
 void Caw_send_luaerror( char* error_msg )
 {
-    uint8_t leader[] = "\\";
-    USB_tx_enqueue( leader, 1 );
+    const uint8_t leader[] = "\\";
+    const uint8_t newline[] = "\n\r";
+uint32_t old_primask = __get_PRIMASK();
+__disable_irq();
+    USB_tx_enqueue( (uint8_t*)leader, 1 );
     USB_tx_enqueue( (uint8_t*)error_msg, strlen(error_msg) );
-    uint8_t newline[] = "\n\r";
-    USB_tx_enqueue( newline, 2 );
+    USB_tx_enqueue( (uint8_t*)newline, 2 );
+__set_PRIMASK( old_primask );
 }
 
 void Caw_send_value( uint8_t type, float value )
