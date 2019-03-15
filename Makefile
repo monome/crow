@@ -10,7 +10,7 @@ WRLIB=submodules/wrLib
 WRDSP=submodules/wrDsp
 LUAS=submodules/lua/src
 BOOTLOADER=submodules/dfu-stm32f7
-BUILD_DIR=build
+BUILD_DIR := build
 PRJ_DIR=crow
 
 CC=arm-none-eabi-gcc-4.9.3
@@ -56,15 +56,19 @@ CFLAGS += -fsingle-precision-constant -Wdouble-promotion
 CFLAGS += -DLUA_32BITS -DLUA_COMPAT_5_2
 CFLAGS += -fno-common
 
+
+# debugger: choose between uart (=0) & swtrace(=1). latter requires hardware mod
 TRACE ?= 0
 ifeq ($(TRACE), 1)
     CFLAGS += -DTRACE
 endif
 
+# release: if (=1), disable all debug prints
 R ?= 0
 ifeq ($(R), 1)
     CFLAGS += -DRELEASE
 endif
+
 
 LDFLAGS = -Wl,-T,stm32_flash.ld
 LIBS = -lm -lc -lnosys
@@ -105,36 +109,83 @@ SRC = main.c \
 	$(WRLIB)/wrConvert.c \
 	$(WRLIB)/wrMath.c \
 
-TESTS = $(wildcard tests/*.lua) \
 
-# these get converted to bytecode strings wrapped in c-headers
-LUA_SRC = $(wildcard lua/*.lua) \
-		  $(wildcard build/*.lua) \
+# lua tests
+LTESTS = $(wildcard tests/*.lua) \
 
-LUA_PP = $(LUA_SRC:%.lua=%.lua.h)
 
-II_SRC = $(wildcard lua/*/*.lua) \
+# recipes!
+all: $(TARGET).hex $(BIN)
 
-II_PP = $(BUILD_DIR)/ii_done.lua.p \
 
+### pre-process only files
+
+# fennel script conversion to lua
 FNL_SRC = $(wildcard util/*.fnl) \
 	$(wildcard lua/*.fnl) \
 
 FNL_PP = $(FNL_SRC:%.fnl=%.lua)
 
-	LUACORE_OBJS=	lapi.o lcode.o lctype.o ldebug.o ldo.o ldump.o lfunc.o lgc.o llex.o \
+# i2c descriptors
+II_SRCD = lua/ii
+II_SRC = $(wildcard $(II_SRCD)/*.lua)
+II_TARGET = $(addprefix $(BUILD_DIR)/ii_, $(notdir $(II_SRC)))
+
+$(II_TARGET): util/ii_lua_module.lua
+
+$(BUILD_DIR)/ii_%.lua: $(II_SRCD)/%.lua util/ii_lua_module.lua | $(BUILD_DIR)
+	@lua util/ii_lua_module.lua $< $@
+	@echo lua $@
+
+$(BUILD_DIR)/iihelp.lua: $(II_SRC) util/ii_lua_help.lua | $(BUILD_DIR)
+	@lua util/ii_lua_help.lua $(II_SRCD) $@
+	@echo lua $@
+
+$(BUILD_DIR)/ii_c_layer.h: $(II_SRC) util/ii_c_layer.lua | $(BUILD_DIR)
+	@lua util/ii_c_layer.lua $(II_SRCD) $@
+	@echo lua $@
+
+$(BUILD_DIR)/ii_lualink.h: $(II_SRC) util/ii_lualinker.lua | $(BUILD_DIR)
+	@lua util/ii_lualinker.lua $(II_SRCD) $@
+	@echo lua $@
+
+
+### destination sources
+
+# lua srcs: these get converted to bytecode strings wrapped in c-headers
+LUA_SRC  = $(wildcard lua/*.lua)
+LUA_SRC += $(BUILD_DIR)/iihelp.lua
+LUA_SRC += $(II_TARGET)
+
+LUA_PP = $(LUA_SRC:%.lua=%.lua.h)
+LUA_PP: $(LUA_SRC)
+
+LUACORE_OBJS=	lapi.o lcode.o lctype.o ldebug.o ldo.o ldump.o lfunc.o lgc.o llex.o \
 		lmem.o lobject.o lopcodes.o lparser.o lstate.o lstring.o ltable.o \
 		ltm.o lundump.o lvm.o lzio.o
-	LUALIB_OBJS=	lauxlib.o lbaselib.o lbitlib.o lcorolib.o ldblib.o liolib.o \
+LUALIB_OBJS=	lauxlib.o lbaselib.o lbitlib.o lcorolib.o ldblib.o liolib.o \
 		lmathlib.o loslib.o lstrlib.o ltablib.o lutf8lib.o loadlib.o linit.o
 
+
+# build the objects from c source
 OBJDIR = .
 OBJS = $(SRC:%.c=$(OBJDIR)/%.o)
 OBJS += $(addprefix $(LUAS)/,$(LUACORE_OBJS) $(LUALIB_OBJS) )
 OBJS += Startup.o
 
+# specific objects that require built dependencies (II)
+$(OBJDIR)/lib/lualink.o: $(LUA_PP) $(BUILD_DIR)/ii_lualink.h
+$(OBJDIR)/lib/ii.o: $(BUILD_DIR)/ii_c_layer.h
+
+# generate the build directory
+$(BUILD_DIR):
+	@echo build_dir $(BUILD_DIR)/
+	@mkdir -p $(BUILD_DIR)
+
+
 # C dependencies echoed into Makefile
 DEP = $(OBJS:.o=.d)  # one dependency file for each source
+
 
 # OS dependent size printing
 UNAME := $(shell uname)
@@ -146,12 +197,9 @@ ifeq ($(UNAME), Darwin)
 endif
 
 
-all: $(TARGET).hex $(BIN)
-	@mkdir -p build/
-
 .PHONY: tests
 tests:
-	@for t in $(TESTS); do \
+	@for t in $(LTESTS); do \
 		lua $$t; \
 	done
 
@@ -163,7 +211,7 @@ tests:
 $(TARGET).hex: $(EXECUTABLE)
 	@$(CP) -O ihex $^ $@
 
-$(EXECUTABLE): $(II_PP) $(FNL_PP) $(LUA_PP) $(OBJS)
+$(EXECUTABLE): $(OBJS)
 	@$(LD) -g $(MCFLAGS) $(LDFLAGS) $(OBJS) $(LIBS) -o $@
 	@echo "linked:       $@"
 	@$(OBJDUMP) --disassemble $@ > $@.lst
@@ -212,15 +260,12 @@ zip: $(BIN)
 	@$(CC) -ggdb $(CFLAGS) -S $< -o $@
 
 %.lua: %.fnl
-	@echo $< "->" $@
+	@echo f2l $< "->" $@
 	@$(FENNEL) --compile $< > $@
 
 %.lua.h: %.lua util/l2h.lua
-	@echo $< "->" $@
+	@echo l2h $< "->" $@
 	@lua util/l2h.lua $<
-
-%.lua.p: util/ii_gen.lua
-	@lua util/ii_gen.lua
 
 Startup.o: $(STARTUP)
 	@$(CC) $(CFLAGS) -c $< -o $@
@@ -237,12 +282,13 @@ fsk-wav: $(BIN)
 erase:
 	st-flash erase
 
+.PHONY: clean
 clean:
 	@rm -rf Startup.lst $(TARGET).elf.lst $(OBJS) $(AUTOGEN) \
 	$(TARGET).bin  $(TARGET).out  $(TARGET).hex \
 	$(TARGET).map  $(TARGET).dmp  $(EXECUTABLE) $(DEP) \
-	build/ lua/*.lua.h util/l2h.lua \
-	$(TARGET)-$(VERSION)  *.zip \
+	$(BUILD_DIR) lua/*.lua.h util/l2h.lua \
+	$(TARGET)-$(VERSION)/  *.zip \
 
 splint:
 	splint -I. -I./ $(STM32_INCLUDES) *.c
