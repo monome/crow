@@ -1,5 +1,7 @@
 #include "adda.h"
 
+#include <string.h>
+
 #include "debug_pin.h"
 #include "ads131.h"
 #include "dac8565.h"
@@ -68,11 +70,16 @@ void CAL_ReadFlash( void )
 
 void CAL_WriteFlash( void )
 {
-    printf("Saving calibration data\n");
     if( Flash_write_calibration( (uint8_t*)(&cal)
                                , sizeof(CAL_chan_t) * (2+4)
                                ) ){
-        printf("calibration writing failed\n");
+        char msg[] = "Error saving Cal data to flash!\n";
+        Caw_send_raw( (uint8_t*)msg, strlen(msg) );
+        printf(msg);
+    } else {
+        char msg[] = "Calibration ok!\n\r";
+        Caw_send_raw( (uint8_t*)msg, strlen(msg) );
+        printf(msg);
     }
 }
 
@@ -259,27 +266,43 @@ void CAL_Recalibrate( uint8_t use_defaults )
         DAC_CalibrateScalar( j, 1.0 );
     }
     if( !use_defaults ){ // causes recalibration to run
+        char msg[] = "Recalibrating IO...\n";
+        Caw_send_raw( (uint8_t*)msg, strlen(msg) );
+        printf(msg);
         cal.stage = CAL_in_shift;
         cal.avg_count = AVERAGE_COUNT;
+    } else {
+        char msg[] = "Using default calibration\n";
+        Caw_send_raw( (uint8_t*)msg, strlen(msg) );
+        printf(msg);
+        Flash_clear_calibration();
     }
 }
 
 void CAL_PrintCalibration( void )
 {
-    char pc[64];
-    uint8_t len = 0;
-    snprintf(pc,63,"IO Calibration Data:");
-    Caw_send_raw( (uint8_t*)pc, len );
-    for( int j=0; j<2; j++ ){
-        len = snprintf(pc, 63, " adc %f, %f\n"
-                      , (double)cal.adc[j].shift, (double)cal.adc[j].scale );
-        if(len > 63){ len = 63; }
+    {
+        char pc[64];
+        uint8_t len = snprintf(pc,63,"IO calibration data:\n\r");
         Caw_send_raw( (uint8_t*)pc, len );
     }
-    for( int j=0; j<4; j++ ){
-        len = snprintf(pc, 63, " dac %f, %f\n"
-                      , (double)cal.dac[j].shift, (double)cal.dac[j].scale );
-        if(len > 63){ len = 63; }
-        Caw_send_raw( (uint8_t*)pc, len );
+    if( Flash_is_calibrated() ){
+        char pc[64];
+        uint8_t len = 0;
+        for( int j=0; j<2; j++ ){
+            len = snprintf(pc, 63, " adc%i %f, %f\n\r"
+                          , j+1, (double)cal.adc[j].shift, (double)cal.adc[j].scale );
+            if(len > 63){ len = 63; }
+            Caw_send_raw( (uint8_t*)pc, len );
+        }
+        for( int j=0; j<4; j++ ){
+            len = snprintf(pc, 63, " dac%i %f, %f\n\r"
+                          , j+1, (double)cal.dac[j].shift, (double)cal.dac[j].scale );
+            if(len > 63){ len = 63; }
+            Caw_send_raw( (uint8_t*)pc, len );
+        }
+    } else {
+        char pc[] = " Using defaults.\n\r";
+        Caw_send_raw( (uint8_t*)pc, strlen(pc) );
     }
 }
