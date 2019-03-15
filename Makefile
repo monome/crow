@@ -137,7 +137,7 @@ $(BUILD_DIR)/ii_%.lua: $(II_SRCD)/%.lua util/ii_lua_module.lua | $(BUILD_DIR)
 	@lua util/ii_lua_module.lua $< $@
 	@echo lua $@
 
-$(BUILD_DIR)/iihelp.lua: util/ii_lua_help.lua | $(BUILD_DIR)
+$(BUILD_DIR)/iihelp.lua: $(II_SRC) util/ii_lua_help.lua | $(BUILD_DIR)
 	@lua util/ii_lua_help.lua $(II_SRCD) $@
 	@echo lua $@
 
@@ -172,13 +172,10 @@ OBJDIR = .
 OBJS = $(SRC:%.c=$(OBJDIR)/%.o)
 OBJS += $(addprefix $(LUAS)/,$(LUACORE_OBJS) $(LUALIB_OBJS) )
 OBJS += Startup.o
-# FIXME LUA_PP is only prereq for lib/lualink.c
-# FIXME ii_lualink.h is only for lib/lualink.c
-# FIXME ii_c_layer.h is only for lib/ii.c
-$(OBJS): $(LUA_PP) \
-	$(BUILD_DIR)/ii_lualink.h \
-	$(BUILD_DIR)/ii_c_layer.h \
 
+# specific objects that require built dependencies (II)
+$(OBJDIR)/lib/lualink.o: $(LUA_PP) $(BUILD_DIR)/ii_lualink.h
+$(OBJDIR)/lib/ii.o: $(BUILD_DIR)/ii_c_layer.h
 
 # generate the build directory
 $(BUILD_DIR):
