@@ -4,8 +4,6 @@ function init()
         output[c].asl:action()
     end
 
-    metro = Metro.assign_all()
-
     ii.txi.get( 'value', 1 )
     --input[1].mode('change', 0.5, 0.1, 'both')
 end
