@@ -28,6 +28,7 @@ local function closelibs()
     Metro  = nil
     metro  = nil --alias
     II     = nil
+    Cal    = nil
 end
 
 function _crow.libs( lib )
@@ -40,6 +41,7 @@ function _crow.libs( lib )
         Metro  = dofile('lua/metro.lua')
         metro  = Metro --alias
         II     = dofile('lua/ii.lua')
+        Cal    = dofile('lua/calibrate.lua')
     elseif type(lib) == 'table' then
         -- load the list 
     else

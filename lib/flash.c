@@ -90,7 +90,6 @@ uint8_t Flash_is_calibrated( void )
 
 void Flash_clear_calibration( void )
 {
-    printf("clear user script\n");
     clear_flash( CALIBRATION_SECTOR, CALIBRATION_LOCATION );
 }
 
