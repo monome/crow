@@ -174,4 +174,9 @@ end
 
 print'crowlib loaded'
 
+-- cleanup all unused lua objects before releasing to the userscript
+-- call twice to ensure all finalizers are caught
+collectgarbage()
+collectgarbage()
+
 return _crow
