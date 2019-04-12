@@ -58,27 +58,16 @@ _crow.libs()
 -- they return values wrapped in strings that can be used in Lua directly
 -- via dostring
 
-function _crow.make_cmd( event_name, ... )
-    local out_string = string.format('^^%s(',event_name)
-    local args = {...}
-    local arg_len = #args
-    if arg_len > 0 then
-        for i=1,arg_len-1 do
-            out_string = out_string .. args[i] .. ',' -- can't use .format bc ?type
-        end
-        out_string = out_string .. args[arg_len]
-    end
-    return out_string .. ')'
-end
-
+--TODO tell should be in c-fns table, not _crow table?
 function _crow.tell( event_name, ... )
-    print(_crow.make_cmd( event_name, ... ))
+    tell( event_name, ... )
 end
 
-function get_out( channel ) _crow.tell( 'out_cv', channel, get_state(channel)) end
---function get_cv( channel )  _crow.tell( 'ret_cv', channel, io_get_input(channel)) end
+function get_out( channel )
+    _c.tell( 'out_cv', channel, get_state( channel ))
+end
 function get_cv( channel )
-    _c.tell('ret_cv',channel,io_get_input( channel ))
+    _c.tell( 'ret_cv', channel, io_get_input( channel ))
 end
 
 
@@ -116,11 +105,6 @@ function LL_get_state( id )
     return get_state(id)
 end
 
-
-
-adc_remote = function(chan)
-    get_cv(chan)
-end
 
 --- II default actions
 --TODO int16 conversion should be rolled into i2c generation tool
