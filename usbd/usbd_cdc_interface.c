@@ -55,7 +55,7 @@
 #define APP_TX_DATA_SIZE  256
 
 // Private vars
-USBD_CDC_LineCodingTypeDef LineCoding = { 1000000 // baud rate
+USBD_CDC_LineCodingTypeDef LineCoding = { 115200  // baud rate
                                         , 0x00    // stop bits-1
                                         , 0x00    // parity - none
                                         , 0x08    // nb. of bits 8
@@ -203,7 +203,9 @@ uint8_t USB_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 // on interrupt add to the queue
 static int8_t CDC_Itf_Receive( uint8_t* buf, uint32_t *len )
 {
-    if( *len > APP_RX_DATA_SIZE ){ *len = APP_RX_DATA_SIZE; }
+    if( (UserRxBufPtrIn + *len) > APP_RX_DATA_SIZE ){
+        *len = APP_RX_DATA_SIZE - UserRxBufPtrIn; // stop buffer overflow
+    }
     memcpy( &UserRxBuffer[UserRxBufPtrIn]
           , buf
           , *len
