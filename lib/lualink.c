@@ -144,6 +144,34 @@ static int _print_serial( lua_State *L )
     lua_settop(L, 0);
     return 0;
 }
+static int _print_tell( lua_State *L )
+{
+    int nargs = lua_gettop(L);
+    char teller[60];
+    // nb: luaL_checkstring() will coerce ints & nums into strings
+    switch( nargs ){
+        case 0:
+            return luaL_error(L, "no event to tell.");
+        case 1:
+            sprintf( teller, "^^%s()", luaL_checkstring(L, 1) );
+            break;
+        case 2:
+            sprintf( teller, "^^%s(%s)", luaL_checkstring(L, 1)
+                                       , luaL_checkstring(L, 2) );
+            break;
+        case 3:
+            sprintf( teller, "^^%s(%s,%s)", luaL_checkstring(L, 1)
+                                          , luaL_checkstring(L, 2)
+                                          , luaL_checkstring(L, 3) );
+            break;
+        default:
+            return luaL_error(L, "too many args to tell.");
+    }
+    Caw_send_luachunk( teller );
+    lua_pop( L, nargs );
+    lua_settop(L, 0);
+    return 0;
+}
 static int _bootloader( lua_State *L )
 {
     bootloader_enter();
@@ -362,6 +390,7 @@ static const struct luaL_Reg libCrow[]=
     { { "c_dofile"         , _dofile           }
     , { "debug_usart"      , _debug            }
     , { "print_serial"     , _print_serial     }
+    , { "tell"             , _print_tell       }
         // system
     , { "sys_bootloader"   , _bootloader       }
     //, { "sys_cpu_load"     , _sys_cpu          }

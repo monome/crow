@@ -19,7 +19,10 @@ uint8_t Caw_Init( void ) //TODO fnptr of callback )
 
 void Caw_send_raw( uint8_t* buf, uint32_t len )
 {
+uint32_t old_primask = __get_PRIMASK();
+__disable_irq();
     USB_tx_enqueue( buf, len );
+__set_PRIMASK( old_primask );
 }
 
 // luachunk expects a \0 terminated string
