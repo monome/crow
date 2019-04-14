@@ -3,6 +3,7 @@
 #include "lib/bootloader.h" // bootloader_is_i2c_force()
 #include "lib/io.h"
 #include "lib/caw.h"
+#include "lib/events.h"
 #include "lib/ii.h"
 #include "lib/lualink.h"
 #include "lib/repl.h"
@@ -37,6 +38,7 @@ int main(void)
 
     // init drivers
     IO_Init();
+  events_init();
     Metro_Init();
     Caw_Init();
     MIDI_Init();
