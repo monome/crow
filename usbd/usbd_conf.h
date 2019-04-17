@@ -67,7 +67,8 @@
 
 /* Exported macro ------------------------------------------------------------*/
 /* Memory management macros */   
-#define USBD_malloc               malloc
+void* malloc1( size_t size ); // like calloc, but sets to ones (??!?!?!)
+#define USBD_malloc               malloc1
 #define USBD_free                 free
 #define USBD_memset               memset
 #define USBD_memcpy               memcpy
