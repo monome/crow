@@ -64,7 +64,6 @@ USBD_CDC_LineCodingTypeDef LineCoding = { 115200  // baud rate
 uint8_t UserRxBuffer[APP_RX_DATA_SIZE];
 uint8_t UserTxBuffer[APP_TX_DATA_SIZE];
 uint32_t UserTxBufPtrIn  = 0;
-uint32_t UserTxBufPtrOut = 0;
 uint32_t UserRxBufPtrIn  = 0;
 
 TIM_HandleTypeDef  USBTimHandle;
@@ -170,11 +169,11 @@ uint8_t USB_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     if( htim == &USBTimHandle ){ // protect as it's called from timer lib
         uint32_t buffptr;
         uint32_t buffsize;
-        if( UserTxBufPtrOut != UserTxBufPtrIn ){
-            buffsize = UserTxBufPtrIn;
+        if( UserTxBufPtrIn != 0 ){
+            buffsize = UserTxBufPtrIn; // because TxPtrOut === 0
             if(buffsize >= APP_TX_DATA_SIZE){
-                printf("overflow %i\n",buffsize);
-                buffsize = APP_TX_DATA_SIZE-1;
+                //printf("overflow %i\n",(int)buffsize);
+                buffsize = APP_TX_DATA_SIZE;
             }
             buffptr = 0;
             USBD_CDC_SetTxBuffer( &USBD_Device
@@ -187,7 +186,6 @@ uint8_t USB_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
             if( (error = USBD_CDC_TransmitPacket(&USBD_Device)) == USBD_OK ){
                 // only clear data if no error
                 UserTxBufPtrIn = 0;
-                UserTxBufPtrOut = 0;
             } else if( error == USBD_FAIL ){
                 printf("CDC_tx failed %i\n", error);
             }
