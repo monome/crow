@@ -155,7 +155,13 @@ static int8_t CDC_Itf_Control (uint8_t cmd, uint8_t* pbuf, uint16_t length)
 // user call copies the data to the tx queue
 void USB_tx_enqueue( uint8_t* buf, uint32_t len )
 {
-    if( len > APP_TX_DATA_SIZE ){ len = APP_TX_DATA_SIZE; } // clip length
+    if( (UserTxBufPtrIn + len) >= APP_TX_DATA_SIZE ){
+        len = APP_TX_DATA_SIZE - UserTxBufPtrIn; // stop buffer overflow
+    }
+    if( len == 0 ){
+        // FIXME? Likely means we're trying to TX when no usb device connected
+        //printf("TxBuf full\n"); // TODO memcpy will still run (can rm this warning)
+    }
     memcpy( &UserTxBuffer[UserTxBufPtrIn]
           , buf
           , len
@@ -201,7 +207,7 @@ uint8_t USB_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 // on interrupt add to the queue
 static int8_t CDC_Itf_Receive( uint8_t* buf, uint32_t *len )
 {
-    if( (UserRxBufPtrIn + *len) > APP_RX_DATA_SIZE ){
+    if( (UserRxBufPtrIn + *len) >= APP_RX_DATA_SIZE ){
         *len = APP_RX_DATA_SIZE - UserRxBufPtrIn; // stop buffer overflow
     }
     memcpy( &UserRxBuffer[UserRxBufPtrIn]
