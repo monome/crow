@@ -107,7 +107,8 @@ uint8_t event_post( event_t *e ) {
 static void handler_none(event_t *e) {}
 
 static void handler_metro(event_t *e) {
-
+  printf("metro event\n");
+  L_handle_metro( e->index, e->data );
 }
 
 static void handler_adcstream(event_t *e) {
