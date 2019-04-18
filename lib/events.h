@@ -5,8 +5,10 @@
 typedef enum {
   E_none,
   E_metro,
-  E_adcstream,
-  E_eventcount
+  E_stream,
+  E_change,
+  E_toward,
+  E_COUNT
 } event_type_t;
 
 typedef struct {
@@ -26,4 +28,6 @@ extern uint8_t event_next(event_t *e);
 
 static void handler_none(event_t *e);
 static void handler_metro(event_t *e);
-static void handler_adcstream(event_t *e);
+static void handler_stream(event_t *e);
+static void handler_change(event_t *e);
+static void handler_toward(event_t *e);

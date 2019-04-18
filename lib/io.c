@@ -91,9 +91,8 @@ void IO_SetADCaction( uint8_t channel, const char* mode )
 
 void IO_handle_timer( uint8_t channel )
 {
-  // TODO: EVENT SYSTEM
   event_t e;
-  e.type = E_adcstream;
+  e.type = E_stream;
   e.index = channel;
   e.data = IO_GetADC(channel);
   event_post(&e);

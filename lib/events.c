@@ -20,7 +20,7 @@ volatile static int getIdx = 0;
 // NOTE be aware of event_t and MAX_EVENTS for RAM usage
 volatile static event_t sysEvents[ MAX_EVENTS ];
 
-void (*app_event_handlers[E_eventcount])(event_t *e) = { handler_none };
+void (*app_event_handlers[E_COUNT])(event_t *e) = { handler_none };
 
 // initialize event handler
 void events_init() {
@@ -40,7 +40,9 @@ void events_init() {
   // assign event handlers
   app_event_handlers[E_none] = &handler_none;
   app_event_handlers[E_metro] = &handler_metro;
-  app_event_handlers[E_adcstream] = &handler_adcstream;
+  app_event_handlers[E_stream] = &handler_stream;
+  app_event_handlers[E_change] = &handler_change;
+  app_event_handlers[E_toward] = &handler_toward;
 }
 
 // get next event
@@ -72,8 +74,7 @@ uint8_t event_next( event_t *e ) {
 
 // add event to queue, return success status
 uint8_t event_post( event_t *e ) {
-	// printf("\r\n posting event, type: ");
-	// printf(e->type);
+	//printf("posting event, type: %d\n",e->type);
 
 	uint32_t old_primask = __get_PRIMASK();
 	__disable_irq();
@@ -107,11 +108,21 @@ uint8_t event_post( event_t *e ) {
 static void handler_none(event_t *e) {}
 
 static void handler_metro(event_t *e) {
-  printf("metro event\n");
+  //printf("metro event\n");
   L_handle_metro( e->index, e->data );
 }
 
-static void handler_adcstream(event_t *e) {
-  printf("adc event %f\n",e->data);
+static void handler_stream(event_t *e) {
+  //printf("stream event %f\n",e->data);
   L_handle_in_stream( e->index, e->data );
+}
+
+static void handler_change(event_t *e) {
+  //printf("change event %f\n",e->data);
+  L_handle_change( e->index, e->data );
+}
+
+static void handler_toward(event_t *e) {
+  //printf("toward %d\n",e->index);
+  L_handle_toward( e->index );
 }
