@@ -87,11 +87,8 @@ USBD_CDC_ItfTypeDef USBD_CDC_fops = { CDC_Itf_Init
 /* Private functions ---------------------------------------------------------*/
 void CDC_main_init()
 {
-    //CDC_Itf_Init();
     USBD_CDC_SetTxBuffer(&USBD_Device, UserTxBuffer, 0);
     USBD_CDC_SetRxBuffer(&USBD_Device, UserRxBuffer);
-    TIM_Config();
-    HAL_TIM_Base_Start_IT(&USBTimHandle);
 }
 static int8_t CDC_Itf_Init(void)
 {
@@ -100,20 +97,24 @@ static int8_t CDC_Itf_Init(void)
 
     TIM_Config();
     if( HAL_TIM_Base_Start_IT(&USBTimHandle) != HAL_OK ){
-        printf("!tim_start\n");
+        printf("!usb tim_start\n");
         return USBD_FAIL;
     }
 
     //TODO add lua callback when USB connects/disconnects
     //     also provide a flag to check that status
-    printf("usb_init\n");
+    printf("USB_Init\n");
 
     return (USBD_OK);
 }
 
 static int8_t CDC_Itf_DeInit(void)
 {
-    printf("TODO: CDC_Itf_DeInit\n");
+    if( HAL_TIM_Base_Stop_IT(&USBTimHandle) != HAL_OK ){
+        printf("!usb tim_stop\n");
+        return USBD_FAIL;
+    }
+    printf("USB_DeInit\n");
     return (USBD_OK);
 }
 
