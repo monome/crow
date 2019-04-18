@@ -86,6 +86,7 @@ static void Metro_bang( int ix )
     if( ix < 2 ){
         IO_handle_timer( ix );
     } else {
+        // TODO: EVENT SYSTEM
         L_handle_metro( ix, metros[ix].stage );
     }
     metros[ix].stage++;

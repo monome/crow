@@ -6,6 +6,7 @@
 #include "slopes.h"            // S_init(), S_step_v()
 #include "detect.h"            // Detect_init(), Detect(), Detect_ix_to_p()
 #include "metro.h"
+#include "events.h"
 
 #include "lualink.h"           // L_handle_in_stream (pass this in as ptr?)
 
@@ -90,5 +91,11 @@ void IO_SetADCaction( uint8_t channel, const char* mode )
 
 void IO_handle_timer( uint8_t channel )
 {
-    L_handle_in_stream( channel, IO_GetADC(channel) );
+  // TODO: EVENT SYSTEM
+  event_t e;
+  e.type = E_adcstream;
+  e.index = channel;
+  e.data = IO_GetADC(channel);
+  event_post(&e);
+  //L_handle_in_stream( channel, IO_GetADC(channel) );
 }

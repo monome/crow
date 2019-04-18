@@ -2,6 +2,7 @@
 
 #include <stm32f7xx.h>
 #include "events.h"
+#include "lualink.h"
 
 
 /// NOTE: if we are ever over-filling the event queue, we have problems.
@@ -19,7 +20,7 @@ volatile static int getIdx = 0;
 // NOTE be aware of event_t and MAX_EVENTS for RAM usage
 volatile static event_t sysEvents[ MAX_EVENTS ];
 
-
+void (*app_event_handlers[E_eventcount])(event_t *e) = { handler_none };
 
 // initialize event handler
 void events_init() {
@@ -35,6 +36,11 @@ void events_init() {
 		sysEvents[ k ].type = 0;
 		sysEvents[ k ].data = 0;
 	}  
+
+  // assign event handlers
+  app_event_handlers[E_none] = &handler_none;
+  app_event_handlers[E_metro] = &handler_metro;
+  app_event_handlers[E_adcstream] = &handler_adcstream;
 }
 
 // get next event
@@ -48,10 +54,12 @@ uint8_t event_next( event_t *e ) {
 	if ( getIdx != putIdx ) {
 		INCR_EVENT_INDEX( getIdx );
 		e->type = sysEvents[ getIdx ].type;
+		e->index = sysEvents[ getIdx ].index;
 		e->data = sysEvents[ getIdx ].data;
 		status = 1;
 	} else {
 		e->type  = 0xff;
+    e->index = 0;
 		e->data = 0;
 		status = 0;
 	}
@@ -77,6 +85,7 @@ uint8_t event_post( event_t *e ) {
 	INCR_EVENT_INDEX( putIdx );
 	if ( putIdx != getIdx  ) {
 		sysEvents[ putIdx ].type = e->type;
+		sysEvents[ putIdx ].index = e->index;
 		sysEvents[ putIdx ].data = e->data;
 		status = 1;
 	} else {
@@ -90,4 +99,18 @@ uint8_t event_post( event_t *e ) {
 	//  printf("\r\n event queue full!");
 
 	return status;
+}
+
+
+// EVENT HANDLERS
+
+static void handler_none(event_t *e) {}
+
+static void handler_metro(event_t *e) {
+
+}
+
+static void handler_adcstream(event_t *e) {
+  printf("adc event %f\n",e->data);
+  L_handle_in_stream( e->index, e->data );
 }

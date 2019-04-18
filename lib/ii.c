@@ -127,6 +127,7 @@ void I2C_Follow_RxCallback( uint8_t* data )
     const II_Cmd_t* c = ii_find_command(II_get_address(), cmd);
     float args[c->args];
     // run the callback directly
+    // TODO: THIS GOES IN THE EVENT SYSTEM
     L_handle_ii_followRx( cmd
                    , c->args
                    , _II_decode_packet( args, data, c, 1 )

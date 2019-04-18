@@ -5,14 +5,25 @@
 typedef enum {
   E_none,
   E_metro,
+  E_adcstream,
   E_eventcount
 } event_type_t;
 
 typedef struct {
   event_type_t type;
-  int32_t data;
+  int8_t index;
+  double data;
 } event_t;
+
+
+// global array of pointers to handlers
+extern void (*app_event_handlers[])(event_t *e);
+
 
 extern void events_init(void);
 extern uint8_t event_post(event_t *e);
 extern uint8_t event_next(event_t *e);
+
+static void handler_none(event_t *e);
+static void handler_metro(event_t *e);
+static void handler_adcstream(event_t *e);

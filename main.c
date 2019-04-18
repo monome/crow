@@ -71,12 +71,8 @@ int main(void)
         }
         Random_Update();
         // check/execute single event
-        if(event_next(&e)==1) {
-          // call event handler
-          // use array of function pointers rather than case
-        }
-        // alternative process all events, not sure if we want this
-        // while(event_next(&e)==1) {
+        if (event_next(&e))
+          (app_event_handlers)[e.type](&e);
     }
 }
 
