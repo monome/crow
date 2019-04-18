@@ -5,6 +5,7 @@
 
 int _write(int file, char* data, int len)
 {
+#ifndef RELEASE
 #ifdef TRACE
     int count = len;
     while(count--){
@@ -13,6 +14,7 @@ int _write(int file, char* data, int len)
 #else // TRACE using USART to debug
     U_Print(data,len); // enqueues a string
 #endif // TRACE
+#endif // RELEASE
     return len;
 }
 
