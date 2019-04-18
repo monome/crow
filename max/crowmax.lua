@@ -49,6 +49,10 @@ function ret_cv( channel, value )
     to_max("ret_cv", channel, value)
 end
 
+function change( channel, state )
+    to_max("change_cv", channel, state )
+end
+
 
 --- Helper conversion functions
 
