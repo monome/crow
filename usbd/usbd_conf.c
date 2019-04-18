@@ -216,6 +216,24 @@ void HAL_PCD_MspDeInit(PCD_HandleTypeDef *hpcd)
   }  
 }
 
+// custom malloc because the USBD driver seems to need it's buffer
+// initialized to 1s rather than 0s? without this, we were seeing
+// errors in usb initialization after a software restart.
+void* malloc1( size_t size )
+{
+    void* retval = malloc(size);
+    // failure protect
+    if( retval != NULL ){
+        // initialize to ones
+        uint8_t* p = (uint8_t*)retval;
+        for( int i=0; i<size; i++ ){
+            *(p + i) = 0xFF;
+        }
+    }
+    return retval;
+}
+
+
 /*******************************************************************************
                        LL Driver Callbacks (PCD -> USB Device Library)
 *******************************************************************************/
