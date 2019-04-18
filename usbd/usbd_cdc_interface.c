@@ -64,7 +64,6 @@ USBD_CDC_LineCodingTypeDef LineCoding = { 115200  // baud rate
 uint8_t UserRxBuffer[APP_RX_DATA_SIZE];
 uint8_t UserTxBuffer[APP_TX_DATA_SIZE];
 uint32_t UserTxBufPtrIn  = 0;
-uint32_t UserTxBufPtrOut = 0;
 uint32_t UserRxBufPtrIn  = 0;
 
 TIM_HandleTypeDef  USBTimHandle;
@@ -156,7 +155,13 @@ static int8_t CDC_Itf_Control (uint8_t cmd, uint8_t* pbuf, uint16_t length)
 // user call copies the data to the tx queue
 void USB_tx_enqueue( uint8_t* buf, uint32_t len )
 {
-    if( len > APP_TX_DATA_SIZE ){ len = APP_TX_DATA_SIZE; } // clip length
+    if( (UserTxBufPtrIn + len) >= APP_TX_DATA_SIZE ){
+        len = APP_TX_DATA_SIZE - UserTxBufPtrIn; // stop buffer overflow
+    }
+    if( len == 0 ){
+        // FIXME? Likely means we're trying to TX when no usb device connected
+        //printf("TxBuf full\n"); // TODO memcpy will still run (can rm this warning)
+    }
     memcpy( &UserTxBuffer[UserTxBufPtrIn]
           , buf
           , len
@@ -170,11 +175,11 @@ uint8_t USB_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     if( htim == &USBTimHandle ){ // protect as it's called from timer lib
         uint32_t buffptr;
         uint32_t buffsize;
-        if( UserTxBufPtrOut != UserTxBufPtrIn ){
-            buffsize = UserTxBufPtrIn;
+        if( UserTxBufPtrIn != 0 ){
+            buffsize = UserTxBufPtrIn; // because TxPtrOut === 0
             if(buffsize >= APP_TX_DATA_SIZE){
-                printf("overflow %i\n",buffsize);
-                buffsize = APP_TX_DATA_SIZE-1;
+                //printf("overflow %i\n",(int)buffsize);
+                buffsize = APP_TX_DATA_SIZE;
             }
             buffptr = 0;
             USBD_CDC_SetTxBuffer( &USBD_Device
@@ -187,7 +192,6 @@ uint8_t USB_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
             if( (error = USBD_CDC_TransmitPacket(&USBD_Device)) == USBD_OK ){
                 // only clear data if no error
                 UserTxBufPtrIn = 0;
-                UserTxBufPtrOut = 0;
             } else if( error == USBD_FAIL ){
                 printf("CDC_tx failed %i\n", error);
             }
@@ -203,7 +207,7 @@ uint8_t USB_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 // on interrupt add to the queue
 static int8_t CDC_Itf_Receive( uint8_t* buf, uint32_t *len )
 {
-    if( (UserRxBufPtrIn + *len) > APP_RX_DATA_SIZE ){
+    if( (UserRxBufPtrIn + *len) >= APP_RX_DATA_SIZE ){
         *len = APP_RX_DATA_SIZE - UserRxBufPtrIn; // stop buffer overflow
     }
     memcpy( &UserRxBuffer[UserRxBufPtrIn]
