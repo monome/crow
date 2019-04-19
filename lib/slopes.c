@@ -111,11 +111,11 @@ float* S_step_v( int     index
         // BREAKPOINT!
         //TODO set self->action to NULL before calling
         if( self->action != NULL ){
-          // THIS IS WHERE THE EVENT SHOULD HAPPEN
-          /*event_t e;
-          e.type = E_toward;
-          e.index = index;
-          event_post(&e); */
+            // THIS IS WHERE THE EVENT SHOULD HAPPEN
+            /*event_t e;
+              e.type = E_toward;
+              e.index = index;
+              event_post(&e); */
 
             (*self->action)(index);
         }

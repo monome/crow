@@ -3,18 +3,18 @@
 #include <stm32f7xx.h>
 
 typedef enum {
-  E_none,
-  E_metro,
-  E_stream,
-  E_change,
-  E_toward,
-  E_COUNT
+    E_none,
+    E_metro,
+    E_stream,
+    E_change,
+    E_toward,
+    E_COUNT
 } event_type_t;
 
 typedef struct {
-  event_type_t type;
-  int8_t index;
-  double data;
+    event_type_t type;
+    int8_t index;
+    double data;
 } event_t;
 
 

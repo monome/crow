@@ -91,10 +91,10 @@ void IO_SetADCaction( uint8_t channel, const char* mode )
 
 void IO_handle_timer( uint8_t channel )
 {
-  event_t e;
-  e.type = E_stream;
-  e.index = channel;
-  e.data = IO_GetADC(channel);
-  event_post(&e);
-  //L_handle_in_stream( channel, IO_GetADC(channel) );
+    event_t e;
+    e.type = E_stream;
+    e.index = channel;
+    e.data = IO_GetADC(channel);
+    event_post(&e);
+    //L_handle_in_stream( channel, IO_GetADC(channel) );
 }

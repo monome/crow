@@ -65,12 +65,11 @@ void Detect( Detect_t* self, float level )
                     self->state = 0;
                     if( self->change.direction != 1 ){ // not 'rising' only
                         //(*self->action)( self->channel, (float)self->state );
-            event_t e;
-            e.type = E_change;
-            e.index = self->channel;
-            e.data = (float)self->state;
-            event_post(&e);
-
+                        event_t e;
+                        e.type = E_change;
+                        e.index = self->channel;
+                        e.data = (float)self->state;
+                        event_post(&e);
                     }
                 }
             } else { // low to high
@@ -78,16 +77,14 @@ void Detect( Detect_t* self, float level )
                     self->state = 1;
                     if( self->change.direction != -1 ){ // not 'falling' only
                         //(*self->action)( self->channel, (float)self->state );
-            event_t e;
-            e.type = E_change;
-            e.index = self->channel;
-            e.data = (float)self->state;
-            event_post(&e);
-
+                        event_t e;
+                        e.type = E_change;
+                        e.index = self->channel;
+                        e.data = (float)self->state;
+                        event_post(&e);
                     }
                 }
             }
-
             break;
 
         default:
