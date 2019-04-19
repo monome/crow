@@ -25,8 +25,8 @@ static void CPU_CACHE_Enable(void);
 
 int main(void)
 {
-	MPU_Config();
-	CPU_CACHE_Enable();
+    MPU_Config();
+    CPU_CACHE_Enable();
     HAL_Init();
     Sys_Clk_Config();
 
@@ -38,7 +38,7 @@ int main(void)
 
     // init drivers
     IO_Init();
-  events_init();
+    events_init();
     Metro_Init();
     Caw_Init();
     MIDI_Init();
@@ -52,7 +52,7 @@ int main(void)
 
     CDC_main_init(); // FIXME: stops crash when starting without usb connected
 
-  event_t e;
+    event_t e;
 
     while(1){
         U_PrintNow();
@@ -72,7 +72,7 @@ int main(void)
         Random_Update();
         // check/execute single event
         if (event_next(&e))
-          (app_event_handlers)[e.type](&e);
+            (app_event_handlers)[e.type](&e);
     }
 }
 
