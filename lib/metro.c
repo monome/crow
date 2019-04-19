@@ -6,7 +6,6 @@
 #include "../ll/timers.h"      // _Init() _Start() _Stop() _Set_Params()
 #include "lualink.h"           // L_handle_metro()
 #include "io.h"                // IO_handle_timer
-#include "events.h"
 
 typedef enum { METRO_STATUS_RUNNING
              , METRO_STATUS_STOPPED
@@ -85,14 +84,9 @@ static void Metro_bang( int ix )
 {
     // TODO confirm lua(1) makes a single tick
     if( ix < 2 ){
-        IO_handle_timer( ix );
+        L_queue_in_stream( ix );
     } else {
-        event_t e;
-        e.type = E_metro;
-        e.index = ix;
-        e.data = metros[ix].stage;
-        event_post(&e);
-        //L_handle_metro( ix, metros[ix].stage );
+        L_queue_metro( ix, metros[ix].stage );
     }
     metros[ix].stage++;
     //FIXME next line causes system not to load?

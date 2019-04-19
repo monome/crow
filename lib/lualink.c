@@ -53,10 +53,6 @@ const struct lua_lib_locator Lua_libs[] =
 static void Lua_linkctolua( lua_State* L );
 static float Lua_check_memory( void );
 
-// Event enqueue wrappers
-static void L_queue_change( int id, float state );
-
-
 void _printf(char* error_message)
 {
     printf("%s\n",error_message);
@@ -189,7 +185,7 @@ static int _go_toward( lua_State *L )
             , luaL_checknumber(L, 2)
             , luaL_checknumber(L, 3) * 1000.0
             , SHAPE_Linear // Shape_t
-            , L_handle_toward
+            , L_queue_toward
             );
     lua_pop( L, 4 );
     lua_settop(L, 0);
@@ -480,6 +476,13 @@ void Lua_crowbegin( void )
 }
 
 // Public Callbacks from C to Lua
+void L_queue_toward( int id )
+{
+    event_t e = { .type  = E_toward
+                , .index = id
+                };
+    event_post(&e);
+}
 void L_handle_toward( int id )
 {
     lua_getglobal(L, "toward_handler");
@@ -491,6 +494,14 @@ void L_handle_toward( int id )
     }
 }
 
+void L_queue_metro( int id, int state )
+{
+    event_t e = { .type  = E_metro
+                , .index = id
+                , .data  = state
+                };
+    event_post(&e);
+}
 void L_handle_metro( const int id, const int stage)
 {
     lua_getglobal(L, "metro_handler");
@@ -517,7 +528,7 @@ void L_handle_in_stream( int id, float value )
     }
 }
 
-static void L_queue_change( int id, float state )
+void L_queue_change( int id, float state )
 {
     event_t e = { .type  = E_change
                 , .index = id

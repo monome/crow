@@ -9,5 +9,3 @@ void IO_Process( void );
 
 float IO_GetADC( uint8_t channel );
 void IO_SetADCaction( uint8_t channel, const char* mode );
-
-extern void IO_handle_timer( uint8_t channel );
