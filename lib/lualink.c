@@ -514,12 +514,18 @@ void L_handle_metro( const int id, const int stage)
     }
 }
 
+void L_queue_in_stream( int id )
+{
+    event_t e = { .type  = E_stream
+                , .index = id
+                , .data  = IO_GetADC(id)
+                };
+    event_post(&e);
+}
 void L_handle_in_stream( int id, float value )
 {
     lua_getglobal(L, "stream_handler");
     lua_pushinteger(L, id+1); // 1-ix'd
-    if( value > 10.0 ){ value = 10.0; }
-    if( value < -5.0 ){ value = -5.0; }
     lua_pushnumber(L, value);
     if( lua_pcall(L, 2, 0, 0) != LUA_OK ){
         Caw_send_luachunk("error: input stream");
