@@ -3,6 +3,7 @@
 #include "lib/bootloader.h" // bootloader_is_i2c_force()
 #include "lib/io.h"
 #include "lib/caw.h"
+#include "lib/events.h"
 #include "lib/ii.h"
 #include "lib/lualink.h"
 #include "lib/repl.h"
@@ -24,8 +25,8 @@ static void CPU_CACHE_Enable(void);
 
 int main(void)
 {
-	MPU_Config();
-	CPU_CACHE_Enable();
+    MPU_Config();
+    CPU_CACHE_Enable();
     HAL_Init();
     Sys_Clk_Config();
 
@@ -37,6 +38,7 @@ int main(void)
 
     // init drivers
     IO_Init();
+    events_init();
     Metro_Init();
     Caw_Init();
     MIDI_Init();
@@ -49,6 +51,8 @@ int main(void)
     Lua_crowbegin();
 
     CDC_main_init(); // FIXME: stops crash when starting without usb connected
+
+    event_t e;
 
     while(1){
         U_PrintNow();
@@ -66,6 +70,9 @@ int main(void)
             default: break; // 'C_none' does nothing
         }
         Random_Update();
+        // check/execute single event
+        if (event_next(&e))
+            (app_event_handlers)[e.type](&e);
     }
 }
 
