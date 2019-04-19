@@ -52,8 +52,6 @@ int main(void)
 
     CDC_main_init(); // FIXME: stops crash when starting without usb connected
 
-    event_t e;
-
     while(1){
         U_PrintNow();
         switch( Caw_try_receive() ){ // true on pressing 'enter'
@@ -71,8 +69,10 @@ int main(void)
         }
         Random_Update();
         // check/execute single event
-        if (event_next(&e))
-            (app_event_handlers)[e.type](&e);
+        event_t e;
+        if( event_next(&e) ){
+            (*app_event_handlers[e.type])(&e);
+        }
     }
 }
 
