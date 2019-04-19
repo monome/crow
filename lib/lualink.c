@@ -17,6 +17,7 @@
 #include "lib/io.h"         // IO_GetADC()
 #include "../ll/random.h"   // Random_Get()
 #include "../ll/adda.h"     // CAL_Recalibrate() CAL_PrintCalibration()
+#include "lib/events.h"     // event_t event_post()
 
 // Lua libs wrapped in C-headers: Note the extra '.h'
 #include "lua/bootstrap.lua.h" // MUST LOAD THIS MANUALLY FIRST
@@ -51,6 +52,10 @@ const struct lua_lib_locator Lua_libs[] =
 // Private prototypes
 static void Lua_linkctolua( lua_State* L );
 static float Lua_check_memory( void );
+
+// Event enqueue wrappers
+static void L_queue_change( int id, float state );
+
 
 void _printf(char* error_message)
 {
@@ -239,7 +244,7 @@ static int _set_input_change( lua_State *L )
     if( d != NULL ){ // valid index
         Metro_stop( ix );
         Detect_change( d
-                     , L_handle_change
+                     , L_queue_change
                      , luaL_checknumber(L, 2)
                      , luaL_checknumber(L, 3)
                      , Detect_str_to_dir( luaL_checkstring(L, 4) )
@@ -512,6 +517,14 @@ void L_handle_in_stream( int id, float value )
     }
 }
 
+static void L_queue_change( int id, float state )
+{
+    event_t e = { .type  = E_change
+                , .index = id
+                , .data  = state
+                };
+    event_post(&e);
+}
 void L_handle_change( int id, float state )
 {
     lua_getglobal(L, "change_handler");
