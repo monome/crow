@@ -1,8 +1,6 @@
 #include "slopes.h"
 #include "stm32f7xx.h"
 
-#include "events.h"
-
 Slope_t slopes[SLOPE_CHANNELS];
 
 // register a new destination
@@ -111,13 +109,19 @@ float* S_step_v( int     index
         // BREAKPOINT!
         //TODO set self->action to NULL before calling
         if( self->action != NULL ){
-            // THIS IS WHERE THE EVENT SHOULD HAPPEN
-            /*event_t e;
-              e.type = E_toward;
-              e.index = index;
-              event_post(&e); */
-
             (*self->action)(index);
+            // FIXME to allow the action to be async we pretend we've 'arrived'
+            // TODO a number of refinements can be added to improve accuracy:
+            //  1 set a flag and count samples to compensate on next stage
+            //  2 setup a continuation so next breakpoint can backtrack and fix samps
+            //  3 request self->action 1 frame *before* breakpoint and enqueue the
+            //      settings, so the vals are ready to be used locally
+            self->here  = self->dest;
+            self->delta = 0.0;
+            for(; after_break>0; after_break-- ){
+                *out2++ = self->here;
+            }
+            return out;
         }
 
         // NO ACTION (S_toward was not called by action)
