@@ -17,6 +17,7 @@
 #include "lib/io.h"         // IO_GetADC()
 #include "../ll/random.h"   // Random_Get()
 #include "../ll/adda.h"     // CAL_Recalibrate() CAL_PrintCalibration()
+#include "lib/events.h"     // event_t event_post()
 
 // Lua libs wrapped in C-headers: Note the extra '.h'
 #include "lua/bootstrap.lua.h" // MUST LOAD THIS MANUALLY FIRST
@@ -184,7 +185,7 @@ static int _go_toward( lua_State *L )
             , luaL_checknumber(L, 2)
             , luaL_checknumber(L, 3) * 1000.0
             , SHAPE_Linear // Shape_t
-            , L_handle_toward
+            , L_queue_toward
             );
     lua_pop( L, 4 );
     lua_settop(L, 0);
@@ -239,7 +240,7 @@ static int _set_input_change( lua_State *L )
     if( d != NULL ){ // valid index
         Metro_stop( ix );
         Detect_change( d
-                     , L_handle_change
+                     , L_queue_change
                      , luaL_checknumber(L, 2)
                      , luaL_checknumber(L, 3)
                      , Detect_str_to_dir( luaL_checkstring(L, 4) )
@@ -475,6 +476,13 @@ void Lua_crowbegin( void )
 }
 
 // Public Callbacks from C to Lua
+void L_queue_toward( int id )
+{
+    event_t e = { .type  = E_toward
+                , .index = id
+                };
+    event_post(&e);
+}
 void L_handle_toward( int id )
 {
     lua_getglobal(L, "toward_handler");
@@ -486,6 +494,14 @@ void L_handle_toward( int id )
     }
 }
 
+void L_queue_metro( int id, int state )
+{
+    event_t e = { .type  = E_metro
+                , .index = id
+                , .data  = state
+                };
+    event_post(&e);
+}
 void L_handle_metro( const int id, const int stage)
 {
     lua_getglobal(L, "metro_handler");
@@ -498,12 +514,18 @@ void L_handle_metro( const int id, const int stage)
     }
 }
 
+void L_queue_in_stream( int id )
+{
+    event_t e = { .type  = E_stream
+                , .index = id
+                , .data  = IO_GetADC(id)
+                };
+    event_post(&e);
+}
 void L_handle_in_stream( int id, float value )
 {
     lua_getglobal(L, "stream_handler");
     lua_pushinteger(L, id+1); // 1-ix'd
-    if( value > 10.0 ){ value = 10.0; }
-    if( value < -5.0 ){ value = -5.0; }
     lua_pushnumber(L, value);
     if( lua_pcall(L, 2, 0, 0) != LUA_OK ){
         Caw_send_luachunk("error: input stream");
@@ -512,6 +534,14 @@ void L_handle_in_stream( int id, float value )
     }
 }
 
+void L_queue_change( int id, float state )
+{
+    event_t e = { .type  = E_change
+                , .index = id
+                , .data  = state
+                };
+    event_post(&e);
+}
 void L_handle_change( int id, float state )
 {
     lua_getglobal(L, "change_handler");
