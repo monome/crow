@@ -5,7 +5,7 @@
 #include "str_buffer.h"
 
 USART_HandleTypeDef handusart;
-str_buffer_t str_buf;
+str_buffer_t* str_buf;
 
 #ifdef RELEASE
 void Debug_USART_Init(void){ return; }
@@ -27,7 +27,7 @@ void Debug_USART_Init( void )
 
 	HAL_USART_Init( &handusart );
 #endif // TRACE
-	str_buffer_init( &str_buf, 511 ); // fifo for DMA buffer
+	str_buf = str_buffer_init( 511 ); // fifo for DMA buffer
 }
 
 void Debug_USART_DeInit(void)
@@ -35,7 +35,7 @@ void Debug_USART_DeInit(void)
 #ifndef TRACE
 	HAL_USART_DeInit( &handusart );
 #endif // TRACE
-	str_buffer_deinit( &str_buf );
+	str_buffer_deinit( str_buf );
 }
 
 // LOW LEVEL USART HARDWARE CONFIGURATION FUNCTION
@@ -107,13 +107,13 @@ void U_PrintNow( void )
 {
 #ifndef TRACE
 	if( HAL_USART_GetState( &handusart ) == HAL_USART_STATE_READY
-	 && !str_buffer_empty( &str_buf ) ){
+	 && !str_buffer_empty( str_buf ) ){
 // mask interrupts to ensure transmission!
 uint32_t old_primask = __get_PRIMASK();
 __disable_irq();
-	    uint16_t str_len = str_buffer_len( &str_buf );
+	    uint16_t str_len = str_buffer_len( str_buf );
 	    HAL_USART_Transmit_DMA( &handusart
-	                          , (uint8_t*)str_buffer_dequeue( &str_buf, str_len )
+	                          , (uint8_t*)str_buffer_dequeue( str_buf, str_len )
                               , str_len
 						      );
 __set_PRIMASK( old_primask );
@@ -130,7 +130,7 @@ void U_Print(char* s, int len)
     str[len+1] = '\0';
 uint32_t old_primask = __get_PRIMASK();
 __disable_irq();
-	str_buffer_enqueue( &str_buf, str );
+	str_buffer_enqueue( str_buf, str );
 __set_PRIMASK( old_primask );
 }
 #endif // DEBUG

@@ -1,11 +1,18 @@
 #include "slopes.h"
+
+#include <stdlib.h>
+
 #include "stm32f7xx.h"
 
-Slope_t slopes[SLOPE_CHANNELS];
+uint8_t slope_count = 0;
+Slope_t* slopes = NULL;
 
 // register a new destination
-void S_init( void )
+void S_init( int channels )
 {
+    slope_count = channels;
+    slopes = malloc( sizeof( Slope_t ) * channels );
+    if( !slopes ){ printf("slopes malloc failed\n"); return; }
     for( int j=0; j<SLOPE_CHANNELS; j++ ){
         slopes[j].dest   = 0.0;
         slopes[j].shape  = SHAPE_Linear;
