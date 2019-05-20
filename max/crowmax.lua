@@ -10,10 +10,11 @@ local cmd_rxd    = 0
 function from( byte )
 	table.insert( cmd_bytes, byte )
 	cmd_rxd = cmd_rxd + 1
-	--TODO split on '\n\r' pair not just end-of-packet
 	if cmd_rxd == cmd_length then
-    	eval( bytes_to_string( cmd_bytes))
-		cmd_bytes  = {}
+		if cmd_bytes[#cmd_bytes] == 13 then -- check for carriage return
+			eval( bytes_to_string( cmd_bytes))
+			cmd_bytes  = {}
+		end
 		cmd_length = -1
 		cmd_rxd    = 0
     end
