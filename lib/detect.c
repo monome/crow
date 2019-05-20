@@ -19,6 +19,11 @@ void Detect_init( int channels )
     }
 }
 
+void Detect_deinit( void )
+{
+    free(selves); selves = NULL;
+}
+
 Detect_t* Detect_ix_to_p( uint8_t index )
 {
     if( index < 0 || index >= channel_count ){ return NULL; } // TODO error msg

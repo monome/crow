@@ -18,7 +18,7 @@ void IO_Init( void )
 
     // dsp objects
     Detect_init( IN_CHANNELS );
-    S_init();
+    S_init( SLOPE_CHANNELS );
 }
 
 void IO_Start( void )

@@ -29,7 +29,7 @@ typedef struct{
 #define SLOPE_CHANNELS 4
 
 // register a new destination
-void S_init( void );
+void S_init( int channels );
 float S_get_state( int index );
 void S_toward( int        index
              , float      destination
