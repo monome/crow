@@ -60,6 +60,15 @@
  extern "C" {
 #endif /* __cplusplus */
   
+
+#define BLOCK_IRQS(code) do{ \
+                            uint32_t old_primask = __get_PRIMASK(); \
+                            __disable_irq(); \
+                            do{code} while(0); \
+                            __set_PRIMASK( old_primask ); \
+                        } while(0);
+
+
 /** @addtogroup Library_configuration_section
   * @{
   */
