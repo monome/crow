@@ -275,6 +275,10 @@ input[2].mode( 'stream', 0.05 ) -- sends 20 values per second
 input[1].mode( 'change' ) -- default gate detector
 ```
 
+There is *also* an assignment style:
+`input[1].mode = 'stream'`
+though it is limited to changing mode (no params) and should probably be removed(?)
+
 ### Standalone Inputs
 
 The only real change when using the inputs on crow itself is you'll need to define
@@ -312,13 +316,25 @@ TODO
 
 See `ref/asl-spec.lua` for some discussion of ASL.
 
+ASL extends Lua with a syntax for describing musical 'actions'. These are dynamic
+sequences of slopes, with a few special key words to connect them in musical ways.
+The benefit is you can describe all kinds of envelopes, LFOs & sequences (with
+portamento) directly, or write complex actions that use live inputs, or programmatic
+values.
+
+ASL is brand new and sharing your examples will help it mature!
+
 ### examples
 
 Activate a pre-defined ASL action. By default there is a +/-5v LFO on every channel:
 `output[1].asl:action()` will start the LFO on output 1.
+or you can use the short-cut:
+`output[1]()`
+Is this a bad idea? Send a string to do output actions? Could be the ASL interactive
+commands like "press", "release", "begin", "pause". Like a micro-repl.
 
-Or set the output to a value directly:
-`output[1].value = 2.0` 2 volts.
+Or set the output to a value directly, deactivating the current action:
+`output[1].volts = 2.0` 2 volts.
 
 You can assign a new action:
 `output[1].asl.action = lfo( 1.0, 'linear', 4.0 )`
@@ -335,7 +351,20 @@ output[1].asl.action =
         , toward( 0.0, 1.0, 'linear' )
         }
 ```
-Then start it as above with `output[1].asl:action()`, note the colon call!
+Then start it as above with `output[1].asl:action()`, note the colon (method) call!
+
+It can be useful to query the current output value of an output. Rather than setting
+'volts' as above, you can query it like so:
+`v = output[1].volts`
+
+Try querying the 'volts' of output 1 to set the rate for an lfo on output 2:
+```
+output[2].asl.action =
+    lfo( function() return output[1].volts end
+       , 'linear'
+       , 5.0
+       )
+```
 
 ## Metro library
 
