@@ -206,16 +206,15 @@ void ADC_UnpickleBlock( float*   unpickled
         DELAY_usec(8000); // can't seem to go lower
         uint32_t* tx = (uint32_t*)aTxBuffer;
         *tx = 0; // NULL command
-uint32_t old_primask = __get_PRIMASK();
-__disable_irq();
-        if(HAL_SPI_TransmitReceive_DMA( &adc_spi
-                                      , (uint8_t*)aTxBuffer
-                                      , (uint8_t*)aRxBuffer
-                                      , ADC_BUF_SIZE
-                                      ) != HAL_OK ){
-            printf("spi_txrx_fail\n");
-        }
-__set_PRIMASK( old_primask );
+        BLOCK_IRQS(
+            if(HAL_SPI_TransmitReceive_DMA( &adc_spi
+                                          , (uint8_t*)aTxBuffer
+                                          , (uint8_t*)aRxBuffer
+                                          , ADC_BUF_SIZE
+                                          ) != HAL_OK ){
+                printf("spi_txrx_fail\n");
+            }
+        );
     }
 }
 
@@ -239,15 +238,14 @@ void ADC_Rx( uint16_t* aRxBuffer, uint32_t size )
     // pull !SYNC low
     HAL_GPIO_WritePin( SPIa_NSS_GPIO_PORT, SPIa_NSS_PIN, 0 );
     DELAY_usec(NSS_DELAY);
-uint32_t old_primask = __get_PRIMASK();
-__disable_irq();
-    if(HAL_SPI_Receive_DMA( &adc_spi
-                          , (uint8_t*)aRxBuffer
-                          , size
-                          ) != HAL_OK ){
-        printf("spi_rx_fail\n");
-    }
-__set_PRIMASK( old_primask );
+    BLOCK_IRQS(
+        if(HAL_SPI_Receive_DMA( &adc_spi
+                              , (uint8_t*)aRxBuffer
+                              , size
+                              ) != HAL_OK ){
+            printf("spi_rx_fail\n");
+        }
+    );
     // just wait til it's done (for now)
     while (HAL_SPI_GetState(&adc_spi) != HAL_SPI_STATE_READY){;;}
 }
@@ -257,16 +255,15 @@ void ADC_TxRx( uint16_t* aTxBuffer, uint16_t* aRxBuffer, uint32_t size )
     // pull !SYNC low
     HAL_GPIO_WritePin( SPIa_NSS_GPIO_PORT, SPIa_NSS_PIN, 0 );
     DELAY_usec(NSS_DELAY);
-uint32_t old_primask = __get_PRIMASK();
-__disable_irq();
-    if(HAL_SPI_TransmitReceive_DMA( &adc_spi
-                                  , (uint8_t*)aTxBuffer
-                                  , (uint8_t*)aRxBuffer
-                                  , size
-                                  ) != HAL_OK ){
-        printf("spi_txrx_fail\n");
-    }
-__set_PRIMASK( old_primask );
+    BLOCK_IRQS(
+        if(HAL_SPI_TransmitReceive_DMA( &adc_spi
+                                      , (uint8_t*)aTxBuffer
+                                      , (uint8_t*)aRxBuffer
+                                      , size
+                                      ) != HAL_OK ){
+            printf("spi_txrx_fail\n");
+        }
+    );
     // just wait til it's done (for now)
     while (HAL_SPI_GetState(&adc_spi) != HAL_SPI_STATE_READY){;;}
 }

@@ -85,13 +85,13 @@ uint8_t receiving_packet = 0;
 static uint8_t MIDI_rx_cmd( void )
 {
     receiving_packet = 0;
-//uint32_t old_primask = __get_PRIMASK();
-//__disable_irq();
-    uint8_t err = HAL_UART_Receive_DMA( &midiuart
-                                      , &(rx_buf[0])
-                                      , 1
-					                  );
-//__set_PRIMASK( old_primask );
+    uint8_t err;
+    BLOCK_IRQS(
+        err = HAL_UART_Receive_DMA( &midiuart
+                                  , &(rx_buf[0])
+                                  , 1
+                                  );
+    );
     if( err ){ printf("midi_cmd_error\n"); }
     return err;
 }
@@ -99,13 +99,13 @@ static uint8_t MIDI_rx_cmd( void )
 static uint8_t MIDI_rx_data( uint8_t count )
 {
     receiving_packet = 1;
-//uint32_t old_primask = __get_PRIMASK();
-//__disable_irq();
-    uint8_t err = HAL_UART_Receive_DMA( &midiuart
-                                      , &(rx_buf[1])
-                                      , count
-					                  );
-//__set_PRIMASK( old_primask );
+    uint8_t err;
+    BLOCK_IRQS(
+        err = HAL_UART_Receive_DMA( &midiuart
+                                  , &(rx_buf[1])
+                                  , count
+                                  );
+    );
     if( err ){ printf("midi_data_error\n"); }
     return err;
 }

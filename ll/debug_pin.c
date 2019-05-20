@@ -14,8 +14,7 @@ void Debug_Pin_Init(void)
 
 void Debug_Pin_Set( uint8_t state )
 {
-uint32_t old_primask = __get_PRIMASK();
-__disable_irq();
-    HAL_GPIO_WritePin( DBG_P_GPIO, DBG_P_PIN, state );
-__set_PRIMASK( old_primask );
+    BLOCK_IRQS(
+        HAL_GPIO_WritePin( DBG_P_GPIO, DBG_P_PIN, state );
+    );
 }

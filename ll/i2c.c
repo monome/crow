@@ -62,11 +62,9 @@ uint8_t I2C_Init( uint8_t address )
     i2c_state.lead_rx_data    = NULL;
     i2c_state.lead_rx_bytes   = 0;
 
-uint32_t old_primask = __get_PRIMASK();
-__disable_irq();
-	if( HAL_I2C_EnableListen_IT( &i2c_handle ) != HAL_OK ){ error = 2; }
-__set_PRIMASK( old_primask );
-    
+    BLOCK_IRQS(
+        if( HAL_I2C_EnableListen_IT( &i2c_handle ) != HAL_OK ){ error = 2; }
+    );
     return error;
 }
 
@@ -175,12 +173,11 @@ PE=0 - Write PE=1.
 	        printf("I2C_ERROR %i\n", (int)h->ErrorCode);
         }
     }
-uint32_t old_primask = __get_PRIMASK();
-__disable_irq();
-	if( HAL_I2C_EnableListen_IT( &i2c_handle ) != HAL_OK ){
-        printf("enable listen failed\n");
-    }
-__set_PRIMASK( old_primask );
+    BLOCK_IRQS(
+        if( HAL_I2C_EnableListen_IT( &i2c_handle ) != HAL_OK ){
+            printf("enable listen failed\n");
+        }
+    );
 }
 
 void HAL_I2C_AddrCallback( I2C_HandleTypeDef* h
@@ -194,28 +191,26 @@ void HAL_I2C_AddrCallback( I2C_HandleTypeDef* h
         printf("tx\n");
         I2C_Follow_TxCallback( _I2C_GetBuffer( &i2c_state ) );
         i2c_state.rxing = 0;
-uint32_t old_primask = __get_PRIMASK();
-__disable_irq();
         //error = HAL_I2C_Slave_Sequential_Transmit_IT( &i2c_handle
-        error = HAL_I2C_Slave_Transmit_IT( &i2c_handle
-                , i2c_state.tx_data
-                , i2c_state.tx_bytes
-                //, I2C_LAST_FRAME
-                );
-__set_PRIMASK( old_primask );
+        BLOCK_IRQS(
+            error = HAL_I2C_Slave_Transmit_IT( &i2c_handle
+                    , i2c_state.tx_data
+                    , i2c_state.tx_bytes
+                    //, I2C_LAST_FRAME
+                    );
+        );
     } else {
         printf("rx\n");
-uint32_t old_primask = __get_PRIMASK();
-__disable_irq();
-        error = HAL_I2C_Slave_Sequential_Receive_IT( &i2c_handle
-        //error = HAL_I2C_Slave_Receive_IT( &i2c_handle
-                , _I2C_GetBuffer( &i2c_state )
-                , I2C_MAX_CMD_BYTES
-                , I2C_NEXT_FRAME
-                //, I2C_NEXT_FRAME // NEXT works for receiving a LeadTx
-                            // FIRST works once, then fails
-	            );
-__set_PRIMASK( old_primask );
+        BLOCK_IRQS(
+            error = HAL_I2C_Slave_Sequential_Receive_IT( &i2c_handle
+            //error = HAL_I2C_Slave_Receive_IT( &i2c_handle
+                    , _I2C_GetBuffer( &i2c_state )
+                    , I2C_MAX_CMD_BYTES
+                    , I2C_NEXT_FRAME
+                    //, I2C_NEXT_FRAME // NEXT works for receiving a LeadTx
+                                // FIRST works once, then fails
+                    );
+        );
         i2c_state.rxing = 1;
     }
     if( error ){ printf( "I2C_AddrCallback error %i\n", error ); }
@@ -223,12 +218,11 @@ __set_PRIMASK( old_primask );
 
 void HAL_I2C_ListenCpltCallback( I2C_HandleTypeDef* hi2c )
 {
-uint32_t old_primask = __get_PRIMASK();
-__disable_irq();
-	if( HAL_I2C_EnableListen_IT( &i2c_handle ) != HAL_OK ){
-	    printf("i2c enable listen failed\n");
-	}
-__set_PRIMASK( old_primask );
+    BLOCK_IRQS(
+        if( HAL_I2C_EnableListen_IT( &i2c_handle ) != HAL_OK ){
+            printf("i2c enable listen failed\n");
+        }
+    );
 }
 void HAL_I2C_MasterTxCpltCallback( I2C_HandleTypeDef* h )
 {
@@ -237,28 +231,26 @@ void HAL_I2C_MasterTxCpltCallback( I2C_HandleTypeDef* h )
         // leader has transmitted a request
         // now ready to leader_receive the data
         i2c_state.txing = 2;
-uint32_t old_primask = __get_PRIMASK();
-__disable_irq();
-        //if( HAL_I2C_Master_Sequential_Receive_IT( &i2c_handle
-        if( HAL_I2C_Master_Receive_IT( &i2c_handle
-                , i2c_state.lead_rx_address
-		        , i2c_state.lead_rx_data
-	            , i2c_state.lead_rx_bytes
-                //, I2C_FIRST_AND_LAST_FRAME // must be LAST to correctly free i2c bus
-                    // FIRST_AND_LAST ie non-sequential
-                    // or LAST work ok with txI
-	            ) != HAL_OK ){ printf("LeadRx failed\n"); }
-__set_PRIMASK( old_primask );
+        BLOCK_IRQS(
+            //if( HAL_I2C_Master_Sequential_Receive_IT( &i2c_handle
+            if( HAL_I2C_Master_Receive_IT( &i2c_handle
+                    , i2c_state.lead_rx_address
+		            , i2c_state.lead_rx_data
+	                , i2c_state.lead_rx_bytes
+                    //, I2C_FIRST_AND_LAST_FRAME // must be LAST to correctly free i2c bus
+                        // FIRST_AND_LAST ie non-sequential
+                        // or LAST work ok with txI
+	                ) != HAL_OK ){ printf("LeadRx failed\n"); }
+        );
     } else {
         // leader_transmission has completed
         // return to follower_listen state
         printf("tx'd now listen\n");
-uint32_t old_primask = __get_PRIMASK();
-__disable_irq();
-        if( HAL_I2C_EnableListen_IT( &i2c_handle ) != HAL_OK ){
-		    printf("i2c enable listen failed\n");
-	    }
-__set_PRIMASK( old_primask );
+        BLOCK_IRQS(
+            if( HAL_I2C_EnableListen_IT( &i2c_handle ) != HAL_OK ){
+                printf("i2c enable listen failed\n");
+            }
+        );
     }
 }
 void HAL_I2C_MasterRxCpltCallback( I2C_HandleTypeDef* h )
@@ -269,12 +261,11 @@ void HAL_I2C_MasterRxCpltCallback( I2C_HandleTypeDef* h )
                       , i2c_state.lead_rx_cmd
                       , i2c_state.lead_rx_data
                       );
-uint32_t old_primask = __get_PRIMASK();
-__disable_irq();
-    if( HAL_I2C_EnableListen_IT( &i2c_handle ) != HAL_OK ){
-        printf("i2c enable listen failed\n");
-	}
-__set_PRIMASK( old_primask );
+    BLOCK_IRQS(
+        if( HAL_I2C_EnableListen_IT( &i2c_handle ) != HAL_OK ){
+            printf("i2c enable listen failed\n");
+        }
+    );
 }
 
 void HAL_I2C_SlaveRxCpltCallback( I2C_HandleTypeDef* h )
@@ -403,14 +394,13 @@ uint8_t I2C_LeadTx( uint8_t  address
     address <<= 1;
     uint8_t error = 0;
     if( HAL_I2C_DisableListen_IT( &i2c_handle ) != HAL_OK ){ error |= 1; }
-uint32_t old_primask = __get_PRIMASK();
-__disable_irq();
-	if( HAL_I2C_Master_Transmit_IT( &i2c_handle
-            , address
-		    , data
-	        , size
-	        ) != HAL_OK ){ error |= 2; }
-__set_PRIMASK( old_primask );
+    BLOCK_IRQS(
+        if( HAL_I2C_Master_Transmit_IT( &i2c_handle
+                , address
+                , data
+                , size
+                ) != HAL_OK ){ error |= 2; }
+    );
     return error;
 }
 /*  this fn should really be broken into parts
@@ -440,17 +430,16 @@ uint8_t I2C_LeadRx( uint8_t  address
 
     // below happens in a 'pop' fn (responses are non-blocking on IRQ)
     if( HAL_I2C_DisableListen_IT( &i2c_handle ) != HAL_OK ){ error |= 1; }
-uint32_t old_primask = __get_PRIMASK();
-__disable_irq();
-	//if( HAL_I2C_Master_Sequential_Transmit_IT( &i2c_handle
-	if( HAL_I2C_Master_Transmit_IT( &i2c_handle
-            , address
-            , data
-	        , size
-            //, I2C_FIRST_FRAME // confirmed MUST be FIRST_FRAME only
-            //, I2C_FIRST_AND_LAST_FRAME // confirmed MUST be FIRST_FRAME only
-	        ) != HAL_OK ){ error |= 2; }
-__set_PRIMASK( old_primask );
+    BLOCK_IRQS(
+        //if( HAL_I2C_Master_Sequential_Transmit_IT( &i2c_handle
+        if( HAL_I2C_Master_Transmit_IT( &i2c_handle
+                , address
+                , data
+                , size
+                //, I2C_FIRST_FRAME // confirmed MUST be FIRST_FRAME only
+                //, I2C_FIRST_AND_LAST_FRAME // confirmed MUST be FIRST_FRAME only
+                ) != HAL_OK ){ error |= 2; }
+    );
     return error;
 }
 

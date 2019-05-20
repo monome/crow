@@ -120,10 +120,10 @@ void Timer_Set_Params( int ix, float seconds )
 
     TimHandle[ix].Init.Period            = (uint16_t)(seconds * (float)0x1000);
     TimHandle[ix].Init.Prescaler         = 0xE000; // TODO
-uint32_t old_primask = __get_PRIMASK();
-__disable_irq();
-    uint8_t err = HAL_TIM_Base_Init( &(TimHandle[ix]) );
-__set_PRIMASK( old_primask );
+    uint8_t err;
+    BLOCK_IRQS(
+        err = HAL_TIM_Base_Init( &(TimHandle[ix]) );
+    );
     if( err != HAL_OK ){
         printf("Timer_Set_Params(%i) failed\n", ix);
     }
@@ -131,10 +131,10 @@ __set_PRIMASK( old_primask );
 
 void Timer_Start( int ix )
 {
-uint32_t old_primask = __get_PRIMASK();
-__disable_irq();
-    uint8_t err = HAL_TIM_Base_Start_IT( &(TimHandle[ix]) );
-__set_PRIMASK( old_primask );
+    uint8_t err;
+    BLOCK_IRQS(
+        err = HAL_TIM_Base_Start_IT( &(TimHandle[ix]) );
+    );
     if( err != HAL_OK ){
         printf("Timer_Start(%i) failed\n", ix);
     }
@@ -142,10 +142,10 @@ __set_PRIMASK( old_primask );
 
 void Timer_Stop( int ix )
 {
-uint32_t old_primask = __get_PRIMASK();
-__disable_irq();
-    uint8_t err = HAL_TIM_Base_Stop_IT( &(TimHandle[ix]) );
-__set_PRIMASK( old_primask );
+    uint8_t err;
+    BLOCK_IRQS(
+        err = HAL_TIM_Base_Stop_IT( &(TimHandle[ix]) );
+    );
     if( err != HAL_OK ){
         printf("Timer_Stop(%i)\n", ix);
     }

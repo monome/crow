@@ -79,13 +79,12 @@ void DAC_Start(void)
     }
     // begin i2s transmission
     int error;
-uint32_t old_primask = __get_PRIMASK();
-__disable_irq();
-    error = HAL_I2S_Transmit_DMA( &dac_i2s
-                        , (uint16_t*)samples
-                        , samp_count
-                        );
-__set_PRIMASK( old_primask );
+    BLOCK_IRQS(
+        error = HAL_I2S_Transmit_DMA( &dac_i2s
+                            , (uint16_t*)samples
+                            , samp_count
+                            );
+    );
     if(error){ printf("i2s failed to start\n"); }
 }
 
