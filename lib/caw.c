@@ -115,8 +115,20 @@ C_cmd_t Caw_try_receive( void )
         }
         if( _is_multiline( (char*)buf ) ){
             multiline ^= 1;
-            //if(!multiline){ printf("%s\n",reader); } // prints complete multiline
-            return (multiline) ? C_none : C_repl;
+            if(!multiline){
+                return C_repl;
+            } else { // started new multiline
+                if( len > 4 ){ // content follows the backticks
+                    len -= 4;
+                    buf = &buf[4];
+                } else { return C_none; }
+            }
+        }
+        if( pReader + len > USB_RX_BUFFER ){ // overflow protection
+            pReader = 0;
+            Caw_send_luachunk("!chunk too long!");
+            //multiline = 0; // FIXME can we know whether this is high / low?
+            return C_none;
         }
     // receive code for repl/flash
         memcpy( &(reader[pReader])
