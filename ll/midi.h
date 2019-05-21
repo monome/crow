@@ -35,6 +35,5 @@
 void MIDI_Init(void);
 void MIDI_DeInit(void);
 
-void UARTx_DMA_RX_IRQHandler(void);
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart);
 void MIDIx_IRQHandler( void );
