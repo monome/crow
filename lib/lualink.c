@@ -496,9 +496,9 @@ void L_handle_toward( int id )
 
 void L_queue_metro( int id, int state )
 {
-    event_t e = { .type  = E_metro
-                , .index = id
-                , .data  = state
+    event_t e = { .type   = E_metro
+                , .index  = id
+                , .data.i = state
                 };
     event_post(&e);
 }
@@ -516,9 +516,9 @@ void L_handle_metro( const int id, const int stage)
 
 void L_queue_in_stream( int id )
 {
-    event_t e = { .type  = E_stream
-                , .index = id
-                , .data  = IO_GetADC(id)
+    event_t e = { .type   = E_stream
+                , .index  = id
+                , .data.f = IO_GetADC(id)
                 };
     event_post(&e);
 }
@@ -536,9 +536,9 @@ void L_handle_in_stream( int id, float value )
 
 void L_queue_change( int id, float state )
 {
-    event_t e = { .type  = E_change
-                , .index = id
-                , .data  = state
+    event_t e = { .type   = E_change
+                , .index  = id
+                , .data.f = state
                 };
     event_post(&e);
 }
@@ -602,4 +602,18 @@ float L_handle_ii_followRxTx( uint8_t cmd, int args, float* data )
     float n = luaL_checknumber(L, 1);
     lua_pop( L, 1 );
     return n;
+}
+
+void L_queue_midi( uint8_t* data )
+{
+    event_t e = { .type = E_midi };
+    e.data.u8s[0] = data[0];
+    e.data.u8s[1] = data[1];
+    e.data.u8s[2] = data[2];
+    e.data.u8s[3] = data[3];
+    event_post(&e);
+}
+void L_handle_midi( uint8_t* data )
+{
+    // call to midi lib w data[0] to switch on midi event type
 }
