@@ -46,9 +46,9 @@ void MIDI_Active( int state )
     } else if( !state && is_active ){
         MIDI_ll_DeInit();
         is_active = 0;
-    } else {
-        if( MIDI_rx_cmd() ){ printf("midi1\n"); }
-    }
+    } else if( is_active ){
+        if( MIDI_rx_cmd() ){ printf("retry failed\n"); }
+    } // else ignore
 }
 
 uint8_t receiving_packet = 0;
