@@ -166,6 +166,19 @@ static int _print_tell( lua_State *L )
                                           , luaL_checkstring(L, 2)
                                           , luaL_checkstring(L, 3) );
             break;
+        case 4:
+            sprintf( teller, "^^%s(%s,%s,%s)", luaL_checkstring(L, 1)
+                                             , luaL_checkstring(L, 2)
+                                             , luaL_checkstring(L, 3)
+                                             , luaL_checkstring(L, 4) );
+            break;
+        case 5:
+            sprintf( teller, "^^%s(%s,%s,%s,%s)", luaL_checkstring(L, 1)
+                                                , luaL_checkstring(L, 2)
+                                                , luaL_checkstring(L, 3)
+                                                , luaL_checkstring(L, 4)
+                                                , luaL_checkstring(L, 5) );
+            break;
         default:
             return luaL_error(L, "too many args to tell.");
     }
