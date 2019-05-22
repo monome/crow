@@ -306,6 +306,59 @@ input[1].change = function(state)
 end
 ```
 
+## Midi Library
+
+crow's first Input doubles as MIDI input with the somewhat new TRS cable standard.
+
+*nb: The pinout follows the official standard and so is compatible with Korg & Akai*
+*(amongst others), but you'll need an adaptor for Novation & Arturia gear.*
+
+Think of 'midi' as a fourth option for the Input library, albeit with very different
+behaviour. Activating MIDI happens with any of the three input mode setters:
+`input[1].mode = 'midi'`
+or
+`input[1].mode('midi')`
+or
+`input[1]{ mode = 'midi' }`
+
+### Defaults for crow satellite
+By default, MIDI mode simply forwards the messages to the host as raw MIDI data.
+Currently all standard messages are supported except for SysEx commands.
+
+TODO
+On norns, one can treat the `crow.midi` event identically to the standard norns MIDI
+events, using the `midi.to_msg` function to parse the input.
+
+In Max the [crow] object will emit a message from the left output (midi data ...)
+where `data` may be 1 to 4 numbers long. If you want to use the [midiparse] object
+try: `[route midi] -> [zl iter 1] -> [midiparse]`. This will make crow feel like a
+regular Max MIDI input.
+
+### Standalone MIDI
+Sure crow is great at being a midi / cv / i2c bridge to a host, but MIDI is far more
+powerful when crow is running standalone. In this way your MIDI device can become
+the user-interface for crow. CCs could control variables of a lua sequencer, or
+notes could play Just Friends polyphonically...
+
+The syntax for handling this behaviour is identical to norns, minus the connection
+and 'ports' handling. crow only has one port! Try the below example to get started:
+```
+function init()
+  input[1].mode = 'midi;
+end
+
+input[1].midi = function(data)
+  local m = Midi.to_msg(data)
+  if m.type == 'note_on' then
+    print('on ' .. m.note)
+  elseif m.type == 'note_off' then
+    print('off ' .. m.note)
+  elseif m.type == 'cc' then
+    print('cc ' .. m.cc .. ' ' .. m.val)
+  end
+end
+```
+
 ## Output Library & ASL
 
 TODO
