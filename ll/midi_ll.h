@@ -21,10 +21,10 @@
 #define MIDIx_RX_DMA_CHANNEL    DMA_CHANNEL_4
 
 #define MIDIx_DMA_RX_IRQn       DMA1_Stream2_IRQn
-#define MIDIx_DMA_RX_IRQHandler DMA1_Stream2_IRQHandler
+#define MIDI_ll_DMA_RX_IRQHandler DMA1_Stream2_IRQHandler
 
 #define MIDIx_IRQn                  UART4_IRQn
-#define MIDIx_IRQHandler            UART4_IRQHandler
+#define MIDI_ll_IRQHandler          UART4_IRQHandler
 #define MIDIx_IRQPriority           MIDI_IRQPriority
 #define MIDIx_IRQSubPriority        0
 #define MIDIx_DMA_IRQPriority       MIDI_IRQPriority
@@ -32,8 +32,10 @@
 
 #define DBG_UART_TIMEOUT    0x4000 /* a long time */
 
-void MIDI_Init(void);
-void MIDI_DeInit(void);
+void MIDI_ll_Init( void(*rx_callback)(uint8_t*) );
+void MIDI_ll_DeInit(void);
+
+int MIDI_ll_Rx( int ix, int count );
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart);
-void MIDIx_IRQHandler( void );
+void MIDI_ll_IRQHandler( void );

@@ -18,6 +18,7 @@
 #include "../ll/random.h"   // Random_Get()
 #include "../ll/adda.h"     // CAL_Recalibrate() CAL_PrintCalibration()
 #include "lib/events.h"     // event_t event_post()
+#include "lib/midi.h"       // MIDI_Active()
 
 // Lua libs wrapped in C-headers: Note the extra '.h'
 #include "lua/bootstrap.lua.h" // MUST LOAD THIS MANUALLY FIRST
@@ -209,9 +210,10 @@ static int _set_input_none( lua_State *L )
 {
     uint8_t ix = luaL_checkinteger(L, 1)-1;
     Detect_t* d = Detect_ix_to_p( ix ); // Lua is 1-based
-    if( d != NULL ){ // valid index
+    if(d){ // valid index
         Detect_none( d );
         Metro_stop( ix );
+        if( ix == 0 ){ MIDI_Active( 0 ); } // deactivate MIDI if first chan
     }
     lua_pop( L, 1 );
     lua_settop(L, 0);
@@ -221,13 +223,14 @@ static int _set_input_stream( lua_State *L )
 {
     uint8_t ix = luaL_checkinteger(L, 1)-1;
     Detect_t* d = Detect_ix_to_p( ix ); // Lua is 1-based
-    if( d != NULL ){ // valid index
+    if(d){ // valid index
         Detect_none( d );
         Metro_start( ix
                    , luaL_checknumber(L, 2)
                    , -1
                    , 0
                    );
+        if( ix == 0 ){ MIDI_Active( 0 ); } // deactivate MIDI if first chan
     }
     lua_pop( L, 2 );
     lua_settop(L, 0);
@@ -237,7 +240,7 @@ static int _set_input_change( lua_State *L )
 {
     uint8_t ix = luaL_checkinteger(L, 1)-1;
     Detect_t* d = Detect_ix_to_p( ix ); // Lua is 1-based
-    if( d != NULL ){ // valid index
+    if(d){ // valid index
         Metro_stop( ix );
         Detect_change( d
                      , L_queue_change
@@ -245,11 +248,28 @@ static int _set_input_change( lua_State *L )
                      , luaL_checknumber(L, 3)
                      , Detect_str_to_dir( luaL_checkstring(L, 4) )
                      );
+        if( ix == 0 ){ MIDI_Active( 0 ); } // deactivate MIDI if first chan
     }
     lua_pop( L, 4 );
     lua_settop(L, 0);
     return 0;
 }
+static int _set_input_midi( lua_State *L )
+{
+    uint8_t ix = luaL_checkinteger(L, 1)-1;
+    if( ix == 0 ){ // only first channel supports midi
+        Detect_t* d = Detect_ix_to_p( ix ); // Lua is 1-based
+        if(d){ // valid index
+            Detect_none( d );
+            Metro_stop( ix );
+            MIDI_Active( 1 );
+        }
+    }
+    lua_pop( L, 1 );
+    lua_settop(L, 0);
+    return 0;
+}
+
 static int _send_usb( lua_State *L )
 {
     // pattern match on type: handle values vs strings vs chunk
@@ -402,6 +422,7 @@ static const struct luaL_Reg libCrow[]=
     , { "set_input_none"   , _set_input_none   }
     , { "set_input_stream" , _set_input_stream }
     , { "set_input_change" , _set_input_change }
+    , { "set_input_midi"   , _set_input_midi   }
         // usb
     , { "send_usb"         , _send_usb         }
         // i2c
@@ -615,5 +636,16 @@ void L_queue_midi( uint8_t* data )
 }
 void L_handle_midi( uint8_t* data )
 {
+    MIDI_Event_t e = MIDI_Event(data);
     // call to midi lib w data[0] to switch on midi event type
+//TODO does this have multiple handlers or should the user match in lua?
+    //lua_getglobal(L, "midi_handler");
+    //lua_pushinteger(L, id+1); // 1-ix'd
+    //lua_pushnumber(L, state);
+    //if( lua_pcall(L, 2, 0, 0) != LUA_OK ){
+    //    printf("ch er\n");
+    //    Caw_send_luachunk("error: input change");
+    //    Caw_send_luachunk( (char*)lua_tostring(L, -1) );
+    //    lua_pop( L, 1 );
+    //}
 }

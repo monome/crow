@@ -13,7 +13,6 @@
 
 #include "ll/debug_usart.h"
 #include "ll/debug_pin.h"
-#include "ll/midi.h"
 #include "ll/random.h"
 
 #include "usbd/usbd_cdc_interface.h"
@@ -41,7 +40,6 @@ int main(void)
     events_init();
     Metro_Init();
     Caw_Init();
-    MIDI_Init();
     II_init( II_CROW );
     Random_Init();
 
