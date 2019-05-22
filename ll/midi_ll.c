@@ -85,7 +85,7 @@ int MIDI_ll_Rx( int ix, int count )
                               , &(rx_buf[ix])
                               , count
                               );
-    if( err ){ printf("MIDI_LL_Rx error\n"); }
+    if( err ){ printf("MIDI_ll_Rx %i\n", err); }
     return err;
 }
 
