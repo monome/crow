@@ -644,21 +644,19 @@ void L_queue_midi( uint8_t* data )
     e.data.u8s[0] = data[0];
     e.data.u8s[1] = data[1];
     e.data.u8s[2] = data[2];
-    e.data.u8s[3] = data[3];
     event_post(&e);
 }
 void L_handle_midi( uint8_t* data )
 {
-    MIDI_Event_t e = MIDI_Event(data);
-    // call to midi lib w data[0] to switch on midi event type
-//TODO does this have multiple handlers or should the user match in lua?
-    //lua_getglobal(L, "midi_handler");
-    //lua_pushinteger(L, id+1); // 1-ix'd
-    //lua_pushnumber(L, state);
-    //if( lua_pcall(L, 2, 0, 0) != LUA_OK ){
-    //    printf("ch er\n");
-    //    Caw_send_luachunk("error: input change");
-    //    Caw_send_luachunk( (char*)lua_tostring(L, -1) );
-    //    lua_pop( L, 1 );
-    //}
+    lua_getglobal(L, "midi_handler");
+    int count = MIDI_byte_count(data[0]) + 1; // +1 for cmd byte itself
+    for( int i=0; i<count; i++ ){
+        lua_pushinteger(L, data[i]);
+    }
+    if( lua_pcall(L, count, 0, 0) != LUA_OK ){
+        printf("midi lua-cb err\n");
+        Caw_send_luachunk("error: input midi");
+        Caw_send_luachunk( (char*)lua_tostring(L, -1) );
+        lua_pop( L, 1 );
+    }
 }

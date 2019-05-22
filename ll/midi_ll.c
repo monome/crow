@@ -7,7 +7,7 @@ void (*rx_callback)(uint8_t*) = rx_callback_null;
 uint8_t rx_buf[8]; // TODO not big enough for sysex!
 
 // public defns
-void MIDI_ll_Init( void(*rx_callback)(uint8_t*) )
+void MIDI_ll_Init( void(*rx_handler)(uint8_t*) )
 {
     midiuart.Instance = MIDIx;
 
@@ -20,6 +20,8 @@ void MIDI_ll_Init( void(*rx_callback)(uint8_t*) )
     if( HAL_UART_Init( &midiuart ) ){ printf("!midi_uart_init\n"); }
 
     while( HAL_UART_GetState( &midiuart ) != HAL_UART_STATE_READY ){}
+
+    rx_callback = rx_handler;
 }
 
 void MIDI_ll_DeInit(void)
@@ -79,12 +81,10 @@ void MIDI_ll_DMA_RX_IRQHandler( void )
 int MIDI_ll_Rx( int ix, int count )
 {
     int err;
-    BLOCK_IRQS(
-        err = HAL_UART_Receive_DMA( &midiuart
-                                  , &(rx_buf[ix])
-                                  , count
-                                  );
-    );
+    err = HAL_UART_Receive_DMA( &midiuart
+                              , &(rx_buf[ix])
+                              , count
+                              );
     if( err ){ printf("MIDI_LL_Rx error\n"); }
     return err;
 }

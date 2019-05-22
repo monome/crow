@@ -32,7 +32,7 @@
 
 #define DBG_UART_TIMEOUT    0x4000 /* a long time */
 
-void MIDI_ll_Init( void(*rx_callback)(uint8_t*) );
+void MIDI_ll_Init( void(*rx_handler)(uint8_t*) );
 void MIDI_ll_DeInit(void);
 
 int MIDI_ll_Rx( int ix, int count );
