@@ -54,6 +54,9 @@ function change( channel, state )
     to_max("change_cv", channel, state )
 end
 
+function midi( ... )
+    to_max("midi", ...)
+end
 
 --- Helper conversion functions
 
