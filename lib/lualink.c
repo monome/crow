@@ -18,6 +18,7 @@
 #include "../ll/random.h"   // Random_Get()
 #include "../ll/adda.h"     // CAL_Recalibrate() CAL_PrintCalibration()
 #include "lib/events.h"     // event_t event_post()
+#include "lib/midi.h"       // MIDI_Active()
 
 // Lua libs wrapped in C-headers: Note the extra '.h'
 #include "lua/bootstrap.lua.h" // MUST LOAD THIS MANUALLY FIRST
@@ -30,6 +31,7 @@
 #include "lua/ii.lua.h"
 #include "build/iihelp.lua.h"    // generated lua stub for loading i2c modules
 #include "lua/calibrate.lua.h"
+#include "lua/midi.lua.h"
 
 #include "build/ii_lualink.h" // generated C header for linking to lua
 
@@ -43,6 +45,7 @@ const struct lua_lib_locator Lua_libs[] =
     , { "lua_ii"        , lua_ii        }
     , { "build_iihelp"  , build_iihelp  }
     , { "lua_calibrate" , lua_calibrate }
+    , { "lua_midi"      , lua_midi      }
     , { NULL            , NULL          }
     };
 
@@ -165,6 +168,19 @@ static int _print_tell( lua_State *L )
                                           , luaL_checkstring(L, 2)
                                           , luaL_checkstring(L, 3) );
             break;
+        case 4:
+            sprintf( teller, "^^%s(%s,%s,%s)", luaL_checkstring(L, 1)
+                                             , luaL_checkstring(L, 2)
+                                             , luaL_checkstring(L, 3)
+                                             , luaL_checkstring(L, 4) );
+            break;
+        case 5:
+            sprintf( teller, "^^%s(%s,%s,%s,%s)", luaL_checkstring(L, 1)
+                                                , luaL_checkstring(L, 2)
+                                                , luaL_checkstring(L, 3)
+                                                , luaL_checkstring(L, 4)
+                                                , luaL_checkstring(L, 5) );
+            break;
         default:
             return luaL_error(L, "too many args to tell.");
     }
@@ -209,9 +225,10 @@ static int _set_input_none( lua_State *L )
 {
     uint8_t ix = luaL_checkinteger(L, 1)-1;
     Detect_t* d = Detect_ix_to_p( ix ); // Lua is 1-based
-    if( d != NULL ){ // valid index
+    if(d){ // valid index
         Detect_none( d );
         Metro_stop( ix );
+        if( ix == 0 ){ MIDI_Active( 0 ); } // deactivate MIDI if first chan
     }
     lua_pop( L, 1 );
     lua_settop(L, 0);
@@ -221,13 +238,14 @@ static int _set_input_stream( lua_State *L )
 {
     uint8_t ix = luaL_checkinteger(L, 1)-1;
     Detect_t* d = Detect_ix_to_p( ix ); // Lua is 1-based
-    if( d != NULL ){ // valid index
+    if(d){ // valid index
         Detect_none( d );
         Metro_start( ix
                    , luaL_checknumber(L, 2)
                    , -1
                    , 0
                    );
+        if( ix == 0 ){ MIDI_Active( 0 ); } // deactivate MIDI if first chan
     }
     lua_pop( L, 2 );
     lua_settop(L, 0);
@@ -237,7 +255,7 @@ static int _set_input_change( lua_State *L )
 {
     uint8_t ix = luaL_checkinteger(L, 1)-1;
     Detect_t* d = Detect_ix_to_p( ix ); // Lua is 1-based
-    if( d != NULL ){ // valid index
+    if(d){ // valid index
         Metro_stop( ix );
         Detect_change( d
                      , L_queue_change
@@ -245,11 +263,28 @@ static int _set_input_change( lua_State *L )
                      , luaL_checknumber(L, 3)
                      , Detect_str_to_dir( luaL_checkstring(L, 4) )
                      );
+        if( ix == 0 ){ MIDI_Active( 0 ); } // deactivate MIDI if first chan
     }
     lua_pop( L, 4 );
     lua_settop(L, 0);
     return 0;
 }
+static int _set_input_midi( lua_State *L )
+{
+    uint8_t ix = luaL_checkinteger(L, 1)-1;
+    if( ix == 0 ){ // only first channel supports midi
+        Detect_t* d = Detect_ix_to_p( ix ); // Lua is 1-based
+        if(d){ // valid index
+            Detect_none( d );
+            Metro_stop( ix );
+            MIDI_Active( 1 );
+        }
+    }
+    lua_pop( L, 1 );
+    lua_settop(L, 0);
+    return 0;
+}
+
 static int _send_usb( lua_State *L )
 {
     // pattern match on type: handle values vs strings vs chunk
@@ -402,6 +437,7 @@ static const struct luaL_Reg libCrow[]=
     , { "set_input_none"   , _set_input_none   }
     , { "set_input_stream" , _set_input_stream }
     , { "set_input_change" , _set_input_change }
+    , { "set_input_midi"   , _set_input_midi   }
         // usb
     , { "send_usb"         , _send_usb         }
         // i2c
@@ -496,9 +532,9 @@ void L_handle_toward( int id )
 
 void L_queue_metro( int id, int state )
 {
-    event_t e = { .type  = E_metro
-                , .index = id
-                , .data  = state
+    event_t e = { .type   = E_metro
+                , .index  = id
+                , .data.i = state
                 };
     event_post(&e);
 }
@@ -516,9 +552,9 @@ void L_handle_metro( const int id, const int stage)
 
 void L_queue_in_stream( int id )
 {
-    event_t e = { .type  = E_stream
-                , .index = id
-                , .data  = IO_GetADC(id)
+    event_t e = { .type   = E_stream
+                , .index  = id
+                , .data.f = IO_GetADC(id)
                 };
     event_post(&e);
 }
@@ -536,9 +572,9 @@ void L_handle_in_stream( int id, float value )
 
 void L_queue_change( int id, float state )
 {
-    event_t e = { .type  = E_change
-                , .index = id
-                , .data  = state
+    event_t e = { .type   = E_change
+                , .index  = id
+                , .data.f = state
                 };
     event_post(&e);
 }
@@ -602,4 +638,27 @@ float L_handle_ii_followRxTx( uint8_t cmd, int args, float* data )
     float n = luaL_checknumber(L, 1);
     lua_pop( L, 1 );
     return n;
+}
+
+void L_queue_midi( uint8_t* data )
+{
+    event_t e = { .type = E_midi };
+    e.data.u8s[0] = data[0];
+    e.data.u8s[1] = data[1];
+    e.data.u8s[2] = data[2];
+    event_post(&e);
+}
+void L_handle_midi( uint8_t* data )
+{
+    lua_getglobal(L, "midi_handler");
+    int count = MIDI_byte_count(data[0]) + 1; // +1 for cmd byte itself
+    for( int i=0; i<count; i++ ){
+        lua_pushinteger(L, data[i]);
+    }
+    if( lua_pcall(L, count, 0, 0) != LUA_OK ){
+        printf("midi lua-cb err\n");
+        Caw_send_luachunk("error: input midi");
+        Caw_send_luachunk( (char*)lua_tostring(L, -1) );
+        lua_pop( L, 1 );
+    }
 }

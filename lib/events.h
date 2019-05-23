@@ -8,13 +8,20 @@ typedef enum {
     E_stream,
     E_change,
     E_toward,
+    E_midi,
     E_COUNT
 } event_type_t;
 
+union Data{
+    int i;
+    float f;
+    uint8_t u8s[4];
+};
+
 typedef struct {
     event_type_t type;
-    int8_t index;
-    double data;
+    int8_t       index;
+    union Data   data;
 } event_t;
 
 
@@ -31,3 +38,4 @@ static void handler_metro(event_t *e);
 static void handler_stream(event_t *e);
 static void handler_change(event_t *e);
 static void handler_toward(event_t *e);
+static void handler_midi(event_t *e);

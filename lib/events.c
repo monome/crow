@@ -33,8 +33,8 @@ void events_init() {
 
     // zero out the event records
     for ( k = 0; k < MAX_EVENTS; k++ ) {
-        sysEvents[ k ].type = 0;
-        sysEvents[ k ].data = 0;
+        sysEvents[ k ].type   = 0;
+        sysEvents[ k ].data.i = 0;
     }
 
     // assign event handlers
@@ -43,30 +43,29 @@ void events_init() {
     app_event_handlers[E_stream] = &handler_stream;
     app_event_handlers[E_change] = &handler_change;
     app_event_handlers[E_toward] = &handler_toward;
+    app_event_handlers[E_midi] = &handler_midi;
 }
 
 // get next event
 // returns non-zero if an event was available
 uint8_t event_next( event_t *e ) {
     uint8_t status;
-    uint32_t old_primask = __get_PRIMASK();
-    __disable_irq();
 
-    // if pointers are equal, the queue is empty... don't allow idx's to wrap!
-    if ( getIdx != putIdx ) {
-        INCR_EVENT_INDEX( getIdx );
-        e->type = sysEvents[ getIdx ].type;
-        e->index = sysEvents[ getIdx ].index;
-        e->data = sysEvents[ getIdx ].data;
-        status = 1;
-    } else {
-        e->type  = 0xff;
-        e->index = 0;
-        e->data = 0;
-        status = 0;
-    }
-
-    __set_PRIMASK( old_primask );
+    BLOCK_IRQS(
+        // if pointers are equal, the queue is empty... don't allow idx's to wrap!
+        if ( getIdx != putIdx ) {
+            INCR_EVENT_INDEX( getIdx );
+            e->type  = sysEvents[ getIdx ].type;
+            e->index = sysEvents[ getIdx ].index;
+            e->data  = sysEvents[ getIdx ].data;
+            status = 1;
+        } else {
+            e->type   = 0xff;
+            e->index  = 0;
+            e->data.i = 0;
+            status = 0;
+        }
+    );
 
     return status;
 }
@@ -75,26 +74,22 @@ uint8_t event_next( event_t *e ) {
 // add event to queue, return success status
 uint8_t event_post( event_t *e ) {
     //printf("posting event, type: %d\n",e->type);
-
-    uint32_t old_primask = __get_PRIMASK();
-    __disable_irq();
-
     uint8_t status = 0;
 
-    // increment write idx, posbily wrapping
-    int saveIndex = putIdx;
-    INCR_EVENT_INDEX( putIdx );
-    if ( putIdx != getIdx  ) {
-        sysEvents[ putIdx ].type = e->type;
-        sysEvents[ putIdx ].index = e->index;
-        sysEvents[ putIdx ].data = e->data;
-        status = 1;
-    } else {
-        // idx wrapped, so queue is full, restore idx
-        putIdx = saveIndex;
-    } 
-
-    __set_PRIMASK( old_primask );
+    BLOCK_IRQS(
+        // increment write idx, posbily wrapping
+        int saveIndex = putIdx;
+        INCR_EVENT_INDEX( putIdx );
+        if ( putIdx != getIdx  ) {
+            sysEvents[ putIdx ].type  = e->type;
+            sysEvents[ putIdx ].index = e->index;
+            sysEvents[ putIdx ].data  = e->data;
+            status = 1;
+        } else {
+            // idx wrapped, so queue is full, restore idx
+            putIdx = saveIndex;
+        }
+    );
 
     //if (!status)
     //  printf("\r\n event queue full!");
@@ -109,20 +104,25 @@ static void handler_none(event_t *e) {}
 
 static void handler_metro(event_t *e) {
     //printf("metro event\n");
-    L_handle_metro( e->index, e->data );
+    L_handle_metro( e->index, e->data.i );
 }
 
 static void handler_stream(event_t *e) {
     //printf("stream event %f\n",e->data);
-    L_handle_in_stream( e->index, e->data );
+    L_handle_in_stream( e->index, e->data.f );
 }
 
 static void handler_change(event_t *e) {
     //printf("change event %f\n",e->data);
-    L_handle_change( e->index, e->data );
+    L_handle_change( e->index, e->data.f );
 }
 
 static void handler_toward(event_t *e) {
     //printf("toward %d\n",e->index);
     L_handle_toward( e->index );
+}
+
+static void handler_midi(event_t *e) {
+    //printf("midi %d\n",e->data);
+    L_handle_midi( e->data.u8s );
 }

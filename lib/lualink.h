@@ -24,6 +24,7 @@ extern void L_queue_toward( int id );
 extern void L_queue_metro( int id, int state );
 extern void L_queue_in_stream( int id );
 extern void L_queue_change( int id, float state );
+extern void L_queue_midi( uint8_t* data );
 
 // Callback declarations
 extern void L_handle_toward( int id );
@@ -33,3 +34,4 @@ extern void L_handle_change( int id, float state );
 extern void L_handle_ii_leadRx( uint8_t address, uint8_t cmd, float data );
 extern void L_handle_ii_followRx( uint8_t cmd, int args, float* data );
 extern float L_handle_ii_followRxTx( uint8_t cmd, int args, float* data );
+extern void L_handle_midi( uint8_t* data );

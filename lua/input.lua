@@ -21,6 +21,7 @@ function Input.new( chan )
         -- user-customizable events
               , stream     = function(value) _c.tell('ret_cv',chan,value) end
               , change     = function(state) _c.tell('change',chan,state) end
+              , midi       = function(data) _c.tell('midi',table.unpack(data)) end
               , window     = function(ix, direction) get_cv(chan) end
               , scale      = function(octave, ix) get_cv(chan) end
               , quantize   = function(octave, ix) get_cv(chan) end
@@ -41,30 +42,30 @@ function Input:set_mode( mode, ... )
     if mode == 'stream' then
         self.time = args[1] or self.time
         set_input_stream( self.channel, self.time )
+    elseif mode == 'change' then
+        self.threshold  = args[1] or self.threshold
+        self.hysteresis = args[2] or self.hysteresis
+        self.direction  = args[3] or self.direction
+        set_input_change( self.channel
+                        , self.threshold
+                        , self.hysteresis
+                        , self.direction
+                        )
+    elseif mode == 'midi' then
+        set_input_midi( self.channel )
+    elseif mode == 'window' then
+        self.windows    = args[1] or self.windows
+        self.hysteresis = args[2] or self.hysteresis
+        self.direction  = args[3] or self.direction
+    elseif mode == 'scale' then
+        self.notes = args[1] or self.notes
+    elseif mode == 'quantize' then
+        self.tones = args[1] or self.tones
+        self.quants = args[2] or self.scale
+    elseif mode == 'ji' then
+        self.ratios = args[1]
     else
-        if mode == 'change' then
-            self.threshold  = args[1] or self.threshold
-            self.hysteresis = args[2] or self.hysteresis
-            self.direction  = args[3] or self.direction
-            set_input_change( self.channel
-                            , self.threshold
-                            , self.hysteresis
-                            , self.direction
-                            )
-        elseif mode == 'window' then
-            self.windows    = args[1] or self.windows
-            self.hysteresis = args[2] or self.hysteresis
-            self.direction  = args[3] or self.direction
-        elseif mode == 'scale' then
-            self.notes = args[1] or self.notes
-        elseif mode == 'quantize' then
-            self.tones = args[1] or self.tones
-            self.quants = args[2] or self.scale
-        elseif mode == 'ji' then
-            self.ratios = args[1]
-        else
-            set_input_none( self.channel )
-        end
+        set_input_none( self.channel )
     end
     self._mode = mode
 end
@@ -107,6 +108,7 @@ setmetatable(Input, Input) -- capture the metamethods
 -- callback
 function stream_handler( chan, val ) Input.inputs[chan].stream( val ) end
 function change_handler( chan, val ) Input.inputs[chan].change( val ) end
+function midi_handler( ... ) d = {...}; Input.inputs[1].midi(d) end
 
 print 'input loaded'
 
