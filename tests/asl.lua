@@ -97,14 +97,13 @@ function run_tests()
           , {2, {1,3,3,'expo'}}
           )
 
-    -- sequence with restart
+    -- sequence with instant actions
     _t.run( function(count)
                 local sl = Asl.new(1)
                 sl.action = { toward( 1,1,'linear' )
+                            , toward{ ['here'] = 4 }
                             , toward( 3,3,'expo' )
                             }
-                sl:action()
-                for i=1,2 do sl:step() end
                 sl:action()
                 for i=1,count do sl:step() end
                 return get_last_toward()
@@ -114,14 +113,14 @@ function run_tests()
           , {2, {1,3,3,'expo'}}
           )
 
-
-    -- sequence with instant actions
+    -- sequence with restart after finish
     _t.run( function(count)
                 local sl = Asl.new(1)
                 sl.action = { toward( 1,1,'linear' )
-                            , toward{ ['here'] = 4 }
                             , toward( 3,3,'expo' )
                             }
+                sl:action()
+                for i=1,2 do sl:step() end
                 sl:action()
                 for i=1,count do sl:step() end
                 return get_last_toward()
