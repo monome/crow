@@ -57,6 +57,7 @@ function Asl:do_action( dir )
     self.hold = dir
     if self.co ~= nil then
         if self.locked ~= true then
+            self.cc = true -- reactivate if finished
             -- TODO need to restart if true
             -- TODO jump to release if false
             self:step()
