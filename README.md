@@ -406,6 +406,18 @@ output[1].asl.action =
 ```
 Then start it as above with `output[1].asl:action()`, note the colon (method) call!
 
+There is a syntax shortcut to assign an action and start it immediately. Rather than
+assigning with `=` you can method-call (`:`) action with an ASL argument. Looks like:
+
+```
+output[1].asl:action( -- note the parens & method call
+    loop{ toward( 5.0, 0.0, 'linear' )
+        , toward( 0.0, 1.0, 'linear' )
+        }) -- method calls ends here
+```
+
+### volts
+
 It can be useful to query the current output value of an output. Rather than setting
 'volts' as above, you can query it like so:
 `v = output[1].volts`
