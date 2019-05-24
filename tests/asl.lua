@@ -259,16 +259,16 @@ function run_tests()
           , {5, {1,5,5,'linear'}}
           )
 
-    -- thread{}
+    -- weave{}
     _t.run( function(count)
                 local sl = Asl.new(1)
-                sl.action = thread{ loop{ toward( 1, 1 )
-                                        , toward( 2, 1 )
-                                        }
-                                  , loop{ toward( 3, 1 )
-                                        , toward( 4, 1 )
-                                        }
-                                  }
+                sl.action = weave{ loop{ toward( 1, 1 )
+                                       , toward( 2, 1 )
+                                       }
+                                 , loop{ toward( 3, 1 )
+                                       , toward( 4, 1 )
+                                       }
+                                 }
                 sl:action()
                 for i=1,count do sl:step() end
                 return get_last_toward()

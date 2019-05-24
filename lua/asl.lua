@@ -174,7 +174,7 @@ function loop( fns )
     end)
 end
 
-function thread( fns )
+function weave( fns )
     return coroutine.create(function( self )
         while true do
             seq_coroutines( self, fns, 2 )
