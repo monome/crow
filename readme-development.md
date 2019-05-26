@@ -22,11 +22,19 @@ crow development can mean many things, but if you want to write anything beyond 
 - `make` build the project binary (**see nb below**)
 - `make clean` remove all binary objects to force a rebuild on next `make`
 
-*nb: currently the Makefile is a little broken and you'll need this*: (see issue [#42](https://github.com/monome/crow/issues/42))
-- `make clean`
-- `mkdir build`
-- `lua util/ii_gen.lua`
-- `make`
+### Docker
+
+You can get a reproducible build environment with Docker as follows:
+
+```bash
+git clone --recursive --config core.autocrlf=input https://github.com/monome/crow
+cd crow
+docker build . -t crow-dev
+docker run --rm -it -v "$(pwd)":/target bash
+```
+
+and then `make` to build.
+
 
 #### DFU Programmer
 

@@ -13,8 +13,8 @@ BOOTLOADER=submodules/dfu-stm32f7
 BUILD_DIR := build
 PRJ_DIR=crow
 
-CC=arm-none-eabi-gcc-4.9.3
-LD=arm-none-eabi-gcc-4.9.3
+CC=arm-none-eabi-gcc
+LD=arm-none-eabi-gcc
 AR=arm-none-eabi-ar
 AS=arm-none-eabi-as
 CP=arm-none-eabi-objcopy
