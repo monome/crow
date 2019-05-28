@@ -21,7 +21,7 @@ customization is required to achieve many standard functions.
 
 In general there are two classes of use-case, crow as *satellite*, and crow
 *standalone*. Separating crow's functions along this boundary is useful for
-some descriptive purposes, but of course your use-case my cross the division.
+some descriptive purposes, but of course your use-case may cross the division.
 It's quite possible that a *satellite* use case may want to have crow running a
 local script to enrich the remote features.
 
