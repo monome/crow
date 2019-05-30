@@ -53,10 +53,16 @@ end
 -- this is a *private* method
 -- FIXME should be local?
 function Asl:do_action( dir )
+    local t = type(dir)
+    if t == 'table' or t == 'thread' then
+        Asl.set_action(self,dir) -- assign new action. dir is an ASL!
+        dir = true           -- call it!
+    end
     dir = dir or true -- default to rising action
     self.hold = dir
     if self.co ~= nil then
         if self.locked ~= true then
+            self.cc = true -- reactivate if finished
             -- TODO need to restart if true
             -- TODO jump to release if false
             self:step()
@@ -85,9 +91,10 @@ Asl.__newindex = function(self, ix, val)
 end
 
 -- call the member 'action' to start the asl coroutine
+--   if called w a table arg, treat it as a new ASL to run immediately
 Asl.__index = function(self, ix)
     if ix == 'action' then
-        return function(...) Asl.do_action( self, ...) end
+        return function(self,a) Asl.do_action(self,a) end
     elseif ix == 'step' then return Asl.step
     elseif ix == 'init' then return Asl.init end
 end
@@ -173,7 +180,7 @@ function loop( fns )
     end)
 end
 
-function thread( fns )
+function weave( fns )
     return coroutine.create(function( self )
         while true do
             seq_coroutines( self, fns, 2 )
