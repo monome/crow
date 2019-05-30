@@ -23,7 +23,9 @@ end
 --- METAMETHODS
 -- setters
 Output.__newindex = function(self, ix, val)
-    if ix == 'volts' then
+    if ix == 'action' then
+        self.asl.action = val
+    elseif ix == 'volts' then
         self.asl.action = {toward(val)}
         self.asl:action()
     end
@@ -31,7 +33,9 @@ end
 
 -- getters
 Output.__index = function(self, ix)
-    if ix == 'volts' then
+    if ix == 'action' then
+        return self.asl.action
+    elseif ix == 'volts' then
         return LL_get_state(self.channel)
     end
 end
