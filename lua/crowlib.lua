@@ -3,18 +3,6 @@
 local _crow = {}
 local _c = _crow -- alias
 
---- System functions
-
-_crow.version = '0.0.0'
-
-function whatversion()
-    return _crow.version
-end
-
-function printversion()
-    print( 'crow ' .. whatversion() )
-end
-
 
 --- Library loader
 --
