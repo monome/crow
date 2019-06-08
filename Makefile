@@ -1,7 +1,7 @@
 TARGET=crow
 EXECUTABLE=$(TARGET).elf
 
-VERSION=0.0.2
+VERSION=$(shell git describe --tags)
 
 CUBE=submodules/STM32_Cube_F7/Drivers
 HALS=$(CUBE)/STM32F7xx_HAL_Driver/Src
