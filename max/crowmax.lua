@@ -58,6 +58,14 @@ function midi( ... )
     to_max("midi", ...)
 end
 
+function version( ... )
+    to_max("version", ...)
+end
+
+function crow_id( ... )
+    to_max("id", ...)
+end
+
 --- Helper conversion functions
 
 function tell_crow( str )
