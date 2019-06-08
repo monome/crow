@@ -65,6 +65,8 @@ static C_cmd_t _find_cmd( char* str, uint32_t len )
                 else if( *pStr == 'c' ){ return C_flashclear; }
                 else if( *pStr == 'r' ){ return C_restart; }
                 else if( *pStr == 'p' ){ return C_print; }
+                else if( *pStr == 'v' ){ return C_version; }
+                else if( *pStr == 'i' ){ return C_identity; }
             }
         }
     }
@@ -107,6 +109,8 @@ C_cmd_t Caw_try_receive( void )
             case C_flashclear: return C_flashclear;
             case C_restart:    return C_restart;
             case C_print:      return C_print;
+            case C_version:    return C_version;
+            case C_identity:   return C_identity;
             default: break;
         }
         if( *buf == '\e' ){ // escape key
