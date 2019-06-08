@@ -25,7 +25,7 @@ void system_init(void)
 void system_print_version(void)
 {
     char s[64];
-    sprintf( s, "^^version('%s')", VERSION ); // FIXME from git version
+    sprintf( s, "^^version('%s')", VERSION );
     Caw_send_luachunk( s );
 }
 
