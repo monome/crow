@@ -21,7 +21,7 @@ customization is required to achieve many standard functions.
 
 In general there are two classes of use-case, crow as *satellite*, and crow
 *standalone*. Separating crow's functions along this boundary is useful for
-some descriptive purposes, but of course your use-case my cross the division.
+some descriptive purposes, but of course your use-case may cross the division.
 It's quite possible that a *satellite* use case may want to have crow running a
 local script to enrich the remote features.
 
@@ -380,17 +380,20 @@ ASL is brand new and sharing your examples will help it mature!
 ### examples
 
 Activate a pre-defined ASL action. By default there is a +/-5v LFO on every channel:
-`output[1].asl:action()` will start the LFO on output 1.
+`output[1]:action()` will start the LFO on output 1.
 or you can use the short-cut:
 `output[1]()`
-Is this a bad idea? Send a string to do output actions? Could be the ASL interactive
-commands like "press", "release", "begin", "pause". Like a micro-repl.
+
+*tech note: `output[n].action` is actually a shortcut for `output[n].asl.action`*
+
+*ed note: Is this a bad idea? Send a string to do output actions? Could be the ASL*
+*interactive commands like "press", "release", "begin", "pause". Like a micro-repl.*
 
 Or set the output to a value directly, deactivating the current action:
 `output[1].volts = 2.0` 2 volts.
 
 You can assign a new action:
-`output[1].asl.action = lfo( 1.0, 'linear', 4.0 )`
+`output[1].action = lfo( 1.0, 'linear', 4.0 )`
 
 There's a list of different default actions like `lfo()`, `adsr()` in the 'Asl lib'
 located in `lua/asllib.lua`.
@@ -399,12 +402,24 @@ You can of course define your own ASL generator functions, or use it directly. B
 we assign a sawtooth LFO jumping instantly to 5 volts, then falling to 0 volts in
 one second, before repeating infinitely.
 ```
-output[1].asl.action =
+output[1].action =
     loop{ toward( 5.0, 0.0, 'linear' )
         , toward( 0.0, 1.0, 'linear' )
         }
 ```
-Then start it as above with `output[1].asl:action()`, note the colon (method) call!
+Then start it as above with `output[1]:action()`, note the colon (method) call!
+
+There is a syntax shortcut to assign an action and start it immediately. Rather than
+assigning with `=` you can method-call (`:`) action with an ASL argument. Looks like:
+
+```
+output[1].asl:action( -- note the parens & method call
+    loop{ toward( 5.0, 0.0, 'linear' )
+        , toward( 0.0, 1.0, 'linear' )
+        }) -- method calls ends here
+```
+
+### volts
 
 There is a syntax shortcut to assign an action and start it immediately. Rather than
 assigning with `=` you can method-call (`:`) action with an ASL argument. Looks like:
@@ -424,7 +439,7 @@ It can be useful to query the current output value of an output. Rather than set
 
 Try querying the 'volts' of output 1 to set the rate for an lfo on output 2:
 ```
-output[2].asl.action =
+output[2].action =
     lfo( function() return output[1].volts end
        , 'linear'
        , 5.0
