@@ -24,7 +24,6 @@ void system_init(void)
 
 void system_print_version(void)
 {
-    printf("version\n");
     char s[64];
     sprintf( s, "^^version('%s')", VERSION ); // FIXME from git version
     Caw_send_luachunk( s );
@@ -32,7 +31,6 @@ void system_print_version(void)
 
 void system_print_identity(void)
 {
-    printf("id\n");
     char s[64];
     sprintf( s, "^^crow_id('0x%08x%08x%08x')"
               , (unsigned int)getUID_Word(0)
