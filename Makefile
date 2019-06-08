@@ -1,7 +1,7 @@
 TARGET=crow
 EXECUTABLE=$(TARGET).elf
 
-VERSION=$(shell git describe --tags)
+GIT_VERSION := $(shell git describe --tags)
 
 CUBE=submodules/STM32_Cube_F7/Drivers
 HALS=$(CUBE)/STM32F7xx_HAL_Driver/Src
@@ -55,18 +55,18 @@ CFLAGS += $(DEFS) -I. -I./ $(STM32_INCLUDES)
 CFLAGS += -fsingle-precision-constant -Wdouble-promotion
 CFLAGS += -DLUA_32BITS -DLUA_COMPAT_5_2
 CFLAGS += -fno-common
-
+CFLAGS += -DVERSION=\"$(GIT_VERSION)\"
 
 # debugger: choose between uart (=0) & swtrace(=1). latter requires hardware mod
 TRACE ?= 0
 ifeq ($(TRACE), 1)
-    CFLAGS += -DTRACE
+	CFLAGS += -DTRACE
 endif
 
 # release: if (=1), disable all debug prints
 R ?= 0
 ifeq ($(R), 1)
-    CFLAGS += -DRELEASE
+	CFLAGS += -DRELEASE
 endif
 
 
@@ -243,10 +243,10 @@ boot:
 	make R=1 flash
 
 zip: $(BIN)
-	mkdir -p $(TARGET)-$(VERSION)
-	cp flash.sh $(TARGET)-$(VERSION)/
-	cp $(BIN) $(TARGET)-$(VERSION)/
-	zip -r $(TARGET)-$(VERSION).zip $(TARGET)-$(VERSION)/
+	mkdir -p $(TARGET)-$(GIT_VERSION)
+	cp flash.sh $(TARGET)-$(GIT_VERSION)/
+	cp $(BIN) $(TARGET)-$(GIT_VERSION)/
+	zip -r $(TARGET)-$(GIT_VERSION).zip $(TARGET)-$(GIT_VERSION)/
 	# needs semantic versioning
 
 %.o: %.c
@@ -288,7 +288,7 @@ clean:
 	$(TARGET).bin  $(TARGET).out  $(TARGET).hex \
 	$(TARGET).map  $(TARGET).dmp  $(EXECUTABLE) $(DEP) \
 	$(BUILD_DIR) lua/*.lua.h util/l2h.lua \
-	$(TARGET)-$(VERSION)/  *.zip \
+	$(TARGET)-$(GIT_VERSION)/  *.zip \
 
 splint:
 	splint -I. -I./ $(STM32_INCLUDES) *.c
