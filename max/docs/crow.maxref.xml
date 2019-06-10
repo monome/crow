@@ -16,7 +16,7 @@
 		<metadata name="author">Trent Gill</metadata>
 		<metadata name="tag">crow</metadata>
 		<metadata name="tag">crow help</metadata>
-		<metadata name"tag">Eurorack</metadata>
+		<metadata name="tag">Eurorack</metadata>
 	</metadatalist>
 
 	<!--INLETS-->
@@ -75,6 +75,78 @@
 			<digest>
 				Check channel 1 or 2's CV and send a message out the left outlet.
 			</digest>
+			<description>
+			</description>
+		</method>
+		<method name="change_cv [variable]">
+			<arglist>
+			</arglist>
+			<digest>
+				Check channel 1 or 2's state and output a 1 or 0.
+			</digest>
+			<description>
+			</description>
+		</method>
+		<method name="^^v">
+			<arglist>
+			</arglist>
+			<digest>
+				^^v or ^^version fetches crow's current firmware version.
+			</digest>
+			<description>
+			</description>
+		</method>
+		<method name="^^s">
+			<arglist>
+			</arglist>
+			<digest>
+				^^s or ^^startscript: sets crow to reception mode. following code will be saved to a buffer.
+			</digest>
+			<description>
+			</description>
+		</method>
+		<method name="^^e">
+			<arglist>
+			</arglist>
+			<digest>
+				^^e or ^^endscript: buffered code will be error-checked, eval'd, and written to flash. crow returns to repl mode.
+			</digest>
+			<description>
+			</description>
+		</method>
+		<method name="^^c">
+			<arglist>
+			</arglist>
+			<digest>
+				^^c or ^^clearscript: clears onboard flash without touching lua. use this if your script is crashing crow.
+			</digest>
+			<description>
+			</description>
+		</method>
+		<method name="^^p">
+			<arglist>
+			</arglist>
+			<digest>
+				^^p or ^^printscript: requests crow to print the current user script saved in flash over usb to the host. prints a warning if no user script exists.
+			</digest>
+			<description>
+			</description>
+		</method>
+		<method name="^^b">
+			<arglist>
+			</arglist>
+			<digest>
+				^^b or ^^bootloader: jump directly to the bootloader.
+				</digest>
+			<description>
+			</description>
+		</method>
+		<method name="^^r">
+			<arglist>
+			</arglist>
+			<digest>
+				^^r or ^^reset / ^^restart:  reboots crow (not just lua env). nb: causes usb connection to be reset.
+				</digest>
 			<description>
 			</description>
 		</method>
