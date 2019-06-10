@@ -3,10 +3,10 @@
 #include "../ll/debug_usart.h"
 
 #define USER_MAGIC 0xA  // bit pattern
-#define _VERSION   0x000 // crow semantic version
 
 // private declarations
 static void clear_flash( uint32_t sector, uint32_t location );
+static uint32_t version12b( void );
 
 // USER LUA SCRIPT //
 
@@ -40,9 +40,9 @@ uint8_t Flash_write_user_script( char* script, uint32_t length )
     uint32_t sd_addr = USER_SCRIPT_LOCATION;
 	HAL_FLASH_Program( FLASH_TYPEPROGRAM_WORD
 					 , sd_addr
-					 , USER_MAGIC       // user script present
-                     | (_VERSION << 4)  // version control
-                     | (length << 16)   // length in bytes
+					 , USER_MAGIC          // user script present
+                     | (version12b() << 4) // version control
+                     | (length << 16)      // length in bytes
 					 );
 // program script
     length >>= 2; length++;
@@ -167,4 +167,13 @@ static void clear_flash( uint32_t sector, uint32_t location )
 					 );
     // TODO error check
 	HAL_FLASH_Lock();
+}
+
+static uint32_t version12b( void )
+{
+    const uint32_t c = (uint32_t)( (VERSION[0]-0x30)<<8
+                                 | (VERSION[2]-0x30)<<4
+                                 | (VERSION[4]-0x30)
+                                 );
+    return c;
 }
