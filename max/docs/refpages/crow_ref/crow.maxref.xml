@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<?xml-stylesheet href="./_c74_ref.xsl" type="text/xsl"?>
+
+<c74object name="crow" module="crow">
+
+	<digest>
+		Eurorack and I2C communication
+	</digest>
+
+	<description>
+		Connect to the crow eurorack module via USB: send and receive CV, talk to other devices connected to crow via I2C, send Lua chunks to execute immediately, and send scripts to load into crow's flash. 
+	</description>
+
+	<!--METADATA-->
+	<metadatalist>
+		<metadata name="author">Sam Wolk</metadata>
+		<metadata name="tag">crow</metadata>
+		<metadata name="tag">crow help</metadata>
+	</metadatalist>
+
+	<!--INLETS-->
+	<inletlist>
+		<inlet id="0" type="INLET_TYPE">
+			<digest>
+				Commands for crow
+			</digest>
+			<description>
+				tell_crow *
+			</description>
+		</inlet>
+	</inletlist>
+
+	<!--OUTLETS-->
+	<outletlist>
+		<outlet id="0" type="INLET_TYPE">
+			<digest>
+				Commands from crow
+			</digest>
+			<description>
+				ret_cv, change_cv, metro
+			</description>
+		</outlet>
+		<outlet id="0" type="INLET_TYPE">
+			<digest>
+				Printed messages from Lua
+			</digest>
+			<description>
+			  Output from crow executing print() commands
+			</description>
+		</outlet>
+	</outletlist>
+
+	<!--ARGUMENTS-->
+	<objarglist>
+		
+	</objarglist>
+
+	<!--MESSAGES-->
+	<methodlist>
+		
+		<method name="tell_crow [variable]">
+			<arglist />
+			<digest>
+				Tell crow to execute a command.
+			</digest>
+			<description>
+				Tell crow to immediately execute a Lua chunk sent as a symbol (i.e. wrapped in quote), restart (^^r or ^^restart), enter bootloader (^^b or ^^bootloader), start/end receiving a series of Lua chunks to be written into the user script in flash memory (^^s/^e or ^^startscript/^^endscript), print the user script (^^p or ^^printscript), clear the user script (^^c or ^^clearscript).
+			</description>
+		</method>
+		<method name="get_cv [variable]">
+			<arglist />
+			<digest>
+				Check channel 1 or 2's CV and send a message out the left outlet.
+			</digest>
+			<description>
+			</description>
+		</method>
+	</methodlist>
+
+	<!--DISCUSSION-->
+	<discussion>
+	</discussion>
+
+	<!--SEEALSO-->
+	<seealsolist>
+	</seealsolist>
+
+	
+
+</c74object>
