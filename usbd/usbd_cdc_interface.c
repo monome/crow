@@ -84,17 +84,25 @@ USBD_CDC_ItfTypeDef USBD_CDC_fops = { CDC_Itf_Init
                                     , CDC_Itf_Receive
                                     };
 
-/* Private functions ---------------------------------------------------------*/
-void CDC_main_init()
+/* Public functions ---------------------------------------------------------*/
+void CDC_clear_buffers( void )
 {
-    USBD_CDC_SetTxBuffer(&USBD_Device, UserTxBuffer, 0);
+    for( int i=0; i<APP_RX_DATA_SIZE; i++ ){ UserRxBuffer[i] = 0; }
+    for( int i=0; i<APP_TX_DATA_SIZE; i++ ){ UserTxBuffer[i] = 0; }
+    UserTxBufPtrIn  = 0;
+    UserRxBufPtrIn  = 0;
     USBD_CDC_SetRxBuffer(&USBD_Device, UserRxBuffer);
+    USBD_CDC_SetTxBuffer(&USBD_Device, UserTxBuffer, 0);
 }
+
+int timerdelay = 0;
+/* Private functions ---------------------------------------------------------*/
 static int8_t CDC_Itf_Init(void)
 {
-    USBD_CDC_SetTxBuffer(&USBD_Device, UserTxBuffer, 0);
     USBD_CDC_SetRxBuffer(&USBD_Device, UserRxBuffer);
+    USBD_CDC_SetTxBuffer(&USBD_Device, UserTxBuffer, 0);
 
+    timerdelay = 20;
     TIM_Config();
     if( HAL_TIM_Base_Start_IT(&USBTimHandle) != HAL_OK ){
         printf("!usb tim_start\n");
@@ -119,7 +127,7 @@ static int8_t CDC_Itf_DeInit(void)
 }
 
 static int8_t CDC_Itf_Control (uint8_t cmd, uint8_t* pbuf, uint16_t length)
-{ 
+{
     // Most of this is unimplemented!
     switch( cmd ){
         case CDC_SEND_ENCAPSULATED_COMMAND: printf("itf:send_cmd\n");     break;
@@ -174,6 +182,7 @@ void USB_tx_enqueue( uint8_t* buf, uint32_t len )
 uint8_t USB_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
     if( htim == &USBTimHandle ){ // protect as it's called from timer lib
+        if( timerdelay ){ timerdelay--; return 1; }
         uint32_t buffptr;
         uint32_t buffsize;
         if( UserTxBufPtrIn != 0 ){
@@ -236,10 +245,10 @@ __set_PRIMASK( old_primask );
 }
 
 static void TIM_Config(void)
-{  
+{
     // Set TIMu instance
     USBTimHandle.Instance = TIMu;
-  
+
     TIMu_CLK_ENABLE();
     // Initialize TIM3 peripheral as follow:
     //     + Period = 10000 - 1
