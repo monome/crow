@@ -29,6 +29,7 @@ int main(void)
     events_init();
     Metro_Init();
     Caw_Init();
+    CDC_clear_buffers();
     II_init( II_CROW );
     Random_Init();
 
@@ -37,7 +38,6 @@ int main(void)
     IO_Start(); // must start IO before running lua init() script
     Lua_crowbegin();
 
-    CDC_main_init(); // FIXME: stops crash when starting without usb connected
 
     while(1){
         U_PrintNow();
