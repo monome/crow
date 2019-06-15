@@ -102,7 +102,7 @@ static int8_t CDC_Itf_Init(void)
     USBD_CDC_SetRxBuffer(&USBD_Device, UserRxBuffer);
     USBD_CDC_SetTxBuffer(&USBD_Device, UserTxBuffer, 0);
 
-    timerdelay = 20;
+    timerdelay = 100 / CDC_POLLING_INTERVAL;
     TIM_Config();
     if( HAL_TIM_Base_Start_IT(&USBTimHandle) != HAL_OK ){
         printf("!usb tim_start\n");
