@@ -102,6 +102,8 @@ static int8_t CDC_Itf_Init(void)
     USBD_CDC_SetRxBuffer(&USBD_Device, UserRxBuffer);
     USBD_CDC_SetTxBuffer(&USBD_Device, UserTxBuffer, 0);
 
+    // set the timerdelay, so the TIM can be started but *not* send for
+    // the first 100ms to solve ECHO issue on norns. see #137
     timerdelay = 100 / CDC_POLLING_INTERVAL;
     TIM_Config();
     if( HAL_TIM_Base_Start_IT(&USBTimHandle) != HAL_OK ){
@@ -182,6 +184,8 @@ void USB_tx_enqueue( uint8_t* buf, uint32_t len )
 uint8_t USB_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
     if( htim == &USBTimHandle ){ // protect as it's called from timer lib
+        // here we NOP the first 100ms of timer clicks
+        // see PR #137. solves ECHO issue on norns.
         if( timerdelay ){ timerdelay--; return 1; }
         uint32_t buffptr;
         uint32_t buffsize;
