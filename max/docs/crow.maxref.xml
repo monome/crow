@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<?xml-stylesheet href="./c74ref.xsl" type="text/xsl"?>
+
+<c74object name="crow" module="crow">
+
+	<digest>
+		Eurorack and I2C communication
+	</digest>
+
+	<description>
+		Connect to the crow eurorack module via USB: send and receive CV, talk to other devices connected to crow via I2C, send Lua chunks to execute immediately, and send scripts to load into crow's flash. 
+	</description>
+
+	<!--METADATA-->
+	<metadatalist>
+		<metadata name="author">Trent Gill</metadata>
+		<metadata name="tag">crow</metadata>
+		<metadata name="tag">crow help</metadata>
+		<metadata name="tag">Eurorack</metadata>
+	</metadatalist>
+
+	<!--INLETS-->
+	<inletlist>
+		<inlet id="0" type="INLET_TYPE">
+			<digest>
+				Commands for crow
+			</digest>
+			<description>
+				Use ^^ commands or tell_crow *
+			</description>
+		</inlet>
+	</inletlist>
+
+	<!--OUTLETS-->
+	<outletlist>
+		<outlet id="0" type="message">
+			<digest>
+				Commands from crow
+			</digest>
+			<description>
+				ret_cv, change_cv, metro
+			</description>
+		</outlet>
+		<outlet id="1" type="message">
+			<digest>
+				Printed messages from Lua
+			</digest>
+			<description>
+			  Output from crow executing print() commands
+			</description>
+		</outlet>
+	</outletlist>
+
+	<!--ARGUMENTS-->
+	<objarglist>
+		
+	</objarglist>
+
+	<!--MESSAGES-->
+	<methodlist>
+		
+		<method name="tell_crow [variable]">
+			<arglist>
+			</arglist>
+			<digest>
+				Tell crow to execute a command.
+			</digest>
+			<description>
+				Tell crow to immediately execute a Lua chunk sent as a symbol (i.e. wrapped in quote), restart (^^r or ^^restart), enter bootloader (^^b or ^^bootloader), start/end receiving a series of Lua chunks to be written into the user script in flash memory (^^s/^e or ^^startscript/^^endscript), print the user script (^^p or ^^printscript), clear the user script (^^c or ^^clearscript).
+			</description>
+		</method>
+		<method name="get_cv [variable]">
+			<arglist>
+			</arglist>
+			<digest>
+				Check channel 1 or 2's CV and send a message out the left outlet.
+			</digest>
+			<description>
+			</description>
+		</method>
+		<method name="change_cv [variable]">
+			<arglist>
+			</arglist>
+			<digest>
+				Check channel 1 or 2's state and output a 1 or 0.
+			</digest>
+			<description>
+			</description>
+		</method>
+		<method name="^^v">
+			<arglist>
+			</arglist>
+			<digest>
+				^^v or ^^version fetches crow's current firmware version.
+			</digest>
+			<description>
+			</description>
+		</method>
+		<method name="^^s">
+			<arglist>
+			</arglist>
+			<digest>
+				^^s or ^^startscript: sets crow to reception mode. following code will be saved to a buffer.
+			</digest>
+			<description>
+			</description>
+		</method>
+		<method name="^^e">
+			<arglist>
+			</arglist>
+			<digest>
+				^^e or ^^endscript: buffered code will be error-checked, eval'd, and written to flash. crow returns to repl mode.
+			</digest>
+			<description>
+			</description>
+		</method>
+		<method name="^^c">
+			<arglist>
+			</arglist>
+			<digest>
+				^^c or ^^clearscript: clears onboard flash without touching lua. use this if your script is crashing crow.
+			</digest>
+			<description>
+			</description>
+		</method>
+		<method name="^^p">
+			<arglist>
+			</arglist>
+			<digest>
+				^^p or ^^printscript: requests crow to print the current user script saved in flash over usb to the host. prints a warning if no user script exists.
+			</digest>
+			<description>
+			</description>
+		</method>
+		<method name="^^b">
+			<arglist>
+			</arglist>
+			<digest>
+				^^b or ^^bootloader: jump directly to the bootloader.
+				</digest>
+			<description>
+			</description>
+		</method>
+		<method name="^^r">
+			<arglist>
+			</arglist>
+			<digest>
+				^^r or ^^reset / ^^restart:  reboots crow (not just lua env). nb: causes usb connection to be reset.
+				</digest>
+			<description>
+			</description>
+		</method>
+	</methodlist>
+
+	<!--DISCUSSION-->
+	<discussion>
+	</discussion>
+
+	<!--SEEALSO-->
+	<seealsolist>
+	</seealsolist>
+
+	
+
+</c74object>

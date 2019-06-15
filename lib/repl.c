@@ -22,11 +22,11 @@ void REPL_init( lua_State* lua )
     Lua = lua;
 
     if( Flash_is_user_script() ){
-        new_script_len = Flash_read_user_scriptlen();
-        REPL_new_script_buffer( new_script_len );
+        printf("loaded! %i\n", Flash_read_user_scriptlen() );
+        REPL_new_script_buffer( Flash_read_user_scriptlen() );
         if( Flash_read_user_script( new_script )
          || Lua_eval( Lua, new_script
-                         , new_script_len
+                         , Flash_read_user_scriptlen() // must call to flash lib!
                          , Caw_send_luaerror
                          ) ){
             printf("failed to load user script\n");

@@ -61,7 +61,7 @@ uint8_t Flash_write_user_script( char* script, uint32_t length )
 
 uint16_t Flash_read_user_scriptlen( void )
 {
-    return ((*(__IO uint32_t*)USER_SCRIPT_LOCATION) >> 16);
+    return (*((__IO uint16_t*)USER_SCRIPT_LOCATION + 1));
 }
 
 uint8_t Flash_read_user_script( char* buffer )
