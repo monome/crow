@@ -54,10 +54,10 @@ function _crow.tell( event_name, ... )
 end
 
 function get_out( channel )
-    _c.tell( 'out_cv', channel, get_state( channel ))
+    _c.tell( 'output', channel, get_state( channel ))
 end
 function get_cv( channel )
-    _c.tell( 'ret_cv', channel, io_get_input( channel ))
+    _c.tell( 'input', channel, io_get_input( channel ))
 end
 
 

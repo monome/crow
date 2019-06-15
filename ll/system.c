@@ -32,7 +32,7 @@ void system_print_version(void)
 void system_print_identity(void)
 {
     char s[64];
-    sprintf( s, "^^crow_id('0x%08x%08x%08x')"
+    sprintf( s, "^^identity('0x%08x%08x%08x')"
               , (unsigned int)getUID_Word(0)
               , (unsigned int)getUID_Word(4)
               , (unsigned int)getUID_Word(8)
