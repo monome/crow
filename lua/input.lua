@@ -19,7 +19,7 @@ function Input.new( chan )
               , quants     = {}
               , ratios     = {}
         -- user-customizable events
-              , stream     = function(value) _c.tell('input',chan,value) end
+              , stream     = function(value) _c.tell('stream',chan,value) end
               , change     = function(state) _c.tell('change',chan,state) end
               , midi       = function(data) _c.tell('midi',table.unpack(data)) end
               , window     = function(ix, direction) get_cv(chan) end
@@ -82,7 +82,7 @@ Input.__index = function(self, ix)
     if     ix == 'value' then
         return Input.get_value(self)
     elseif ix == 'query' then
-        return function() _c.tell('input',self.channel,Input.get_value(self)) end
+        return function() _c.tell('stream',self.channel,Input.get_value(self)) end
     elseif ix == 'mode'  then
         return function(...) Input.set_mode( self, ...) end
     end

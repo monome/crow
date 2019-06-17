@@ -57,7 +57,7 @@ function get_out( channel )
     _c.tell( 'output', channel, get_state( channel ))
 end
 function get_cv( channel )
-    _c.tell( 'input', channel, io_get_input( channel ))
+    _c.tell( 'stream', channel, io_get_input( channel ))
 end
 
 
