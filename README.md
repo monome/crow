@@ -147,6 +147,9 @@ simply send a 3 char command (eg `^^s`) for brevity & speed
 - `^^printscript`: requests crow to print the current user script saved in flash over usb to the host. prints a warning if no user script exists.
 - `^^bootloader`: jump directly to the bootloader.
 - `^^reset` / `^^restart`: reboots crow (not just lua env). nb: causes usb connection to be reset.
+- `^^identity`: returns serial number.
+- `^^version`: returns current firmware version.
+
 
 
 ### recovering from an unresponsive state
@@ -256,7 +259,7 @@ input[2]{ mode = 'stream'
 ```
 resulting in the following remote event:
 ```
-function ret_cv( channel, value )
+function stream( channel, value )
     -- TODO. do something with the stream of input values!
 end
 ```
@@ -285,7 +288,7 @@ The only real change when using the inputs on crow itself is you'll need to defi
 your own events.
 
 The default stream action is defined as:
-`input[1].stream = function(value) _c.tell('ret_cv',1,value) end`
+`input[1].stream = function(value) _c.tell('stream',1,value) end`
 
 You can however redefine this to suit your own needs:
 ```
