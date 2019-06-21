@@ -36,19 +36,17 @@ do return
              , { 'level', s16 }
              }
     }
-  , { name = 'retune'
-    , cmd  = 6
-    , docs = 'Redefine INTONE of *channel* to (*num*/*denom*)'
-    , args = { { 'channel', s8 }
-             , { 'numerator', s16 }
-             , { 'denominator', s16 }
-             }
-    }
   , { name = 'mode'
-    , cmd  = 7
+    , cmd  = 6
     , get  = true
     , docs = 'If *mode* is non-zero, enter Synthesis / Geode'
     , args = { 'mode', s8 }
+    }
+  , { name = 'tick'
+    , cmd  = 7
+    , get  = true
+    , docs = 'Set geode tempo to *bpm*, or accept *clock* for geode'
+    , args = { 'clock-or-bpm', s8 }
     }
   , { name = 'play_voice'
     , cmd  = 8
@@ -73,11 +71,13 @@ do return
     , docs = 'If *state* is non-zero, shift pitch base to A=432Hz'
     , args = { 'state', s8 }
     }
-  , { name = 'tick'
+  , { name = 'retune'
     , cmd  = 11
-    , get  = true
-    , docs = 'Set geode tempo to *bpm*, or accept *clock* for geode'
-    , args = { 'clock-or-bpm', s8 }
+    , docs = 'Redefine INTONE of *channel* to (*num*/*denom*)'
+    , args = { { 'channel', s8 }
+             , { 'numerator', s16 }
+             , { 'denominator', s16 }
+             }
     }
   , { name = 'quantize'
     , cmd  = 12
@@ -88,7 +88,7 @@ do return
   }
 , getters =
   { { name = 'retune'
-    , cmd  = 6 + get_offset
+    , cmd  = 11 + get_offset
     , args = { 'channel', s8 }
     , retval = { 'numerator', s8 }
     }
