@@ -530,6 +530,22 @@ other devices on a connected network, query those devices state, or itself
 be controlled or queried by other devices. These many possibilities suggest
 a wide range of varied use cases for you to discover!
 
+### Pullups
+
+i2c requires pullups on the data lines. crow can pull up the lines if needed, but
+this function is off by default as some modules (such as Teletype, or powered bus
+boards) may already be adding pullups.
+
+If you're directly connecting crow to a single un-pulled-up module (such as Just
+Friends) enable pullups with the following command:
+
+```
+(standalone) II.pullups(true)
+(norns) crow.II.pullups(true)
+```
+
+Disable them by passing `false` instead.
+
 ### Following i2c
 
 At it's most basic, crow can be treated as a simple expander for the i2c bus.

@@ -22,6 +22,7 @@ function ii.m_help( address )
 end
 
 function ii.pullup( state )
+    if state == true then state = 1 else state = 0 end
     ii_pullup(state)
 end
 
