@@ -10,21 +10,25 @@ function Asl.new(id)
     local asl = {}
     if id == nil then print'asl needs id of output channel' end
     asl.id      = id or 1  -- id defaults to 1
-    asl.co      = {}       -- a coroutine to be!
+    asl.exe     = {}       -- a coroutine to be!
     asl.hold    = false    -- is the slope trigger currently held high
     asl.in_hold = false    -- is eval currently in a held construct
     asl.locked  = false    -- flag to lockout bangs during lock{}
     asl.cc      = false    -- flag for whether coroutine can be continued
+    asl.retStk = {}
+    asl.pc = 0
     setmetatable( asl, Asl )
     return asl
 end
 
 function Asl:init() -- reset to defaults
-    self.co      = {}     -- a coroutine to be!
+    self.exe     = {}     -- a coroutine to be!
     self.hold    = false  -- is the slope trigger currently held high
     self.in_hold = false  -- is eval currently in a held construct
     self.locked  = false  -- flag to lockout bangs during lock{}
     self.cc      = false
+    self.retStk = {}
+    self.pc = 0
     return self     -- functional style
 end
 
@@ -33,17 +37,15 @@ end
 
 -- user interacts with this via the 'action' metamethod
 -- myAsl.action = <asl script>
--- this is a *private* method
--- FIXME should be local?
-function Asl:set_action( co )
-    if type(co) == 'table' then -- needs to be wrapped in a coroutine
-        self.co = asl_coroutine( co )
-    else
-        self.co = co
-    end
+local function set_action( self, exe )
+    if type(exe) == 'function' then
+        self.exe = {exe}
+    else self.exe = exe end
     self.hold   = false
     self.locked = false
-    self.cc     = true -- ready to coroutine!
+    self.cc     = true -- ready to exec!
+    self.retStk = {}
+    self.pc = 1
 end
 
 -- INTERPRETER
@@ -51,16 +53,18 @@ end
 -- user interacts with this via the 'action' metamethod
 -- myAsl:action() and optional state arg for 'held' interaction
 -- this is a *private* method
--- FIXME should be local?
-function Asl:do_action( dir )
+local function do_action( self, dir )
     local t = type(dir)
-    if t == 'table' or t == 'thread' then
-        Asl.set_action(self,dir) -- assign new action. dir is an ASL!
+    if t == 'table' then
+        set_action(self,dir) -- assign new action. dir is an ASL!
         dir = true           -- call it!
+    elseif dir == 'restart' then
+        self.retStk = {}
+        self.pc = 1
     end
     dir = dir or true -- default to rising action
     self.hold = dir
-    if self.co ~= nil then
+    if self.exe ~= nil then
         if self.locked ~= true then
             self.cc = true -- reactivate if finished
             -- TODO need to restart if true
@@ -70,45 +74,48 @@ function Asl:do_action( dir )
     end
 end
 
--- TODO
--- Init can check if 'callback' is set to nil to know whether an ASL
--- callback is provided
--- If no callback, ASL can create it's own timer & assume actions are
--- completed on time
+local function get_frame( self )
+    local f = self.exe
+    for i=1, #self.retStk do
+        f = f[self.retStk[i]]
+    end
+    return f
+end
 
 function Asl:step()
-    if     self.cc == false then print'done' return
-    elseif self.co == nil then print'no slope' return end
-    local _,wait = coroutine.resume( self.co, self )
-    if     wait == 'exit' then self.cc = false
-    elseif wait == nil then self:step() end
+    if self.exe == nil then print'no slope' return end
+
+    local x = get_frame(self)[self.pc]
+    if not x then print'over' return
+    elseif type(x) == 'function' then
+        local wait = x(self)
+        if nek(self) then print'last exit'
+        elseif not wait then self:step() end
+    else
+        enter(self,x):step()
+    end
 end
 
 --- METAMETHODS
 -- asign to the member 'action' to compile an asl script to a coroutine
 Asl.__newindex = function(self, ix, val)
-    if ix == 'action' then Asl.set_action( self, val) end
+    if ix == 'action' then set_action( self, val) end
 end
 
 -- call the member 'action' to start the asl coroutine
 --   if called w a table arg, treat it as a new ASL to run immediately
 Asl.__index = function(self, ix)
     if ix == 'action' then
-        return function(self,a) Asl.do_action(self,a) end
+        return function(self,a) do_action(self,a) end
     elseif ix == 'step' then return Asl.step
-    elseif ix == 'init' then return Asl.init end
+    elseif ix == 'init' then return Asl.init
+    end
 end
 
 setmetatable(Asl, Asl) -- capture the __index and __newindex metamethods
 
--- RUNTIME behaviour
-
--- hw access fn
-    -- TODO consider that toward with missing args should insert closured
-    -- queries to the self.params so that they automatically reflect global
-    -- settings!!!!!
-
 function toward( dest, time, shape )
+    -- COMPILE TIME
     local d,t,s
     if type(dest) == 'table' then -- accept table syntax
         local tt = dest
@@ -119,102 +126,93 @@ function toward( dest, time, shape )
     else
         d,t,s = dest or 'here', time or 0, shape or 'linear'
     end
-    return coroutine.create(function( self )
-        while true do
-            if d == 'here' then d = LL_get_state( self.id ) end
-            LL_toward( self.id, d, t, s )
-            coroutine.yield( (t ~= 0) and 'wait' or nil )
-        end
-    end)
-end
 
-
--- WRAPPING functions
-function seq_coroutines( self, fns, priority )
-    for i=1, #fns do
-        repeat
-            local _,wait,greedy = coroutine.resume( fns[i], self )
-            coroutine.yield( (wait~='exit') and wait or nil, priority )
-        until( not greedy or priority > greedy )
+    -- RUNTIME
+    return function( self )
+        LL_toward( self.id
+                 , (d == 'here') and LL_get_state( self.id ) or d
+                 , t
+                 , s
+                 )
+        return (t ~= 0)
     end
 end
 
--- TODO does this need diff seq handling?
-function asl_coroutine( fns )
-    return coroutine.create(function( self )
-        while true do
-            seq_coroutines( self, fns, 1 )
-            coroutine.yield('exit')
-        end
-    end)
+--------------------------------
+-- program counter manipulations
+
+function nek( self )
+    if self.pc then
+        self.pc = self.pc + 1
+    else return 'over' end
 end
+
+function enter( self, fns )
+    table.insert( self.retStk, self.pc )
+    self.pc = 1
+    return self
+end
+
+function exit( self )
+    self.pc = table.remove( self.retStk )
+end
+
+function recur( self )
+    self.pc = 0
+end
+
+--------------------------------
+-- low level ASL building blocks
 
 function asl_if( fn_to_bool, fns )
-    return coroutine.create(function( self )
-        while true do
-            if fn_to_bool( self ) then
-                seq_coroutines( self, fns, 1 )
-            end
-            coroutine.yield('exit')
-        end
-    end)
+    table.insert( fns, 1, function(self) if not fn_to_bool() then exit(self) end end )
+    table.insert( fns, exit )
+    return fns
 end
 
-function asl_wrap( enter_fn, fns, exit_fn )
-    return coroutine.create(function( self )
-        while true do
-            enter_fn( self )
-            seq_coroutines( self, fns, 1 )
-            exit_fn( self )
-            coroutine.yield('exit')
-        end
-    end)
+function asl_wrap( startfn, fns, exitfn )
+    table.insert( fns, 1, startfn )
+    table.insert( fns, exitfn )
+    table.insert( fns, exit )
+    return fns
 end
 
--- first layer of abstraction over VM
+----------------------------
+-- high level ASL constructs
+
 function loop( fns )
-    return coroutine.create(function( self )
-        while true do
-            seq_coroutines( self, fns, 1 )
-        end
-    end)
+    table.insert( fns, recur )
+    return fns
 end
 
-function weave( fns )
-    return coroutine.create(function( self )
-        while true do
-            seq_coroutines( self, fns, 2 )
-        end
-    end)
+function times( count, fns )
+    local c
+    table.insert( fns, 1
+        ,function(self)
+            if not c then c = count end -- init c
+            if c <= 0 then
+                c = nil
+                exit(self)
+            else c = c-1 end
+        end)
+    table.insert( fns, recur )
+    return fns
 end
 
 function lock( fns )
-    return asl_wrap( function( self ) self.lock = true end
+    return asl_wrap( function(self) self.lock = true end
                    , fns
-                   , function( self ) self.lock = false end
+                   , function(self) self.lock = false end
                    )
 end
 
 function held( fns )
-    return asl_wrap( function( self ) self.in_hold = true end
-                   , asl_if( function( self ) return self.hold end
+    return asl_wrap( function(self) self.in_hold = true end
+                   , asl_if( function(self) return self.hold end
                            , fns
                            )
-                   , function( self ) self.in_hold = false end
+                   , function(self) self.in_hold = false end
                    )
-end
-
-function times( count, fns )
-    return coroutine.create(function( self )
-        while true do
-            local n = count
-            while n > 0 do
-                n = n - 1
-                seq_coroutines( self, fns, 1 )
-            end
-            coroutine.yield('exit')
-        end
-    end)
 end
 
 print 'asl loaded'

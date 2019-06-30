@@ -27,7 +27,7 @@ function get_last_toward()
 end
 
 function LL_get_state( id )
-    return 1.0
+    return last_toward.d
 end
 
 function run_tests()
@@ -62,16 +62,6 @@ function run_tests()
            , {{Asl.new(1).action} , 'function' }
            )
 
-    -- typecheck remaining fns before full test below
-    _t.type( {toward( 1,1,'linear' )                         , 'thread' }
-           , {asl_if( function() return true end, {} )       , 'thread' }
-           , {asl_wrap( function() end, {}, function() end ) , 'thread' }
-           , {loop{}      , 'thread'}
-           , {lock{}      , 'thread'}
-           , {held{}      , 'thread'}
-           , {times(0,{}) , 'thread'}
-           )
-
     -- coroutine
     _t.run( function(id,d,t,s)
                 local sl = Asl.new(id)
@@ -101,7 +91,7 @@ function run_tests()
     _t.run( function(count)
                 local sl = Asl.new(1)
                 sl.action = { toward( 1,1,'linear' )
-                            , toward{ ['here'] = 4 }
+                            , toward{ now = 4 }
                             , toward( 3,3,'expo' )
                             }
                 sl:action()
@@ -117,17 +107,17 @@ function run_tests()
     _t.run( function(count)
                 local sl = Asl.new(1)
                 sl.action = { toward( 1,1,'linear' )
-                            , toward( 3,3,'expo' )
+                            , toward( 3,3,'log' )
                             }
                 sl:action()
                 for i=1,2 do sl:step() end
-                sl:action()
+                sl:action('restart')
                 for i=1,count do sl:step() end
                 return get_last_toward()
             end
           , {0, {1,1,1,'linear'}}
-          , {1, {1,3,3,'expo'}}
-          , {2, {1,3,3,'expo'}}
+          , {1, {1,3,3,'log'}}
+          , {2, {1,3,3,'log'}}
           )
 
     -- loop{}
@@ -142,7 +132,7 @@ function run_tests()
             end
           , {0, {1,1,1,'linear'}}
           , {1, {1,2,2,'linear'}}
-          , {2, {1,1,1,'linear'}}
+          , {2, {1,1,1,'linear'}} -- fails
           )
 
     -- nested loop{}
@@ -176,7 +166,6 @@ function run_tests()
                             , toward( 2,2 )
                             }
                 sl:action()
-                --for i=1,count do sl:step() end
                 return get_last_toward()
             end
           , {true , {1,3,3,'linear'}}
@@ -237,6 +226,7 @@ function run_tests()
           , {0, {1,3,3,'linear'}}
           , {1, {1,3,3,'linear'}}
           , {2, {1,5,5,'linear'}}
+          , {3, {1,5,5,'linear'}}
           )
 
     -- nested times{}
@@ -259,27 +249,27 @@ function run_tests()
           , {5, {1,5,5,'linear'}}
           )
 
-    -- weave{}
-    _t.run( function(count)
-                local sl = Asl.new(1)
-                sl.action = weave{ loop{ toward( 1, 1 )
-                                       , toward( 2, 1 )
-                                       }
-                                 , loop{ toward( 3, 1 )
-                                       , toward( 4, 1 )
-                                       }
-                                 }
-                sl:action()
-                for i=1,count do sl:step() end
-                return get_last_toward()
-            end
-          , {0, {1,1,1,'linear'}}
-          , {1, {1,3,1,'linear'}}
-          , {2, {1,2,1,'linear'}}
-          , {3, {1,4,1,'linear'}}
-          , {4, {1,1,1,'linear'}}
-          )
-
+--    -- weave{}
+--    _t.run( function(count)
+--                local sl = Asl.new(1)
+--                sl.action = weave{ loop{ toward( 1, 1 )
+--                                       , toward( 2, 1 )
+--                                       }
+--                                 , loop{ toward( 3, 1 )
+--                                       , toward( 4, 1 )
+--                                       }
+--                                 }
+--                sl:action()
+--                for i=1,count do sl:step() end
+--                return get_last_toward()
+--            end
+--          , {0, {1,1,1,'linear'}}
+--          , {1, {1,3,1,'linear'}}
+--          , {2, {1,2,1,'linear'}}
+--          , {3, {1,4,1,'linear'}}
+--          , {4, {1,1,1,'linear'}}
+--          )
+--
 
 ---- TODO add test for held & lock
 end
