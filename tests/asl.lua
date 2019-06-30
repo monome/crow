@@ -42,7 +42,6 @@ function run_tests()
           )
     _t.run( function(member) return Asl.new(1)[member] end
           , {'id'      , 1}
-          --, {'co'      , {}}
           , {'hold'    , false}
           , {'in_hold' , false}
           , {'locked'  , false}
@@ -50,7 +49,6 @@ function run_tests()
 
     -- Asl:init
     _t.run( function(member) return Asl.init( Asl.new(1) )[member] end
-          --, {'co'      , {}}
           , {'hold'    , false}
           , {'in_hold' , false}
           , {'locked'  , false}

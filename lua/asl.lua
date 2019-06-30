@@ -14,9 +14,8 @@ function Asl.new(id)
     asl.hold    = false    -- is the slope trigger currently held high
     asl.in_hold = false    -- is eval currently in a held construct
     asl.locked  = false    -- flag to lockout bangs during lock{}
-    asl.cc      = false    -- flag for whether coroutine can be continued
     asl.retStk = {}
-    asl.pc = 0
+    asl.pc = 1
     setmetatable( asl, Asl )
     return asl
 end
@@ -26,10 +25,9 @@ function Asl:init() -- reset to defaults
     self.hold    = false  -- is the slope trigger currently held high
     self.in_hold = false  -- is eval currently in a held construct
     self.locked  = false  -- flag to lockout bangs during lock{}
-    self.cc      = false
     self.retStk = {}
-    self.pc = 0
-    return self     -- functional style
+    self.pc = 1
+    return self
 end
 
 
@@ -43,16 +41,12 @@ local function set_action( self, exe )
     else self.exe = exe end
     self.hold   = false
     self.locked = false
-    self.cc     = true -- ready to exec!
     self.retStk = {}
     self.pc = 1
 end
 
 -- INTERPRETER
 
--- user interacts with this via the 'action' metamethod
--- myAsl:action() and optional state arg for 'held' interaction
--- this is a *private* method
 local function do_action( self, dir )
     local t = type(dir)
     if t == 'table' then
@@ -66,7 +60,6 @@ local function do_action( self, dir )
     self.hold = dir
     if self.exe ~= nil then
         if self.locked ~= true then
-            self.cc = true -- reactivate if finished
             -- TODO need to restart if true
             -- TODO jump to release if false
             self:step()
@@ -165,14 +158,17 @@ end
 -- low level ASL building blocks
 
 function asl_if( fn_to_bool, fns )
-    table.insert( fns, 1, function(self) if not fn_to_bool() then exit(self) end end )
+    table.insert( fns, 1
+        ,function(self)
+            if not fn_to_bool() then exit(self) end
+        end)
     table.insert( fns, exit )
     return fns
 end
 
-function asl_wrap( startfn, fns, exitfn )
-    table.insert( fns, 1, startfn )
-    table.insert( fns, exitfn )
+function asl_wrap( fn_head, fns, fn_tail )
+    table.insert( fns, 1, fn_head )
+    table.insert( fns, fn_tail )
     table.insert( fns, exit )
     return fns
 end
