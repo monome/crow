@@ -83,6 +83,22 @@ function run_tests()
           , {1, {1,3,3,'expo'}}
           , {2, {1,3,3,'expo'}}
           )
+    _t.run( 'toward sequence with strings'
+          , function(count)
+                local sl = Asl.new(1)
+                sl.action = { toward( 1,1,'linear' )
+                            , 'a tag'
+                            , toward( 3,3,'expo' )
+                            , 'another tag'
+                            }
+                sl:action()
+                for i=1,count do sl:step() end
+                return get_last_toward()
+            end
+          , {0, {1,1,1,'linear'}}
+          , {1, {1,3,3,'expo'}}
+          , {2, {1,3,3,'expo'}}
+          )
     _t.run( 'sequence with instant actions'
           , function(count)
                 local sl = Asl.new(1)
@@ -127,7 +143,7 @@ function run_tests()
             end
           , {0, {1,1,1,'linear'}}
           , {1, {1,2,2,'linear'}}
-          , {2, {1,1,1,'linear'}} -- fails
+          , {2, {1,1,1,'linear'}}
           )
 
     _t.run( 'nested loop{}'
@@ -244,7 +260,7 @@ function run_tests()
           , {5, {1,5,5,'linear'}}
           )
 
-    _t.run( 'TODO held{}'
+    _t.run( 'held{}'
           , function(...)
                 local t = {...}
                 local sl = Asl.new(1)
@@ -258,15 +274,76 @@ function run_tests()
             end
           , {{''}                 , {1,3,3,'linear'}}
           , {{'','step'}          , {1,2,2,'linear'}}
-          , {{'','step','step'}   , {1,2,-1,'linear'}}
-          , {{'','restart'}       , {1,3,3,'linear'}} -- FIXME jump back to start
+          , {{'','step','step'}   , {1,2,2,'linear'}}
+          , {{'','restart'}       , {1,3,3,'linear'}}
           , {{'release'}          , {1,5,5,'linear'}}
+          , {{'','release'}       , {1,5,5,'linear'}}
+          , {{true,false}         , {1,5,5,'linear'}}
           , {{'release','step'}   , {1,5,5,'linear'}}
-          , {{'','release'}       , {1,5,5,'linear'}} -- FIXME jump out of A into R
           )
 
--- add a test as above, but held{} wraps a loop{}, and another with weave{} to make
--- sure we're successfully jumping out of the inner construct
+    _t.run( 'held{} with leading toward'
+          , function(...)
+                local t = {...}
+                local sl = Asl.new(1)
+                sl.action = { toward( 4,4 )
+                            , held{ toward( 3,3 )
+                                  , toward( 2,2 )
+                                  }
+                            , toward( 5,5 )
+                            }
+                for i=1,#t do sl:action(t[i]) end
+                return get_last_toward()
+            end
+          , {{''}                 , {1,4,4,'linear'}}
+          , {{'','step'}          , {1,3,3,'linear'}}
+          , {{'','step','step'}   , {1,2,2,'linear'}}
+          , {{'','restart'}       , {1,4,4,'linear'}}
+          , {{'release'}          , {1,4,4,'linear'}}
+          , {{'release','step'}   , {1,5,5,'linear'}}
+          , {{'','release'}       , {1,5,5,'linear'}}
+          , {{true,true,false}    , {1,5,5,'linear'}}
+          )
+
+    _t.run( 'held{loop{}}'
+          , function(...)
+                local t = {...}
+                local sl = Asl.new(1)
+                sl.action = { held{ loop{ toward( 3,3 )
+                                        , toward( 2,2 )
+                                        }
+                                  }
+                            , toward( 5,5 )
+                            }
+                for i=1,#t do sl:action(t[i]) end
+                return get_last_toward()
+            end
+          , {{true}                 , {1,3,3,'linear'}}
+          , {{true,'step'}          , {1,2,2,'linear'}}
+          , {{true,'step','step'}   , {1,3,3,'linear'}}
+          , {{false}                , {1,5,5,'linear'}}
+          , {{true,false}           , {1,5,5,'linear'}}
+          )
+
+    _t.run( 'loop{held{}}'
+          , function(...)
+                local t = {...}
+                local sl = Asl.new(1)
+                sl.action = loop{ held{ toward( 3,3 )
+                                      , toward( 2,2 )
+                                      }
+                                , toward( 5,5 )
+                                }
+                for i=1,#t do sl:action(t[i]) end
+                return get_last_toward()
+            end
+          , {{true}                 , {1,3,3,'linear'}}
+          , {{true,'step'}          , {1,2,2,'linear'}}
+          , {{true,'step','step'}   , {1,2,2,'linear'}}
+          , {{false}                , {1,5,5,'linear'}}
+          , {{false,false}          , {1,5,5,'linear'}}
+          , {{false,true}           , {1,3,3,'linear'}}
+          )
 
 --    _t.run( 'weave'
 --          , function(count)
@@ -290,9 +367,20 @@ function run_tests()
 --          )
 --
 
-
-
----- TODO add test for held & lock
+---- TODO add test for lock
 end
 
 run_tests()
+
+---- weird use-case for arbitrary code-execution in asl construct
+--function sync(asl)
+--    for i=2,4 do
+--        output[i]:action()
+--    end
+--end
+--
+--output[1].action = loop{ sync
+--                       , toward(1,1)
+--                       , toward(2,2)
+--                       }
+--

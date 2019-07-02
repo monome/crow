@@ -21,7 +21,7 @@ function Asl.new(id)
 end
 
 function Asl:init() -- reset to defaults
-    self.exe     = {}     -- a coroutine to be!
+    self.exe     = {}
     self.hold    = false  -- is the slope trigger currently held high
     self.in_hold = false  -- is eval currently in a held construct
     self.locked  = false  -- flag to lockout bangs during lock{}
@@ -30,11 +30,6 @@ function Asl:init() -- reset to defaults
     return self
 end
 
-
--- COMPILER
-
--- user interacts with this via the 'action' metamethod
--- myAsl.action = <asl script>
 local function set_action( self, exe )
     if type(exe) == 'function' then
         self.exe = {exe}
@@ -44,8 +39,6 @@ local function set_action( self, exe )
     self.retStk = {}
     self.pc = 1
 end
-
--- INTERPRETER
 
 local function do_action( self, dir )
     local t = type(dir)
@@ -61,16 +54,15 @@ local function do_action( self, dir )
         elseif dir == 'release' then
             self.hold = false
             self:release()
-        elseif dir == 'step' then self:step()
+        elseif dir == 'step' then -- do nothing
         elseif dir == 'unlock' then self.locked = false
         else print'ERROR unmatched action string'
         end
-    elseif t == 'bool' then
-        if dir then
-            self.retStk = {}
-            self.pc = 1
-        end
+    elseif t == 'boolean' then
         self.hold = dir
+        if not dir then
+            self:release()
+        end
     else self.hold = true
     end
 
@@ -86,16 +78,28 @@ local function get_frame( self )
 end
 
 function Asl:step()
-    if self.exe == nil then print'no slope' return end
+    if self.exe == nil then print'no asl active' return end
 
-    local x = get_frame(self)[self.pc]
-    if not x then print'over' return
-    elseif type(x) == 'function' then
-        local wait = x(self)
+    local p = get_frame(self)[self.pc]
+    if not p then
+        if self:exit() then
+            if self:nek() then print'layer doesnt exist'
+            else self:step() end
+        end
+        return
+    end
+
+    local t = type(p)
+    if t == 'function' then
+        local wait = p(self)
         if self:nek() then print'last exit'
-        elseif not wait then self:step() end
-    else
-        self:enter(x):step()
+        elseif not wait then self:step()
+        end
+    elseif t == 'string' then
+        if self:nek() then print'string exit'
+        else self:step() end
+    elseif t == 'table' then
+        self:enter(p):step()
     end
 end
 
@@ -115,7 +119,10 @@ function Asl:enter( fns )
 end
 
 function Asl:exit()
-    self.pc = table.remove( self.retStk )
+    if next(self.retStk) then -- return stack non empty
+        self.pc = table.remove( self.retStk )
+        return true
+    end
 end
 
 function Asl:recur()
@@ -127,11 +134,25 @@ function Asl:restart()
     self.pc = 1
 end
 
+function Asl:cleanup(str)
+    if     str == 'unlock' then self.lock = false
+    elseif str == 'unhold' then self.in_hold = false
+    else return true
+    end
+end
+
+-- TODO abstract out common parts from Asl:step
 function Asl:release()
-    if self.in_hold then
-        --TODO this is incorrect. need to call 'exit' until we're outside?
-        self.retStk = {}
-        self.pc = 1
+    while self.in_hold do
+        local f = get_frame(self)
+        if f then
+            local p = f[self.pc]
+            if type(p) == 'string' then
+                self:cleanup(p)
+            end
+        end
+        self:exit()
+        self:nek()
     end
 end
 
@@ -152,7 +173,9 @@ Asl.__index = function(self, ix)
     elseif ix == 'enter' then return Asl.enter
     elseif ix == 'exit' then return Asl.exit
     elseif ix == 'recur' then return Asl.recur
+    elseif ix == 'release' then return Asl.release
     elseif ix == 'restart' then return Asl.restart
+    elseif ix == 'cleanup' then return Asl.cleanup
     end
 end
 
@@ -185,58 +208,72 @@ function toward( dest, time, shape )
     end
 end
 
-function asl_if( fn_to_bool, fns )
-    table.insert( fns, 1
-        ,function(self)
-            if not fn_to_bool() then self:exit() end
-        end)
-    table.insert( fns, Asl.exit )
+function asl_prepend( fn_head, fns )
+    table.insert( fns, 1, fn_head )
     return fns
 end
 
-function asl_wrap( fn_head, fns, fn_tail )
-    table.insert( fns, 1, fn_head )
+function asl_append( fn_tail, fns )
     table.insert( fns, fn_tail )
-    table.insert( fns, Asl.exit )
     return fns
+end
+
+function asl_if( fn_to_bool, fns )
+    return {asl_prepend(
+              function(self)
+                if not fn_to_bool(self) then self:exit() end
+              end
+            , fns )}
+end
+
+function loop( fns )
+    return {asl_append( Asl.recur, fns )}
+end
+
+function asl_wrap( fn_head, fns, fn_tail )
+    return asl_append( fn_tail
+                     , asl_prepend( fn_head
+                                  , fns ))
+end
+
+function asl_while( fn_to_bool, fns )
+    return {asl_wrap( function(self)
+                        if not fn_to_bool(self) then self:exit() end
+                      end
+                    , fns
+                    , Asl.recur
+                    )}
 end
 
 ----------------------------
 -- high level ASL constructs
 
-function loop( fns )
-    table.insert( fns, Asl.recur )
-    return fns
-end
-
 function times( count, fns )
     local c
-    table.insert( fns, 1
-        ,function(self)
-            if not c then c = count end -- init c
-            if c <= 0 then
-                c = nil
-                self:exit()
-            else c = c-1 end
-        end)
-    table.insert( fns, Asl.recur )
-    return fns
+    return asl_while(
+              function(self)
+                  if not c then c = count end
+                  if c <= 0 then c = nil
+                  else c = c-1; return true end
+              end
+            , fns
+            )
 end
 
-function lock( fns )
-    return asl_wrap( function(self) self.lock = true end
-                   , fns
-                   , function(self) self.lock = false end
-                   )
+function lock( fns ) -- table -> table
+    return{ asl_append( function(self) self.lock = true end
+                      , fns )
+          , 'unlock'
+          }
 end
 
-function held( fns )
-    return asl_wrap( function(self) self.in_hold = true end
-                   , asl_if( function(self) return self.hold end
-                           , fns
-                           )
-                   , function(self) self.in_hold = false end
-                   )
+function held( fns ) -- table -> table
+    return{ asl_if( function(self) return self.hold end
+                , asl_append( function(self) return 'wait' end
+                  , asl_prepend( function(self) self.in_hold = true end
+                    , fns )))
+          , 'unhold'
+          }
 end
 
 print 'asl loaded'
