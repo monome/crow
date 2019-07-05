@@ -389,9 +389,6 @@ or you can use the short-cut:
 
 *tech note: `output[n].action` is actually a shortcut for `output[n].asl.action`*
 
-*ed note: Is this a bad idea? Send a string to do output actions? Could be the ASL*
-*interactive commands like "press", "release", "begin", "pause". Like a micro-repl.*
-
 Or set the output to a value directly, deactivating the current action:
 `output[1].volts = 2.0` 2 volts.
 
@@ -411,18 +408,6 @@ output[1].action =
         }
 ```
 Then start it as above with `output[1]:action()`, note the colon (method) call!
-
-There is a syntax shortcut to assign an action and start it immediately. Rather than
-assigning with `=` you can method-call (`:`) action with an ASL argument. Looks like:
-
-```
-output[1].asl:action( -- note the parens & method call
-    loop{ toward( 5.0, 0.0, 'linear' )
-        , toward( 0.0, 1.0, 'linear' )
-        }) -- method calls ends here
-```
-
-### volts
 
 There is a syntax shortcut to assign an action and start it immediately. Rather than
 assigning with `=` you can method-call (`:`) action with an ASL argument. Looks like:
