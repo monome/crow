@@ -434,6 +434,34 @@ output[2].action =
        )
 ```
 
+### directives
+
+A number of special commands can be sent to the `action` method to control the
+execution of an active ASL. It looks like so:
+`output[1]:action('restart')`
+
+Accepted directives are:
+* 'restart' or 'attack' go to beginning of the ASL and starts. will enter `held{}`
+* '' or 'start' steps forward to the next stage. will enter `held{}`
+* 'release' exit an active `held{}` construct and do the first action
+* 'step' steps forward to the next stage. does not affect `held{}` entry
+* 'unlock' unsets the `lock` variable and steps forward.
+
+Additionally a boolean (true/false) value can be used for traditional attack-release
+control. This is designed to work well with the input libraries `change` mode. Here
+input[1] will start an ADSR when it goes high, and enter 'release' phase on low:
+
+```
+function init()
+    output[1].action = adsr()
+    input[1].mode( 'change' )
+end
+
+input[1].change = function(state)
+    output[1]:action(state)
+end
+```
+
 ## Metro library
 
 Each time you want a new timer you can assign it with some default params:
