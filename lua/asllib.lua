@@ -64,13 +64,25 @@ function ar( attack, release, curve, level )
           }
 end
 
+function adsr( attack, decay, sustain, release )
+    attack,decay,sustain,release = attack  or 0.1
+                                 , decay   or 0.5
+                                 , sustain or 2
+                                 , release or 4
+
+    return{ held{ toward( 5.0, attack )
+                , toward( sustain, decay )
+                }
+          , toward( 0, release )
+          }
+end
+
 print 'asllib loaded'
 
 return Asllib
 
 -- continue for the following shapes
 -- ASR
--- ADSR
 -- HADSR
 -- DADSR
 -- trapezoidal
