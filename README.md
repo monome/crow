@@ -351,7 +351,7 @@ The syntax for handling this behaviour is identical to norns, minus the connecti
 and 'ports' handling. crow only has one port! Try the below example to get started:
 ```
 function init()
-  input[1].mode = 'midi;
+  input[1].mode = 'midi';
 end
 
 input[1].midi = function(data)
