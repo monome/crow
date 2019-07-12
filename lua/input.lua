@@ -107,7 +107,7 @@ setmetatable(Input, Input) -- capture the metamethods
 
 -- callback
 function stream_handler( chan, val ) Input.inputs[chan].stream( val ) end
-function change_handler( chan, val ) Input.inputs[chan].change( val ) end
+function change_handler( chan, val ) Input.inputs[chan].change( val ~= 0 ) end
 function midi_handler( ... ) d = {...}; Input.inputs[1].midi(d) end
 
 print 'input loaded'
