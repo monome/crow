@@ -15,8 +15,8 @@ function lfo( speed, curve, level )
     -- allow these defaults to be attributes of the out channel
     speed, curve, level = speed or 1, curve or 'linear', level or 5
 
-    return loop{ toward(        level , speed, curve )
-               , toward( negate(level), speed, curve )
+    return loop{ to(        level , speed, curve )
+               , to( negate(level), speed, curve )
                }
 
 end
@@ -30,9 +30,9 @@ function trig( polarity, time, level )
         level = 0
     end
 
-    return{ toward{ ['now'   ] = level }
-          , toward{ ['delay' ] = time  }
-          , toward{ ['now'   ] = rest  }
+    return{ to{ ['now'   ] = level }
+          , to{ ['delay' ] = time  }
+          , to{ ['now'   ] = rest  }
           }
 end
 
@@ -47,8 +47,8 @@ function ramp( time, skew, curve, level )
 	local rise = 0.5/(0.998 * skew + 0.001)
 	local fall = 1.0/(2.0 - 1.0/rise)
 
-    return{ loop{ toward(  level, time*rise, curve )
-                , toward( -level, time*fall, curve )
+    return{ loop{ to(  level, time*rise, curve )
+                , to( -level, time*fall, curve )
                 }
           }
 end
@@ -59,8 +59,8 @@ function ar( attack, release, curve, level )
                          , curve   or 'linear'
                          , level   or 5
 
-    return{ toward( level, attack,  curve )
-          , toward( 0,     release, curve )
+    return{ to( level, attack,  curve )
+          , to( 0,     release, curve )
           }
 end
 
@@ -70,10 +70,10 @@ function adsr( attack, decay, sustain, release )
                                  , sustain or 2
                                  , release or 4
 
-    return{ held{ toward( 5.0, attack )
-                , toward( sustain, decay )
+    return{ held{ to( 5.0, attack )
+                , to( sustain, decay )
                 }
-          , toward( 0, release )
+          , to( 0, release )
           }
 end
 

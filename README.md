@@ -403,8 +403,8 @@ we assign a sawtooth LFO jumping instantly to 5 volts, then falling to 0 volts i
 one second, before repeating infinitely.
 ```
 output[1].action =
-    loop{ toward( 5.0, 0.0, 'linear' )
-        , toward( 0.0, 1.0, 'linear' )
+    loop{ to( 5.0, 0.0, 'linear' )
+        , to( 0.0, 1.0, 'linear' )
         }
 ```
 Then start it as above with `output[1]:action()`, note the colon (method) call!
@@ -414,8 +414,8 @@ assigning with `=` you can method-call (`:`) action with an ASL argument. Looks 
 
 ```
 output[1].asl:action( -- note the parens & method call
-    loop{ toward( 5.0, 0.0, 'linear' )
-        , toward( 0.0, 1.0, 'linear' )
+    loop{ to( 5.0, 0.0, 'linear' )
+        , to( 0.0, 1.0, 'linear' )
         }) -- method calls ends here
 ```
 
