@@ -345,6 +345,28 @@ function run_tests()
           , {{false,true}           , {1,3,3,'linear'}}
           )
 
+    _t.run( '{held{},to}'
+          , function(...)
+                local t = {...}
+                local sl = Asl.new(1)
+                sl.action = { held{ to( 3,3 )
+                                  , to( 2,2 )
+                                  }
+                            , to( 5,5 )
+                            }
+                for i=1,#t do sl:action(t[i]) end
+                return get_last_to()
+            end
+          , {{true}                 , {1,3,3,'linear'}}
+          , {{true,true}            , {1,2,2,'linear'}}
+          , {{false}                , {1,5,5,'linear'}}
+          , {{true,false}           , {1,5,5,'linear'}}
+          , {{true,true,false}      , {1,5,5,'linear'}}
+          , {{true,nil,false}       , {1,5,5,'linear'}}
+          , {{false,nil}            , {1,3,3,'linear'}}
+          )
+
+
 --    _t.run( 'weave'
 --          , function(count)
 --                local sl = Asl.new(1)
