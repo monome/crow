@@ -5,6 +5,7 @@ function Output.new( chan )
               , level   = 5.0
               , rate    = 1/chan
               , shape   = 'linear'
+              , slew    = 0.0
               , asl     = Asl.new( chan )
 --              , trig    = { asl      = Asl.new(k)
 --                          , polarity = 1
@@ -26,7 +27,7 @@ Output.__newindex = function(self, ix, val)
     if ix == 'action' then
         self.asl.action = val
     elseif ix == 'volts' then
-        self.asl.action = {toward(val)}
+        self.asl.action = {toward(val, self.slew)}
         self.asl:action()
     end
 end
