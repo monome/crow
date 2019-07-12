@@ -184,7 +184,7 @@ setmetatable(Asl, Asl)
 --------------------------------
 -- low level ASL building blocks
 
-function toward( dest, time, shape )
+function to( dest, time, shape )
     -- COMPILE TIME
     local d,t,s
     if type(dest) == 'table' then -- accept table syntax
