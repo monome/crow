@@ -79,7 +79,7 @@ Input.__newindex = function(self, ix, val)
 end
 
 Input.__index = function(self, ix)
-    if     ix == 'value' then
+    if     ix == 'volts' then
         return Input.get_value(self)
     elseif ix == 'query' then
         return function() _c.tell('stream',self.channel,Input.get_value(self)) end

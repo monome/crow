@@ -66,7 +66,7 @@ local function do_action( self, dir )
     else self.hold = true
     end
 
-    if not self.locked then self:step() end
+    if not self.locked then Asl.step(self) end
 end
 
 local function get_frame( self )
