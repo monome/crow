@@ -20,7 +20,7 @@ function Input.new( chan )
               , ratios     = {}
         -- user-customizable events
               , stream     = function(value) _c.tell('stream',chan,value) end
-              , change     = function(state) _c.tell('change',chan,state) end
+              , change     = function(state) _c.tell('change',chan,state and 1 or 0) end
               , midi       = function(data) _c.tell('midi',table.unpack(data)) end
               , window     = function(ix, direction) get_cv(chan) end
               , scale      = function(octave, ix) get_cv(chan) end
