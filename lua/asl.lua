@@ -57,6 +57,7 @@ local function do_action( self, dir )
             Asl.release(self)
         elseif dir == 'step' then -- do nothing
         elseif dir == 'unlock' then self.locked = false
+        elseif dir == 'nil' then self.hold = true -- simulating a nil call
         else print'ERROR unmatched action string'
         end
     elseif t == 'boolean' then

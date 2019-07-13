@@ -362,8 +362,8 @@ function run_tests()
           , {{false}                , {1,5,5,'linear'}}
           , {{true,false}           , {1,5,5,'linear'}}
           , {{true,true,false}      , {1,5,5,'linear'}}
-          , {{true,nil,false}       , {1,5,5,'linear'}}
-          , {{false,nil}            , {1,3,3,'linear'}}
+          , {{true,'nil',false}     , {1,5,5,'linear'}}
+          , {{false,'nil'}          , {1,3,3,'linear'}}
           )
 
 
