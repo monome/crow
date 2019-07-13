@@ -68,7 +68,10 @@ local function do_action( self, dir )
     else self.hold = true
     end
 
-    if not self.locked then Asl.step(self) end
+    if not self.locked then
+        if Asl.isOver(self) then Asl.restart(self) end
+        Asl.step(self)
+    end
 end
 
 local function get_frame( self )
@@ -131,6 +134,12 @@ function Asl:recur()
     self.pc = 0
 end
 
+function Asl:isOver()
+    if #self.retStk == 0 and self.pc > #self.exe then
+        return true
+    end
+end
+
 function Asl:restart()
     self.retStk = {}
     self.pc = 1
@@ -178,6 +187,7 @@ Asl.__index = function(self, ix)
     elseif ix == 'release' then return Asl.release
     elseif ix == 'restart' then return Asl.restart
     elseif ix == 'cleanup' then return Asl.cleanup
+    elseif ix == 'isOver' then return Asl.cleanup
     end
 end
 
