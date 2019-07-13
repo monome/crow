@@ -40,6 +40,7 @@ local function set_action( self, exe )
     self.pc = 1
 end
 
+-- FIXME why can't we use :method call on restart, release & step?
 local function do_action( self, dir )
     local t = type(dir)
     if t == 'table' then
@@ -50,10 +51,10 @@ local function do_action( self, dir )
             self.hold = true
         elseif dir == 'restart' or dir == 'attack' then
             self.hold = true
-            self:restart()
+            Asl.restart(self)
         elseif dir == 'release' then
             self.hold = false
-            self:release()
+            Asl.release(self)
         elseif dir == 'step' then -- do nothing
         elseif dir == 'unlock' then self.locked = false
         else print'ERROR unmatched action string'
@@ -61,7 +62,7 @@ local function do_action( self, dir )
     elseif t == 'boolean' then
         self.hold = dir
         if not dir then
-            self:release()
+            Asl.release(self)
         end
     else self.hold = true
     end
