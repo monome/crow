@@ -63,7 +63,7 @@ void HAL_RNG_ReadyDataCallback( RNG_HandleTypeDef* hr, uint32_t rand32 )
     }
 }
 
-float Random_Get(void)
+float Random_Float(void)
 {
     if( rrrCount <= 0 ){ printf("rng: underrun\n"); }
     float retval = rrrFm[rrrNext++];
@@ -72,6 +72,11 @@ float Random_Get(void)
         Random_Update();
     }
     return retval;
+}
+
+int Random_Int(int lower, int upper)
+{
+    return ((int)(Random_Float() * (float)(1 + upper - lower)) + lower);
 }
 
 void Random_Update(void)

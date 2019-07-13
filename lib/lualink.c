@@ -402,9 +402,18 @@ static int _metro_set_time( lua_State* L )
     return 0;
 }
 
-static int _random_get( lua_State* L )
+static int _random_float( lua_State* L )
 {
-    lua_pushnumber( L, Random_Get() );
+    lua_pushnumber( L, Random_Float() );
+    return 1;
+}
+
+static int _random_int( lua_State* L )
+{
+    int r = Random_Int( luaL_checknumber(L, 1)
+                      , luaL_checknumber(L, 2) );
+    lua_pop(L, 2);
+    lua_pushinteger( L, r);
     return 1;
 }
 
@@ -452,7 +461,8 @@ static const struct luaL_Reg libCrow[]=
     , { "metro_stop"       , _metro_stop       }
     , { "metro_set_time"   , _metro_set_time   }
         // random
-    , { "random_get"       , _random_get       }
+    , { "random_float"     , _random_float     }
+    , { "random_int"       , _random_int       }
         // calibration
     , { "calibrate_now"    , _calibrate_now    }
     , { "calibrate_print"  , _calibrate_print  }
