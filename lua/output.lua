@@ -46,6 +46,7 @@ Output.__call = function(self, ...)
     if #args == 0 then
         self.asl:action()
     else -- table call
+        self.asl.action = args[1]
         self.asl:action()
         --local m = 0
         ----if #args[1] == 0 then _ end -- implies empty table call
