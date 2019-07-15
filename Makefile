@@ -236,7 +236,7 @@ debug:
 	stlink-trace -c 216
 
 dfu: $(BIN)
-	sudo dfu-util -a 0 -s 0x08020000:leave -D $(BIN) -d ,0483:df11
+	sudo dfu-util -a 0 -s 0x08020000 -R -D $(BIN) -d ,0483:df11
 
 boot:
 	cd $(BOOTLOADER) && \
