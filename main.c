@@ -26,6 +26,7 @@ int main(void)
 
     // Drivers
     IO_Init();
+    IO_Start(); // must start IO before running lua init() script
     events_init();
     Metro_Init();
     Caw_Init();
@@ -35,7 +36,6 @@ int main(void)
 
     REPL_init( Lua_Init() );
 
-    IO_Start(); // must start IO before running lua init() script
     Lua_crowbegin();
 
 
