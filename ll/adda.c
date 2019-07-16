@@ -228,7 +228,8 @@ IO_block_t* CAL_BlockProcess( IO_block_t* b )
             cal.adc[0].scale -= cal.adc[0].shift;
             cal.adc[0].scale  = vref / cal.adc[0].scale;
             ADC_CalibrateScalar( 0, cal.adc[0].scale );
-            ADC_CalibrateScalar( 1, cal.adc[0].scale ); // copy ch0 to ch1
+            cal.adc[1].scale  = cal.adc[0].scale; // copy ch0 to ch1
+            ADC_CalibrateScalar( 1, cal.adc[1].scale );
             cal.adc[0].shift = 0.0; // reset before scaled calibration
             cal.stage++;
             break;
@@ -362,13 +363,13 @@ void CAL_Recalibrate( uint8_t use_defaults )
     for( int j=0; j<2; j++ ){
         cal.adc[j].shift = 0.0;
         ADC_CalibrateShift( j, 0.0 );
-        cal.adc[j].scale = 1.0;
+        cal.adc[j].scale = 0.0; // use zero! otherwise will affect average.
         ADC_CalibrateScalar( j, 1.0 );
     }
     for( int j=0; j<4; j++ ){
         cal.dac[j].shift = 0.0;
         DAC_CalibrateOffset( j, 0.0 );
-        cal.dac[j].scale = 1.0;
+        cal.dac[j].scale = 0.0; // use zero! otherwise will affect average.
         DAC_CalibrateScalar( j, 1.0 );
     }
     if( !use_defaults ){ // causes recalibration to run
