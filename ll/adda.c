@@ -28,6 +28,11 @@ typedef enum{ CAL_none
             , CAL_dac2_scale
             , CAL_dac3_shift
             , CAL_dac3_scale
+            , CAL_dac_scales
+            , CAL_dac0_z
+            , CAL_dac1_z
+            , CAL_dac2_z
+            , CAL_dac3_z
             , CAL_complete
 } CAL_stage_t;
 
@@ -36,7 +41,7 @@ typedef struct {
     float scale;
 } CAL_chan_t;
 
-#define AVERAGE_COUNT 200
+#define AVERAGE_COUNT 400
 #define AVERAGE_IGNORE 40
 #define AVERAGE_USABLE (AVERAGE_COUNT - AVERAGE_IGNORE)
 typedef struct {
@@ -142,6 +147,23 @@ __weak IO_block_t* IO_BlockProcess( IO_block_t* b )
 
 // Calibration process
 
+int CAL_ValidateData( void )
+{
+    for( int j=0; j<2; j++ ){
+        if( cal.adc[j].shift < -0.1
+         || cal.adc[j].shift > 0.1 ){ return 0; }
+        if( cal.adc[j].scale < 0.9
+         || cal.adc[j].scale > 1.1 ){ return 0; }
+    }
+    for( int j=0; j<4; j++ ){
+        if( cal.dac[j].shift < -0.1
+         || cal.dac[j].shift > 0.1 ){ return 0; }
+        if( cal.dac[j].scale < 0.9
+         || cal.dac[j].scale > 1.1 ){ return 0; }
+    }
+    return 1;
+}
+
 // hacked this in for testing input2
 uint8_t CAL_StepB( IO_block_t* b, float* value )
 {
@@ -206,6 +228,8 @@ IO_block_t* CAL_BlockProcess( IO_block_t* b )
             cal.adc[0].scale -= cal.adc[0].shift;
             cal.adc[0].scale  = vref / cal.adc[0].scale;
             ADC_CalibrateScalar( 0, cal.adc[0].scale );
+            ADC_CalibrateScalar( 1, cal.adc[0].scale ); // copy ch0 to ch1
+            cal.adc[0].shift = 0.0; // reset before scaled calibration
             cal.stage++;
             break;
 
@@ -263,19 +287,57 @@ IO_block_t* CAL_BlockProcess( IO_block_t* b )
             if( CAL_Step( b, &(cal.dac[3].scale) ) ){
                 S_toward( 3, output_ref, 0.0, SHAPE_Linear, NULL ); } break;
 
-        case CAL_complete:
+        case CAL_dac_scales:
             S_toward( 3, 0.0, 0.0, SHAPE_Linear, NULL );
             CAL_LL_ActiveChannel( CAL_LL_Ground ); // mux off / gnd input
 
             for( uint8_t j=0; j<4; j++ ){
-                cal.dac[j].shift = -cal.dac[j].shift;
-                cal.dac[j].scale = output_ref / (cal.dac[j].scale + cal.dac[j].shift);
-                DAC_CalibrateOffset( j, cal.dac[j].shift );
+                cal.dac[j].scale = output_ref / (cal.dac[j].scale - cal.dac[j].shift);
                 DAC_CalibrateScalar( j, cal.dac[j].scale );
+                cal.dac[j].shift = 0.0; // reset shift for scaled calibration
             }
-            CAL_WriteFlash();
+            cal.stage++;
+            break;
+
+        case CAL_dac0_z:
+            if( CAL_Step( b, &(cal.dac[0].shift) ) ){
+                CAL_LL_ActiveChannel( CAL_LL_dac0 );
+                S_toward( 0, 0.0, 0.0, SHAPE_Linear, NULL ); } break;
+            break;
+
+        case CAL_dac1_z:
+            if( CAL_Step( b, &(cal.dac[1].shift) ) ){
+                CAL_LL_ActiveChannel( CAL_LL_dac1 );
+                S_toward( 1, 0.0, 0.0, SHAPE_Linear, NULL ); } break;
+            break;
+
+        case CAL_dac2_z:
+            if( CAL_Step( b, &(cal.dac[2].shift) ) ){
+                CAL_LL_ActiveChannel( CAL_LL_dac2 );
+                S_toward( 2, 0.0, 0.0, SHAPE_Linear, NULL ); } break;
+            break;
+
+        case CAL_dac3_z:
+            if( CAL_Step( b, &(cal.dac[3].shift) ) ){
+                CAL_LL_ActiveChannel( CAL_LL_dac3 );
+                S_toward( 3, 0.0, 0.0, SHAPE_Linear, NULL ); } break;
+            break;
+
+        case CAL_complete:
+            for( uint8_t j=0; j<4; j++ ){
+                cal.dac[j].shift = -cal.dac[j].shift;
+                DAC_CalibrateOffset( j, cal.dac[j].shift );
+            }
+            if( CAL_ValidateData() ){
+                CAL_WriteFlash();
+            } else {
+                char msg[] = "Calibration failed. Remove all cables & retry!\n";
+                Caw_send_raw( (uint8_t*)msg, strlen(msg) );
+                CAL_Recalibrate( 1 );
+            }
             cal.stage = CAL_none;
             break;
+
         default: break;
     }
 
@@ -298,11 +360,15 @@ void CAL_Recalibrate( uint8_t use_defaults )
 {
     // use default values
     for( int j=0; j<2; j++ ){
+        cal.adc[j].shift = 0.0;
         ADC_CalibrateShift( j, 0.0 );
+        cal.adc[j].scale = 1.0;
         ADC_CalibrateScalar( j, 1.0 );
     }
     for( int j=0; j<4; j++ ){
+        cal.dac[j].shift = 0.0;
         DAC_CalibrateOffset( j, 0.0 );
+        cal.dac[j].scale = 1.0;
         DAC_CalibrateScalar( j, 1.0 );
     }
     if( !use_defaults ){ // causes recalibration to run
