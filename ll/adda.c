@@ -168,7 +168,7 @@ int CAL_ValidateData( void )
 uint8_t CAL_StepB( IO_block_t* b, float* value )
 {
     const float input_resistor = 100.0; // 100k
-    const float mux_resistor   = 0.33; // 330r
+    const float mux_resistor   = 0.33 + 0.135; // 330r + MUX508 internal r
     float resistor_scale = (input_resistor + mux_resistor)
                                     / input_resistor;
     if( cal.avg_count == AVERAGE_COUNT ){
@@ -189,7 +189,7 @@ uint8_t CAL_StepB( IO_block_t* b, float* value )
 uint8_t CAL_Step( IO_block_t* b, float* value )
 {
     const float input_resistor = 100.0; // 100k
-    const float mux_resistor   = 0.33; // 330r
+    const float mux_resistor   = 0.33 + 0.135; // 330r + MUX508 internal r
     float resistor_scale = (input_resistor + mux_resistor)
                                     / input_resistor;
     if( cal.avg_count == AVERAGE_COUNT ){
