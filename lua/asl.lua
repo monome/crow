@@ -40,6 +40,7 @@ local function set_action( self, exe )
     self.pc = 1
 end
 
+-- FIXME why can't we use :method call on restart, release & step?
 local function do_action( self, dir )
     local t = type(dir)
     if t == 'table' then
@@ -50,23 +51,27 @@ local function do_action( self, dir )
             self.hold = true
         elseif dir == 'restart' or dir == 'attack' then
             self.hold = true
-            self:restart()
+            Asl.restart(self)
         elseif dir == 'release' then
             self.hold = false
-            self:release()
+            Asl.release(self)
         elseif dir == 'step' then -- do nothing
         elseif dir == 'unlock' then self.locked = false
+        elseif dir == 'nil' then self.hold = true -- simulating a nil call
         else print'ERROR unmatched action string'
         end
     elseif t == 'boolean' then
         self.hold = dir
         if not dir then
-            self:release()
+            Asl.release(self)
         end
     else self.hold = true
     end
 
-    if not self.locked then self:step() end
+    if not self.locked then
+        if Asl.isOver(self) then Asl.restart(self) end
+        Asl.step(self)
+    end
 end
 
 local function get_frame( self )
@@ -129,6 +134,12 @@ function Asl:recur()
     self.pc = 0
 end
 
+function Asl:isOver()
+    if #self.retStk == 0 and self.pc > #self.exe then
+        return true
+    end
+end
+
 function Asl:restart()
     self.retStk = {}
     self.pc = 1
@@ -176,6 +187,7 @@ Asl.__index = function(self, ix)
     elseif ix == 'release' then return Asl.release
     elseif ix == 'restart' then return Asl.restart
     elseif ix == 'cleanup' then return Asl.cleanup
+    elseif ix == 'isOver' then return Asl.cleanup
     end
 end
 
@@ -184,7 +196,7 @@ setmetatable(Asl, Asl)
 --------------------------------
 -- low level ASL building blocks
 
-function toward( dest, time, shape )
+function to( dest, time, shape )
     -- COMPILE TIME
     local d,t,s
     if type(dest) == 'table' then -- accept table syntax

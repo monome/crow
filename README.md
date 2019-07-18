@@ -351,7 +351,7 @@ The syntax for handling this behaviour is identical to norns, minus the connecti
 and 'ports' handling. crow only has one port! Try the below example to get started:
 ```
 function init()
-  input[1].mode = 'midi;
+  input[1].mode = 'midi';
 end
 
 input[1].midi = function(data)
@@ -368,7 +368,27 @@ end
 
 ## Output Library & ASL
 
-TODO
+Each of crow's 4 outputs use an instance of the Output library to give control over
+the CV values on each channel. The most basic actions are designed to be easy but
+the library is built to be highly extensible.
+
+Set output 1 to a 2 volts:
+`output[1].volts = 2.0`
+
+When assigning values via `volts` you can specify a `slew` time over which the output
+will move toward the destination `volts`. For those familiar with monome's *teletype*
+this should be a familiar model.
+```
+output[1].slew = 0.1
+output[1].volts = 5.0
+```
+Above we set slew time to 0.1 seconds (100ms), and then start moving the output to
+5 volts. The output channel will transition from the current location to the new
+`volts` value over the time set by `slew`.
+
+To return to instant actions, use `output[1].slew = 0`
+
+### ASL
 
 See `ref/asl-spec.lua` for some discussion of ASL.
 
@@ -380,65 +400,46 @@ values.
 
 ASL is brand new and sharing your examples will help it mature!
 
-### examples
+### Output examples
 
-Activate a pre-defined ASL action. By default there is a +/-5v LFO on every channel:
-`output[1]:action()` will start the LFO on output 1.
-or you can use the short-cut:
+ASL is used under the hood of the output library to implement the above mentioned
+`volts` and `slew`. By using the power of ASL it's possible to chain together sets
+of `volts` and `slew` settings, running them in sequence as they complete.
+
+Here we set output 1 to the `action` of a 1 Hz low-frequency oscillator:
+`output[1].action = lfo( 1.0 )`
+
+You might notice that *nothing happened*. That's because `action`s need to be started
+before they will run. Start the lfo with:
 `output[1]()`
 
-*tech note: `output[n].action` is actually a shortcut for `output[n].asl.action`*
-
-Or set the output to a value directly, deactivating the current action:
-`output[1].volts = 2.0` 2 volts.
-
-You can assign a new action:
-`output[1].action = lfo( 1.0, 'linear', 4.0 )`
+This separation of assignment & execution is useful in some cases, but sometimes
+you just want the LFO *now*. You can do that by calling the output table with an
+ASL like so:
+`output[1]( lfo(1.0) )`
 
 There's a list of different default actions like `lfo()`, `adsr()` in the 'Asl lib'
 located in `lua/asllib.lua`.
 
 You can of course define your own ASL generator functions, or use it directly. Below
-we assign a sawtooth LFO jumping instantly to 5 volts, then falling to 0 volts in
-one second, before repeating infinitely.
+we create a sawtooth LFO jumping instantly to 5 volts, then falling to 0 volts in
+one second, then repeating indefinitely.
 ```
 output[1].action =
-    loop{ toward( 5.0, 0.0, 'linear' )
-        , toward( 0.0, 1.0, 'linear' )
+    loop{ to( 5.0, 0.0 )
+        , to( 0.0, 1.0 )
         }
 ```
-Then start it as above with `output[1]:action()`, note the colon (method) call!
+Remember to start it by calling the output itself `output[1]()`.
 
-There is a syntax shortcut to assign an action and start it immediately. Rather than
-assigning with `=` you can method-call (`:`) action with an ASL argument. Looks like:
-
-```
-output[1].asl:action( -- note the parens & method call
-    loop{ toward( 5.0, 0.0, 'linear' )
-        , toward( 0.0, 1.0, 'linear' )
-        }) -- method calls ends here
-```
-
-### volts
-
-It can be useful to query the current output value of an output. Rather than setting
-'volts' as above, you can query it like so:
-`v = output[1].volts`
-
-Try querying the 'volts' of output 1 to set the rate for an lfo on output 2:
-```
-output[2].action =
-    lfo( function() return output[1].volts end
-       , 'linear'
-       , 5.0
-       )
-```
+Think of the `to()` function as a pair of `volts` and `slew` times. ASL just allows
+you to chain these together in time, with some nice helpers like `loop`.
 
 ### directives
 
-A number of special commands can be sent to the `action` method to control the
-execution of an active ASL. It looks like so:
-`output[1]:action('restart')`
+A number of special commands can be used to control the execution of an active ASL.
+Restart the active ASL:
+`output[1]('restart')`
 
 Accepted directives are:
 * 'restart' or 'attack' go to beginning of the ASL and starts. will enter `held{}`
@@ -449,17 +450,30 @@ Accepted directives are:
 
 Additionally a boolean (true/false) value can be used for traditional attack-release
 control. This is designed to work well with the input libraries `change` mode. Here
-input[1] will start an ADSR when it goes high, and enter 'release' phase on low:
+input[1] will begin an ADSR when it goes high, and enter 'release' phase on low:
 
 ```
-function init()
-    output[1].action = adsr()
-    input[1].mode( 'change' )
-end
-
 input[1].change = function(state)
-    output[1]:action(state)
+    output[1](state)
 end
+output[1].action = adsr()
+input[1].mode( 'change' )
+
+```
+
+### volts
+
+It can be useful to query the current value of an output. Rather than setting 'volts'
+as above, you can query it like so:
+`v = output[1].volts`
+
+Here we query the 'volts' of output 1 to set the rate for an lfo on output 2:
+```
+output[2].action =
+    lfo( function() return output[1].volts end
+       , 'linear'
+       , 5.0
+       )
 ```
 
 ## Metro library

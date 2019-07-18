@@ -123,9 +123,9 @@ end
 --- True Random Number Generator
 -- redefine library function to use stm native rng
 math.random = function(a,b)
-    if a == nil then return random_get()
-    elseif b == nil then return random_get() * a
-    else return (b-a)*random_get() + a
+    if a == nil then return random_float()
+    elseif b == nil then return random_int(1,a)
+    else return random_int(a,b)
     end
 end
 
