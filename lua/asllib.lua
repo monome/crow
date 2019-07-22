@@ -18,9 +18,9 @@ function n2v( n )
 end
 
 function note( noteNum, duration )
-	return{ to( n2v(noteNum), 0 ) 
-		  , to( 'here', duration )
-	   	  }
+	return {to( n2v(noteNum), 0 ) 
+           ,to( 'here', duration ) 
+           }
 end
 
 function lfo( speed, curve, level )
