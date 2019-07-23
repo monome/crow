@@ -11,6 +11,18 @@ function negate( v )
     else return -v end
 end
 
+function n2v( n )
+    if type(n) == 'function' then
+        return function () return n()/12 end
+    else return n/12 end
+end
+
+function note( noteNum, duration )
+    return{ to( n2v(noteNum), 0 )
+          , to( 'here', duration  )
+          }
+end
+
 function lfo( speed, curve, level )
     -- allow these defaults to be attributes of the out channel
     speed, curve, level = speed or 1, curve or 'linear', level or 5
