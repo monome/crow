@@ -12,9 +12,9 @@ function negate( v )
 end
 
 function n2v( n )
-	if type(n) == 'function' then
-		return function () return n()/12 end
-	else return n/12 end
+    if type(n) == 'function' then
+        return function () return n()/12 end
+    else return n/12 end
 end
 
 function note( noteNum, duration )
