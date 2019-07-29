@@ -201,9 +201,6 @@ function to( dest, time, shape )
     local d,t,s
     if type(dest) == 'table' then -- accept table syntax
         local tt = dest
-        -- provide 'delay' and 'now' methods
-        if tt.delay then d,t,s = 'here', tt.delay, 'linear'
-        elseif tt.now then d,t,s = tt.now, 0, 'linear' end
         d,t,s = tt.dest or 'here', tt.time or 0, tt.shape or 'linear'
     else
         d,t,s = dest or 'here', time or 0, shape or 'linear'

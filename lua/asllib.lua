@@ -37,14 +37,14 @@ function trig( polarity, time, level )
     polarity, time, level = polarity or 1, time or 0.1, level or 5
 
     local rest = 0
-    if not polarity then
+    if polarity == 0 then
         rest  = level
         level = 0
     end
 
-    return{ to{ ['now'   ] = level }
-          , to{ ['delay' ] = time  }
-          , to{ ['now'   ] = rest  }
+    return{ to( level, 0 )
+          , to( level, time )
+          , to( rest , 0 )
           }
 end
 
