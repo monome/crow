@@ -366,6 +366,25 @@ function run_tests()
           , {{false,'nil'}          , {1,3,3,'linear'}}
           )
 
+    _t.run( 'loop{{to,to},to}'
+          , function(count)
+                local sl = Asl.new(1)
+                sl.action = loop{ { to( 1,1 )
+                                  , to( 2,2 )
+                                  }
+                                , to( 3,3 )
+                                }
+                sl:action()
+                for i=1,count do sl:step() end
+                return get_last_to()
+            end
+          , {0, {1,1,1,'linear'}}
+          , {1, {1,2,2,'linear'}}
+          , {2, {1,3,3,'linear'}}
+          , {3, {1,1,1,'linear'}}
+          )
+
+
 
 --    _t.run( 'weave'
 --          , function(count)
