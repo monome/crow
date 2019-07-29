@@ -55,11 +55,11 @@ function ramp( time, skew, level )
                     , level or 5
 
     -- note skew expects 0-1 range
-	local rise = 0.5/(0.998 * skew + 0.001)
-	local fall = 1.0/(2.0 - 1.0/rise)
+    local rise = 0.5/(0.998 * skew + 0.001)
+    local fall = 1.0/(2.0 - 1.0/rise)
 
-    return{ loop{ to(  level, time*rise, curve )
-                , to( -level, time*fall, curve )
+    return{ loop{ to(  level, time/rise )
+                , to( -level, time/fall )
                 }
           }
 end
