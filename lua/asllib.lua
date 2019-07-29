@@ -34,7 +34,7 @@ function lfo( speed, level )
 end
 
 function trig( polarity, time, level )
-    polarity, time, level = polarity or 1, time or 0.1, level or 5
+    polarity, time, level = polarity or 1, time or 0.01, level or 5
 
     local rest = 0
     if polarity == 0 then
@@ -75,10 +75,10 @@ function ar( attack, release, level )
 end
 
 function adsr( attack, decay, sustain, release )
-    attack,decay,sustain,release = attack  or 0.1
-                                 , decay   or 0.5
+    attack,decay,sustain,release = attack  or 0.05
+                                 , decay   or 0.3
                                  , sustain or 2
-                                 , release or 4
+                                 , release or 2
 
     return{ held{ to( 5.0, attack )
                 , to( sustain, decay )
