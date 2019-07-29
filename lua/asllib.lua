@@ -51,7 +51,7 @@ end
 
 function ramp( time, skew, level )
     time,skew,level = time  or 1
-                    , skew  or 0.5
+                    , skew  or 0.25
                     , level or 5
 
     -- note skew expects 0-1 range
