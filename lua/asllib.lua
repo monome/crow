@@ -23,12 +23,12 @@ function note( noteNum, duration )
           }
 end
 
-function lfo( speed, curve, level )
+function lfo( speed, level )
     -- allow these defaults to be attributes of the out channel
-    speed, curve, level = speed or 1, curve or 'linear', level or 5
+    speed, level = speed or 1, level or 5
 
-    return loop{ to(        level , speed, curve )
-               , to( negate(level), speed, curve )
+    return loop{ to(        level , speed )
+               , to( negate(level), speed )
                }
 
 end
@@ -49,11 +49,10 @@ function trig( polarity, time, level )
 end
 
 
-function ramp( time, skew, curve, level )
-    time,skew,curve,level = time  or 1
-                          , skew  or 0.5
-                          , curve or 'linear'
-                          , level or 5
+function ramp( time, skew, level )
+    time,skew,level = time  or 1
+                    , skew  or 0.5
+                    , level or 5
 
     -- note skew expects 0-1 range
 	local rise = 0.5/(0.998 * skew + 0.001)
@@ -65,14 +64,13 @@ function ramp( time, skew, curve, level )
           }
 end
 
-function ar( attack, release, curve, level )
-    attack,release,level = attack  or 1
-                         , release or 1
-                         , curve   or 'linear'
-                         , level   or 5
+function ar( attack, release, level )
+    attack,release,level = attack  or 0.05
+                         , release or 0.5
+                         , level   or 7
 
-    return{ to( level, attack,  curve )
-          , to( 0,     release, curve )
+    return{ to( level, attack )
+          , to( 0,     release )
           }
 end
 
