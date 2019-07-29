@@ -82,7 +82,6 @@ if Asl then
         output[id].asl:step()
     end
 end
--- TODO should 'go_toward' be called 'slew'???
 -- special wrapper should really be in the ASL lib itself?
 function LL_toward( id, d, t, s )
     if type(d) == 'function' then d = d() end

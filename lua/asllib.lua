@@ -90,10 +90,3 @@ end
 print 'asllib loaded'
 
 return Asllib
-
--- continue for the following shapes
--- ASR
--- HADSR
--- DADSR
--- trapezoidal
--- whatever other classic shapes there are???
