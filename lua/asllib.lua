@@ -33,8 +33,8 @@ function lfo( speed, level )
 
 end
 
-function trig( polarity, time, level )
-    polarity, time, level = polarity or 1, time or 0.01, level or 5
+function pulse( time, level, polarity )
+    time, level, polarity = time or 0.01, level or 5, polarity or 1
 
     local rest = 0
     if polarity == 0 then
