@@ -128,14 +128,6 @@ math.random = function(a,b)
     end
 end
 
---- Flash program
-function start_flash_chunk()
-    -- should kill the currently running lua script
-    -- turn off timers & callbacks? else?
-    -- call to C to switch from REPL to writer
-end
-
-
 --- Syntax extensions
 function closure_if_table( f )
     local _f = f

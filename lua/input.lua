@@ -91,6 +91,7 @@ end
 Input.__call = function(self, ...)
     local args = {...}
     if #args == 0 then
+        -- FIXME this should be removed? use .volts instead
         return Input.get_value(self)
     else -- table call
         local m = 0

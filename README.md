@@ -351,7 +351,7 @@ The syntax for handling this behaviour is identical to norns, minus the connecti
 and 'ports' handling. crow only has one port! Try the below example to get started:
 ```
 function init()
-  input[1].mode = 'midi';
+  input[1].mode = 'midi'
 end
 
 input[1].midi = function(data)
@@ -478,77 +478,75 @@ output[2].action =
 
 ## Metro library
 
-Each time you want a new timer you can assign it with some default params:
+crow has 7 user-assignable metronomes (or `metro`s) that can be used wherever you
+need a sense of time. The metro library is borrowed from *norns* so if you're
+familiar with that system this should be an easy transition.
+
+### Indexed Metros
+
+The fastest way to get a metro running, is to use the indexed approach. Try:
+```
+metro[1].event = function() print'tick' end
+metro[1].time  = 1.0
+metro[1]:start()
+```
+Which will set the first metro to execute every second, where it will print the word
+'tick' to the host.
+
+This can be really useful if you want to have a set of related timers like so:
+```
+for i=1,7 do
+    metro[i].event = function() print(i) end
+    metro[i].time = 1.0/i
+    metro[i]:start()
+end
+```
+Which will assign all seven timers to print their own index at the first seven
+integer multiples of 1 second. That's a lot of messages printing! You can turn them
+off with:
+```
+for i=1,7 do
+    metro[i]:stop()
+end
+```
+
+### Named Metros
+
+The above indexed metros are great for setting up quick and basic timing patterns,
+but sometimes you'll want to be more descriptive & explicit with the uses. For this
+you can use the `Metro.init` library function to create a named metronome:
+
 ```
 mycounter = Metro.init{ event = count_event
                       , time  = 2.0
                       , count = -1
                       }
 ```
-then start it:
+The additional `count` argument allows to create timers that only repeats a limited
+number of times before deactivating. By default `count` is set to `-1` which is
+interpretted as 'repeat forever'.
+
+As before, start the timer with the `start` method call, though note we call it on
+our named metro:
 `mycounter:start()`
-Which will begin calling your 'event', in this case count_event.
-You'll want to set it up like this:
+
+This will begin calling your 'event', in this case `count_event` which has access to
+the number of iterations that have occured since starting. You'll want to set it up
+like this:
 ```
 function count_event( count )
-    -- TODO
+    -- TODO your function here!
 end
 ```
-You can change parameters on the fly:
+
+You can then change parameters on the fly:
 `mycounter.time = 10.0`
 `mycounter.count = 33`
+`mycounter.event = some_other_action`
 
-
-### 'assign_all'
-
-*nb: this will likely be converted to the default behaviour*
-
-Sometimes you just need a bunch of timers without wanting to name each timer and set
-explicit actions. In this case there's a shorthand to get all the metros setup and
-running. Just add:
-    `metro = Metro.assign_all()`
-to your `init()` function.
-
-This makes `metro` a table of metros with default events assigned. To start them
-running, use the 'start' method call with a time.
-
-```
---- Assign all the metros, and set up 3 phasing timers at 1, 3 and 5 second intervals
-function init()
-    metro = Metro.assign_all()
-
-    metro[1]:start( 1.0 )
-    metro[2]:start( 3.0 )
-    metro[3]:start( 5.0 )
-end
-```
-
-By default, this will call a remote function:
-```
-function metro(channel, count)
-    -- TODO
-end
-```
-In satellite mode, this will create the Max message (metro channel count).
-
-You can set custom times:
-`metro[1].time = 0.1`
-
-And stop a metro:
-`metro[1]:stop()`
-
-Restart a stopped timer with a new time & count value:
-```
-metro[1].start{ time  = 1.2
-              , count = 100
-              }
-```
-
-Or add aliases if you don't want to remember them all by number:
-`my_hourly_reminder = metro[1]`
-
-Or redefine the event if you want to change functionality:
-`metro[1].event = function(count) print(count) end`
+And start/stop as you need. Note that each time you call `start`, the count is reset:
+`mycounter:start()`
+`mycounter:stop()`
 
 ## i2c support
 
