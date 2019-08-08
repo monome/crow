@@ -14,7 +14,6 @@ function Output.new( chan )
 --                          }
               }
     o.asl.action = lfo( function() return o.rate  end
-                      , function() return o.shape end
                       , function() return o.level end
                       )
     setmetatable( o, Output )
