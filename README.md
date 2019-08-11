@@ -565,8 +565,8 @@ If you're directly connecting crow to a single un-pulled-up module (such as Just
 Friends) enable pullups with the following command:
 
 ```
-(standalone) II.pullups(true)
-(norns) crow.II.pullups(true)
+(standalone) II.pullup(true)
+(norns) crow.II.pullup(true)
 ```
 
 Disable them by passing `false` instead.
