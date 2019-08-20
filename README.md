@@ -760,7 +760,7 @@ Execute the `flash.sh` command which is included in the release .zip file. The a
 For example if your file was extracted to `~/Downloads/crow-1.1.0` type this on the command line:
 
 ```
-cd ~/Downloads/crow-1.1.0`
+cd ~/Downloads/crow-1.1.0
 ./flash.sh
 ```
 
