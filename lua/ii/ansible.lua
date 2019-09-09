@@ -75,13 +75,7 @@ do return
   -- no setter for CMD 10 input
   }
 , getters =
-  { { name = 'cv'
-    , cmd  = 8 + get_offset
-    , args = { 'channel', u8 }
-    , retval = { 'volts', u16 }
-    }
-  }
-  , { name = 'input'
+    { name = 'input'
     , cmd  = 10 + get_offset
     , args = { '', u8 }
     --, docs = 'get input state'

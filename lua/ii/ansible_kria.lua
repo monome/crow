@@ -1,5 +1,5 @@
 do return
-{ module_name  = 'ansible'
+{ module_name  = 'ansible_kria'
 , manufacturer = 'monome'
 , i2c_address  = 0x28
 , lua_name     = 'ansible_kria'
