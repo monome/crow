@@ -72,7 +72,7 @@ do return
              , { 'state', u8 }
            }
     }
-  , { name = 'toggle mute'
+  , { name = 'toggle_mute'
     , cmd  = 10
     , get  = false
     , docs = 'toggle mute state'
