@@ -351,7 +351,7 @@ The syntax for handling this behaviour is identical to norns, minus the connecti
 and 'ports' handling. crow only has one port! Try the below example to get started:
 ```
 function init()
-  input[1].mode = 'midi;
+  input[1].mode = 'midi'
 end
 
 input[1].midi = function(data)
@@ -368,7 +368,27 @@ end
 
 ## Output Library & ASL
 
-TODO
+Each of crow's 4 outputs use an instance of the Output library to give control over
+the CV values on each channel. The most basic actions are designed to be easy but
+the library is built to be highly extensible.
+
+Set output 1 to a 2 volts:
+`output[1].volts = 2.0`
+
+When assigning values via `volts` you can specify a `slew` time over which the output
+will move toward the destination `volts`. For those familiar with monome's *teletype*
+this should be a familiar model.
+```
+output[1].slew = 0.1
+output[1].volts = 5.0
+```
+Above we set slew time to 0.1 seconds (100ms), and then start moving the output to
+5 volts. The output channel will transition from the current location to the new
+`volts` value over the time set by `slew`.
+
+To return to instant actions, use `output[1].slew = 0`
+
+### ASL
 
 See `ref/asl-spec.lua` for some discussion of ASL.
 
@@ -380,67 +400,74 @@ values.
 
 ASL is brand new and sharing your examples will help it mature!
 
-### examples
+### Output examples
 
-Activate a pre-defined ASL action. By default there is a +/-5v LFO on every channel:
-`output[1]:action()` will start the LFO on output 1.
-or you can use the short-cut:
+ASL is used under the hood of the output library to implement the above mentioned
+`volts` and `slew`. By using the power of ASL it's possible to chain together sets
+of `volts` and `slew` settings, running them in sequence as they complete.
+
+Here we set output 1 to the `action` of a 1 Hz low-frequency oscillator:
+`output[1].action = lfo( 1.0 )`
+
+You might notice that *nothing happened*. That's because `action`s need to be started
+before they will run. Start the lfo with:
 `output[1]()`
 
-*tech note: `output[n].action` is actually a shortcut for `output[n].asl.action`*
-
-*ed note: Is this a bad idea? Send a string to do output actions? Could be the ASL*
-*interactive commands like "press", "release", "begin", "pause". Like a micro-repl.*
-
-Or set the output to a value directly, deactivating the current action:
-`output[1].volts = 2.0` 2 volts.
-
-You can assign a new action:
-`output[1].action = lfo( 1.0, 'linear', 4.0 )`
+This separation of assignment & execution is useful in some cases, but sometimes
+you just want the LFO *now*. You can do that by calling the output table with an
+ASL like so:
+`output[1]( lfo(1.0) )`
 
 There's a list of different default actions like `lfo()`, `adsr()` in the 'Asl lib'
 located in `lua/asllib.lua`.
 
 You can of course define your own ASL generator functions, or use it directly. Below
-we assign a sawtooth LFO jumping instantly to 5 volts, then falling to 0 volts in
-one second, before repeating infinitely.
+we create a sawtooth LFO jumping instantly to 5 volts, then falling to 0 volts in
+one second, then repeating indefinitely.
 ```
 output[1].action =
-    loop{ toward( 5.0, 0.0, 'linear' )
-        , toward( 0.0, 1.0, 'linear' )
+    loop{ to( 5.0, 0.0 )
+        , to( 0.0, 1.0 )
         }
 ```
-Then start it as above with `output[1]:action()`, note the colon (method) call!
+Remember to start it by calling the output itself `output[1]()`.
 
-There is a syntax shortcut to assign an action and start it immediately. Rather than
-assigning with `=` you can method-call (`:`) action with an ASL argument. Looks like:
+Think of the `to()` function as a pair of `volts` and `slew` times. ASL just allows
+you to chain these together in time, with some nice helpers like `loop`.
+
+### directives
+
+A number of special commands can be used to control the execution of an active ASL.
+Restart the active ASL:
+`output[1]('restart')`
+
+Accepted directives are:
+* 'restart' or 'attack' go to beginning of the ASL and starts. will enter `held{}`
+* '' or 'start' steps forward to the next stage. will enter `held{}`
+* 'release' exit an active `held{}` construct and do the first action
+* 'step' steps forward to the next stage. does not affect `held{}` entry
+* 'unlock' unsets the `lock` variable and steps forward.
+
+Additionally a boolean (true/false) value can be used for traditional attack-release
+control. This is designed to work well with the input libraries `change` mode. Here
+input[1] will begin an ADSR when it goes high, and enter 'release' phase on low:
 
 ```
-output[1].asl:action( -- note the parens & method call
-    loop{ toward( 5.0, 0.0, 'linear' )
-        , toward( 0.0, 1.0, 'linear' )
-        }) -- method calls ends here
+input[1].change = function(state)
+    output[1](state)
+end
+output[1].action = adsr()
+input[1].mode( 'change' )
+
 ```
 
 ### volts
 
-There is a syntax shortcut to assign an action and start it immediately. Rather than
-assigning with `=` you can method-call (`:`) action with an ASL argument. Looks like:
-
-```
-output[1].asl:action( -- note the parens & method call
-    loop{ toward( 5.0, 0.0, 'linear' )
-        , toward( 0.0, 1.0, 'linear' )
-        }) -- method calls ends here
-```
-
-### volts
-
-It can be useful to query the current output value of an output. Rather than setting
-'volts' as above, you can query it like so:
+It can be useful to query the current value of an output. Rather than setting 'volts'
+as above, you can query it like so:
 `v = output[1].volts`
 
-Try querying the 'volts' of output 1 to set the rate for an lfo on output 2:
+Here we query the 'volts' of output 1 to set the rate for an lfo on output 2:
 ```
 output[2].action =
     lfo( function() return output[1].volts end
@@ -451,77 +478,75 @@ output[2].action =
 
 ## Metro library
 
-Each time you want a new timer you can assign it with some default params:
+crow has 7 user-assignable metronomes (or `metro`s) that can be used wherever you
+need a sense of time. The metro library is borrowed from *norns* so if you're
+familiar with that system this should be an easy transition.
+
+### Indexed Metros
+
+The fastest way to get a metro running, is to use the indexed approach. Try:
+```
+metro[1].event = function() print'tick' end
+metro[1].time  = 1.0
+metro[1]:start()
+```
+Which will set the first metro to execute every second, where it will print the word
+'tick' to the host.
+
+This can be really useful if you want to have a set of related timers like so:
+```
+for i=1,7 do
+    metro[i].event = function() print(i) end
+    metro[i].time = 1.0/i
+    metro[i]:start()
+end
+```
+Which will assign all seven timers to print their own index at the first seven
+integer multiples of 1 second. That's a lot of messages printing! You can turn them
+off with:
+```
+for i=1,7 do
+    metro[i]:stop()
+end
+```
+
+### Named Metros
+
+The above indexed metros are great for setting up quick and basic timing patterns,
+but sometimes you'll want to be more descriptive & explicit with the uses. For this
+you can use the `Metro.init` library function to create a named metronome:
+
 ```
 mycounter = Metro.init{ event = count_event
                       , time  = 2.0
                       , count = -1
                       }
 ```
-then start it:
+The additional `count` argument allows to create timers that only repeats a limited
+number of times before deactivating. By default `count` is set to `-1` which is
+interpretted as 'repeat forever'.
+
+As before, start the timer with the `start` method call, though note we call it on
+our named metro:
 `mycounter:start()`
-Which will begin calling your 'event', in this case count_event.
-You'll want to set it up like this:
+
+This will begin calling your 'event', in this case `count_event` which has access to
+the number of iterations that have occured since starting. You'll want to set it up
+like this:
 ```
 function count_event( count )
-    -- TODO
+    -- TODO your function here!
 end
 ```
-You can change parameters on the fly:
+
+You can then change parameters on the fly:
 `mycounter.time = 10.0`
 `mycounter.count = 33`
+`mycounter.event = some_other_action`
 
-
-### 'assign_all'
-
-*nb: this will likely be converted to the default behaviour*
-
-Sometimes you just need a bunch of timers without wanting to name each timer and set
-explicit actions. In this case there's a shorthand to get all the metros setup and
-running. Just add:
-    `metro = Metro.assign_all()`
-to your `init()` function.
-
-This makes `metro` a table of metros with default events assigned. To start them
-running, use the 'start' method call with a time.
-
-```
---- Assign all the metros, and set up 3 phasing timers at 1, 3 and 5 second intervals
-function init()
-    metro = Metro.assign_all()
-
-    metro[1]:start( 1.0 )
-    metro[2]:start( 3.0 )
-    metro[3]:start( 5.0 )
-end
-```
-
-By default, this will call a remote function:
-```
-function metro(channel, count)
-    -- TODO
-end
-```
-In satellite mode, this will create the Max message (metro channel count).
-
-You can set custom times:
-`metro[1].time = 0.1`
-
-And stop a metro:
-`metro[1]:stop()`
-
-Restart a stopped timer with a new time & count value:
-```
-metro[1].start{ time  = 1.2
-              , count = 100
-              }
-```
-
-Or add aliases if you don't want to remember them all by number:
-`my_hourly_reminder = metro[1]`
-
-Or redefine the event if you want to change functionality:
-`metro[1].event = function(count) print(count) end`
+And start/stop as you need. Note that each time you call `start`, the count is reset:
+`mycounter:start()`
+`mycounter:stop()`
 
 ## i2c support
 
@@ -540,8 +565,8 @@ If you're directly connecting crow to a single un-pulled-up module (such as Just
 Friends) enable pullups with the following command:
 
 ```
-(standalone) II.pullups(true)
-(norns) crow.II.pullups(true)
+(standalone) II.pullup(true)
+(norns) crow.II.pullup(true)
 ```
 
 Disable them by passing `false` instead.
@@ -735,7 +760,7 @@ Execute the `flash.sh` command which is included in the release .zip file. The a
 For example if your file was extracted to `~/Downloads/crow-1.1.0` type this on the command line:
 
 ```
-cd ~/Downloads/crow-1.1.0`
+cd ~/Downloads/crow-1.1.0
 ./flash.sh
 ```
 

@@ -51,8 +51,8 @@
 #include "../ll/debug_usart.h" // debug printing
 
 // Private define
-#define APP_RX_DATA_SIZE  256
-#define APP_TX_DATA_SIZE  256
+#define APP_RX_DATA_SIZE  256 // tmp buffer until the parser runs in main loop
+#define APP_TX_DATA_SIZE  1024 // the only tx buffer
 
 // Private vars
 USBD_CDC_LineCodingTypeDef LineCoding = { 115200  // baud rate
@@ -63,8 +63,8 @@ USBD_CDC_LineCodingTypeDef LineCoding = { 115200  // baud rate
 
 uint8_t UserRxBuffer[APP_RX_DATA_SIZE];
 uint8_t UserTxBuffer[APP_TX_DATA_SIZE];
-uint32_t UserTxBufPtrIn  = 0;
-uint32_t UserRxBufPtrIn  = 0;
+uint32_t UserTxDataLen  = 0;
+uint32_t UserRxDataLen  = 0;
 
 TIM_HandleTypeDef  USBTimHandle;
 
@@ -89,8 +89,8 @@ void CDC_clear_buffers( void )
 {
     for( int i=0; i<APP_RX_DATA_SIZE; i++ ){ UserRxBuffer[i] = 0; }
     for( int i=0; i<APP_TX_DATA_SIZE; i++ ){ UserTxBuffer[i] = 0; }
-    UserTxBufPtrIn  = 0;
-    UserRxBufPtrIn  = 0;
+    UserTxDataLen  = 0;
+    UserRxDataLen  = 0;
     USBD_CDC_SetRxBuffer(&USBD_Device, UserRxBuffer);
     USBD_CDC_SetTxBuffer(&USBD_Device, UserTxBuffer, 0);
 }
@@ -166,18 +166,18 @@ static int8_t CDC_Itf_Control (uint8_t cmd, uint8_t* pbuf, uint16_t length)
 // user call copies the data to the tx queue
 void USB_tx_enqueue( uint8_t* buf, uint32_t len )
 {
-    if( (UserTxBufPtrIn + len) >= APP_TX_DATA_SIZE ){
-        len = APP_TX_DATA_SIZE - UserTxBufPtrIn; // stop buffer overflow
+    if( (UserTxDataLen + len) >= APP_TX_DATA_SIZE ){
+        len = APP_TX_DATA_SIZE - UserTxDataLen; // stop buffer overflow
     }
     if( len == 0 ){
         // FIXME? Likely means we're trying to TX when no usb device connected
-        //printf("TxBuf full\n"); // TODO memcpy will still run (can rm this warning)
+        printf("TxBuf full\n"); // TODO memcpy will still run (can rm this warning)
     }
-    memcpy( &UserTxBuffer[UserTxBufPtrIn]
+    memcpy( &UserTxBuffer[UserTxDataLen]
           , buf
           , len
           );
-    UserTxBufPtrIn += len;
+    UserTxDataLen += len;
 }
 
 // interrupt sends out any queued data
@@ -187,27 +187,22 @@ uint8_t USB_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         // here we NOP the first 100ms of timer clicks
         // see PR #137. solves ECHO issue on norns.
         if( timerdelay ){ timerdelay--; return 1; }
-        uint32_t buffptr;
-        uint32_t buffsize;
-        if( UserTxBufPtrIn != 0 ){
-            buffsize = UserTxBufPtrIn; // because TxPtrOut === 0
-            if(buffsize >= APP_TX_DATA_SIZE){
-                //printf("overflow %i\n",(int)buffsize);
-                buffsize = APP_TX_DATA_SIZE;
+        if( UserTxDataLen ){
+            if( UserTxDataLen >= APP_TX_DATA_SIZE ){
+                //printf("overflow %i\n",(int)UserTxDataLen);
+                UserTxDataLen = APP_TX_DATA_SIZE;
             }
-            buffptr = 0;
             USBD_CDC_SetTxBuffer( &USBD_Device
-                                , (uint8_t*)&UserTxBuffer[buffptr]
-                                , buffsize
+                                , UserTxBuffer
+                                , UserTxDataLen
                                 );
 //uint32_t old_primask = __get_PRIMASK();
 //__disable_irq();
             int error = USBD_OK;
-            if( (error = USBD_CDC_TransmitPacket(&USBD_Device)) == USBD_OK ){
-                // only clear data if no error
-                UserTxBufPtrIn = 0;
-            } else if( error == USBD_FAIL ){
+            if( (error = USBD_CDC_TransmitPacket(&USBD_Device)) ){
                 printf("CDC_tx failed %i\n", error);
+            } else {
+                UserTxDataLen = 0; // only clear data if no error
             }
 //__set_PRIMASK( old_primask );
         }
@@ -221,24 +216,24 @@ uint8_t USB_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 // on interrupt add to the queue
 static int8_t CDC_Itf_Receive( uint8_t* buf, uint32_t *len )
 {
-    if( (UserRxBufPtrIn + *len) >= APP_RX_DATA_SIZE ){
-        *len = APP_RX_DATA_SIZE - UserRxBufPtrIn; // stop buffer overflow
+    if( (UserRxDataLen + *len) >= APP_RX_DATA_SIZE ){
+        *len = APP_RX_DATA_SIZE - UserRxDataLen; // stop buffer overflow
     }
-    memcpy( &UserRxBuffer[UserRxBufPtrIn]
+    memcpy( &UserRxBuffer[UserRxDataLen]
           , buf
           , *len
           );
-    UserRxBufPtrIn += *len;
+    UserRxDataLen += *len;
     return USBD_OK;
 }
 
 // user function grabs data from the queue
 uint8_t USB_rx_dequeue( uint8_t** buf, uint32_t* len )
 {
-    if( UserRxBufPtrIn ){ // non-zero means data is present
+    if( UserRxDataLen ){ // non-zero means data is present
         *buf = UserRxBuffer;
-        *len = UserRxBufPtrIn;
-        UserRxBufPtrIn = 0; // reset rx array
+        *len = UserRxDataLen;
+        UserRxDataLen = 0; // reset rx array
 uint32_t old_primask = __get_PRIMASK();
 __disable_irq();
         USBD_CDC_ReceivePacket(&USBD_Device); // Receive the next packet

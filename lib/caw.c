@@ -4,7 +4,7 @@
 
 #include "../usbd/usbd_main.h"
 
-#define USB_RX_BUFFER 1024
+#define USB_RX_BUFFER 2048
 static char reader[USB_RX_BUFFER];
 static int16_t pReader = 0;
 
@@ -100,39 +100,50 @@ C_cmd_t Caw_try_receive( void )
     static uint32_t len;
     static uint8_t multiline = 0;
 
+    C_cmd_t retcmd = C_none; // if nothing to dequeue do nothing
+
+// FIXME
+// do we know that the buf & len haven't been overwritten? can we check?
+// we're assuming that a new CDC_Itf_Receive interrupt won't occur before below
+
     if( USB_rx_dequeue( &buf, &len ) ){
-    // check for a system command
-        switch( _find_cmd( (char*)buf, len ) ){
-            case C_boot:       return C_boot;
-            case C_flashstart: return C_flashstart;
-            case C_flashend:   return C_flashend;
-            case C_flashclear: return C_flashclear;
-            case C_restart:    return C_restart;
-            case C_print:      return C_print;
-            case C_version:    return C_version;
-            case C_identity:   return C_identity;
+        switch( _find_cmd( (char*)buf, len ) ){ // check for a system command
+            case C_boot:       retcmd = C_boot; goto exit;
+            case C_flashstart: retcmd = C_flashstart; goto exit;
+            case C_flashend:   retcmd = C_flashend; goto exit;
+            case C_flashclear: retcmd = C_flashclear; goto exit;
+            case C_restart:    retcmd = C_restart; goto exit;
+            case C_print:      retcmd = C_print; goto exit;
+            case C_version:    retcmd = C_version; goto exit;
+            case C_identity:   retcmd = C_identity; goto exit;
             default: break;
         }
         if( *buf == '\e' ){ // escape key
             pReader = 0;    // clear buffer
-            return C_none;  // no action
+            retcmd = C_none;  // no action
+            goto exit;
         }
         if( _is_multiline( (char*)buf ) ){
             multiline ^= 1;
             if(!multiline){
-                return C_repl;
+                retcmd = C_repl;
+                goto exit;
             } else { // started new multiline
                 if( len > 4 ){ // content follows the backticks
                     len -= 4;
                     buf = &buf[4];
-                } else { return C_none; }
+                } else {
+                    retcmd = C_none;
+                    goto exit;
+                }
             }
         }
         if( pReader + len > USB_RX_BUFFER ){ // overflow protection
             pReader = 0;
             Caw_send_luachunk("!chunk too long!");
             //multiline = 0; // FIXME can we know whether this is high / low?
-            return C_none;
+            retcmd = C_none;
+            goto exit;
         }
     // receive code for repl/flash
         memcpy( &(reader[pReader])
@@ -142,10 +153,16 @@ C_cmd_t Caw_try_receive( void )
         pReader += len;
         if( !multiline
          && _packet_complete( &reader[pReader-1] ) ){
-            return C_repl;
+            retcmd = C_repl;
+            goto exit;
+        }
+    exit:
+        if( USB_rx_dequeue( &buf, &len ) ){
+            // if this happens it means the buffer is not being dealt with in time
+            printf("you thought this couldn't happen in caw.c %i\n",retcmd);
         }
     }
-    return C_none; // nothing to dequeue so always do nothing
+    return retcmd;
 }
 
 char* Caw_get_read( void )

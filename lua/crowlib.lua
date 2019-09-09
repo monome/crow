@@ -82,7 +82,6 @@ if Asl then
         output[id].asl:step()
     end
 end
--- TODO should 'go_toward' be called 'slew'???
 -- special wrapper should really be in the ASL lib itself?
 function LL_toward( id, d, t, s )
     if type(d) == 'function' then d = d() end
@@ -123,19 +122,11 @@ end
 --- True Random Number Generator
 -- redefine library function to use stm native rng
 math.random = function(a,b)
-    if a == nil then return random_get()
-    elseif b == nil then return random_get() * a
-    else return (b-a)*random_get() + a
+    if a == nil then return random_float()
+    elseif b == nil then return random_int(1,a)
+    else return random_int(a,b)
     end
 end
-
---- Flash program
-function start_flash_chunk()
-    -- should kill the currently running lua script
-    -- turn off timers & callbacks? else?
-    -- call to C to switch from REPL to writer
-end
-
 
 --- Syntax extensions
 function closure_if_table( f )

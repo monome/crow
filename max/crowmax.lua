@@ -42,16 +42,23 @@ end
 
 --- Request/callback pairs
 -- from max
-function get_cv( channel )
+function get_input( channel )
     tell_crow( "get_cv("..channel..")")
 end
+function get_output( channel )
+    tell_crow( "get_out("..channel..")")
+end
 -- continues to ->
-function ret_cv( channel, value )
-    to_max("ret_cv", channel, value)
+function stream( channel, value )
+    to_max("stream", channel, value)
 end
 
 function change( channel, state )
-    to_max("change_cv", channel, state )
+    to_max("change", channel, state )
+end
+
+function output( channel, state )
+    to_max("output", channel, state )
 end
 
 function midi( ... )
@@ -62,8 +69,8 @@ function version( ... )
     to_max("version", ...)
 end
 
-function crow_id( ... )
-    to_max("id", ...)
+function identity( ... )
+    to_max("identity", ...)
 end
 
 --- Helper conversion functions

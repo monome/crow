@@ -11,7 +11,7 @@
 local Test = {}
 
 -- this is really Test.equality
-function Test.run( fn, ... )
+function Test.run( name, fn, ... )
     local test_cases = {...}
     local failures = 0
     for _,test_case in ipairs( test_cases ) do
@@ -53,15 +53,15 @@ function Test.run( fn, ... )
 
 -- status print
     if failures == 0 then
-        print(#test_cases..' tests passed')
+        print(#test_cases..' tests passed. ' .. name)
     else
         io.write(failures..' tests failed, ')
-        print((#test_cases-failures)..' passed')
+        print((#test_cases-failures)..' passed, in ' .. name)
     end
 end
 
-function Test.type( ... )
-    Test.run( type, ... )
+function Test.type( name, ... )
+    Test.run( name, type, ... )
 end
 
 return Test
