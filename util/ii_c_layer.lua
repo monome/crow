@@ -256,7 +256,7 @@ function make_c(f)
           .. 'typedef struct{\n'
           .. '    uint8_t cmd;\n'
           .. '    uint8_t args;\n'
-          .. '    uint8_t return_type;\n'
+          .. '    II_Type_t return_type;\n'
           .. '    II_Type_t argtype[];\n'
           .. '} II_Cmd_t;\n\n'
           .. 'const char* ii_module_list =\n'

@@ -134,35 +134,36 @@ void I2C_Follow_RxCallback( uint8_t* data )
                    );
 }
 
-uint8_t _II_make_return( uint8_t* buf, const II_Cmd_t* c, uint8_t cmd, float* data )
+static uint8_t pack_data( uint8_t* dest, II_Type_t type, float data )
 {
-    uint8_t byte = 0;
-    uint8_t* b = buf;
+    uint8_t len = 0;
+    uint8_t* d = dest;
 
     uint16_t u16; int16_t s16;
-    switch( c->return_type ){
-        case II_u8: b[byte++] = (uint8_t)(*data++);
+    switch( type ){
+        case II_u8: d[len++] = (uint8_t)data;
             break;
-        case II_s8: b[byte++] = (int8_t)(*data++);
+        case II_s8: d[len++] = (int8_t)data;
             break;
         case II_u16:
-            u16 = (uint16_t)(*data++);
-            b[byte++] = (uint8_t)(u16>>8);          // High byte first
-            b[byte++] = (uint8_t)(u16 & 0x00FF);    // Low byte
+            u16 = (uint16_t)data;
+            d[len++] = (uint8_t)(u16>>8);          // High byte first
+            d[len++] = (uint8_t)(u16 & 0x00FF);    // Low byte
             break;
         case II_s16:
-            s16 = (int16_t)(*data++);
+            s16 = (int16_t)data;
             u16 = *(uint16_t*)&s16;
-            b[byte++] = (uint8_t)(u16>>8);          // High byte first
-            b[byte++] = (uint8_t)(u16 & 0x00FF);    // Low byte
+            d[len++] = (uint8_t)(u16>>8);          // High byte first
+            d[len++] = (uint8_t)(u16 & 0x00FF);    // Low byte
             break;
         case II_float:
-            memcpy( &(b[byte]), data++, 4 );
-            byte += 4;
+            memcpy( &(d[len]), &data, 4 );
+            len += 4;
             break;
         default: printf("no retval found\n"); return 0;
+            // FIXME: should this really print directly? or pass to caller?
     }
-    return byte;
+    return len;
 }
 
 void I2C_Follow_TxCallback( uint8_t* data )
@@ -176,46 +177,21 @@ void I2C_Follow_TxCallback( uint8_t* data )
                    , c->args
                    , _II_decode_packet( args, data, c, 1 )
                    );
-    static uint8_t d[4];
-    uint8_t length = _II_make_return( d, c, cmd, &response );
+    static uint8_t d[4]; // TODO: only allow a single retval currently
+    uint8_t length = pack_data( d, c->return_type, response );
     //I2C_SetTxData( d, _II_type_size( c->return_type ) );
     //FIXME _II_type_size doesn't work on an auto-generated retval for a getter
     I2C_SetTxData( d, length );
 }
 
-// TODO merge with _II_make_return with a 'is_return' flag
-uint8_t _II_make_packet( uint8_t* buf, const II_Cmd_t* c, uint8_t cmd, float* data )
+uint8_t _II_make_packet( uint8_t* dest, const II_Cmd_t* c, uint8_t cmd, float* data )
 {
-    uint8_t byte = 0;
-    uint8_t* b = buf;
-    b[byte++] = cmd;
-
+    uint8_t len = 0;
+    dest[len++] = cmd; // first byte is command
     for( int i=0; i<(c->args); i++ ){
-        uint16_t u16; int16_t s16;
-        switch( c->argtype[i] ){
-            case II_u8: b[byte++] = (uint8_t)(*data++);
-                break;
-            case II_s8: b[byte++] = (int8_t)(*data++);
-                break;
-            case II_u16:
-                u16 = (uint16_t)(*data++);
-                b[byte++] = (uint8_t)(u16>>8);          // High byte first
-                b[byte++] = (uint8_t)(u16 & 0x00FF);    // Low byte
-                break;
-            case II_s16:
-                s16 = (int16_t)(*data++);
-                u16 = *(uint16_t*)&s16;
-                b[byte++] = (uint8_t)(u16>>8);          // High byte first
-                b[byte++] = (uint8_t)(u16 & 0x00FF);    // Low byte
-                break;
-            case II_float:
-                memcpy( &(b[byte]), data++, 4 );
-                byte += 4;
-                break;
-            default: return 0;
-        }
+        len += pack_data( &dest[len], c->argtype[i], *data++ );
     }
-    return byte;
+    return len;
 }
 
 // Leader Transmit
@@ -226,17 +202,17 @@ uint8_t II_broadcast( uint8_t address
 {
     // need a queue here to allow repetitive calls to the fn
     // best to implement the DMA
-    static uint8_t tx_buf[1+II_MAX_BROADCAST_LEN];
+    static uint8_t tx_buf[1+II_MAX_BROADCAST_LEN]; // empty buf to write
     const II_Cmd_t* c = ii_find_command(address, cmd);
-    uint8_t byte = _II_make_packet( tx_buf
-                   , c
-                   , cmd
-                   , data
-                   );
-    if( byte == 0 ){ return 2; }
+    uint8_t len = _II_make_packet( tx_buf
+                    , c
+                    , cmd
+                    , data
+                    );
+    if( len == 0 ){ return 2; }
     if( I2C_LeadTx( address
                   , tx_buf
-                  , byte
+                  , len
                   ) ){ return 1; }
     return 0;
 }
@@ -251,10 +227,10 @@ uint8_t II_query( uint8_t address
     static uint8_t rx_buf[1+II_MAX_BROADCAST_LEN];
     const II_Cmd_t* c = ii_find_command(address, cmd);
     uint8_t byte = _II_make_packet( rx_buf
-                   , c
-                   , cmd
-                   , data
-                   );
+                    , c
+                    , cmd
+                    , data
+                    );
     if( byte == 0 ){ return 2; }
     if( I2C_LeadRx( address
                   , rx_buf
