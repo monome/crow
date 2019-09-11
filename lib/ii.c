@@ -68,47 +68,10 @@ uint8_t* II_processLeadRx( void )
     return pRetval; // NULL for finished
 }
 
-float* _II_decode_packet( float* decoded
-                        , uint8_t* data
-                        , const II_Cmd_t* c
-                        , int is_following
-                        )
-{
-    float* d = decoded;
-    uint16_t u16 = 0;
-    for( int i=0; i<(is_following ? c->args : 1); i++ ){
-        switch( (is_following) ? c->argtype[i] : c->return_type ){
-            case II_u8: *d++ = (float)(*data++); break;
-            case II_s8: *d++ = (float)(*(int8_t*)data++); break;
-            case II_u16:
-                u16  = ((uint16_t)*data++)<<8;
-                u16 |= *data++;
-                *d++ = (float)u16;
-                break;
-            case II_s16:
-                u16  = ((uint16_t)*data++)<<8;
-                u16 |= *data++;
-                *d++ = (float)*(int16_t*)&u16;
-                break;
-            case II_float: *d++ = *(float*)data; data += 4; break;
-            default: printf("ii_decode unmatched\n"); break;
-        }
-    }
-    return decoded;
-}
+/////////////////////////////////////
+// II Type Encode/Decode
 
-void I2C_Lead_RxCallback( uint8_t address, uint8_t cmd, uint8_t* data )
-{
-    printf("ii_lead_rx: cmd %i, data %i %i %i\n", cmd, data[0], data[1], data[2]);
-    const II_Cmd_t* c = ii_find_command(address, cmd);
-    float val;
-    L_handle_ii_leadRx( address
-               , cmd
-               , *_II_decode_packet( &val, data, c, 0 )
-               );
-}
-
-uint8_t _II_type_size( II_Type_t t )
+static uint8_t type_size( II_Type_t t )
 {
     switch(t){ case II_void:  return 0;
                case II_u8:    return 1;
@@ -120,18 +83,33 @@ uint8_t _II_type_size( II_Type_t t )
     return 0;
 }
 
-void I2C_Follow_RxCallback( uint8_t* data )
+static float decode( uint8_t* data, II_Type_t type )
 {
-    printf("ii_follow_rx: cmd %i, data %i, %i\n", data[0], data[1], data[2]);
-    uint8_t cmd = *data++; // first data holds command
-    const II_Cmd_t* c = ii_find_command(II_get_address(), cmd);
-    float args[c->args];
-    // run the callback directly
-    // TODO: THIS GOES IN THE EVENT SYSTEM
-    L_handle_ii_followRx( cmd
-                   , c->args
-                   , _II_decode_packet( args, data, c, 1 )
-                   );
+    float val = 0; // return value default to zero
+    uint16_t u16 = 0;
+    switch( type ){
+        case II_u8:
+            val = (float)(*data++);
+            break;
+        case II_s8:
+            val = (float)(*(int8_t*)data++);
+            break;
+        case II_u16:
+            u16  = ((uint16_t)*data++)<<8;
+            u16 |= *data++;
+            val = (float)u16;
+            break;
+        case II_s16:
+            u16  = ((uint16_t)*data++)<<8;
+            u16 |= *data++;
+            val = (float)*(int16_t*)&u16;
+            break;
+        case II_float:
+            val = *(float*)data;
+            break;
+        default: printf("ii_decode unmatched\n"); break;
+    }
+    return val;
 }
 
 static uint8_t pack_data( uint8_t* dest, II_Type_t type, float data )
@@ -166,6 +144,50 @@ static uint8_t pack_data( uint8_t* dest, II_Type_t type, float data )
     return len;
 }
 
+float* _II_decode_packet( float* decoded
+                        , uint8_t* data
+                        , const II_Cmd_t* c
+                        , int is_following
+                        )
+{
+    float* d = decoded;
+    if( is_following ){
+        int len = 0;
+        for( int i=0; i<(c->args); i++ ){
+            *d++ = decode( &data[len], c->argtype[i] );
+            len += type_size( c->argtype[i] );
+        }
+    } else {
+        *d = decode( data, c->return_type );
+    }
+    return decoded;
+}
+
+void I2C_Lead_RxCallback( uint8_t address, uint8_t cmd, uint8_t* data )
+{
+    printf("ii_lead_rx: cmd %i, data %i %i %i\n", cmd, data[0], data[1], data[2]);
+    const II_Cmd_t* c = ii_find_command(address, cmd);
+    float val;
+    L_handle_ii_leadRx( address
+               , cmd
+               , *_II_decode_packet( &val, data, c, 0 )
+               );
+}
+
+void I2C_Follow_RxCallback( uint8_t* data )
+{
+    printf("ii_follow_rx: cmd %i, data %i, %i\n", data[0], data[1], data[2]);
+    uint8_t cmd = *data++; // first data holds command
+    const II_Cmd_t* c = ii_find_command(II_get_address(), cmd);
+    float args[c->args];
+    // run the callback directly
+    // TODO: THIS GOES IN THE EVENT SYSTEM
+    L_handle_ii_followRx( cmd
+                   , c->args
+                   , _II_decode_packet( args, data, c, 1 )
+                   );
+}
+
 void I2C_Follow_TxCallback( uint8_t* data )
 {
     printf("ii_follow_tx: cmd %i, data %i, %i\n", data[0], data[1], data[2]);
@@ -179,8 +201,8 @@ void I2C_Follow_TxCallback( uint8_t* data )
                    );
     static uint8_t d[4]; // TODO: only allow a single retval currently
     uint8_t length = pack_data( d, c->return_type, response );
-    //I2C_SetTxData( d, _II_type_size( c->return_type ) );
-    //FIXME _II_type_size doesn't work on an auto-generated retval for a getter
+    //I2C_SetTxData( d, type_size( c->return_type ) );
+    //FIXME type_size doesn't work on an auto-generated retval for a getter
     I2C_SetTxData( d, length );
 }
 
@@ -235,7 +257,7 @@ uint8_t II_query( uint8_t address
     if( I2C_LeadRx( address
                   , rx_buf
                   , byte
-                  , _II_type_size( c->return_type )
+                  , type_size( c->return_type )
                   ) ){ return 1; }
     return 0;
 }
