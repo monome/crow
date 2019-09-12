@@ -152,22 +152,18 @@ int CAL_ValidateData( void )
     int errorcode = 0;
     for( int j=0; j<2; j++ ){
         if( cal.adc[j].shift < -0.1
-         || cal.adc[j].shift > 0.1 ){
-            errorcode |= (0x1 << j*2);
-        }
-        if( cal.adc[j].scale < 0.9
+         || cal.adc[j].shift > 0.1
+         || cal.adc[j].scale < 0.9
          || cal.adc[j].scale > 1.1 ){
-            errorcode |= (0x2 << j*2);
+            errorcode |= 1 << j;
         }
     }
     for( int j=0; j<4; j++ ){
         if( cal.dac[j].shift < -0.1
-         || cal.dac[j].shift > 0.1 ){
-            errorcode |= (0x1 << (2+j)*2);
-        }
-        if( cal.dac[j].scale < 0.9
+         || cal.dac[j].shift > 0.1
+         || cal.dac[j].scale < 0.9
          || cal.dac[j].scale > 1.1 ){
-            errorcode |= (0x2 << (2+j)*2);
+            errorcode |= 1 << (2+j);
         }
     }
     return errorcode;
@@ -342,13 +338,22 @@ IO_block_t* CAL_BlockProcess( IO_block_t* b )
             if( !(error = CAL_ValidateData()) ){
                 CAL_WriteFlash();
             } else {
-                char msg[] = "Calibration failed. Remove all cables & retry!\n";
+                char msg[] = "Calibration failed. Unplug the below jacks & retry!\n";
                 Caw_send_raw( (uint8_t*)msg, strlen(msg) );
 
                 char pc[32];
-                int len = snprintf( pc, 31, " error 0x%x\n\r", error );
-                Caw_send_raw( (uint8_t*)pc, len );
-
+                for( int i=0; i<2; i++ ){
+                    if( error & (1<<i) ){
+                        int len = snprintf( pc, 31, " in %i\n\r", i+1 );
+                        Caw_send_raw( (uint8_t*)pc, len );
+                    }
+                }
+                for( int i=2; i<6; i++ ){
+                    if( error & (1<<i) ){
+                        int len = snprintf( pc, 31, " out %i\n\r", i-1 );
+                        Caw_send_raw( (uint8_t*)pc, len );
+                    }
+                }
                 CAL_Recalibrate( 1 );
             }
             cal.stage = CAL_none;
