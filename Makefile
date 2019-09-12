@@ -244,10 +244,11 @@ boot:
 
 zip: $(BIN)
 	mkdir -p $(TARGET)-$(GIT_VERSION)
-	cp flash.sh $(TARGET)-$(GIT_VERSION)/
+	cp util/flash.sh $(TARGET)-$(GIT_VERSION)/
+	cp util/erase_userscript.sh $(TARGET)-$(GIT_VERSION)/
+	cp util/blank.bin $(TARGET)-$(GIT_VERSION)/
 	cp $(BIN) $(TARGET)-$(GIT_VERSION)/
 	zip -r $(TARGET)-$(GIT_VERSION).zip $(TARGET)-$(GIT_VERSION)/
-	# needs semantic versioning
 
 %.o: %.c
 	@$(CC) -ggdb $(CFLAGS) -c $< -o $@
