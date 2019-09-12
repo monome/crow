@@ -31,7 +31,7 @@ int main(void)
     Metro_Init();
     Caw_Init();
     CDC_clear_buffers();
-    ii_init( ii_CROW );
+    ii_init( II_CROW );
     Random_Init();
 
     REPL_init( Lua_Init() );

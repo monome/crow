@@ -13,10 +13,10 @@
 
 #define ii_GET             128  // cmd >= are getter requests
 
-typedef enum{ ii_CROW  = 0x01
-            , ii_CROW2 = 0x02
-            , ii_CROW3 = 0x03
-            , ii_CROW4 = 0x04
+typedef enum{ II_CROW  = 0x01
+            , II_CROW2 = 0x02
+            , II_CROW3 = 0x03
+            , II_CROW4 = 0x04
 } ii_ADDR_t;
 
 uint8_t ii_init( uint8_t address );

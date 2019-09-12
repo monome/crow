@@ -7,15 +7,15 @@
 #include "lualink.h"
 
 // WithType implementation (move to separate file)
-#define ii_MAX_BROADCAST_LEN 4 // just u8 or u16
+#define II_MAX_BROADCAST_LEN 4 // just u8 or u16
 
 // public defns
 uint8_t ii_init( uint8_t address )
 {
-    if( address != ii_CROW
-     && address != ii_CROW2
-     && address != ii_CROW3
-     && address != ii_CROW4 ){ address = ii_CROW; } // ensure a valid address
+    if( address != II_CROW
+     && address != II_CROW2
+     && address != II_CROW3
+     && address != II_CROW4 ){ address = II_CROW; } // ensure a valid address
     if( I2C_Init( (uint8_t)address ) ){
         printf("I2C Failed to Init\n");
     }
@@ -235,7 +235,7 @@ uint8_t ii_broadcast( uint8_t address
 {
     // need a queue here to allow repetitive calls to the fn
     // best to implement the DMA
-    static uint8_t tx_buf[1+ii_MAX_BROADCAST_LEN]; // empty buf to write
+    static uint8_t tx_buf[1+II_MAX_BROADCAST_LEN]; // empty buf to write
     const ii_Cmd_t* c = ii_find_command(address, cmd);
     uint8_t len = _ii_make_packet( tx_buf
                     , c
@@ -257,7 +257,7 @@ uint8_t ii_query( uint8_t address
                 , float*  data
                 )
 {
-    static uint8_t rx_buf[1+ii_MAX_BROADCAST_LEN];
+    static uint8_t rx_buf[1+II_MAX_BROADCAST_LEN];
     const ii_Cmd_t* c = ii_find_command(address, cmd);
     uint8_t byte = _ii_make_packet( rx_buf
                     , c
