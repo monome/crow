@@ -7,7 +7,7 @@ do return
   { { name = 'output'
     , cmd  = 1
     , args = { {'channel', s8, }
-             , {'level', s16 }
+             , {'level', s16V }
              }
     }
   , { name = 'slew'
@@ -46,7 +46,7 @@ do return
   { { name   = 'input'
     , cmd    = 3 + get_offset
     , args   = { 'channel', s8 }
-    , retval = { 'value', s16 }
+    , retval = { 'value', s16V }
     }
   , { name   = 'query0'
     , cmd    = 4 + get_offset

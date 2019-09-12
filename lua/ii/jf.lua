@@ -21,19 +21,19 @@ do return
     , cmd  = 3
     , get  = true
     , docs = 'Set RUN value to *volts*. Requires run_mode(1)'
-    , args = { 'volts', s16 }
+    , args = { 'volts', s16V }
     }
   , { name = 'transpose'
     , cmd  = 4
     , get  = true
     , docs = 'Add *pitch* to the current TIME setting'
-    , args = { 'pitch', s16 }
+    , args = { 'pitch', s16V }
     }
   , { name = 'vtrigger'
     , cmd  = 5
     , docs = 'Set TRIGGER *channel* to *level*'
     , args = { { 'channel', s8 }
-             , { 'level', s16 }
+             , { 'level', s16V }
              }
     }
   , { name = 'mode'
@@ -53,16 +53,16 @@ do return
     , docs = 'Synthesis: Set *channel* to *pitch* at *level*\n\r' ..
         'Geode: At *channel* make *repeats* envs with *divs* time'
     , args = { { 'channel', s8 }
-             , { 'pitch/divs', s16 }
-             , { 'level/repeats', s16 }
+             , { 'pitch/divs', s16V }
+             , { 'level/repeats', s16V }
              }
     }
   , { name = 'play_note'
     , cmd  = 9
     , docs = 'Synthesis: Assign a note with *pitch* at *level*\n\r' ..
         'Geode: Create *repeats* envelopes with *divs* timing'
-    , args = { { 'pitch/divs', s16 }
-             , { 'level/repeats', s16 }
+    , args = { { 'pitch/divs', s16V }
+             , { 'level/repeats', s16V }
              }
     }
   , { name = 'god_mode'
