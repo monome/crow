@@ -127,26 +127,26 @@ FNL_SRC = $(wildcard util/*.fnl) \
 FNL_PP = $(FNL_SRC:%.fnl=%.lua)
 
 # i2c descriptors
-II_SRCD = lua/ii
-II_SRC = $(wildcard $(II_SRCD)/*.lua)
-II_TARGET = $(addprefix $(BUILD_DIR)/ii_, $(notdir $(II_SRC)))
+ii_SRCD = lua/ii
+ii_SRC = $(wildcard $(ii_SRCD)/*.lua)
+ii_TARGET = $(addprefix $(BUILD_DIR)/ii_, $(notdir $(ii_SRC)))
 
-$(II_TARGET): util/ii_lua_module.lua
+$(ii_TARGET): util/ii_lua_module.lua
 
-$(BUILD_DIR)/ii_%.lua: $(II_SRCD)/%.lua util/ii_lua_module.lua | $(BUILD_DIR)
+$(BUILD_DIR)/ii_%.lua: $(ii_SRCD)/%.lua util/ii_lua_module.lua | $(BUILD_DIR)
 	@lua util/ii_lua_module.lua $< $@
 	@echo lua $@
 
-$(BUILD_DIR)/iihelp.lua: $(II_SRC) util/ii_lua_help.lua | $(BUILD_DIR)
-	@lua util/ii_lua_help.lua $(II_SRCD) $@
+$(BUILD_DIR)/iihelp.lua: $(ii_SRC) util/ii_lua_help.lua | $(BUILD_DIR)
+	@lua util/ii_lua_help.lua $(ii_SRCD) $@
 	@echo lua $@
 
-$(BUILD_DIR)/ii_c_layer.h: $(II_SRC) util/ii_c_layer.lua | $(BUILD_DIR)
-	@lua util/ii_c_layer.lua $(II_SRCD) $@
+$(BUILD_DIR)/ii_c_layer.h: $(ii_SRC) util/ii_c_layer.lua | $(BUILD_DIR)
+	@lua util/ii_c_layer.lua $(ii_SRCD) $@
 	@echo lua $@
 
-$(BUILD_DIR)/ii_lualink.h: $(II_SRC) util/ii_lualinker.lua | $(BUILD_DIR)
-	@lua util/ii_lualinker.lua $(II_SRCD) $@
+$(BUILD_DIR)/ii_lualink.h: $(ii_SRC) util/ii_lualinker.lua | $(BUILD_DIR)
+	@lua util/ii_lualinker.lua $(ii_SRCD) $@
 	@echo lua $@
 
 
@@ -155,7 +155,7 @@ $(BUILD_DIR)/ii_lualink.h: $(II_SRC) util/ii_lualinker.lua | $(BUILD_DIR)
 # lua srcs: these get converted to bytecode strings wrapped in c-headers
 LUA_SRC  = $(wildcard lua/*.lua)
 LUA_SRC += $(BUILD_DIR)/iihelp.lua
-LUA_SRC += $(II_TARGET)
+LUA_SRC += $(ii_TARGET)
 
 LUA_PP = $(LUA_SRC:%.lua=%.lua.h)
 LUA_PP: $(LUA_SRC)
@@ -173,7 +173,7 @@ OBJS = $(SRC:%.c=$(OBJDIR)/%.o)
 OBJS += $(addprefix $(LUAS)/,$(LUACORE_OBJS) $(LUALIB_OBJS) )
 OBJS += Startup.o
 
-# specific objects that require built dependencies (II)
+# specific objects that require built dependencies (ii)
 $(OBJDIR)/lib/lualink.o: $(LUA_PP) $(BUILD_DIR)/ii_lualink.h
 $(OBJDIR)/lib/ii.o: $(BUILD_DIR)/ii_c_layer.h
 
