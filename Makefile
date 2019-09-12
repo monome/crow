@@ -145,7 +145,7 @@ $(BUILD_DIR)/ii_c_layer.h: $(II_SRC) util/ii_c_layer.lua | $(BUILD_DIR)
 	@lua util/ii_c_layer.lua $(II_SRCD) $@
 	@echo lua $@
 
-$(BUILD_DIR)/ii_lualink.h: $(II_SRC) util/iI_lualinker.lua | $(BUILD_DIR)
+$(BUILD_DIR)/ii_lualink.h: $(II_SRC) util/ii_lualinker.lua | $(BUILD_DIR)
 	@lua util/ii_lualinker.lua $(II_SRCD) $@
 	@echo lua $@
 
