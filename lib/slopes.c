@@ -82,7 +82,7 @@ float* S_step_v( int     index
     float* out3 = out;
     if( self->countdown <= 0.0 ){ // at destination
         for( int i=0; i<size; i++ ){
-            *out2++ = self->dest;
+            *out2++ = self->here;
         }
     } else if( self->countdown > (float)size ){ // no edge case
         if( self->delta == 0.0 ){ // delay only
@@ -91,7 +91,7 @@ float* S_step_v( int     index
             }
         } else {
             *out2++ = self->here + self->delta;
-            for( int i=0; i<size; i++ ){
+            for( int i=1; i<size; i++ ){
                 *out2++ = *out3++ + self->delta;
             }
         }
@@ -105,10 +105,10 @@ float* S_step_v( int     index
 
         *out2++ = self->here + self->delta;
         i--;
-        for(; i>0; i-- ){
+        while(i--){
             *out2++ = *out3++ + self->delta;
         }
-        if( iRem ){ *out2++ = *out3++ + self->delta; }
+        *out2++ = self->dest;
         // TODO compesnate for this amount of overshoot with the new trajectory
         // this means don't `+ self->delta` the last but just set to self->dest
         self->countdown = -after_breakRem;
@@ -146,10 +146,11 @@ float* S_step_v( int     index
         // TODO apply the partial step
         // FIXME currently assuming no breakpoint occurs here
         for( i=after_break; i>0; i-- ){
-            *out2++ = *out3++ + self->delta;
+            //*out2++ = *out3++ + self->delta; // <- broken by event system
+            *out2++ = self->here; // FIXME just clamping bc action hasn't applied yet
         }
         self->countdown -= (float)after_break + after_breakRem;
     }
-    self->here = *out3; // TODO overwrites delay() breakpoint
+    self->here = out[size-1]; // TODO overwrites delay() breakpoint
     return out;
 }
