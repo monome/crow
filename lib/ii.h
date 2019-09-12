@@ -11,7 +11,7 @@
 #define WS_CUE    4
 #define WS_UI     5
 
-#define ii_GET             128  // cmd >= are getter requests
+#define II_GET             128  // cmd >= are getter requests
 
 typedef enum{ II_CROW  = 0x01
             , II_CROW2 = 0x02
