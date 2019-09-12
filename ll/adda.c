@@ -149,19 +149,24 @@ __weak IO_block_t* IO_BlockProcess( IO_block_t* b )
 
 int CAL_ValidateData( void )
 {
+    int errorcode = 0;
     for( int j=0; j<2; j++ ){
         if( cal.adc[j].shift < -0.1
-         || cal.adc[j].shift > 0.1 ){ return 0; }
-        if( cal.adc[j].scale < 0.9
-         || cal.adc[j].scale > 1.1 ){ return 0; }
+         || cal.adc[j].shift > 0.1
+         || cal.adc[j].scale < 0.9
+         || cal.adc[j].scale > 1.1 ){
+            errorcode |= 1 << j;
+        }
     }
     for( int j=0; j<4; j++ ){
         if( cal.dac[j].shift < -0.1
-         || cal.dac[j].shift > 0.1 ){ return 0; }
-        if( cal.dac[j].scale < 0.9
-         || cal.dac[j].scale > 1.1 ){ return 0; }
+         || cal.dac[j].shift > 0.1
+         || cal.dac[j].scale < 0.9
+         || cal.dac[j].scale > 1.1 ){
+            errorcode |= 1 << (2+j);
+        }
     }
-    return 1;
+    return errorcode;
 }
 
 // hacked this in for testing input2
@@ -329,11 +334,26 @@ IO_block_t* CAL_BlockProcess( IO_block_t* b )
                 cal.dac[j].shift = -cal.dac[j].shift;
                 DAC_CalibrateOffset( j, cal.dac[j].shift );
             }
-            if( CAL_ValidateData() ){
+            int error = 0;
+            if( !(error = CAL_ValidateData()) ){
                 CAL_WriteFlash();
             } else {
-                char msg[] = "Calibration failed. Remove all cables & retry!\n";
+                char msg[] = "Calibration failed. Unplug the below jacks & retry!\n";
                 Caw_send_raw( (uint8_t*)msg, strlen(msg) );
+
+                char pc[32];
+                for( int i=0; i<2; i++ ){
+                    if( error & (1<<i) ){
+                        int len = snprintf( pc, 31, " in %i\n\r", i+1 );
+                        Caw_send_raw( (uint8_t*)pc, len );
+                    }
+                }
+                for( int i=2; i<6; i++ ){
+                    if( error & (1<<i) ){
+                        int len = snprintf( pc, 31, " out %i\n\r", i-1 );
+                        Caw_send_raw( (uint8_t*)pc, len );
+                    }
+                }
                 CAL_Recalibrate( 1 );
             }
             cal.stage = CAL_none;
