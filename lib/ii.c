@@ -78,6 +78,7 @@ static uint8_t type_size( II_Type_t t )
                case II_s8:    return 1;
                case II_u16:   return 2;
                case II_s16:   return 2;
+               case II_s16V:  return 2;
                case II_float: return 4;
     }
     return 0;
@@ -103,6 +104,11 @@ static float decode( uint8_t* data, II_Type_t type )
             u16  = ((uint16_t)*data++)<<8;
             u16 |= *data++;
             val = (float)*(int16_t*)&u16;
+            break;
+        case II_s16V:
+            u16  = ((uint16_t)*data++)<<8;
+            u16 |= *data++;
+            val = ((float)*(int16_t*)&u16)/1638.4; // Scale Teletype down to float
             break;
         case II_float:
             val = *(float*)data;
@@ -130,6 +136,11 @@ static uint8_t pack_data( uint8_t* dest, II_Type_t type, float data )
             break;
         case II_s16:
             s16 = (int16_t)data;
+            u16 = *(uint16_t*)&s16;
+            d[len++] = (uint8_t)(u16>>8);          // High byte first
+            d[len++] = (uint8_t)(u16 & 0x00FF);    // Low byte
+        case II_s16V:
+            s16 = (int16_t)(data * 1638.4);        // Scale float up to Teletype
             u16 = *(uint16_t*)&s16;
             d[len++] = (uint8_t)(u16>>8);          // High byte first
             d[len++] = (uint8_t)(u16 & 0x00FF);    // Low byte
