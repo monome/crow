@@ -45,7 +45,7 @@ do return
     , get  = true
     , docs = 'set cv'
     , args = { { 'channel', u8 }
-             , { 'volts', u16 }
+             , { 'volts', s16V }
              }
     }
   , { name = 'cv_slew'
@@ -61,7 +61,7 @@ do return
     , get  = true
     , docs = 'set cv offset'
     , args = { { 'channel', u8 }
-             , { 'volts', u16 }
+             , { 'volts', s16V }
              }
     }
   , { name = 'cv_set'
@@ -69,7 +69,7 @@ do return
     , get  = false
     , docs = 'set cv bypass slew'
     , args = { { 'channel', u8 }
-             , { 'volts', u16 }
+             , { 'volts', s16V }
              }
     }
   -- no setter for CMD 10 input
