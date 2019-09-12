@@ -38,7 +38,7 @@ do return
 , getters =
   { { name = 'cv'
     , cmd  = 5 + get_offset
-    , args = { 'channel', u8 }
+    , args = { 'track', u8 }
     , retval = { 'volts', u16 }
     }
   }

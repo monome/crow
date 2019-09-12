@@ -68,7 +68,7 @@ do return
     , cmd  = 9
     , get  = true
     , docs = 'set mute state'
-    , args = { { 'channel', u8 }
+    , args = { { 'track', u8 }
              , { 'state', u8 }
            }
     }
@@ -76,19 +76,19 @@ do return
     , cmd  = 10
     , get  = false
     , docs = 'toggle mute state'
-    , args = { 'channel', u8 }
+    , args = { 'track', u8 }
     }
   , { name = 'clock'
     , cmd  = 11
     , get  = false
     , docs = 'clock'
-    , args = { 'channel', u8 }
+    , args = { 'track', u8 }
     }
   }
 , getters =
   { { name = 'cv'
     , cmd  = 8 + get_offset
-    , args = { 'channel', u8 }
+    , args = { 'track', u8 }
     , retval = { 'volts', u16 }
     }
   }
