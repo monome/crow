@@ -149,19 +149,28 @@ __weak IO_block_t* IO_BlockProcess( IO_block_t* b )
 
 int CAL_ValidateData( void )
 {
+    int errorcode = 0;
     for( int j=0; j<2; j++ ){
         if( cal.adc[j].shift < -0.1
-         || cal.adc[j].shift > 0.1 ){ return 0; }
+         || cal.adc[j].shift > 0.1 ){
+            errorcode |= (0x1 << j*2);
+        }
         if( cal.adc[j].scale < 0.9
-         || cal.adc[j].scale > 1.1 ){ return 0; }
+         || cal.adc[j].scale > 1.1 ){
+            errorcode |= (0x2 << j*2);
+        }
     }
     for( int j=0; j<4; j++ ){
         if( cal.dac[j].shift < -0.1
-         || cal.dac[j].shift > 0.1 ){ return 0; }
+         || cal.dac[j].shift > 0.1 ){
+            errorcode |= (0x1 << (2+j)*2);
+        }
         if( cal.dac[j].scale < 0.9
-         || cal.dac[j].scale > 1.1 ){ return 0; }
+         || cal.dac[j].scale > 1.1 ){
+            errorcode |= (0x2 << (2+j)*2);
+        }
     }
-    return 1;
+    return errorcode;
 }
 
 // hacked this in for testing input2
@@ -329,11 +338,17 @@ IO_block_t* CAL_BlockProcess( IO_block_t* b )
                 cal.dac[j].shift = -cal.dac[j].shift;
                 DAC_CalibrateOffset( j, cal.dac[j].shift );
             }
-            if( CAL_ValidateData() ){
+            int error = 0;
+            if( !(error = CAL_ValidateData()) ){
                 CAL_WriteFlash();
             } else {
                 char msg[] = "Calibration failed. Remove all cables & retry!\n";
                 Caw_send_raw( (uint8_t*)msg, strlen(msg) );
+
+                char pc[32];
+                int len = snprintf( pc, 31, " error 0x%x\n\r", error );
+                Caw_send_raw( (uint8_t*)pc, len );
+
                 CAL_Recalibrate( 1 );
             }
             cal.stage = CAL_none;
