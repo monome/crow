@@ -497,3 +497,75 @@ the below features. See the github issue #49 for discussion:
 - `lua_name` aliases to allow eg: 'jf' or 'justfriends' to access the same table
 - additional argument & `return_value` types
 - multiple return values (eg: `ii.jf.get('retune',1)`) could return both `num` and `denom`
+
+### I2C Roadmap: Follower mode
+
+At it's most basic, crow can be treated as a simple expander for the i2c bus.
+It provides 2 inputs & 4 outputs to extend teletype's IO capabilities. To use these
+no changes are required to the default setup on crow. Simply use:
+
+`CROW.IN a` where a is 1 or 2. crow will return the current value of that input.
+`CROW.OUT a b` setting output 'a' to the value 'b'
+`CROW.SLEW a b` setting the slew rate of output 'a' to the time 'b'
+`CROW.PULSE a` performs a pulse on output 'a'
+
+crow has default actions to handle these messages, though like most things in crow
+they can be redefined for our own purposes by editing the functions in the table
+`ii._c`. Try printing the follower-help with `ii._c.help()` for a list of functions
+that can be redefined.
+
+#### A crow call
+
+crow is capable of far more than reporting the state of its inputs and setting the
+output values, but so vast are the possibilities that we couldn't make an i2c
+command for every one! To deal with this flexibility, we 'CALL' to crow and define
+the expected function on crow itself.
+
+eg: I want teletype to be able to add a voltage to a given output. There's no way
+to query the state of crow output via i2c, so we'll need to do it natively on crow
+itself. Something like:
+
+```
+function add_to_output( channel, amount_to_add )
+    output[channel].offset = output[channel].offset + amount_to_add
+end
+```
+
+To execute the above from i2c we use one of the 'CALL' functions, in this case
+`CALL2` as we need to send 2 arguments. There are commands for 1-4 arguments. From
+teletype:
+`CROW.CALL2 1 V 1`
+This should add 1 volt to the first output jack on crow.
+
+We can then redefine the function at `ii._c.call2()` to call our `add_to_output()`
+function.
+
+#### Calling with context
+
+The above function is great when you just want to add a single additional function,
+but what about if you want to do a number of things that all need 1 argument.
+In this case you can use `CALL` with 1 extra argument than your function needs, but
+use the first number to choose which function to execute.
+
+*nb: unfortunately, i don't think we can index this table after naming the functions.*
+
+```
+local actions=
+{ add_an_octave = function(arg) add_to_output(arg, octave(1.0)) end
+, add_a_fifth   = function(arg) add_to_output(arg, semitone(7/12)) end
+, add_random    = function(arg) add_to_output(arg, semitone(Math.rand())) end
+}
+
+ii._c.call2 = function(cmd, arg2)
+    actions[cmd](arg2)
+end
+```
+
+Then on teletype:
+`CROW.CALL2 1 1`  adds an octave to output 1
+`CROW.CALL2 1 2`  adds an octave to output 2
+`CROW.CALL2 2 1`  add a fith to output 1
+`CROW.CALL2 3 4`  move output 4 by a random number of semitones
+
+
+
