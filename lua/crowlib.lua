@@ -15,7 +15,7 @@ local function closelibs()
     Asllib = nil
     Metro  = nil
     metro  = nil --alias
-    II     = nil
+    ii     = nil
     Cal    = nil
     Midi   = nil
 end
@@ -29,7 +29,7 @@ function _crow.libs( lib )
         Asllib = dofile('lua/asllib.lua')
         Metro  = dofile('lua/metro.lua')
         metro  = Metro --alias
-        II     = dofile('lua/ii.lua')
+        ii     = dofile('lua/ii.lua')
         Cal    = dofile('lua/calibrate.lua')
         Midi   = dofile('lua/midi.lua')
     elseif type(lib) == 'table' then
@@ -95,27 +95,27 @@ function LL_get_state( id )
 end
 
 
---- II default actions
+--- ii default actions
 --TODO int16 conversion should be rolled into i2c generation tool
-II._c.input = function(chan)
+ii._c.input = function(chan)
     if chan == 1 or chan == 2 then
         return (1638.4 * input[chan]())
     else return 0 end
 end
 
 --TODO deprecate to the single `input` after format conversion added
-II._c.inputF = function(chan)
+ii._c.inputF = function(chan)
     if chan == 1 or chan == 2 then return input[chan]()
     else return 0 end
 end
 
 --TODO int16 conversion should be rolled into i2c generation tool
-II._c.output = function(chan,val)
+ii._c.output = function(chan,val)
     output[chan].level = val/1638.4
     --TODO step ASL
 end
 
-II._c.slew = function(chan,slew)
+ii._c.slew = function(chan,slew)
     output[chan].rate = slew/1000 -- ms
 end
 

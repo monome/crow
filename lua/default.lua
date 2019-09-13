@@ -12,8 +12,8 @@ end
 -- by the setup otherwise? i don't understand why the table access doesn't cause
 -- the library to be loaded, have default event, then apply the .event here to
 -- overwrite it?
---local ignore = II.txi.get
---II.txi.event = function( e, data )
+--local ignore = ii.txi.get
+--ii.txi.event = function( e, data )
 --    if e == 'value' then debug_usart('value='..data)
 --    end
 --end

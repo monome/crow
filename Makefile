@@ -173,7 +173,7 @@ OBJS = $(SRC:%.c=$(OBJDIR)/%.o)
 OBJS += $(addprefix $(LUAS)/,$(LUACORE_OBJS) $(LUALIB_OBJS) )
 OBJS += Startup.o
 
-# specific objects that require built dependencies (II)
+# specific objects that require built dependencies (ii)
 $(OBJDIR)/lib/lualink.o: $(LUA_PP) $(BUILD_DIR)/ii_lualink.h
 $(OBJDIR)/lib/ii.o: $(BUILD_DIR)/ii_c_layer.h
 

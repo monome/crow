@@ -10,7 +10,7 @@
 #define II_MAX_BROADCAST_LEN 4 // just u8 or u16
 
 // public defns
-uint8_t II_init( uint8_t address )
+uint8_t ii_init( uint8_t address )
 {
     if( address != II_CROW
      && address != II_CROW2
@@ -21,37 +21,37 @@ uint8_t II_init( uint8_t address )
     }
     return address;
 }
-void II_deinit( void )
+void ii_deinit( void )
 {
     I2C_DeInit();
 }
 
-const char* II_list_modules( void )
+const char* ii_list_modules( void )
 {
     return ii_module_list;
 }
 
-const char* II_list_cmds( uint8_t address )
+const char* ii_list_cmds( uint8_t address )
 {
     return ii_list_commands(address);
 }
 
-void II_set_pullups( uint8_t state )
+void ii_set_pullups( uint8_t state )
 {
     I2C_SetPullups(state);
 }
 
-uint8_t II_get_address( void )
+uint8_t ii_get_address( void )
 {
     return I2C_GetAddress();
 }
 
-void II_set_address( uint8_t address )
+void ii_set_address( uint8_t address )
 {
     I2C_SetAddress( address );
 }
 
-uint8_t* II_processFollowRx( void )
+uint8_t* ii_processFollowRx( void )
 {
     uint8_t* pRetval = NULL;
     if( I2C_FollowBufferNotEmpty() ){
@@ -59,7 +59,7 @@ uint8_t* II_processFollowRx( void )
     }
     return pRetval; // NULL for finished
 }
-uint8_t* II_processLeadRx( void )
+uint8_t* ii_processLeadRx( void )
 {
     uint8_t* pRetval = NULL;
     if( I2C_LeadBufferNotEmpty() ){
@@ -69,48 +69,48 @@ uint8_t* II_processLeadRx( void )
 }
 
 /////////////////////////////////////
-// II Type Encode/Decode
+// ii Type Encode/Decode
 
-static uint8_t type_size( II_Type_t t )
+static uint8_t type_size( ii_Type_t t )
 {
-    switch(t){ case II_void:  return 0;
-               case II_u8:    return 1;
-               case II_s8:    return 1;
-               case II_u16:   return 2;
-               case II_s16:   return 2;
-               case II_s16V:  return 2;
-               case II_float: return 4;
+    switch(t){ case ii_void:  return 0;
+               case ii_u8:    return 1;
+               case ii_s8:    return 1;
+               case ii_u16:   return 2;
+               case ii_s16:   return 2;
+               case ii_s16V:  return 2;
+               case ii_float: return 4;
     }
     return 0;
 }
 
-static float decode( uint8_t* data, II_Type_t type )
+static float decode( uint8_t* data, ii_Type_t type )
 {
     float val = 0; // return value default to zero
     uint16_t u16 = 0;
     switch( type ){
-        case II_u8:
+        case ii_u8:
             val = (float)(*data++);
             break;
-        case II_s8:
+        case ii_s8:
             val = (float)(*(int8_t*)data++);
             break;
-        case II_u16:
+        case ii_u16:
             u16  = ((uint16_t)*data++)<<8;
             u16 |= *data++;
             val = (float)u16;
             break;
-        case II_s16:
+        case ii_s16:
             u16  = ((uint16_t)*data++)<<8;
             u16 |= *data++;
             val = (float)*(int16_t*)&u16;
             break;
-        case II_s16V:
+        case ii_s16V:
             u16  = ((uint16_t)*data++)<<8;
             u16 |= *data++;
             val = ((float)*(int16_t*)&u16)/1638.4; // Scale Teletype down to float
             break;
-        case II_float:
+        case ii_float:
             val = *(float*)data;
             break;
         default: printf("ii_decode unmatched\n"); break;
@@ -118,34 +118,34 @@ static float decode( uint8_t* data, II_Type_t type )
     return val;
 }
 
-static uint8_t pack_data( uint8_t* dest, II_Type_t type, float data )
+static uint8_t pack_data( uint8_t* dest, ii_Type_t type, float data )
 {
     uint8_t len = 0;
     uint8_t* d = dest;
 
     uint16_t u16; int16_t s16;
     switch( type ){
-        case II_u8: d[len++] = (uint8_t)data;
+        case ii_u8: d[len++] = (uint8_t)data;
             break;
-        case II_s8: d[len++] = (int8_t)data;
+        case ii_s8: d[len++] = (int8_t)data;
             break;
-        case II_u16:
+        case ii_u16:
             u16 = (uint16_t)data;
             d[len++] = (uint8_t)(u16>>8);          // High byte first
             d[len++] = (uint8_t)(u16 & 0x00FF);    // Low byte
             break;
-        case II_s16:
+        case ii_s16:
             s16 = (int16_t)data;
             u16 = *(uint16_t*)&s16;
             d[len++] = (uint8_t)(u16>>8);          // High byte first
             d[len++] = (uint8_t)(u16 & 0x00FF);    // Low byte
-        case II_s16V:
+        case ii_s16V:
             s16 = (int16_t)(data * 1638.4);        // Scale float up to Teletype
             u16 = *(uint16_t*)&s16;
             d[len++] = (uint8_t)(u16>>8);          // High byte first
             d[len++] = (uint8_t)(u16 & 0x00FF);    // Low byte
             break;
-        case II_float:
+        case ii_float:
             memcpy( &(d[len]), &data, 4 );
             len += 4;
             break;
@@ -155,9 +155,9 @@ static uint8_t pack_data( uint8_t* dest, II_Type_t type, float data )
     return len;
 }
 
-float* _II_decode_packet( float* decoded
+float* _ii_decode_packet( float* decoded
                         , uint8_t* data
-                        , const II_Cmd_t* c
+                        , const ii_Cmd_t* c
                         , int is_following
                         )
 {
@@ -177,11 +177,11 @@ float* _II_decode_packet( float* decoded
 void I2C_Lead_RxCallback( uint8_t address, uint8_t cmd, uint8_t* data )
 {
     printf("ii_lead_rx: cmd %i, data %i %i %i\n", cmd, data[0], data[1], data[2]);
-    const II_Cmd_t* c = ii_find_command(address, cmd);
+    const ii_Cmd_t* c = ii_find_command(address, cmd);
     float val;
     L_handle_ii_leadRx( address
                , cmd
-               , *_II_decode_packet( &val, data, c, 0 )
+               , *_ii_decode_packet( &val, data, c, 0 )
                );
 }
 
@@ -189,13 +189,13 @@ void I2C_Follow_RxCallback( uint8_t* data )
 {
     printf("ii_follow_rx: cmd %i, data %i, %i\n", data[0], data[1], data[2]);
     uint8_t cmd = *data++; // first data holds command
-    const II_Cmd_t* c = ii_find_command(II_get_address(), cmd);
+    const ii_Cmd_t* c = ii_find_command(ii_get_address(), cmd);
     float args[c->args];
     // run the callback directly
     // TODO: THIS GOES IN THE EVENT SYSTEM
     L_handle_ii_followRx( cmd
                    , c->args
-                   , _II_decode_packet( args, data, c, 1 )
+                   , _ii_decode_packet( args, data, c, 1 )
                    );
 }
 
@@ -203,12 +203,12 @@ void I2C_Follow_TxCallback( uint8_t* data )
 {
     printf("ii_follow_tx: cmd %i, data %i, %i\n", data[0], data[1], data[2]);
     uint8_t cmd = *data++; // first data holds command
-    const II_Cmd_t* c = ii_find_command(II_get_address(), cmd);
+    const ii_Cmd_t* c = ii_find_command(ii_get_address(), cmd);
     float args[c->args];
     // run the callback directly!
     float response = L_handle_ii_followRxTx( cmd
                    , c->args
-                   , _II_decode_packet( args, data, c, 1 )
+                   , _ii_decode_packet( args, data, c, 1 )
                    );
     static uint8_t d[4]; // TODO: only allow a single retval currently
     uint8_t length = pack_data( d, c->return_type, response );
@@ -217,7 +217,7 @@ void I2C_Follow_TxCallback( uint8_t* data )
     I2C_SetTxData( d, length );
 }
 
-uint8_t _II_make_packet( uint8_t* dest, const II_Cmd_t* c, uint8_t cmd, float* data )
+uint8_t _ii_make_packet( uint8_t* dest, const ii_Cmd_t* c, uint8_t cmd, float* data )
 {
     uint8_t len = 0;
     dest[len++] = cmd; // first byte is command
@@ -228,7 +228,7 @@ uint8_t _II_make_packet( uint8_t* dest, const II_Cmd_t* c, uint8_t cmd, float* d
 }
 
 // Leader Transmit
-uint8_t II_broadcast( uint8_t address
+uint8_t ii_broadcast( uint8_t address
                     , uint8_t cmd
                     , float*  data
                     )
@@ -236,8 +236,8 @@ uint8_t II_broadcast( uint8_t address
     // need a queue here to allow repetitive calls to the fn
     // best to implement the DMA
     static uint8_t tx_buf[1+II_MAX_BROADCAST_LEN]; // empty buf to write
-    const II_Cmd_t* c = ii_find_command(address, cmd);
-    uint8_t len = _II_make_packet( tx_buf
+    const ii_Cmd_t* c = ii_find_command(address, cmd);
+    uint8_t len = _ii_make_packet( tx_buf
                     , c
                     , cmd
                     , data
@@ -252,14 +252,14 @@ uint8_t II_broadcast( uint8_t address
 
 // Leader Request
 // consider how this should be integrated. what args??
-uint8_t II_query( uint8_t address
+uint8_t ii_query( uint8_t address
                 , uint8_t cmd
                 , float*  data
                 )
 {
     static uint8_t rx_buf[1+II_MAX_BROADCAST_LEN];
-    const II_Cmd_t* c = ii_find_command(address, cmd);
-    uint8_t byte = _II_make_packet( rx_buf
+    const ii_Cmd_t* c = ii_find_command(address, cmd);
+    uint8_t byte = _ii_make_packet( rx_buf
                     , c
                     , cmd
                     , data

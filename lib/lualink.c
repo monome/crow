@@ -11,7 +11,7 @@
 #include "lib/slopes.h"     // S_toward
 #include "lib/detect.h"     // Detect*
 #include "lib/caw.h"        // Caw_send_*()
-#include "lib/ii.h"         // II_*()
+#include "lib/ii.h"         // ii_*()
 #include "lib/bootloader.h" // bootloader_enter()
 #include "lib/metro.h"      // metro_start() metro_stop() metro_set_time()
 #include "lib/io.h"         // IO_GetADC()
@@ -298,7 +298,7 @@ static int _send_usb( lua_State *L )
 
 static int _ii_list_modules( lua_State *L )
 {
-    Caw_send_luachunk( (char*)II_list_modules() );
+    Caw_send_luachunk( (char*)ii_list_modules() );
     printf( "printing ii help\n" );
     return 0;
 }
@@ -307,13 +307,13 @@ static int _ii_list_commands( lua_State *L )
 {
     uint8_t address = luaL_checkinteger(L, 1);
     printf("i2c help %i\n", address);
-    Caw_send_luachunk( (char*)II_list_cmds(address) );
+    Caw_send_luachunk( (char*)ii_list_cmds(address) );
     return 0;
 }
 
 static int _ii_pullup( lua_State *L )
 {
-    II_set_pullups( luaL_checkinteger(L, 1) );
+    ii_set_pullups( luaL_checkinteger(L, 1) );
     return 0;
 }
 
@@ -330,7 +330,7 @@ static int _ii_set( lua_State *L )
             data[i] = luaL_checknumber(L, i+3); // 1-ix'd
         }
     }
-    II_broadcast( luaL_checkinteger(L, 1) // address
+    ii_broadcast( luaL_checkinteger(L, 1) // address
                 , luaL_checkinteger(L, 2) // command
                 , data
                 );
@@ -348,16 +348,16 @@ static int _ii_get( lua_State *L )
             data[i] = luaL_checknumber(L, i+3); // 1-ix'd
         }
     }
-    if(II_query( luaL_checkinteger(L, 1) // address
+    if(ii_query( luaL_checkinteger(L, 1) // address
             , luaL_checkinteger(L, 2) // command
             , data
-            )){ printf("II_query failed\n"); }
+            )){ printf("ii_query failed\n"); }
     lua_settop(L, 0);
     return 0;
 }
 static int _ii_address( lua_State *L )
 {
-    II_set_address( luaL_checkinteger(L, 1) );
+    ii_set_address( luaL_checkinteger(L, 1) );
     lua_pop( L, 1 );
     lua_settop(L, 0);
     return 0;

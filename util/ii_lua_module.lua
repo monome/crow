@@ -3,7 +3,7 @@ get_offset = 0x80
 function lua_cmds(f)
     local c = ''
     for _,v in ipairs( f.commands ) do
-        c = c .. 'function ' .. f.lua_name .. '.' .. v.name .. '(...)II.set('
+        c = c .. 'function ' .. f.lua_name .. '.' .. v.name .. '(...)ii.set('
           .. f.i2c_address .. ',' .. v.cmd .. ',...)end\n'
     end
     return c
@@ -23,7 +23,7 @@ function lua_getters(f)
     end
     g = g .. '}\n'
 
-    g = g .. 'function ' .. f.lua_name .. '.get(name,...)II.get('
+    g = g .. 'function ' .. f.lua_name .. '.get(name,...)ii.get('
       .. f.i2c_address .. ',' .. f.lua_name .. '.g[name],...)end\n'
     return g
 end
@@ -50,7 +50,7 @@ function make_lua(f)
             .. lua_getters(f)
             .. lua_events(f)
             .. 'function ' .. f.lua_name
-                .. '.event(e,data)II.e(\'' .. f.lua_name .. '\',e,data)end\n'
+                .. '.event(e,data)ii.e(\'' .. f.lua_name .. '\',e,data)end\n'
             .. 'print\'' .. f.lua_name .. ' loaded\'\n'
             .. 'return ' .. f.lua_name .. '\n'
     return l
