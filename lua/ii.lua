@@ -40,7 +40,7 @@ function ii_LeadRx_handler( addr, cmd, data )
     ii[name].event(ii[name].e[cmd], data)
 end
 
-function ii.e( name, event, data ) _c.tell('ii.'..name,tostring(event),data) end
+function ii.e( name, event, data ) _c.tell('ii.'..name,'\\''..tostring(event)..'\\'',data) end
 
 ii._c =
     { cmds = { [1]='output'
