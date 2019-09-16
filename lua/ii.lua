@@ -40,6 +40,7 @@ function ii_LeadRx_handler( addr, cmd, data )
     ii[name].event(ii[name].e[cmd], data)
 end
 
+-- NOTE: weird double-escaped quotes down here for the c compiler
 function ii.e( name, event, data ) _c.tell('ii.'..name,'\\''..tostring(event)..'\\'',data) end
 
 ii._c =
