@@ -313,7 +313,7 @@ input[1].change = function(state)
 end
 ```
 
-## Midi Library
+## MIDI Library
 
 crow's first Input doubles as MIDI input with the somewhat new TRS cable standard.
 
@@ -355,7 +355,7 @@ function init()
 end
 
 input[1].midi = function(data)
-  local m = Midi.to_msg(data)
+  local m = midi.to_msg(data)
   if m.type == 'note_on' then
     print('on ' .. m.note)
   elseif m.type == 'note_off' then
@@ -634,16 +634,16 @@ of other purposes!
 All modules come pre-calibrated from the factory, so you'll likely never need to
 think about this, but just in case, recalibration and data inspection is allowed.
 
-### Cal.test()
+### cal.test()
 
-The `Cal.test()` function causes crow to re-run the calibration process.
+The `cal.test()` function causes crow to re-run the calibration process.
 
 **You must remove all patch cables from the jacks for this process to work correctly!**
 Calling `test` without any arguments runs the calibration as per normal, while
 runing `test('default')` will not run the calibration process, but instead return
 to default values, in case you're having problems with the calibration process.
 
-### Cal.print()
+### cal.print()
 
 This helper function is just for debugging purposes. Calling it will simply dump
 a list of values showing the scaling & translation of voltages that were measured

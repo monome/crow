@@ -13,11 +13,10 @@ local function closelibs()
     Output = nil
     Asl    = nil
     Asllib = nil
-    Metro  = nil
-    metro  = nil --alias
+    metro  = nil
     ii     = nil
-    Cal    = nil
-    Midi   = nil
+    cal    = nil
+    midi   = nil
 end
 
 function _crow.libs( lib )
@@ -27,11 +26,10 @@ function _crow.libs( lib )
         Output = dofile('lua/output.lua')
         Asl    = dofile('lua/asl.lua')
         Asllib = dofile('lua/asllib.lua')
-        Metro  = dofile('lua/metro.lua')
-        metro  = Metro --alias
+        metro  = dofile('lua/metro.lua')
         ii     = dofile('lua/ii.lua')
-        Cal    = dofile('lua/calibrate.lua')
-        Midi   = dofile('lua/midi.lua')
+        cal    = dofile('lua/calibrate.lua')
+        midi   = dofile('lua/midi.lua')
     elseif type(lib) == 'table' then
         -- load the list 
     else
@@ -109,9 +107,8 @@ ii._c.inputF = function(chan)
     else return 0 end
 end
 
---TODO int16 conversion should be rolled into i2c generation tool
 ii._c.output = function(chan,val)
-    output[chan].level = val/1638.4
+    output[chan].level = val
     --TODO step ASL
 end
 
