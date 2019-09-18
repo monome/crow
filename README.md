@@ -10,7 +10,7 @@ For a developer focused intro, see [readme-development.md](readme-development.md
 crow is many things, but here's some starters:
 - Eurorack module. 2hp. +60mA, -15mA (TODO confirm).
 - Hardware i/o: 2inputs, 4outputs, 16bit, [-5v,+10v] range
-- Full lua environment, 64kB of local script storage
+- Full lua environment, 8kB of local script storage
 - USB device, for communicating text(!)
 - i2c leader & follower, multiple crows can share responsibilities
 - MIDI input on TRS cable (top-most input only)

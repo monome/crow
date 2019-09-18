@@ -141,6 +141,7 @@ C_cmd_t Caw_try_receive( void )
         if( pReader + len > USB_RX_BUFFER ){ // overflow protection
             pReader = 0;
             Caw_send_luachunk("!chunk too long!");
+            printf("!chunk too long!\n");
             //multiline = 0; // FIXME can we know whether this is high / low?
             retcmd = C_none;
             goto exit;
