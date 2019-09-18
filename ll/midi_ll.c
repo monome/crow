@@ -3,11 +3,14 @@
 UART_HandleTypeDef midiuart;
 
 void rx_callback_null( uint8_t* buf );
+void error_callback_null( void );
 void (*rx_callback)(uint8_t*) = rx_callback_null;
 uint8_t rx_buf[8]; // TODO not big enough for sysex!
+void (*error_callback)(void) = error_callback_null;
 
 // public defns
-void MIDI_ll_Init( void(*rx_handler)(uint8_t*) )
+void MIDI_ll_Init( void(*rx_handler)(uint8_t*)
+                 , void(*error_handler)(void) )
 {
     midiuart.Instance = MIDIx;
 
@@ -22,6 +25,7 @@ void MIDI_ll_Init( void(*rx_handler)(uint8_t*) )
     while( HAL_UART_GetState( &midiuart ) != HAL_UART_STATE_READY ){}
 
     rx_callback = rx_handler;
+    error_callback = error_handler;
 }
 
 void MIDI_ll_DeInit(void)
@@ -93,6 +97,11 @@ void HAL_UART_RxCpltCallback( UART_HandleTypeDef *huart )
 {
     (*rx_callback)(rx_buf);
 }
+void HAL_UART_ErrorCallback( UART_HandleTypeDef *huart )
+{
+    printf("uart_error: %i\n", huart->ErrorCode);
+    (*error_callback)();
+}
 
 void MIDI_ll_IRQHandler( void )
 {
@@ -100,3 +109,4 @@ void MIDI_ll_IRQHandler( void )
 }
 
 void rx_callback_null( uint8_t* buf ){}
+void error_callback_null( void ){}

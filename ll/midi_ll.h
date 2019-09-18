@@ -32,10 +32,12 @@
 
 #define DBG_UART_TIMEOUT    0x4000 /* a long time */
 
-void MIDI_ll_Init( void(*rx_handler)(uint8_t*) );
+void MIDI_ll_Init( void(*rx_handler)(uint8_t*)
+                 , void(*error_handler)(void) );
 void MIDI_ll_DeInit(void);
 
 int MIDI_ll_Rx( int ix, int count );
 
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart);
+void HAL_UART_RxCpltCallback( UART_HandleTypeDef *huart );
+void HAL_UART_ErrorCallback( UART_HandleTypeDef *huart );
 void MIDI_ll_IRQHandler( void );
