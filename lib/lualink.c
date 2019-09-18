@@ -542,6 +542,7 @@ void L_handle_toward( int id )
     lua_pushinteger(L, id+1); // 1-ix'd
     if( lua_pcall(L, 1, 0, 0) != LUA_OK ){
         Caw_send_luachunk("error running toward_handler");
+        Caw_send_luachunk( (char*)lua_tostring(L, -1) );
         printf( "%s\n", (char*)lua_tostring(L, -1) );
         lua_pop( L, 1 );
     }

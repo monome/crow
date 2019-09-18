@@ -147,7 +147,7 @@ static int8_t CDC_Itf_Control (uint8_t cmd, uint8_t* pbuf, uint16_t length)
             LineCoding.paritytype = pbuf[5];
             LineCoding.datatype   = pbuf[6];
             break;
-        case CDC_GET_LINE_CODING: printf("itf:g_line_coding\n");
+        case CDC_GET_LINE_CODING:
             pbuf[0] = (uint8_t)(LineCoding.bitrate);
             pbuf[1] = (uint8_t)(LineCoding.bitrate >> 8);
             pbuf[2] = (uint8_t)(LineCoding.bitrate >> 16);
@@ -156,9 +156,9 @@ static int8_t CDC_Itf_Control (uint8_t cmd, uint8_t* pbuf, uint16_t length)
             pbuf[5] = LineCoding.paritytype;
             pbuf[6] = LineCoding.datatype;
             break;
-        case CDC_SET_CONTROL_LINE_STATE: break;//printf("itf:s_ctrl_state\n"); break;
+        case CDC_SET_CONTROL_LINE_STATE: break;
         case CDC_SEND_BREAK:             printf("itf:send_brk\n");     break;
-        default: printf("default\n"); break;
+        default: printf("itf: default\n"); break;
     }
     return (USBD_OK);
 }
@@ -171,7 +171,7 @@ void USB_tx_enqueue( uint8_t* buf, uint32_t len )
     }
     if( len == 0 ){
         // FIXME? Likely means we're trying to TX when no usb device connected
-        printf("TxBuf full\n"); // TODO memcpy will still run (can rm this warning)
+        //printf("TxBuf full\n"); // TODO memcpy will still run (can rm this warning)
     }
     memcpy( &UserTxBuffer[UserTxDataLen]
           , buf
@@ -200,7 +200,8 @@ uint8_t USB_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 //__disable_irq();
             int error = USBD_OK;
             if( (error = USBD_CDC_TransmitPacket(&USBD_Device)) ){
-                printf("CDC_tx failed %i\n", error);
+                // This means the buffer is full & hasn't been read
+                //printf("CDC_tx failed %i\n", error);
             } else {
                 UserTxDataLen = 0; // only clear data if no error
             }
