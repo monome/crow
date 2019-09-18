@@ -54,6 +54,7 @@ int main(void)
             case C_print:      REPL_print_script(); break;
             case C_version:    system_print_version(); break;
             case C_identity:   system_print_identity(); break;
+            case C_killlua:    Lua_Reset(); break;
             default: break; // 'C_none' does nothing
         }
         Random_Update();

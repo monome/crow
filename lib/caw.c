@@ -67,6 +67,7 @@ static C_cmd_t _find_cmd( char* str, uint32_t len )
                 else if( *pStr == 'p' ){ return C_print; }
                 else if( *pStr == 'v' ){ return C_version; }
                 else if( *pStr == 'i' ){ return C_identity; }
+                else if( *pStr == 'k' ){ return C_killlua; }
             }
         }
     }
@@ -116,6 +117,7 @@ C_cmd_t Caw_try_receive( void )
             case C_print:      retcmd = C_print; goto exit;
             case C_version:    retcmd = C_version; goto exit;
             case C_identity:   retcmd = C_identity; goto exit;
+            case C_killlua:    retcmd = C_killlua; goto exit;
             default: break;
         }
         if( *buf == '\e' ){ // escape key

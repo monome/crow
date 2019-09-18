@@ -76,6 +76,13 @@ lua_State* Lua_Init(void)
     return L;
 }
 
+void Lua_Reset( void )
+{
+    Lua_DeInit();
+    Lua_Init();
+    Lua_crowbegin();
+}
+
 void Lua_load_default_script( void )
 {
     Lua_eval(L, lua_default
