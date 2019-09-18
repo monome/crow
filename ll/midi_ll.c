@@ -19,7 +19,7 @@ void MIDI_ll_Init( void(*rx_handler)(uint8_t*)
     midiuart.Init.StopBits     = UART_STOPBITS_1;
     midiuart.Init.Parity       = UART_PARITY_NONE;
     midiuart.Init.Mode         = UART_MODE_RX;
-    midiuart.Init.OverSampling = UART_OVERSAMPLING_16; // 16 or 8. d=16
+    midiuart.Init.OverSampling = UART_OVERSAMPLING_8; // 16 or 8. d=16
     if( HAL_UART_Init( &midiuart ) ){ printf("!midi_uart_init\n"); }
 
     while( HAL_UART_GetState( &midiuart ) != HAL_UART_STATE_READY ){}
@@ -46,9 +46,9 @@ void HAL_UART_MspInit(UART_HandleTypeDef *hu )
 
     GPIO_InitTypeDef gpio;
     gpio.Pin       = MIDI_RXPIN;
-    gpio.Mode      = GPIO_MODE_AF_PP;
+    gpio.Mode      = GPIO_MODE_AF_OD;
     gpio.Pull      = GPIO_PULLUP;
-    gpio.Speed     = GPIO_SPEED_FREQ_HIGH;
+    gpio.Speed     = GPIO_SPEED_FREQ_LOW;
     gpio.Alternate = MIDI_AF;
     HAL_GPIO_Init( MIDI_GPIO, &gpio );
 
