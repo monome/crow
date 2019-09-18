@@ -203,6 +203,7 @@ mnemonic assistance:
 - `^^printscript`: the current user script is sent over usb to the host
 - `^^version`: prints crow's semantic version to the usb host
 - `^^identity`: print's this crow's unique ID to the usb host
+- `^^kill`: resets the lua vm and re-runs the userscript (or default)
 
 #### Bootloader
 
