@@ -357,6 +357,7 @@ IO_block_t* CAL_BlockProcess( IO_block_t* b )
                 CAL_Recalibrate( 1 );
             }
             cal.stage = CAL_none;
+            CAL_LL_ActiveChannel( CAL_LL_Ground ); // mux off / gnd input
             break;
 
         default: break;
