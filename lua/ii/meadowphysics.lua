@@ -1,8 +1,8 @@
 do return
-{ module_name  = 'ansible_mp'
+{ module_name  = 'ansible meadowphysics'
 , manufacturer = 'monome'
 , i2c_address  = 0x2A
-, lua_name     = 'ansible_mp'
+, lua_name     = 'meadowphysics'
 , commands     =
   { { name = 'preset'
     , cmd  = 0

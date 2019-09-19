@@ -1,8 +1,8 @@
 do return
-{ module_name  = 'ansible_kria'
+{ module_name  = 'ansible kria'
 , manufacturer = 'monome'
 , i2c_address  = 0x28
-, lua_name     = 'ansible_kria'
+, lua_name     = 'kria'
 , commands     =
   { { name = 'preset'
     , cmd  = 0
