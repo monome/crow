@@ -191,12 +191,12 @@ uint8_t CAL_StepB( IO_block_t* b, float* value )
     return 0;
 }
 
+// resistor values in kOhms
+#define INPUT_RESISTOR 100.0
+#define MUX_RESISTOR   0.33 // 0.66 + 0.135 + -0.5; // 2*330r + MUX508 internal r
+#define RESISTOR_SCALE ((INPUT_RESISTOR + MUX_RESISTOR) / INPUT_RESISTOR)
 uint8_t CAL_Step( IO_block_t* b, float* value )
 {
-    const float input_resistor = 100.0; // 100k
-    const float mux_resistor   = 0.33 + 0.135; // 330r + MUX508 internal r
-    float resistor_scale = (input_resistor + mux_resistor)
-                                    / input_resistor;
     if( cal.avg_count == AVERAGE_COUNT ){
         cal.avg_count--;
         return 1; // FIXME gross logic flow here
@@ -205,7 +205,7 @@ uint8_t CAL_Step( IO_block_t* b, float* value )
     }
     if( !(--cal.avg_count) ){
         *value /= AVERAGE_USABLE;
-        *value *= resistor_scale;
+        *value *= RESISTOR_SCALE;
         cal.stage++;
         cal.avg_count = AVERAGE_COUNT;
     }
