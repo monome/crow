@@ -249,8 +249,18 @@ IO_block_t* CAL_BlockProcess( IO_block_t* b )
 
         case CAL_process_in_shift:
             cal.adc[0].shift = -cal.adc[0].shift;
+
+// FIXME!!!
+                cal.adc[0].shift += 0.0022; // FIXME hardcoded kludge
+
+
             ADC_CalibrateShift( 0, cal.adc[0].shift );
             cal.adc[1].shift = -cal.adc[1].shift;
+
+// FIXME!!!
+                cal.adc[1].shift += 0.0022; // FIXME hardcoded kludge
+
+
             ADC_CalibrateShift( 1, cal.adc[1].shift );
             cal.stage++;
             break;
@@ -299,6 +309,11 @@ IO_block_t* CAL_BlockProcess( IO_block_t* b )
 
             for( uint8_t j=0; j<4; j++ ){
                 cal.dac[j].scale = output_ref / (cal.dac[j].scale - cal.dac[j].shift);
+
+// FIXME!!!
+                cal.dac[j].scale *= 0.9952; // FIXME hardcoded kludge
+
+
                 DAC_CalibrateScalar( j, cal.dac[j].scale );
                 cal.dac[j].shift = 0.0; // reset shift for scaled calibration
             }
@@ -332,6 +347,12 @@ IO_block_t* CAL_BlockProcess( IO_block_t* b )
         case CAL_complete:
             for( uint8_t j=0; j<4; j++ ){
                 cal.dac[j].shift = -cal.dac[j].shift;
+
+// FIXME!!!
+                cal.dac[j].shift += 0.0022; // FIXME hardcoded kludge (input comp)
+                cal.dac[j].shift += 0.0027; // FIXME hardcoded kludge
+
+
                 DAC_CalibrateOffset( j, cal.dac[j].shift );
             }
             int error = 0;
