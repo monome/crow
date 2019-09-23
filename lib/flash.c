@@ -171,9 +171,9 @@ static void clear_flash( uint32_t sector, uint32_t location )
 
 static uint32_t version12b( void )
 {
-    const uint32_t c = (uint32_t)( (VERSION[0]-0x30)<<8
-                                 | (VERSION[2]-0x30)<<4
-                                 | (VERSION[4]-0x30)
-                                 );
+    const uint32_t c = (uint32_t)( (VERSION[1]-0x30)<<8
+                                 | (VERSION[3]-0x30)<<4
+                                 | (VERSION[5]-0x30)
+                                 ) & 0xFFF; // mask for safety
     return c;
 }
