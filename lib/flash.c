@@ -66,6 +66,11 @@ uint16_t Flash_read_user_scriptlen( void )
     return (*((__IO uint16_t*)USER_SCRIPT_LOCATION + 1));
 }
 
+char* Flash_read_user_scriptaddr( void )
+{
+    return (char*)(USER_SCRIPT_LOCATION + 4);
+}
+
 uint8_t Flash_read_user_script( char* buffer )
 {
     if( !Flash_is_user_script() ){ return 1; } // no script

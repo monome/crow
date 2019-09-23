@@ -3,6 +3,7 @@
 #include <stdlib.h> // malloc(), free()
 #include <string.h> // memcpy()
 
+#include <stm32f7xx_hal.h> // HAL_Delay()
 #include "lib/flash.h"     // Flash_write_(), Flash_is_userscript(), Flash_read()
 #include "lib/caw.h"       // Caw_send_raw(), Caw_send_luachunk(), Caw_send_luaerror()
 
@@ -76,16 +77,16 @@ void REPL_eval( char* buf, uint32_t len, ErrorHandler_t errfn )
 void REPL_print_script( void )
 {
     if( Flash_is_user_script() ){
-        REPL_new_script_buffer( Flash_read_user_scriptlen() );
-        Flash_read_user_script( new_script );
-        uint16_t send_len = Flash_read_user_scriptlen();
-        uint8_t page_count = 0;
-        while( send_len > 0x200 ){
-            Caw_send_raw( (uint8_t*)&new_script[(page_count++)*0x200], 0x200 );
-            send_len -= 0x200;
+        uint16_t length = Flash_read_user_scriptlen();
+        char* addr = Flash_read_user_scriptaddr();
+        const int chunk = 0x200;
+        while( length > chunk ){
+            Caw_send_raw( (uint8_t*)addr, chunk );
+            length -= chunk;
+            addr += chunk;
+            HAL_Delay(3); // wait for usb tx
         }
-        Caw_send_raw( (uint8_t*)&new_script[page_count*0x200], send_len );
-        free(new_script);
+        Caw_send_raw( (uint8_t*)addr, length );
     } else {
         Caw_send_luachunk("no user script.");
     }
