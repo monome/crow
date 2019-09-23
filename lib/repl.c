@@ -54,7 +54,7 @@ void REPL_mode( L_repl_mode mode )
                 printf("flash write failed\n");
                 Caw_send_luachunk("flash write failed");
             }
-            printf("script saved\n");
+            printf("script saved, len: %i\n", new_script_len);
         } else { printf("new user script failed test\n"); }
         free(new_script); // cleanup memory
     }
@@ -112,5 +112,6 @@ static void REPL_new_script_buffer( uint32_t len )
         //        try allocating a smaller amount and hope it fits?
         //        retry?
     }
+    for( int i=0; i<len; i++ ){ new_script[i] = 0; }
     new_script_len = 0;
 }
