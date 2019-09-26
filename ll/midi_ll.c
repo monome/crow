@@ -99,7 +99,7 @@ void HAL_UART_RxCpltCallback( UART_HandleTypeDef *huart )
 }
 void HAL_UART_ErrorCallback( UART_HandleTypeDef *huart )
 {
-    printf("uart_error: %i\n", huart->ErrorCode);
+    printf("uart_error: %i\n", (int)huart->ErrorCode);
     (*error_callback)();
 }
 
