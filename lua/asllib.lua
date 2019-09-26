@@ -4,7 +4,12 @@
 --
 Asllib = {} -- how should we refer to the below?
 
--- is it possible to overload the `-` operator with a metatable?
+function div( n,d )
+    if type(n) == 'function' then
+        return function() return n()/d end
+    else return n/d end
+end
+
 function negate( v )
     if type(v) == 'function' then
         return function() return -v() end
@@ -23,12 +28,11 @@ function note( noteNum, duration )
           }
 end
 
-function lfo( speed, level )
-    -- allow these defaults to be attributes of the out channel
-    speed, level = speed or 1, level or 5
+function lfo( time, level )
+    time, level = time or 1, level or 5
 
-    return loop{ to(        level , speed )
-               , to( negate(level), speed )
+    return loop{ to(        level , div(time,2) )
+               , to( negate(level), div(time,2) )
                }
 
 end
