@@ -26,42 +26,49 @@ uint8_t Flash_write_user_script( char* script, uint32_t length )
     if( length > USER_SCRIPT_SIZE ){ return 1; } // ERROR: Script too long
 
 // clear the flash
-	HAL_FLASH_Unlock();
-	FLASH_EraseInitTypeDef erase_setup =
-		{ .TypeErase    = FLASH_TYPEERASE_SECTORS
-		, .Sector       = USER_SCRIPT_SECTOR
-		, .NbSectors    = 1
-		, .VoltageRange = FLASH_VOLTAGE_RANGE_3
-		};
+    HAL_FLASH_Unlock();
+    FLASH_EraseInitTypeDef erase_setup =
+        { .TypeErase    = FLASH_TYPEERASE_SECTORS
+        , .Sector       = USER_SCRIPT_SECTOR
+        , .NbSectors    = 1
+        , .VoltageRange = FLASH_VOLTAGE_RANGE_3
+        };
     uint32_t error_status;
-	HAL_FLASHEx_Erase( &erase_setup, &error_status );
+    HAL_FLASHEx_Erase( &erase_setup, &error_status );
 
 // set status word
     uint32_t sd_addr = USER_SCRIPT_LOCATION;
-	HAL_FLASH_Program( FLASH_TYPEPROGRAM_WORD
-					 , sd_addr
-					 , USER_MAGIC          // user script present
-                     | (version12b() << 4) // version control
-                     | (length << 16)      // length in bytes
-					 );
+    uint32_t status_word = USER_MAGIC          // b0:3   user script present
+                         | (version12b() << 4) // b4:15  version control
+                         | (length << 16)      // b16:32 length in bytes
+                         ;
+    HAL_FLASH_Program( FLASH_TYPEPROGRAM_WORD
+                     , sd_addr
+                     , status_word
+                     );
 // program script
     length >>= 2; length++;
     while( length ){
         sd_addr += 4;
-	    HAL_FLASH_Program( FLASH_TYPEPROGRAM_WORD
-	    				 , sd_addr
-	    				 , *(uint32_t*)script
-	    				 );
+        HAL_FLASH_Program( FLASH_TYPEPROGRAM_WORD
+                         , sd_addr
+                         , *(uint32_t*)script
+                         );
         script += 4;
         length--;
     }
-	HAL_FLASH_Lock();
+    HAL_FLASH_Lock();
     return 0;
 }
 
 uint16_t Flash_read_user_scriptlen( void )
 {
     return (*((__IO uint16_t*)USER_SCRIPT_LOCATION + 1));
+}
+
+char* Flash_read_user_scriptaddr( void )
+{
+    return (char*)(USER_SCRIPT_LOCATION + 4);
 }
 
 uint8_t Flash_read_user_script( char* buffer )
@@ -171,9 +178,9 @@ static void clear_flash( uint32_t sector, uint32_t location )
 
 static uint32_t version12b( void )
 {
-    const uint32_t c = (uint32_t)( (VERSION[0]-0x30)<<8
-                                 | (VERSION[2]-0x30)<<4
-                                 | (VERSION[4]-0x30)
-                                 );
+    const uint32_t c = (uint32_t)( (VERSION[1]-0x30)<<8
+                                 | (VERSION[3]-0x30)<<4
+                                 | (VERSION[5]-0x30)
+                                 ) & 0xFFF; // mask for safety
     return c;
 }

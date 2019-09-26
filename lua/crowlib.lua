@@ -29,7 +29,7 @@ function _crow.libs( lib )
         metro  = dofile('lua/metro.lua')
         ii     = dofile('lua/ii.lua')
         cal    = dofile('lua/calibrate.lua')
-        midi   = dofile('lua/midi.lua')
+        --midi   = dofile('lua/midi.lua')
     elseif type(lib) == 'table' then
         -- load the list 
     else

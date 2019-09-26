@@ -17,6 +17,7 @@
 #include "lib/io.h"         // IO_GetADC()
 #include "../ll/random.h"   // Random_Get()
 #include "../ll/adda.h"     // CAL_Recalibrate() CAL_PrintCalibration()
+#include "../ll/system.h"   // getUID_Word()
 #include "lib/events.h"     // event_t event_post()
 #include "lib/midi.h"       // MIDI_Active()
 
@@ -200,6 +201,13 @@ static int _bootloader( lua_State *L )
 {
     bootloader_enter();
     return 0;
+}
+static int _unique_id( lua_State *L )
+{
+    lua_pushinteger(L, getUID_Word(0));
+    lua_pushinteger(L, getUID_Word(4));
+    lua_pushinteger(L, getUID_Word(8));
+    return 3;
 }
 static int _go_toward( lua_State *L )
 {
@@ -445,6 +453,7 @@ static const struct luaL_Reg libCrow[]=
     , { "tell"             , _print_tell       }
         // system
     , { "sys_bootloader"   , _bootloader       }
+    , { "unique_id"        , _unique_id        }
     //, { "sys_cpu_load"     , _sys_cpu          }
         // io
     , { "go_toward"        , _go_toward        }
