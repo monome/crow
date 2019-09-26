@@ -191,12 +191,12 @@ uint8_t CAL_StepB( IO_block_t* b, float* value )
     return 0;
 }
 
+// resistor values in kOhms
+#define INPUT_RESISTOR 100.0
+#define MUX_RESISTOR   0.33 // 0.66 + 0.135 + -0.5; // 2*330r + MUX508 internal r
+#define RESISTOR_SCALE ((INPUT_RESISTOR + MUX_RESISTOR) / INPUT_RESISTOR)
 uint8_t CAL_Step( IO_block_t* b, float* value )
 {
-    const float input_resistor = 100.0; // 100k
-    const float mux_resistor   = 0.33 + 0.135; // 330r + MUX508 internal r
-    float resistor_scale = (input_resistor + mux_resistor)
-                                    / input_resistor;
     if( cal.avg_count == AVERAGE_COUNT ){
         cal.avg_count--;
         return 1; // FIXME gross logic flow here
@@ -205,7 +205,7 @@ uint8_t CAL_Step( IO_block_t* b, float* value )
     }
     if( !(--cal.avg_count) ){
         *value /= AVERAGE_USABLE;
-        *value *= resistor_scale;
+        *value *= RESISTOR_SCALE;
         cal.stage++;
         cal.avg_count = AVERAGE_COUNT;
     }
@@ -249,8 +249,18 @@ IO_block_t* CAL_BlockProcess( IO_block_t* b )
 
         case CAL_process_in_shift:
             cal.adc[0].shift = -cal.adc[0].shift;
+
+// FIXME!!!
+                cal.adc[0].shift += 0.0022; // FIXME hardcoded kludge
+
+
             ADC_CalibrateShift( 0, cal.adc[0].shift );
             cal.adc[1].shift = -cal.adc[1].shift;
+
+// FIXME!!!
+                cal.adc[1].shift += 0.0022; // FIXME hardcoded kludge
+
+
             ADC_CalibrateShift( 1, cal.adc[1].shift );
             cal.stage++;
             break;
@@ -299,6 +309,11 @@ IO_block_t* CAL_BlockProcess( IO_block_t* b )
 
             for( uint8_t j=0; j<4; j++ ){
                 cal.dac[j].scale = output_ref / (cal.dac[j].scale - cal.dac[j].shift);
+
+// FIXME!!!
+                cal.dac[j].scale *= 0.9952; // FIXME hardcoded kludge
+
+
                 DAC_CalibrateScalar( j, cal.dac[j].scale );
                 cal.dac[j].shift = 0.0; // reset shift for scaled calibration
             }
@@ -332,6 +347,12 @@ IO_block_t* CAL_BlockProcess( IO_block_t* b )
         case CAL_complete:
             for( uint8_t j=0; j<4; j++ ){
                 cal.dac[j].shift = -cal.dac[j].shift;
+
+// FIXME!!!
+                cal.dac[j].shift += 0.0022; // FIXME hardcoded kludge (input comp)
+                cal.dac[j].shift += 0.0027; // FIXME hardcoded kludge
+
+
                 DAC_CalibrateOffset( j, cal.dac[j].shift );
             }
             int error = 0;
@@ -357,6 +378,7 @@ IO_block_t* CAL_BlockProcess( IO_block_t* b )
                 CAL_Recalibrate( 1 );
             }
             cal.stage = CAL_none;
+            CAL_LL_ActiveChannel( CAL_LL_Ground ); // mux off / gnd input
             break;
 
         default: break;
