@@ -10,7 +10,7 @@ str_buffer_t* str_buf;
 #ifdef RELEASE
 void Debug_USART_Init(void){ return; }
 void U_PrintNow(void){ return; }
-void U_Print(char* s){ return; }
+void U_Print(char* s, int len){ return; }
 #endif // RELEASE
 
 #ifndef RELEASE
