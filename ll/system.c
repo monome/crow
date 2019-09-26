@@ -11,7 +11,6 @@ static void Sys_Clk_Config(void);
 static void Error_Handler(void);
 static void MPU_Config(void);
 static void CPU_CACHE_Enable(void);
-static inline uint32_t getUID_Word( uint32_t offset );
 
 // public definitions
 void system_init(void)
@@ -33,9 +32,9 @@ void system_print_identity(void)
 {
     char s[64];
     sprintf( s, "^^identity('0x%08x%08x%08x')"
-              , (unsigned int)getUID_Word(0)
-              , (unsigned int)getUID_Word(4)
-              , (unsigned int)getUID_Word(8)
+              , getUID_Word(0)
+              , getUID_Word(4)
+              , getUID_Word(8)
               );
     Caw_send_luachunk( s );
 }
@@ -111,12 +110,12 @@ static void Error_Handler(void)
     while(1){;;}
 }
 
-static inline uint32_t getUID_Word( uint32_t offset )
+unsigned int getUID_Word( unsigned int offset )
 {
     const uint32_t base = 0x1FF07A10;
     //return (uint32_t)(READ_REG(*((uint32_t*)(UID_BASE + offset))));
     //return (uint32_t)(READ_REG(UID_BASE + offset));
     uint32_t* x = (uint32_t*)(base + offset);
-    return (uint32_t)(READ_REG(*x));
+    return (unsigned int)(READ_REG(*x));
     //return (uint32_t)x;
 }
