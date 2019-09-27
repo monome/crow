@@ -22,6 +22,26 @@ crow development can mean many things, but if you want to write anything beyond 
 - `make` build the project binary (**see nb below**)
 - `make clean` remove all binary objects to force a rebuild on next `make`
 
+### Docker
+
+You can get a build environment with
+[Docker](https://docs.docker.com/) on any platform as follows. The
+`--config core.autocrlf` setting may be necessary on Windows to deal
+with line ending issues when mounting the directory into the Docker
+container.
+
+```bash
+git clone --recursive --config core.autocrlf=input https://github.com/monome/crow
+cd crow
+docker build . -t crow-dev
+docker run --rm -it -v "$(pwd)":/target crow-dev bash
+```
+
+and then `make` to build, or use `docker run --rm -it -v
+"$(pwd)":/target crow-dev` for the container to run `make` and then
+exit.
+
+
 #### DFU Programmer
 
 For dfu programming over usb, replace `make` above with:
@@ -567,6 +587,3 @@ Then on teletype:
 `CROW.CALL2 1 2`  adds an octave to output 2
 `CROW.CALL2 2 1`  add a fith to output 1
 `CROW.CALL2 3 4`  move output 4 by a random number of semitones
-
-
-
