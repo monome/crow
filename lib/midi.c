@@ -33,6 +33,7 @@ typedef enum{ MIDI_SYSEX         = 0xF0
 static uint8_t MIDI_rx_cmd( void );
 static uint8_t MIDI_rx_data( uint8_t count );
 static void event_complete( uint8_t* d );
+void MIDI_Handle_Error( void );
 
 
 // public defns
@@ -40,7 +41,9 @@ void MIDI_Active( int state )
 {
     static int is_active = 0;
     if( state && !is_active ){
-        MIDI_ll_Init( &MIDI_Handle_LL );
+        MIDI_ll_Init( &MIDI_Handle_LL
+                    , &MIDI_Handle_Error
+                    );
         if( MIDI_rx_cmd() ){ printf("midi0\n"); }
         is_active = 1;
     } else if( !state && is_active ){
@@ -92,6 +95,10 @@ void MIDI_Handle_LL( uint8_t* buf )
             event_complete(buf);
         }
     }
+}
+void MIDI_Handle_Error( void )
+{
+    MIDI_rx_cmd();
 }
 
 int MIDI_byte_count( uint8_t cmd_byte )

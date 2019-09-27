@@ -1,7 +1,7 @@
 TARGET=crow
 EXECUTABLE=$(TARGET).elf
 
-VERSION=0.0.0
+GIT_VERSION := $(shell git describe --tags)
 
 CUBE=submodules/STM32_Cube_F7/Drivers
 HALS=$(CUBE)/STM32F7xx_HAL_Driver/Src
@@ -55,18 +55,18 @@ CFLAGS += $(DEFS) -I. -I./ $(STM32_INCLUDES)
 CFLAGS += -fsingle-precision-constant -Wdouble-promotion
 CFLAGS += -DLUA_32BITS -DLUA_COMPAT_5_2
 CFLAGS += -fno-common
-
+CFLAGS += -DVERSION=\"$(GIT_VERSION)\"
 
 # debugger: choose between uart (=0) & swtrace(=1). latter requires hardware mod
 TRACE ?= 0
 ifeq ($(TRACE), 1)
-    CFLAGS += -DTRACE
+	CFLAGS += -DTRACE
 endif
 
 # release: if (=1), disable all debug prints
 R ?= 0
 ifeq ($(R), 1)
-    CFLAGS += -DRELEASE
+	CFLAGS += -DRELEASE
 endif
 
 
@@ -173,7 +173,7 @@ OBJS = $(SRC:%.c=$(OBJDIR)/%.o)
 OBJS += $(addprefix $(LUAS)/,$(LUACORE_OBJS) $(LUALIB_OBJS) )
 OBJS += Startup.o
 
-# specific objects that require built dependencies (II)
+# specific objects that require built dependencies (ii)
 $(OBJDIR)/lib/lualink.o: $(LUA_PP) $(BUILD_DIR)/ii_lualink.h
 $(OBJDIR)/lib/ii.o: $(BUILD_DIR)/ii_c_layer.h
 
@@ -236,18 +236,19 @@ debug:
 	stlink-trace -c 216
 
 dfu: $(BIN)
-	sudo dfu-util -a 0 -s 0x08020000:leave -D $(BIN) -d ,0483:df11
+	sudo dfu-util -a 0 -s 0x08020000 -R -D $(BIN) -d ,0483:df11
 
 boot:
 	cd $(BOOTLOADER) && \
 	make R=1 flash
 
 zip: $(BIN)
-	mkdir -p $(TARGET)-$(VERSION)
-	cp flash.sh $(TARGET)-$(VERSION)/
-	cp $(BIN) $(TARGET)-$(VERSION)/
-	zip -r $(TARGET)-$(VERSION).zip $(TARGET)-$(VERSION)/
-	# needs semantic versioning
+	mkdir -p $(TARGET)-$(GIT_VERSION)
+	cp util/flash.sh $(TARGET)-$(GIT_VERSION)/
+	cp util/erase_userscript.sh $(TARGET)-$(GIT_VERSION)/
+	cp util/blank.bin $(TARGET)-$(GIT_VERSION)/
+	cp $(BIN) $(TARGET)-$(GIT_VERSION)/
+	zip -r $(TARGET)-$(GIT_VERSION).zip $(TARGET)-$(GIT_VERSION)/
 
 %.o: %.c
 	@$(CC) -ggdb $(CFLAGS) -c $< -o $@
@@ -288,7 +289,7 @@ clean:
 	$(TARGET).bin  $(TARGET).out  $(TARGET).hex \
 	$(TARGET).map  $(TARGET).dmp  $(EXECUTABLE) $(DEP) \
 	$(BUILD_DIR) lua/*.lua.h util/l2h.lua \
-	$(TARGET)-$(VERSION)/  *.zip \
+	$(TARGET)-$(GIT_VERSION)/  *.zip \
 
 splint:
 	splint -I. -I./ $(STM32_INCLUDES) *.c

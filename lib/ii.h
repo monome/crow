@@ -17,18 +17,18 @@ typedef enum{ II_CROW  = 0x01
             , II_CROW2 = 0x02
             , II_CROW3 = 0x03
             , II_CROW4 = 0x04
-} II_ADDR_t;
+} ii_ADDR_t;
 
-uint8_t II_init( uint8_t address );
-void II_deinit( void );
+uint8_t ii_init( uint8_t address );
+void ii_deinit( void );
 
-const char* II_list_modules( void );
-const char* II_list_cmds( uint8_t address );
+const char* ii_list_modules( void );
+const char* ii_list_cmds( uint8_t address );
 
-void II_set_pullups( uint8_t state );
+void ii_set_pullups( uint8_t state );
 
-uint8_t II_get_address( void );
-void II_set_address( uint8_t address );
+uint8_t ii_get_address( void );
+void ii_set_address( uint8_t address );
 
 // callbacks from i2c LL library
 void I2C_Lead_RxCallback( uint8_t address, uint8_t cmd, uint8_t* data );
@@ -39,18 +39,18 @@ void I2C_Follow_TxCallback( uint8_t* data );
 
 
 
-uint8_t* II_processFollowRx( void );
-uint8_t* II_processLeadRx( void );
+uint8_t* ii_processFollowRx( void );
+uint8_t* ii_processLeadRx( void );
 
 
 
 
 // good
-uint8_t II_broadcast( uint8_t address
+uint8_t ii_broadcast( uint8_t address
                     , uint8_t cmd
                     , float*  data
                     );
-uint8_t II_query( uint8_t address
+uint8_t ii_query( uint8_t address
                 , uint8_t cmd
                 , float*  data
                 );

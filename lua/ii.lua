@@ -22,6 +22,7 @@ function ii.m_help( address )
 end
 
 function ii.pullup( state )
+    if state == true then state = 1 else state = 0 end
     ii_pullup(state)
 end
 
@@ -39,7 +40,8 @@ function ii_LeadRx_handler( addr, cmd, data )
     ii[name].event(ii[name].e[cmd], data)
 end
 
-function ii.e( name, event, data ) _c.tell('II.'..name,tostring(event),data) end
+-- NOTE: weird double-escaped quotes down here for the c compiler
+function ii.e( name, event, data ) _c.tell('ii.'..name,'\\''..tostring(event)..'\\'',data) end
 
 ii._c =
     { cmds = { [1]='output'
@@ -73,13 +75,13 @@ ii._c =
 }
 
 function ii_followRx_handler( cmd, ... )
-    local name = II._c.cmds[cmd]
-    II._c[name](...)
+    local name = ii._c.cmds[cmd]
+    ii._c[name](...)
 end
 
 function ii_followRxTx_handler( cmd, ... )
-    local name = II._c.cmds[cmd]
-    return II._c[name](...)
+    local name = ii._c.cmds[cmd]
+    return ii._c[name](...)
 end
 
 print 'ii loaded'

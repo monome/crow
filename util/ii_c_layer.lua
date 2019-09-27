@@ -1,18 +1,19 @@
 get_offset = 0x80
 
 -- allows descriptor to use shorthand without stringifying
-void = 'II_void'
-s8 = 'II_s8'
-u8 = 'II_u8'
-s16 = 'II_s16'
-u16 = 'II_u16'
-float = 'II_float'
+void = 'ii_void'
+s8 = 'ii_s8'
+u8 = 'ii_u8'
+s16 = 'ii_s16'
+s16V = 'ii_s16V'
+u16 = 'ii_u16'
+float = 'ii_float'
 
 function c_cmds(f)
     local c = ''
 
     local function make_a_cmd( lua_name, ix, cmd, args, retval )
-        local s = 'const II_Cmd_t ' .. lua_name .. ix .. ' = {' .. cmd .. ','
+        local s = 'const ii_Cmd_t ' .. lua_name .. ix .. ' = {' .. cmd .. ','
         if args == nil then
             s = s .. '0,' .. retval .. ',{}'
         elseif type(args[1]) == 'table' then -- >1 arg
@@ -84,7 +85,7 @@ function c_cmds(f)
 end
 
 function c_switch(f)
-    local s = 'const II_Cmd_t* ii_find_command( uint8_t address, uint8_t cmd ){\n'
+    local s = 'const ii_Cmd_t* ii_find_command( uint8_t address, uint8_t cmd ){\n'
            .. '\tswitch( address  ){\n'
     for _,f in ipairs(files) do
         s = s .. '\t\tcase ' .. f.i2c_address .. ':\n'
@@ -123,7 +124,7 @@ end
 -- generate a printable c-string describing the module's commands
 function generate_prototypes( d )
     local prototypes = ''
-    local proto_prefix = 'II.' .. d.lua_name .. '.'
+    local proto_prefix = 'ii.' .. d.lua_name .. '.'
     for _,v in ipairs( d.commands ) do
         local s = '"' .. proto_prefix .. v.name .. '( '
         if type(v.args[1]) == 'table' then -- more than 1 arg
@@ -153,7 +154,7 @@ end
 
 function generate_getters( d )
     local getters = ''
-    local get_prefix = '"II.' .. d.lua_name .. '.get( \''
+    local get_prefix = '"ii.' .. d.lua_name .. '.get( \''
 
     -- commands that have standard getters
     for _,v in ipairs( d.commands ) do
@@ -197,7 +198,7 @@ function generate_events( d )
         return false
     end
 
-    local events = '"II.' .. d.lua_name .. '.event = function( e, data )\\n\\r"\n'
+    local events = '"ii.' .. d.lua_name .. '.event = function( e, data )\\n\\r"\n'
 
     local overloaded = has_get_cmd(d)
     if overloaded then
@@ -245,28 +246,29 @@ function make_c(f)
             .. '// DO NOT EDIT THIS MANUALLY //\n\n'
             .. '#pragma once\n\n'
 
-    c = c .. 'typedef enum{ II_void\n'
-          .. '            , II_u8\n'
-          .. '            , II_s8\n'
-          .. '            , II_u16\n'
-          .. '            , II_s16\n'
-          .. '            , II_float   // 32bit (for crow to crow comm\'n)\n'
-          .. '} II_Type_t;\n'
+    c = c .. 'typedef enum{ ii_void\n'
+          .. '            , ii_u8\n'
+          .. '            , ii_s8\n'
+          .. '            , ii_u16\n'
+          .. '            , ii_s16\n'
+          .. '            , ii_s16V\n'
+          .. '            , ii_float   // 32bit (for crow to crow comm\'n)\n'
+          .. '} ii_Type_t;\n'
           .. '\n'
           .. 'typedef struct{\n'
           .. '    uint8_t cmd;\n'
           .. '    uint8_t args;\n'
-          .. '    uint8_t return_type;\n'
-          .. '    II_Type_t argtype[];\n'
-          .. '} II_Cmd_t;\n\n'
+          .. '    ii_Type_t return_type;\n'
+          .. '    ii_Type_t argtype[];\n'
+          .. '} ii_Cmd_t;\n\n'
           .. 'const char* ii_module_list =\n'
           .. '\"--- ii: supported modules\\n\\r"\n'
     for _,f in ipairs(files) do
         c = c .. '"' .. f.lua_name .. '\\t-- ' .. f.module_name .. '\\n\\r"\n'
     end
     c = c .. '"\\n\\r"\n'
-          .. '"--- See a module\'s commands with \'II.<module>.help()\'\\n\\r"\n'
-          .. '"II.jf.help()\\n\\r"\n'
+          .. '"--- See a module\'s commands with \'ii.<module>.help()\'\\n\\r"\n'
+          .. '"ii.jf.help()\\n\\r"\n'
           .. ';\n'
     for _,f in ipairs(files) do
         c = c .. c_cmds(f)

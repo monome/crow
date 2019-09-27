@@ -11,7 +11,7 @@
 #define USER_SCRIPT_LOCATION 0x08010000
 #define USER_SCRIPT_SECTOR   FLASH_SECTOR_4
 //#define USER_SCRIPT_SIZE     (0x10000 - 4)
-#define USER_SCRIPT_SIZE     (0x1000 - 4)
+#define USER_SCRIPT_SIZE     (0x2000 - 4)
 
 typedef enum { FLASH_Status_Init  = 0
              , FLASH_Status_Saved = 1
@@ -28,6 +28,7 @@ uint8_t Flash_is_user_script( void );
 void Flash_clear_user_script( void );
 uint8_t Flash_write_user_script( char* script, uint32_t length );
 uint16_t Flash_read_user_scriptlen( void );
+char* Flash_read_user_scriptaddr( void );
 uint8_t Flash_read_user_script( char* buffer );
 
 uint8_t Flash_is_calibrated( void );

@@ -3,18 +3,6 @@
 local _crow = {}
 local _c = _crow -- alias
 
---- System functions
-
-_crow.version = '0.0.0'
-
-function whatversion()
-    return _crow.version
-end
-
-function printversion()
-    print( 'crow ' .. whatversion() )
-end
-
 
 --- Library loader
 --
@@ -25,11 +13,10 @@ local function closelibs()
     Output = nil
     Asl    = nil
     Asllib = nil
-    Metro  = nil
-    metro  = nil --alias
-    II     = nil
-    Cal    = nil
-    Midi   = nil
+    metro  = nil
+    ii     = nil
+    cal    = nil
+    midi   = nil
 end
 
 function _crow.libs( lib )
@@ -39,11 +26,10 @@ function _crow.libs( lib )
         Output = dofile('lua/output.lua')
         Asl    = dofile('lua/asl.lua')
         Asllib = dofile('lua/asllib.lua')
-        Metro  = dofile('lua/metro.lua')
-        metro  = Metro --alias
-        II     = dofile('lua/ii.lua')
-        Cal    = dofile('lua/calibrate.lua')
-        Midi   = dofile('lua/midi.lua')
+        metro  = dofile('lua/metro.lua')
+        ii     = dofile('lua/ii.lua')
+        cal    = dofile('lua/calibrate.lua')
+        --midi   = dofile('lua/midi.lua')
     elseif type(lib) == 'table' then
         -- load the list 
     else
@@ -66,10 +52,10 @@ function _crow.tell( event_name, ... )
 end
 
 function get_out( channel )
-    _c.tell( 'out_cv', channel, get_state( channel ))
+    _c.tell( 'output', channel, get_state( channel ))
 end
 function get_cv( channel )
-    _c.tell( 'ret_cv', channel, io_get_input( channel ))
+    _c.tell( 'stream', channel, io_get_input( channel ))
 end
 
 
@@ -94,7 +80,6 @@ if Asl then
         output[id].asl:step()
     end
 end
--- TODO should 'go_toward' be called 'slew'???
 -- special wrapper should really be in the ASL lib itself?
 function LL_toward( id, d, t, s )
     if type(d) == 'function' then d = d() end
@@ -108,46 +93,37 @@ function LL_get_state( id )
 end
 
 
---- II default actions
+--- ii default actions
 --TODO int16 conversion should be rolled into i2c generation tool
-II._c.input = function(chan)
+ii._c.input = function(chan)
     if chan == 1 or chan == 2 then
         return (1638.4 * input[chan]())
     else return 0 end
 end
 
 --TODO deprecate to the single `input` after format conversion added
-II._c.inputF = function(chan)
+ii._c.inputF = function(chan)
     if chan == 1 or chan == 2 then return input[chan]()
     else return 0 end
 end
 
---TODO int16 conversion should be rolled into i2c generation tool
-II._c.output = function(chan,val)
-    output[chan].level = val/1638.4
+ii._c.output = function(chan,val)
+    output[chan].level = val
     --TODO step ASL
 end
 
-II._c.slew = function(chan,slew)
+ii._c.slew = function(chan,slew)
     output[chan].rate = slew/1000 -- ms
 end
 
 --- True Random Number Generator
 -- redefine library function to use stm native rng
 math.random = function(a,b)
-    if a == nil then return random_get()
-    elseif b == nil then return random_get() * a
-    else return (b-a)*random_get() + a
+    if a == nil then return random_float()
+    elseif b == nil then return random_int(1,a)
+    else return random_int(a,b)
     end
 end
-
---- Flash program
-function start_flash_chunk()
-    -- should kill the currently running lua script
-    -- turn off timers & callbacks? else?
-    -- call to C to switch from REPL to writer
-end
-
 
 --- Syntax extensions
 function closure_if_table( f )

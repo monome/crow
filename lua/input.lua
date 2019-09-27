@@ -19,8 +19,8 @@ function Input.new( chan )
               , quants     = {}
               , ratios     = {}
         -- user-customizable events
-              , stream     = function(value) _c.tell('ret_cv',chan,value) end
-              , change     = function(state) _c.tell('change',chan,state) end
+              , stream     = function(value) _c.tell('stream',chan,value) end
+              , change     = function(state) _c.tell('change',chan,state and 1 or 0) end
               , midi       = function(data) _c.tell('midi',table.unpack(data)) end
               , window     = function(ix, direction) get_cv(chan) end
               , scale      = function(octave, ix) get_cv(chan) end
@@ -79,10 +79,10 @@ Input.__newindex = function(self, ix, val)
 end
 
 Input.__index = function(self, ix)
-    if     ix == 'value' then
+    if     ix == 'volts' then
         return Input.get_value(self)
     elseif ix == 'query' then
-        return function() _c.tell('ret_cv',self.channel,Input.get_value(self)) end
+        return function() _c.tell('stream',self.channel,Input.get_value(self)) end
     elseif ix == 'mode'  then
         return function(...) Input.set_mode( self, ...) end
     end
@@ -91,6 +91,7 @@ end
 Input.__call = function(self, ...)
     local args = {...}
     if #args == 0 then
+        -- FIXME this should be removed? use .volts instead
         return Input.get_value(self)
     else -- table call
         local m = 0
@@ -107,7 +108,7 @@ setmetatable(Input, Input) -- capture the metamethods
 
 -- callback
 function stream_handler( chan, val ) Input.inputs[chan].stream( val ) end
-function change_handler( chan, val ) Input.inputs[chan].change( val ) end
+function change_handler( chan, val ) Input.inputs[chan].change( val ~= 0 ) end
 function midi_handler( ... ) d = {...}; Input.inputs[1].midi(d) end
 
 print 'input loaded'

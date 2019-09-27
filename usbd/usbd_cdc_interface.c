@@ -51,8 +51,8 @@
 #include "../ll/debug_usart.h" // debug printing
 
 // Private define
-#define APP_RX_DATA_SIZE  256
-#define APP_TX_DATA_SIZE  256
+#define APP_RX_DATA_SIZE  256 // tmp buffer until the parser runs in main loop
+#define APP_TX_DATA_SIZE  1024 // the only tx buffer
 
 // Private vars
 USBD_CDC_LineCodingTypeDef LineCoding = { 115200  // baud rate
@@ -63,8 +63,8 @@ USBD_CDC_LineCodingTypeDef LineCoding = { 115200  // baud rate
 
 uint8_t UserRxBuffer[APP_RX_DATA_SIZE];
 uint8_t UserTxBuffer[APP_TX_DATA_SIZE];
-uint32_t UserTxBufPtrIn  = 0;
-uint32_t UserRxBufPtrIn  = 0;
+uint32_t UserTxDataLen  = 0;
+uint32_t UserRxDataLen  = 0;
 
 TIM_HandleTypeDef  USBTimHandle;
 
@@ -84,17 +84,27 @@ USBD_CDC_ItfTypeDef USBD_CDC_fops = { CDC_Itf_Init
                                     , CDC_Itf_Receive
                                     };
 
-/* Private functions ---------------------------------------------------------*/
-void CDC_main_init()
+/* Public functions ---------------------------------------------------------*/
+void CDC_clear_buffers( void )
 {
-    USBD_CDC_SetTxBuffer(&USBD_Device, UserTxBuffer, 0);
+    for( int i=0; i<APP_RX_DATA_SIZE; i++ ){ UserRxBuffer[i] = 0; }
+    for( int i=0; i<APP_TX_DATA_SIZE; i++ ){ UserTxBuffer[i] = 0; }
+    UserTxDataLen  = 0;
+    UserRxDataLen  = 0;
     USBD_CDC_SetRxBuffer(&USBD_Device, UserRxBuffer);
+    USBD_CDC_SetTxBuffer(&USBD_Device, UserTxBuffer, 0);
 }
+
+int timerdelay = 0;
+/* Private functions ---------------------------------------------------------*/
 static int8_t CDC_Itf_Init(void)
 {
-    USBD_CDC_SetTxBuffer(&USBD_Device, UserTxBuffer, 0);
     USBD_CDC_SetRxBuffer(&USBD_Device, UserRxBuffer);
+    USBD_CDC_SetTxBuffer(&USBD_Device, UserTxBuffer, 0);
 
+    // set the timerdelay, so the TIM can be started but *not* send for
+    // the first 100ms to solve ECHO issue on norns. see #137
+    timerdelay = 100 / CDC_POLLING_INTERVAL;
     TIM_Config();
     if( HAL_TIM_Base_Start_IT(&USBTimHandle) != HAL_OK ){
         printf("!usb tim_start\n");
@@ -119,7 +129,7 @@ static int8_t CDC_Itf_DeInit(void)
 }
 
 static int8_t CDC_Itf_Control (uint8_t cmd, uint8_t* pbuf, uint16_t length)
-{ 
+{
     // Most of this is unimplemented!
     switch( cmd ){
         case CDC_SEND_ENCAPSULATED_COMMAND: printf("itf:send_cmd\n");     break;
@@ -137,7 +147,7 @@ static int8_t CDC_Itf_Control (uint8_t cmd, uint8_t* pbuf, uint16_t length)
             LineCoding.paritytype = pbuf[5];
             LineCoding.datatype   = pbuf[6];
             break;
-        case CDC_GET_LINE_CODING: printf("itf:g_line_coding\n");
+        case CDC_GET_LINE_CODING:
             pbuf[0] = (uint8_t)(LineCoding.bitrate);
             pbuf[1] = (uint8_t)(LineCoding.bitrate >> 8);
             pbuf[2] = (uint8_t)(LineCoding.bitrate >> 16);
@@ -146,9 +156,9 @@ static int8_t CDC_Itf_Control (uint8_t cmd, uint8_t* pbuf, uint16_t length)
             pbuf[5] = LineCoding.paritytype;
             pbuf[6] = LineCoding.datatype;
             break;
-        case CDC_SET_CONTROL_LINE_STATE: break;//printf("itf:s_ctrl_state\n"); break;
+        case CDC_SET_CONTROL_LINE_STATE: break;
         case CDC_SEND_BREAK:             printf("itf:send_brk\n");     break;
-        default: printf("default\n"); break;
+        default: printf("itf: default\n"); break;
     }
     return (USBD_OK);
 }
@@ -156,45 +166,44 @@ static int8_t CDC_Itf_Control (uint8_t cmd, uint8_t* pbuf, uint16_t length)
 // user call copies the data to the tx queue
 void USB_tx_enqueue( uint8_t* buf, uint32_t len )
 {
-    if( (UserTxBufPtrIn + len) >= APP_TX_DATA_SIZE ){
-        len = APP_TX_DATA_SIZE - UserTxBufPtrIn; // stop buffer overflow
+    if( (UserTxDataLen + len) >= APP_TX_DATA_SIZE ){
+        len = APP_TX_DATA_SIZE - UserTxDataLen; // stop buffer overflow
     }
     if( len == 0 ){
         // FIXME? Likely means we're trying to TX when no usb device connected
         //printf("TxBuf full\n"); // TODO memcpy will still run (can rm this warning)
     }
-    memcpy( &UserTxBuffer[UserTxBufPtrIn]
+    memcpy( &UserTxBuffer[UserTxDataLen]
           , buf
           , len
           );
-    UserTxBufPtrIn += len;
+    UserTxDataLen += len;
 }
 
 // interrupt sends out any queued data
 uint8_t USB_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
     if( htim == &USBTimHandle ){ // protect as it's called from timer lib
-        uint32_t buffptr;
-        uint32_t buffsize;
-        if( UserTxBufPtrIn != 0 ){
-            buffsize = UserTxBufPtrIn; // because TxPtrOut === 0
-            if(buffsize >= APP_TX_DATA_SIZE){
-                //printf("overflow %i\n",(int)buffsize);
-                buffsize = APP_TX_DATA_SIZE;
+        // here we NOP the first 100ms of timer clicks
+        // see PR #137. solves ECHO issue on norns.
+        if( timerdelay ){ timerdelay--; return 1; }
+        if( UserTxDataLen ){
+            if( UserTxDataLen >= APP_TX_DATA_SIZE ){
+                //printf("overflow %i\n",(int)UserTxDataLen);
+                UserTxDataLen = APP_TX_DATA_SIZE;
             }
-            buffptr = 0;
             USBD_CDC_SetTxBuffer( &USBD_Device
-                                , (uint8_t*)&UserTxBuffer[buffptr]
-                                , buffsize
+                                , UserTxBuffer
+                                , UserTxDataLen
                                 );
 //uint32_t old_primask = __get_PRIMASK();
 //__disable_irq();
             int error = USBD_OK;
-            if( (error = USBD_CDC_TransmitPacket(&USBD_Device)) == USBD_OK ){
-                // only clear data if no error
-                UserTxBufPtrIn = 0;
-            } else if( error == USBD_FAIL ){
-                printf("CDC_tx failed %i\n", error);
+            if( (error = USBD_CDC_TransmitPacket(&USBD_Device)) ){
+                // This means the buffer is full & hasn't been read
+                //printf("CDC_tx failed %i\n", error);
+            } else {
+                UserTxDataLen = 0; // only clear data if no error
             }
 //__set_PRIMASK( old_primask );
         }
@@ -208,24 +217,24 @@ uint8_t USB_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 // on interrupt add to the queue
 static int8_t CDC_Itf_Receive( uint8_t* buf, uint32_t *len )
 {
-    if( (UserRxBufPtrIn + *len) >= APP_RX_DATA_SIZE ){
-        *len = APP_RX_DATA_SIZE - UserRxBufPtrIn; // stop buffer overflow
+    if( (UserRxDataLen + *len) >= APP_RX_DATA_SIZE ){
+        *len = APP_RX_DATA_SIZE - UserRxDataLen; // stop buffer overflow
     }
-    memcpy( &UserRxBuffer[UserRxBufPtrIn]
+    memcpy( &UserRxBuffer[UserRxDataLen]
           , buf
           , *len
           );
-    UserRxBufPtrIn += *len;
+    UserRxDataLen += *len;
     return USBD_OK;
 }
 
 // user function grabs data from the queue
 uint8_t USB_rx_dequeue( uint8_t** buf, uint32_t* len )
 {
-    if( UserRxBufPtrIn ){ // non-zero means data is present
+    if( UserRxDataLen ){ // non-zero means data is present
         *buf = UserRxBuffer;
-        *len = UserRxBufPtrIn;
-        UserRxBufPtrIn = 0; // reset rx array
+        *len = UserRxDataLen;
+        UserRxDataLen = 0; // reset rx array
 uint32_t old_primask = __get_PRIMASK();
 __disable_irq();
         USBD_CDC_ReceivePacket(&USBD_Device); // Receive the next packet
@@ -236,10 +245,10 @@ __set_PRIMASK( old_primask );
 }
 
 static void TIM_Config(void)
-{  
+{
     // Set TIMu instance
     USBTimHandle.Instance = TIMu;
-  
+
     TIMu_CLK_ENABLE();
     // Initialize TIM3 peripheral as follow:
     //     + Period = 10000 - 1

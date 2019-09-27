@@ -13,7 +13,7 @@ crow development can mean many things, but if you want to write anything beyond 
 - dfu-util 0.8+
 
 ### Get the project
-- `git clone --recursive https://github.com/trentgill/crow.git`
+- `git clone --recursive https://github.com/monome/crow.git`
 - `cd crow`
 - `git submodule --init` *nb: will take a while to download*
 
@@ -24,16 +24,22 @@ crow development can mean many things, but if you want to write anything beyond 
 
 ### Docker
 
-You can get a reproducible build environment with Docker as follows:
+You can get a build environment with
+[Docker](https://docs.docker.com/) on any platform as follows. The
+`--config core.autocrlf` setting may be necessary on Windows to deal
+with line ending issues when mounting the directory into the Docker
+container.
 
 ```bash
 git clone --recursive --config core.autocrlf=input https://github.com/monome/crow
 cd crow
 docker build . -t crow-dev
-docker run --rm -it -v "$(pwd)":/target bash
+docker run --rm -it -v "$(pwd)":/target crow-dev bash
 ```
 
-and then `make` to build.
+and then `make` to build, or use `docker run --rm -it -v
+"$(pwd)":/target crow-dev` for the container to run `make` and then
+exit.
 
 
 #### DFU Programmer
@@ -54,12 +60,12 @@ Using an st-link, or stm discovery board as the programmer is also possible but 
 Or if you're adventurous, you can get by without the pcb and just wire a 2x3 header directly to the edge connector.
 
 Pinout for SWD port on discovery board (and thus on the edge-piece 1x6pin connector):
-1. vdd target (ie 3v3 from crow)
+1. VDD target (ie 3v3 from crow)
 2. SWD clock
 3. Ground
 4. SWD data i/o
 5. !Reset
-6. SWO (ie 'TRACE' or debug pin)
+6. SWO (not connected on crow)
 
 The edge connector pin out is:
 - top-side starting at rear-edge: TRACE, SWD clock, !RST
@@ -69,13 +75,6 @@ Once you've got the hardware sorted, you can:
 - `make boot` build & flash the bootloader
 - `make flash` build & flash the main program
 - `make erase` erase the whole program including calibration metadata & userscript
-
-TRACE
-
-I discovered the 'TRACE' pin functionality after we ordered the hardware, so
-unfortunately it isn't hooked up on the crow hardware itself. You can cut a tiny
-trace & solder a wire to the uC's TRACE pin, but it's not recommended. If you
-really want that functionality I'm (@trentgill) happy to do the mod for you.
 
 ### Debugging
 Presently debugging is limited to printf style, and you'll need to solder on the
@@ -99,18 +98,20 @@ The makefile is pretty unwieldy, but here's the basic approach:
 4. Build the C objects, including lua which is built directly into the binary
 5. Run the linker and create the binary
 
-Then you can upload to the device automatically with `make dfu` or `make flash`.
+Then you can upload to crow with `make dfu` or `make flash`.
 
-If you want to improve the makefile see issue [#42](https://github.com/monome/crow/issues/42).
 If you want to improve the way lua code is included in the binary see issue [#40](https://github.com/monome/crow/issues/40).
 
 ## Project structure
 
-- `ll/*`: all the low-level hardware drivers written in C using stm HAL.
+- `ll/*`: all the low-level hardware drivers written in C using STM32 HAL.
 - `usbd/*`: USB device driver for TTY communication to host.
 - `lib/*`: hardware-agnostic C APIs to the LL drivers & system functions.
 - `lua/*`: crow system providing lua APIs to the platform.
 - `lua/ii/*`: descriptor files for supported i2c devices.
+
+- `util/*`: helpers for the build process
+- `tests/*`: a few tests for the lua scripts
 
 ### Linking C functions and Lua
 
@@ -125,11 +126,11 @@ Lead your C function with an underscore, and see the Lua docs for how to pass
 arguments to and from these functions.
 
 Callbacks to Lua are defined at the end of this file, by convention named
-`L_handle_eventname` where 'eventname' is your callback's identifier.
+`L_handle_eventname` where 'eventname' is your callback's identifier. Each of these
+callbacks is called through the *event* system via a function `L_queue_eventname`.
 
-Note: we'll need an event-handler in C at some point as presently all callbacks
-are executed directly, calling into Lua which can lead to the platform going
-unresponsive if the Lua callbacks have too much going on.
+Your C-code should only call the the `L_queue*` functions and pipe them through via
+the `crow/lib/events.*` system.
 
 ### Including Lua files in the binary
 
@@ -138,20 +139,20 @@ it in `lib/lualink.c` so as to have it built into the binary:
 
 When these files are included in the project, their filenames are manipulated
 automatically, and they're wrapped into long string arrays. Thus if you have a file
-at `lua/example.lua` it will wrapped into `lua/example.lua.h` and will contain a
+at `lua/example.lua` it will be wrapped into `lua/example.lua.h` and will contain a
 single `char*` array with the name `lua_example` containing the whole lua file
 as raw text.
 
 To include it in the binary add an `#include` at the top of the file with `.h`
-appended to your filename.
+appended to your `*.lua` filename (ie. `*.lua.h`).
 
-To then allow `dofile()` or similar to find this code, you need to add a link to
+To then allow lua's `dofile()` to find this code, you need to add a link to
 the struct `Lua_libs` immediately after the includes.
     This should contain a string representing the path to the file, where `/` is
-    replaced by `_` and the file extension is dropped. Followed by a the array
+    replaced by `_` and the file extension is dropped. Followed by the array
     identifier, identical to the string, but without quotes.
 
-Nb: this does *not* apply to i2c descriptors.
+Nb: this does *not* apply to i2c descriptors. They are automatically included!
 
 ### Flash layout
 
@@ -161,37 +162,34 @@ Crow has 512kB of Flash memory which is segmented as follows:
 - 64kB, user-script (0x08010000)
 - 384kB, crow application (0x08020000)
 
-The DFU bootloader is protected and shouldn't be accessible from the main program.
-Changing the bootloader requires a hardware programmer, and special PCB (see above).
+The *DFU bootloader* is protected and isn't accessible from the main program.
+Changing the bootloader requires a hardware programmer (see above).
 
-The calibration data section contains automatic calibration information calculated
-when the unit is first programmed. This should not need to be manipulated directly,
-instead the calibration mechanism is in `ll/adda.c`. A lua hook should be provided
-to allow the user to execute `io_recalibrate()`.
+The *calibration data* section contains automatic calibration information calculated
+when the unit is first programmed.
 
-The 'user-script' location is where a lua program can be uploaded to. At present
+The *user-script* location is where a crow script can be uploaded to. At present
 this is simply a lua program as raw text, offset by a single 32bit word. The leading
 word contains the length of the user-script in bytes, plus a status byte so the
 system can query whether there is currently a program loaded. If no program is found
 the system will load the script at `lua/default.lua`.
 
-The crow application section includes all of the crow standard libraries in lua,
+The *crow application* section includes all of the crow standard libraries in lua,
 along with the C application.
 
-Further details in `lib/flash.c`
+Further technical details in `lib/flash.h/c`
 
 ### The REPL
 
 Crow communicates with a host over a serial port. The C API is in `lib/caw.c` along
-with some basic parsing of system level commands. These are discussed... elsewhere.
+with parsing of *crow commands* (eg. `^^s`).
 
-The parser is very basic, but just tries to capture complete lua chunks which are
-queued for later processing. The results of the parsing are handled in the `main.c`
-`while(1)` loop.
+The parser tries to capture complete lua chunks which are queued for later processing.
+The results of the parsing are handled in `main.c`'s `while(1)` loop.
 
-Direct commands are forwarded through the `REPL_eval()` function which chooses
+Received strings are forwarded through the `REPL_eval()` function which chooses
 between 2 functions depending on the REPL state:
-1. Forwards the deatils to `Lua_eval()` to be executed immediately.
+1. Forwards the details to `Lua_eval()` to be executed immediately.
 2. Forwards to `REPL_receive_script()` to save the incoming text to flash.
 
 In the first case, the incoming serial stream is expected to be a well-formed lua
@@ -206,29 +204,31 @@ another *crow command*. On completion of this sequence a number of things happen
 - lua code is loaded with `lua_pcall()` again checking for errors
 - stream is saved into flash memory, and the 'user-script-present' bit is set
 - temporary buffer holding the script is destroyed
-- REPL switches back to direct mode, where it will process incoming data directly
+- REPL switches back to direct mode, where it will interpret incoming text directly
 
-### Crow commands
+### Crow commands ^^
 
-Crow commands are special symbols that are intercepted before being passed through
+*crow commands* are special symbols that are intercepted before being passed through
 to the lua environment. These commands control meta-functionality of the input
 stream and allow a remote-host to control the hardware in special ways.
 
 All crow commands start with the crow symbol: `^^`. They then choose the action
 based on the first character following the symbol. Full names are listed here for
-mnemonic benefit:
-- `^^bootloader`: jump directly to the bootloader.
-- `^^reset` / `^^restart`: reboots crow.
+mnemonic assistance:
+- `^^bootloader`: jump to the bootloader.
+- `^^reset` / `^^restart`: reboots crow including the USB connection.
 - `^^startscript`: sets crow to reception mode. following code will be saved
 - `^^endscript`: saved code above will be written to flash. crow returns to repl mode
 - `^^clearscript`: clears onboard user script. use if your script is crashing crow
 - `^^printscript`: the current user script is sent over usb to the host
+- `^^version`: prints crow's semantic version to the usb host
+- `^^identity`: print's this crow's unique ID to the usb host
+- `^^kill`: resets the lua vm and re-runs the userscript (or default)
 
 #### Bootloader
 
 To upload a new crow firmware, you must first tell crow to enter bootloader mode.
-This can be accomplished in Lua if you need your script to shutdown gracefully, or
-can be called directly from the repl with the command `^^b`.
+This can be called directly from the repl with the command `^^b`.
 
 #### Reset
 
@@ -255,8 +255,9 @@ causes the system to lockup or crash, you'll need to clear or overwrite the scri
 To clear the existing script use `^^c` which will erase the current contents of
 the user-script, and crow will load the default script on next load.
 
-This can be very handy if you want to switch to the default behaviour part-way
-through a performance.
+If the user-script stops crow from appearing as a USB device at all, you can erase
+it directly by entering bootloader-mode and running the `erase_userscript.sh` script
+in the `crow/util` folder.
 
 #### Printing the user-script
 
@@ -280,16 +281,14 @@ to send a codeblock longer than this, you need to use the multiline helper.
 first send a command of 3 backticks "```", then your codeblock, then another
 3 backticks. This should be hidden from the end-user.
 
-However! If you are sending a full lua script and it's over 1kB, it must
+However! If you are sending a full lua script and it's over 4kB, it must
 be broken up into smaller chunks. If you are in script-transmission-mode then
-you can arbitrarily break up the message every 1kB. If you're sending a giant
+you can arbitrarily break up the message every 4kB. If you're sending a giant
 codeblock directly to the lua repl, you'll need to split the message so the
 lua interpreter sees each portion as valid code, as each multi-line segment
 is evaluated upon reception.
 
 ### Signals
-
-TODO
 
 The signal i/o for the input and output jacks happens in the `lib/io.c` file in
 `IO_BlockProcess()`. Signals are generated at 48kHz. This function processes a
@@ -298,7 +297,7 @@ and is currently 32samples as of this writing.
 
 All signals are processed as floating point numbers representing voltages directly.
 Thus the range is [-5.0, 10.0] and anything beyond these values will be clipped to
-the maximum.
+the maximum when reaching the output driver.
 
 The `IO_block_t` type is a struct described in `ll/adda.h` and should be used to
 access the signals and metadata in the block processor.
@@ -307,12 +306,11 @@ access the signals and metadata in the block processor.
 
 The input jacks are only sampled once per block, but the `b->in[channel][]` array
 is linearly interpolated from block to block. Instantaneous input values are also
-available directy from the low-level driver to avoid this smoothing, and for access
-without having to change the block process with `IO_GetADC(channel)`. The linear
-interpolation could be updated to something more useful?
+available directly from the low-level driver to avoid this smoothing, and for access
+without having to change the block process with `IO_GetADC(channel)`.
 
 The block process passes the input buffers to the Detect library implemented in
-`lib/detect.c` which analysis the input for events that should generate events in
+`lib/detect.c` which analysis the input for changes that should generate events in
 the lua environment. Event descriptors are sent from the lua Input library, which
 define what will cause event interrupts to occur.
 
@@ -339,7 +337,8 @@ descriptors.
 
 The output vector is generated by the `S_step_v()` function and will handle
 breakpoints (ie. when the slope reaches it's destination) by calling into lua to
-request the next slope description.
+request the next slope description. Note this request will not be returned until
+the following DSP block due to the event system. See Issue [#112](https://github.com/monome/crow/issues/112).
 
 #### Output Dev Roadmap: Slope Shapes
 
@@ -384,14 +383,13 @@ allowing the values to be focused in spite of their non-determinism.
 
 #### Output Dev Roadmap: Composite slopes
 
-In future the outputs will be composed of three elements:
+In future the outputs should be composed of three elements:
 1. `offset` with a dedicated `slew` time
 2. `actions` with an assignable modulation added to offset
 3. `pulse` functionality overlaid on all of the above
 
 All three of these functions will be implemented as ASL slopes, composed together
-in the `IO_BlockProcess()` function. This requires some small extensions in the
-C-layer, but primarily requires development in the lua Output library.
+in the `IO_BlockProcess()` function.
 
 #### Output Dev Roadmap: Audio Signals
 
@@ -411,22 +409,16 @@ be brought to the platform such that outputs could modally switch between ASL sl
 and some yet-to-be-named audio signal generator. Inputs can of course be processed
 though the input sample-rate is limited as mentioned above.
 
-If you're intending to take this project on, consider the wide range of DSP library
-functions already provided in the wrDsp library. In the spirit of the crow, it is
-recommended that any such endeavours use a declarative functional style for the
-user-facing element. See ASL as an example of a declarative syntax for a time-variant
-process.
-
 ### I2C: Adding support for new devices
 In order to encourage wide-ranging support for all i2c capable devices, crow
-requires only a single file to be added per device. This lua file is a simple
+requires only a single file to be added per device. This lua file is a
 declarative specification of how that device communicates on the i2c bus.
 
 These files live in `crow/lua/ii/<device_name>.lua`
 
 #### Beyond the obvious
-Take a look at `jf.lua` as an example which adds support for mannequins'
-'just friends' module. This module takes advantage of most of the existing
+Take a look at `jf.lua` as an example which adds support for Mannequins'
+'Just Friends' module. This module takes advantage of most of the existing
 features of the build system.
 
 The first 4 lines are global settings stating this module is called 'just friends',
@@ -473,13 +465,18 @@ Available types are:
 - s8    -- signed 8-bit integer (-128,127)
 - u16   -- unsigned 16-bit integer (0,65535)
 - s16   -- signed 16-bit integer (-32768, 32767) {teletype's default}
+- s16V  -- voltage as signed 16-bit integer (-32768, 32767) {converts teletype to V}
 - float -- 32bit floating point number
 
-*u16* and *s16* expect MSB before LSB.
+*u16* *s16* and *s16V* expect MSB before LSB.
 *float* is little-endian
 
+Note *s16V* is used to bridge from teletype native 16bit integers, and crow's
+floating point voltage representation. If you typically use `N` or `V` teletype
+operators on that parameter, you want this!
+
 Refer to the documentation or source-code for the device you're supporting to
-determine what types are used for these types.
+determine what types are used for each argument.
 
 ##### Get
 Many devices built for use within the teletype ecosystem have a matching 'getter' to
@@ -490,16 +487,17 @@ Under the hood, these matching getters & setters are typically given the same 'c
 value, with the getter offset by 0x80. The *last* argument in the list is omitted
 when calling the command, and instead is expected as the return value.
 
-By setting `get = true`, a getter will be auto-generated with the above assumptions.
+By adding `get = true` to the setter table, a getter will be auto-generated with the
+above assumptions.
 
 If you have getters that *don't* use these conventions, you can articulate them
 explicitly. >>>
 
 ##### Getters
 
-A single function is provided for getting, or *querying*, values from a connected
-device. this is: `ii.jf.get( name, ... )`. To define 'gettable' values, you add them
-to the 'getters' table in much the same way as the 'commands' table.
+A single function is provided for getting, or *querying*, any and all values from a
+connected device. eg: `ii.jf.get( name, ... )`. To define 'gettable' values, you
+add them to the 'getters' table in much the same way as the 'commands' table.
 
 - `name` is the name by which to query the state
 - `cmd` is the number corresponding the above name (see your devices docs)
@@ -519,6 +517,73 @@ the below features. See the github issue #49 for discussion:
 - remove requirement that filename match `lua_name`
 - `lua_name` aliases to allow eg: 'jf' or 'justfriends' to access the same table
 - additional argument & `return_value` types
-- fractional types with radix. eg: fract13 converts a 13bit int to 0-1.0 float
-- normalization of types to a predefined voltage range
 - multiple return values (eg: `ii.jf.get('retune',1)`) could return both `num` and `denom`
+
+### I2C Roadmap: Follower mode
+
+At it's most basic, crow can be treated as a simple expander for the i2c bus.
+It provides 2 inputs & 4 outputs to extend teletype's IO capabilities. To use these
+no changes are required to the default setup on crow. Simply use:
+
+`CROW.IN a` where a is 1 or 2. crow will return the current value of that input.
+`CROW.OUT a b` setting output 'a' to the value 'b'
+`CROW.SLEW a b` setting the slew rate of output 'a' to the time 'b'
+`CROW.PULSE a` performs a pulse on output 'a'
+
+crow has default actions to handle these messages, though like most things in crow
+they can be redefined for our own purposes by editing the functions in the table
+`ii._c`. Try printing the follower-help with `ii._c.help()` for a list of functions
+that can be redefined.
+
+#### A crow call
+
+crow is capable of far more than reporting the state of its inputs and setting the
+output values, but so vast are the possibilities that we couldn't make an i2c
+command for every one! To deal with this flexibility, we 'CALL' to crow and define
+the expected function on crow itself.
+
+eg: I want teletype to be able to add a voltage to a given output. There's no way
+to query the state of crow output via i2c, so we'll need to do it natively on crow
+itself. Something like:
+
+```
+function add_to_output( channel, amount_to_add )
+    output[channel].offset = output[channel].offset + amount_to_add
+end
+```
+
+To execute the above from i2c we use one of the 'CALL' functions, in this case
+`CALL2` as we need to send 2 arguments. There are commands for 1-4 arguments. From
+teletype:
+`CROW.CALL2 1 V 1`
+This should add 1 volt to the first output jack on crow.
+
+We can then redefine the function at `ii._c.call2()` to call our `add_to_output()`
+function.
+
+#### Calling with context
+
+The above function is great when you just want to add a single additional function,
+but what about if you want to do a number of things that all need 1 argument.
+In this case you can use `CALL` with 1 extra argument than your function needs, but
+use the first number to choose which function to execute.
+
+*nb: unfortunately, i don't think we can index this table after naming the functions.*
+
+```
+local actions=
+{ add_an_octave = function(arg) add_to_output(arg, octave(1.0)) end
+, add_a_fifth   = function(arg) add_to_output(arg, semitone(7/12)) end
+, add_random    = function(arg) add_to_output(arg, semitone(Math.rand())) end
+}
+
+ii._c.call2 = function(cmd, arg2)
+    actions[cmd](arg2)
+end
+```
+
+Then on teletype:
+`CROW.CALL2 1 1`  adds an octave to output 1
+`CROW.CALL2 1 2`  adds an octave to output 2
+`CROW.CALL2 2 1`  add a fith to output 1
+`CROW.CALL2 3 4`  move output 4 by a random number of semitones

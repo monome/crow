@@ -7,5 +7,6 @@
 void Random_Init(void);
 void Random_DeInit(void);
 
-float Random_Get(void);
+float Random_Float(void);
+int Random_Int(int lower, int upper);
 void Random_Update(void);

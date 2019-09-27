@@ -67,11 +67,11 @@
 
 /* Periodically, the state of the buffer "UserTxBuffer" is checked.
    The period depends on CDC_POLLING_INTERVAL */
-#define CDC_POLLING_INTERVAL             5 /* in ms. The max is 65 and the min is 1 */
+#define CDC_POLLING_INTERVAL             2 /* in ms. The max is 65 and the min is 1 */
 
 extern USBD_CDC_ItfTypeDef  USBD_CDC_fops;
 
-void CDC_main_init();
+void CDC_clear_buffers();
 
 void USB_tx_enqueue( uint8_t* buf, uint32_t len );
 uint8_t USB_rx_dequeue( uint8_t** buf, uint32_t* len );
