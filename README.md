@@ -8,12 +8,12 @@ For a developer focused intro, see [readme-development.md](readme-development.md
 ## what's a crow?
 
 crow is many things, but here's some starters:
-- Eurorack module. 2hp. +60mA, -15mA (TODO confirm).
+
+- Eurorack module. 2hp. +60mA, -15mA
 - Hardware i/o: 2inputs, 4outputs, 16bit, [-5v,+10v] range
 - Full lua environment, 8kB of local script storage
 - USB device, for communicating text(!)
 - i2c leader & follower, multiple crows can share responsibilities
-- MIDI input on TRS cable (top-most input only)
 
 With such a wide range of features, crow may become many different things to many
 different people. The focus has been to create an infrastructure where minimal
@@ -38,82 +38,48 @@ direct crow to act, or query crow's state such as the level at an input jack.
 
 #### druid
 
-TODO
+[Druid](https://github.com/monome/druid) is a small utility for communicating with crow, both for realtime interaction and the uploading of full scripts.
 
-This is the standalone computer REPL. Like a command-line hosted maiden. It is
-designed to be a simple interface for live-coding & configuring crow.
-
-General use-case would be a split terminal with text-editor on one side, and
-druid on the other. druid provides direct access to crow's REPL so you can test out
-code directly, then copy & paste into your script. Some hotkeys for auto-uploading
-a file to crow would be useful.
-
-crow has a lot of built-in documentation which can be queried with the 'help()'
-method on most of the libraries. This will cause crow to send a chunk of lua code
-which will be printed in the REPL window. These code chunks are specifically made
-to enable a user to copy/paste them directly into their script.
+A text editor alongside Druid provides an interactive platform for designing new patterns in a modular synth.
 
 #### norns
 
-TODO
+crow integrates seamlessly with norns as a CV and II interface.
 
-norns will add a set of functions for communicating with crow.
-
-norns will create a set of event handlers that the user can redefine.
+See the full [crow studies](norns) for a complete guide.
 
 #### Max
 
-A max object called [crow] is included in this project, though in future will be
-included in the Max distribution. It is a thin layer over a [serial] object which
-communicates to crow. The [crow] object accepts specific messages to query inputs,
+A [crow] Max object provides a thin layer over a [serial] object which communicates to crow. The [crow] object accepts specific messages to query inputs,
 set functionality, and drive outputs. Additionally chunks of lua code can be sent
 directly to the object to control crow in a totally open manner.
 
-The object then returns the default events (inputs, trigger events, timers etc)
-in a form easily integrated into a Max patch. A simple usage would send new values
-to the output jacks, and turn on 'change' mode for the inputs such that bangs are
-received when the inputs pass a threshold.
+Visit the [crow-max-and-m4l repo](https://github.com/monome/crow-max-and-m4l) to download and learn more.
 
 #### Ableton
 
-Leveraging the above max object, a set of Max4Live devices will soon be created
-enabling some simple yet powerful interfacing between Ableton and a modular synth.
+Leveraging the above max object, a set of Max4Live devices enable simple-yet-powerful interfacing between Ableton and a modular synth.
 
-Initially these will be focused around using Ableton as the center of a system:
-- Creating clocks, and clock-synced ramps
-- Automatable CV outputs with variable smoothing
-- Recording CV inputs as MIDI
-- Using CV inputs to remote-control Ableton
+They empower Ableton as the center of a hybrid modular system:
 
-In future this could be extended to allow the modular to drive Ableton directly
-via clocks, but perhaps some other parameters too. We're hoping some more active
-Ableton users will help extend these ideas, if not the implementation.
+- Create clocks, and clock-synced LFO's
+- Automate CV outputs with variable smoothing
+- Read CV inputs as MIDI
+- Use CV inputs to remote-control Ableton
+
+Visit the [crow-max-and-m4l repo](https://github.com/monome/crow-max-and-m4l) to download and learn more.
 
 ### Standalone
 
-*Standalone* mode is intended to let crow perform functions without needing to
-connect to a host device. To support this, the user can upload scripts to crow
-which will run whenever the system is powered up.
+*Standalone* mode is intended to let crow perform functions without needing to connect to a host device. To support this, the user can upload scripts to crow which will run whenever the system is powered up.
 
-The defining difference of using crow standalone is the manner in which events are
-handled. While in *satellite* mode, events send messages over USB, when *standalone*
-the user must handle these events in their script.
+The defining difference of using crow standalone is the manner in which events are handled. While in *satellite* mode, events send messages over USB. When in *standalone* the user must handle these events in their script.
 
-In order to get your standalone program onto crow you'll need a text editor and a
-mechanism to talk to the serial port. *druid* above will be the typical choice for
-those familiar with the command line. The Max object can be used too if you are
-comfortable in that environment. Eventually maiden may support uploading directly
-to crow(?).
-
-**would love to hear thoughts on what kind of tool is best suited for this**
+In order to get your standalone program onto crow you'll need a text editor and a mechanism to talk to the serial port. *druid* above will be the typical choice for those familiar with the command line.
 
 ## Standalone: Writing crow scripts
 
 A typical crow script is broken up into two main sections:
-
-TODO
-
-extend this...
 
 ### 1: The init() function
 Here the script initializes parameters & you can describe the general functionality
@@ -160,9 +126,9 @@ and require clearing of the on-board script.
 #### Requesting user-script-clear
 
 The gentlest way to deal with this situation is to send the `^^clearscript`
-command over usb. You <will be able to> do this by typing `;c` or `^^c` in the
-crow application<, or pressing a 'clear script' button in maiden?>, or pressing
-the (^^clearscript) message box in max.
+command over usb. You do this by typing `;c` or `^^c` in the
+crow application or sending
+the (^^clearscript) message in Max.
 
 #### Using the bootloader
 
@@ -310,59 +276,6 @@ end
 
 input[1].change = function(state)
     ii.wslash.record(state)
-end
-```
-
-## MIDI Library
-
-crow's first Input doubles as MIDI input with the somewhat new TRS cable standard.
-
-*nb: The pinout follows the official standard and so is compatible with Korg & Akai*
-*(amongst others), but you'll need an adaptor for Novation & Arturia gear.*
-
-Think of 'midi' as a fourth option for the Input library, albeit with very different
-behaviour. Activating MIDI happens with any of the three input mode setters:
-`input[1].mode = 'midi'`
-or
-`input[1].mode('midi')`
-or
-`input[1]{ mode = 'midi' }`
-
-### Defaults for crow satellite
-By default, MIDI mode simply forwards the messages to the host as raw MIDI data.
-Currently all standard messages are supported except for SysEx commands.
-
-TODO
-On norns, one can treat the `crow.midi` event identically to the standard norns MIDI
-events, using the `midi.to_msg` function to parse the input.
-
-In Max the [crow] object will emit a message from the left output (midi data ...)
-where `data` may be 1 to 4 numbers long. If you want to use the [midiparse] object
-try: `[route midi] -> [zl iter 1] -> [midiparse]`. This will make crow feel like a
-regular Max MIDI input.
-
-### Standalone MIDI
-Sure crow is great at being a midi / cv / i2c bridge to a host, but MIDI is far more
-powerful when crow is running standalone. In this way your MIDI device can become
-the user-interface for crow. CCs could control variables of a lua sequencer, or
-notes could play Just Friends polyphonically...
-
-The syntax for handling this behaviour is identical to norns, minus the connection
-and 'ports' handling. crow only has one port! Try the below example to get started:
-```
-function init()
-  input[1].mode = 'midi'
-end
-
-input[1].midi = function(data)
-  local m = midi.to_msg(data)
-  if m.type == 'note_on' then
-    print('on ' .. m.note)
-  elseif m.type == 'note_off' then
-    print('off ' .. m.note)
-  elseif m.type == 'cc' then
-    print('cc ' .. m.cc .. ' ' .. m.val)
-  end
 end
 ```
 
@@ -610,13 +523,13 @@ which might be none at all! eg:
 
 Then you can declare an `event` action to handle the response from the device.
 Copy it from the help() printout! it should look something like:
+
 ```
 ii.jf.event( event, data )
     if event == 'run_mode' then
         -- the state of 'run_mode' is in the 'data' variable!
     end
 end
-
 ```
 
 Note that by default the `event()` defaults to a satellite action which is
