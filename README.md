@@ -9,7 +9,7 @@ For a developer focused intro, see [readme-development.md](readme-development.md
 
 crow is many things, but here's some starters:
 
-- Eurorack module. 2hp. +60mA, -15mA
+- Eurorack module. 2hp. +56mA / -16mA
 - Hardware i/o: 2inputs, 4outputs, 16bit, [-5v,+10v] range
 - Full lua environment, 8kB of local script storage
 - USB device, for communicating text(!)
