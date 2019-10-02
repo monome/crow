@@ -7,6 +7,11 @@
 #include "lib/flash.h"     // Flash_write_(), Flash_is_userscript(), Flash_read()
 #include "lib/caw.h"       // Caw_send_raw(), Caw_send_luachunk(), Caw_send_luaerror()
 
+// types
+typedef enum{ REPL_normal
+            , REPL_reception
+} L_repl_mode;
+
 // global variables
 lua_State*  Lua;
 L_repl_mode repl_mode = REPL_normal;
@@ -37,27 +42,44 @@ void REPL_init( lua_State* lua )
     } else { Lua_load_default_script(); } // no user script
 }
 
-void REPL_mode( L_repl_mode mode )
+void REPL_begin_upload( void )
 {
-    repl_mode = mode;
-    if( repl_mode == REPL_reception ){ // begin a new transmission
-        REPL_new_script_buffer( USER_SCRIPT_SIZE );
-    } else { // end of a transmission
-        if( !Lua_eval( Lua, new_script
-                          , new_script_len
-                          , Caw_send_luaerror
-                          ) ){ // successful load
-            // TODO if we're setting init() should check it doesn't crash
-            if( Flash_write_user_script( new_script
-                                       , new_script_len
-                                       ) ){
-                printf("flash write failed\n");
-                Caw_send_luachunk("flash write failed");
-            }
-            printf("script saved, len: %i\n", new_script_len);
-        } else { printf("new user script failed test\n"); }
-        free(new_script); // cleanup memory
+    repl_mode = REPL_reception;
+    REPL_new_script_buffer( USER_SCRIPT_SIZE );
+}
+
+void REPL_run_upload( void )
+{
+    repl_mode = REPL_normal;
+    Lua_Reset();
+    if( !Lua_eval( Lua, new_script
+                      , new_script_len
+                      , Caw_send_luaerror
+                      ) ){ // successful load
+        Caw_send_luachunk("running...");
     }
+    free(new_script);
+}
+
+void REPL_flash_upload( void )
+{
+    repl_mode = REPL_normal;
+    // FIME: should this Lua_Reset() like run?
+    if( !Lua_eval( Lua, new_script
+                      , new_script_len
+                      , Caw_send_luaerror
+                      ) ){ // successful load
+
+        // TODO if we're setting init() should check it doesn't crash
+        if( Flash_write_user_script( new_script
+                                    , new_script_len
+                                    ) ){
+            printf("flash write failed\n");
+            Caw_send_luachunk("flash write failed");
+        }
+        printf("script saved, len: %i\n", new_script_len);
+    } else { printf("new user script failed test\n"); }
+    free(new_script); // cleanup memory
 }
 
 void REPL_eval( char* buf, uint32_t len, ErrorHandler_t errfn )
@@ -95,6 +117,7 @@ void REPL_print_script( void )
 // private funcs
 static void REPL_receive_script( char* buf, uint32_t len, ErrorHandler_t errfn )
 {
+    // FIXME: must do bounds checking to not overrun 8kB buffer
     memcpy( &new_script[new_script_len], buf, len );
     new_script_len += len;
 }
