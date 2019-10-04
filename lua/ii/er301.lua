@@ -39,7 +39,7 @@ do return
     , cmd  = 6
     , docs = 'Set *port* CV to *value* (bipolar), following SLEW time'
     , args = { { 'port', u8 }
-             , { 'value', s16v }
+             , { 'value', s16V }
              }
     }
   , { name = 'cv_slew'
@@ -53,14 +53,14 @@ do return
     , cmd  = 8
     , docs = 'Set CV *port* to *value* (bipolar), ignoring SLEW time'
     , args = { { 'port', u8 }
-             , { 'value', s16v }
+             , { 'value', s16V }
              }
     }
   , { name = 'cv_off'
     , cmd  = 9
     , docs = 'CV *port* offset, *value* added at final stage'
     , args = { { 'port', u8 }
-             , { 'value', s16v }
+             , { 'value', s16V }
              }
     }
   }
