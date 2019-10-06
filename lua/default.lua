@@ -93,5 +93,3 @@ function init()
   dec = metro.init{ event = env, time = 0.1 }
   dec:start()
 end
-
-init()
