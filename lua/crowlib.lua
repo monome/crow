@@ -150,6 +150,9 @@ for _,fn in ipairs( wrapped_fns ) do
     -- fn = closure_if_table( fn ) -- this *doesn't* redirect the identifier
 end
 
+-- empty init function in case userscript doesn't define it
+function init() end
+
 print'crowlib loaded'
 
 -- cleanup all unused lua objects before releasing to the userscript
