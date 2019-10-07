@@ -60,8 +60,9 @@ static C_cmd_t _find_cmd( char* str, uint32_t len )
         if( *pStr++ == '^' ){
             if( *pStr++ == '^' ){
                 if(      *pStr == 'b' ){ return C_boot; }
-                else if( *pStr == 's' ){ return C_flashstart; }
-                else if( *pStr == 'e' ){ return C_flashend; }
+                else if( *pStr == 's' ){ return C_startupload; }
+                else if( *pStr == 'e' ){ return C_endupload; }
+                else if( *pStr == 'f' ){ return C_flashupload; }
                 else if( *pStr == 'c' ){ return C_flashclear; }
                 else if( *pStr == 'r' ){ return C_restart; }
                 else if( *pStr == 'p' ){ return C_print; }
@@ -109,15 +110,16 @@ C_cmd_t Caw_try_receive( void )
 
     if( USB_rx_dequeue( &buf, &len ) ){
         switch( _find_cmd( (char*)buf, len ) ){ // check for a system command
-            case C_boot:       retcmd = C_boot; goto exit;
-            case C_flashstart: retcmd = C_flashstart; goto exit;
-            case C_flashend:   retcmd = C_flashend; goto exit;
-            case C_flashclear: retcmd = C_flashclear; goto exit;
-            case C_restart:    retcmd = C_restart; goto exit;
-            case C_print:      retcmd = C_print; goto exit;
-            case C_version:    retcmd = C_version; goto exit;
-            case C_identity:   retcmd = C_identity; goto exit;
-            case C_killlua:    retcmd = C_killlua; goto exit;
+            case C_boot:        retcmd = C_boot; goto exit;
+            case C_startupload: retcmd = C_startupload; goto exit;
+            case C_endupload:   retcmd = C_endupload; goto exit;
+            case C_flashupload: retcmd = C_flashupload; goto exit;
+            case C_flashclear:  retcmd = C_flashclear; goto exit;
+            case C_restart:     retcmd = C_restart; goto exit;
+            case C_print:       retcmd = C_print; goto exit;
+            case C_version:     retcmd = C_version; goto exit;
+            case C_identity:    retcmd = C_identity; goto exit;
+            case C_killlua:     retcmd = C_killlua; goto exit;
             default: break;
         }
         if( *buf == '\e' ){ // escape key
