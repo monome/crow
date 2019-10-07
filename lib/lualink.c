@@ -20,6 +20,7 @@
 #include "../ll/system.h"   // getUID_Word()
 #include "lib/events.h"     // event_t event_post()
 #include "lib/midi.h"       // MIDI_Active()
+#include "stm32f7xx_hal.h"  // HAL_GetTick()
 
 // Lua libs wrapped in C-headers: Note the extra '.h'
 #include "lua/bootstrap.lua.h" // MUST LOAD THIS MANUALLY FIRST
@@ -207,6 +208,11 @@ static int _unique_id( lua_State *L )
     lua_pushinteger(L, getUID_Word(4));
     lua_pushinteger(L, getUID_Word(8));
     return 3;
+}
+static int _time( lua_State *L )
+{
+    lua_pushinteger(L, HAL_GetTick());
+    return 1;
 }
 static int _go_toward( lua_State *L )
 {
@@ -453,6 +459,7 @@ static const struct luaL_Reg libCrow[]=
         // system
     , { "sys_bootloader"   , _bootloader       }
     , { "unique_id"        , _unique_id        }
+    , { "time"             , _time             }
     //, { "sys_cpu_load"     , _sys_cpu          }
         // io
     , { "go_toward"        , _go_toward        }
