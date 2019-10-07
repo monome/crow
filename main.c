@@ -46,15 +46,16 @@ int main(void)
                                         , Caw_get_read_len()
                                         , Caw_send_luaerror
                                         ); break;
-            case C_boot:       bootloader_enter(); break;
-            case C_flashstart: REPL_mode( REPL_reception ); break;
-            case C_flashend:   REPL_mode( REPL_normal ); break;
-            case C_flashclear: Flash_clear_user_script(); break;
-            case C_restart:    bootloader_restart(); break;
-            case C_print:      REPL_print_script(); break;
-            case C_version:    system_print_version(); break;
-            case C_identity:   system_print_identity(); break;
-            case C_killlua:    Lua_Reset(); break;
+            case C_boot:        bootloader_enter(); break;
+            case C_startupload: REPL_begin_upload(); break;
+            case C_endupload:   REPL_run_upload(); break;
+            case C_flashupload: REPL_flash_upload(); break;
+            case C_flashclear:  Flash_clear_user_script(); break;
+            case C_restart:     bootloader_restart(); break;
+            case C_print:       REPL_print_script(); break;
+            case C_version:     system_print_version(); break;
+            case C_identity:    system_print_identity(); break;
+            case C_killlua:     Lua_Reset(); break;
             default: break; // 'C_none' does nothing
         }
         Random_Update();

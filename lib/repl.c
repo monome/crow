@@ -2,10 +2,17 @@
 
 #include <stdlib.h> // malloc(), free()
 #include <string.h> // memcpy()
+#include <stdbool.h>
 
 #include <stm32f7xx_hal.h> // HAL_Delay()
 #include "lib/flash.h"     // Flash_write_(), Flash_is_userscript(), Flash_read()
 #include "lib/caw.h"       // Caw_send_raw(), Caw_send_luachunk(), Caw_send_luaerror()
+
+// types
+typedef enum{ REPL_normal
+            , REPL_reception
+            , REPL_discard
+} L_repl_mode;
 
 // global variables
 lua_State*  Lua;
@@ -14,7 +21,7 @@ char*       new_script;
 uint16_t    new_script_len;
 
 // prototypes
-static void REPL_new_script_buffer( uint32_t len );
+static bool REPL_new_script_buffer( uint32_t len );
 static void REPL_receive_script( char* buf, uint32_t len, ErrorHandler_t errfn );
 
 // public interface
@@ -37,20 +44,48 @@ void REPL_init( lua_State* lua )
     } else { Lua_load_default_script(); } // no user script
 }
 
-void REPL_mode( L_repl_mode mode )
+void REPL_begin_upload( void )
 {
-    repl_mode = mode;
-    if( repl_mode == REPL_reception ){ // begin a new transmission
-        REPL_new_script_buffer( USER_SCRIPT_SIZE );
-    } else { // end of a transmission
+    Lua_Reset(); // free up memory
+    if( REPL_new_script_buffer( USER_SCRIPT_SIZE ) ){
+      repl_mode = REPL_reception;
+    } else {
+      repl_mode = REPL_discard;
+    }
+}
+
+void REPL_run_upload( void )
+{
+    if( repl_mode == REPL_discard ){
+        Caw_send_luachunk("upload failed, returning to normal mode");
+    } else {
         if( !Lua_eval( Lua, new_script
                           , new_script_len
                           , Caw_send_luaerror
                           ) ){ // successful load
+            Caw_send_luachunk("running...");
+        } else {
+          Caw_send_luachunk("evaluation failed");
+        }
+        free(new_script);
+    }
+    repl_mode = REPL_normal;
+}
+
+void REPL_flash_upload( void )
+{
+    if( repl_mode == REPL_discard ){
+        Caw_send_luachunk("upload failed, returning to normal mode");
+    } else {
+        if( !Lua_eval( Lua, new_script
+                          , new_script_len
+                          , Caw_send_luaerror
+                          ) ){ // successful load
+
             // TODO if we're setting init() should check it doesn't crash
             if( Flash_write_user_script( new_script
-                                       , new_script_len
-                                       ) ){
+                                        , new_script_len
+                                        ) ){
                 printf("flash write failed\n");
                 Caw_send_luachunk("flash write failed");
             }
@@ -58,6 +93,7 @@ void REPL_mode( L_repl_mode mode )
         } else { printf("new user script failed test\n"); }
         free(new_script); // cleanup memory
     }
+    repl_mode = REPL_normal;
 }
 
 void REPL_eval( char* buf, uint32_t len, ErrorHandler_t errfn )
@@ -95,23 +131,26 @@ void REPL_print_script( void )
 // private funcs
 static void REPL_receive_script( char* buf, uint32_t len, ErrorHandler_t errfn )
 {
-    memcpy( &new_script[new_script_len], buf, len );
-    new_script_len += len;
+    if( new_script_len + len >= USER_SCRIPT_SIZE ){
+        Caw_send_luachunk("!script: upload is too big");
+        repl_mode = REPL_discard;
+        free(new_script);
+    } else {
+        memcpy( &new_script[new_script_len], buf, len );
+        new_script_len += len;
+    }
 }
 
-static void REPL_new_script_buffer( uint32_t len )
+static bool REPL_new_script_buffer( uint32_t len )
 {
     // TODO call to Lua to free resources from current script
     new_script = malloc(len);
     if(new_script == NULL){
         printf("out of mem\n");
         Caw_send_luachunk("!script: out of memory");
-        //(*errfn)("!script: out of memory");
-        return; // how to deal with this situation?
-        // FIXME: should respond over usb stating out of memory?
-        //        try allocating a smaller amount and hope it fits?
-        //        retry?
+        return false;
     }
-    for( int i=0; i<len; i++ ){ new_script[i] = 0; }
+    memset(new_script, 0, len);
     new_script_len = 0;
+    return true;
 }
