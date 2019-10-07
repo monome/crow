@@ -24,8 +24,14 @@ typedef struct FLASH_Store {
     void*          address;
 } FLASH_Store_t;
 
-uint8_t Flash_is_user_script( void );
+typedef enum { USERSCRIPT_Default
+             , USERSCRIPT_User
+             , USERSCRIPT_Clear
+} USERSCRIPT_t;
+
+USERSCRIPT_t Flash_which_user_script( void );
 void Flash_clear_user_script( void );
+void Flash_default_user_script( void );
 uint8_t Flash_write_user_script( char* script, uint32_t length );
 uint16_t Flash_read_user_scriptlen( void );
 char* Flash_read_user_scriptaddr( void );
