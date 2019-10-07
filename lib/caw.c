@@ -62,7 +62,7 @@ static C_cmd_t _find_cmd( char* str, uint32_t len )
                 if(      *pStr == 'b' ){ return C_boot; }
                 else if( *pStr == 's' ){ return C_startupload; }
                 else if( *pStr == 'e' ){ return C_endupload; }
-                else if( *pStr == 'f' ){ return C_flashupload; }
+                else if( *pStr == 'w' ){ return C_flashupload; }
                 else if( *pStr == 'c' ){ return C_flashclear; }
                 else if( *pStr == 'r' ){ return C_restart; }
                 else if( *pStr == 'p' ){ return C_print; }

@@ -219,7 +219,7 @@ mnemonic assistance:
 - `^^reset` / `^^restart`: reboots crow including the USB connection.
 - `^^startscript`: sets crow to reception mode. following code will be saved to a buffer
 - `^^endscript`: saved code buffer will be run immediately. crow returns to repl mode
-- `^^flashscript`: saved code buffer will be written to flash. crow returns to repl mode
+- `^^writescript`: saved code buffer will be written to flash. crow returns to repl mode
 - `^^clearscript`: clears onboard user script. use if your script is crashing crow
 - `^^printscript`: the current user script is sent over usb to the host
 - `^^version`: prints crow's semantic version to the usb host

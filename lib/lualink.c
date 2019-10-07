@@ -81,7 +81,6 @@ void Lua_Reset( void )
 {
     Lua_DeInit();
     Lua_Init();
-    Lua_crowbegin();
 }
 
 void Lua_load_default_script( void )
