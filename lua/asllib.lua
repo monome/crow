@@ -8,7 +8,7 @@ Asllib = {} -- how should we refer to the below?
 function boundgz( n )
     if type(n) == 'function' then
         return function()
-            nn = n()
+            local nn = n()
             return (nn <= 0.01) and 0.01 or nn
         end
     else return (n <= 0.01) and 0.01 or n end
