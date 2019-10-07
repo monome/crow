@@ -52,7 +52,7 @@ const struct lua_lib_locator Lua_libs[] =
     };
 
 // Basic crow script
-#include "lua/default.lua.h"
+#include "lua/First.lua.h"
 
 // Private prototypes
 static void Lua_linkctolua( lua_State* L );
@@ -86,8 +86,8 @@ void Lua_Reset( void )
 
 void Lua_load_default_script( void )
 {
-    Lua_eval(L, lua_default
-              , strlen(lua_default)
+    Lua_eval(L, lua_First
+              , strlen(lua_First)
               , _printf
               );
 }

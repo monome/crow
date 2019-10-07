@@ -3,6 +3,7 @@
 #include "../ll/debug_usart.h"
 
 #define USER_MAGIC 0xA  // bit pattern
+#define USER_CLEAR 0xC  // bit pattern
 
 // private declarations
 static void clear_flash( uint32_t sector, uint32_t location );
@@ -10,15 +11,51 @@ static uint32_t version12b( void );
 
 // USER LUA SCRIPT //
 
-uint8_t Flash_is_user_script( void )
+USERSCRIPT_t Flash_which_user_script( void )
 {
-    return (USER_MAGIC == (0xF & (*(__IO uint32_t*)USER_SCRIPT_LOCATION)));
+    uint32_t script = (0xF & (*(__IO uint32_t*)USER_SCRIPT_LOCATION));
+    switch( script ){
+        case USER_MAGIC: return USERSCRIPT_User;
+        case USER_CLEAR: return USERSCRIPT_Clear;
+        default:         return USERSCRIPT_Default;
+    }
+}
+//uint8_t Flash_is_user_script( void )
+//{
+//    return (USER_MAGIC == (0xF & (*(__IO uint32_t*)USER_SCRIPT_LOCATION)));
+//}
+
+void Flash_default_user_script( void )
+{
+    printf("loading First script\n");
+    clear_flash( USER_SCRIPT_SECTOR, USER_SCRIPT_LOCATION );
 }
 
 void Flash_clear_user_script( void )
 {
     printf("clear user script\n");
-    clear_flash( USER_SCRIPT_SECTOR, USER_SCRIPT_LOCATION );
+// clear the flash
+    HAL_FLASH_Unlock();
+    FLASH_EraseInitTypeDef erase_setup =
+        { .TypeErase    = FLASH_TYPEERASE_SECTORS
+        , .Sector       = USER_SCRIPT_SECTOR
+        , .NbSectors    = 1
+        , .VoltageRange = FLASH_VOLTAGE_RANGE_3
+        };
+    uint32_t error_status;
+    HAL_FLASHEx_Erase( &erase_setup, &error_status );
+
+// set status word
+    uint32_t sd_addr = USER_SCRIPT_LOCATION;
+    uint32_t status_word = USER_CLEAR          // b0:3   user script present
+                         | (version12b() << 4) // b4:15  version control
+                         | 0                   // b16:32 length in bytes
+                         ;
+    HAL_FLASH_Program( FLASH_TYPEPROGRAM_WORD
+                     , sd_addr
+                     , status_word
+                     );
+    HAL_FLASH_Lock();
 }
 
 uint8_t Flash_write_user_script( char* script, uint32_t length )
@@ -73,7 +110,7 @@ char* Flash_read_user_scriptaddr( void )
 
 uint8_t Flash_read_user_script( char* buffer )
 {
-    if( !Flash_is_user_script() ){ return 1; } // no script
+    if( Flash_which_user_script() != USERSCRIPT_User ){ return 1; } // no script
     // FIXME: need to add 1 to length for null char?
 
     uint16_t word_length = ((*(__IO uint32_t*)USER_SCRIPT_LOCATION) >> 16) >> 2;
