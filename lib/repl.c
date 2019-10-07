@@ -48,13 +48,13 @@ void REPL_begin_upload( void )
 {
     Lua_Reset(); // free up memory
     if( REPL_new_script_buffer( USER_SCRIPT_SIZE ) ){
-      repl_mode = REPL_reception;
+        repl_mode = REPL_reception;
     } else {
-      repl_mode = REPL_discard;
+        repl_mode = REPL_discard;
     }
 }
 
-void REPL_run_upload( void )
+void REPL_upload( int flash )
 {
     if( repl_mode == REPL_discard ){
         Caw_send_luachunk("upload failed, returning to normal mode");
@@ -63,35 +63,23 @@ void REPL_run_upload( void )
                           , new_script_len
                           , Caw_send_luaerror
                           ) ){ // successful load
-            Caw_send_luachunk("running...");
+            if( flash ){
+                // TODO if we're setting init() should check it doesn't crash
+                if( Flash_write_user_script( new_script
+                                           , new_script_len
+                                           ) ){
+                    printf("flash write failed\n");
+                    Caw_send_luachunk("flash write failed");
+                }
+                printf("script saved, len: %i\n", new_script_len);
+            } else {
+                Caw_send_luachunk("running...");
+            }
+            Lua_crowbegin();
         } else {
-          Caw_send_luachunk("evaluation failed");
+            Caw_send_luachunk("evaluation failed");
         }
         free(new_script);
-    }
-    repl_mode = REPL_normal;
-}
-
-void REPL_flash_upload( void )
-{
-    if( repl_mode == REPL_discard ){
-        Caw_send_luachunk("upload failed, returning to normal mode");
-    } else {
-        if( !Lua_eval( Lua, new_script
-                          , new_script_len
-                          , Caw_send_luaerror
-                          ) ){ // successful load
-
-            // TODO if we're setting init() should check it doesn't crash
-            if( Flash_write_user_script( new_script
-                                        , new_script_len
-                                        ) ){
-                printf("flash write failed\n");
-                Caw_send_luachunk("flash write failed");
-            }
-            printf("script saved, len: %i\n", new_script_len);
-        } else { printf("new user script failed test\n"); }
-        free(new_script); // cleanup memory
     }
     repl_mode = REPL_normal;
 }
@@ -143,9 +131,8 @@ static void REPL_receive_script( char* buf, uint32_t len, ErrorHandler_t errfn )
 
 static bool REPL_new_script_buffer( uint32_t len )
 {
-    // TODO call to Lua to free resources from current script
     new_script = malloc(len);
-    if(new_script == NULL){
+    if( new_script == NULL ){
         printf("out of mem\n");
         Caw_send_luachunk("!script: out of memory");
         return false;

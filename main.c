@@ -48,8 +48,8 @@ int main(void)
                                         ); break;
             case C_boot:        bootloader_enter(); break;
             case C_startupload: REPL_begin_upload(); break;
-            case C_endupload:   REPL_run_upload(); break;
-            case C_flashupload: REPL_flash_upload(); break;
+            case C_endupload:   REPL_upload(0); break;
+            case C_flashupload: REPL_upload(1); break;
             case C_flashclear:  Flash_clear_user_script(); break;
             case C_restart:     bootloader_restart(); break;
             case C_print:       REPL_print_script(); break;
