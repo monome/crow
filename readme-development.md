@@ -8,8 +8,6 @@ crow development can mean many things, but if you want to write anything beyond 
 
 - [arm-none-eabi-gcc 4.9.3](https://launchpad.net/gcc-arm-embedded/4.9)
 - lua 5.2 or higher
-- luarocks
-- fennel: `luarocks install fennel`
 - dfu-util 0.8+
 
 ### Get the project
