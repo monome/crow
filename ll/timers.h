@@ -40,8 +40,8 @@
 
 typedef void (*Timer_Callback_t)(int);
 
-int Timer_Init( Timer_Callback_t cb );
+int Timer_Init(void);
 
-void Timer_Start( int ix );
+void Timer_Start( int ix, Timer_Callback_t cb );
 void Timer_Stop( int ix );
 void Timer_Set_Params( int ix, float seconds );

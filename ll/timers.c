@@ -51,7 +51,7 @@ const Timer_setup_t _timer[]=
     };
 
 TIM_HandleTypeDef TimHandle[MAX_LL_TIMERS];
-Timer_Callback_t callback;
+Timer_Callback_t callback[MAX_LL_TIMERS];
 
 // FIXME have to manually index the following
 //void TIM1_IRQHandler( void ){  HAL_TIM_IRQHandler( &(TimHandle[0]) ); }
@@ -69,9 +69,8 @@ void TIM8_BRK_TIM12_IRQHandler(     void ){ HAL_TIM_IRQHandler( &(TimHandle[7]) 
 void TIM8_UP_TIM13_IRQHandler(      void ){ HAL_TIM_IRQHandler( &(TimHandle[8]) ); }
 void TIM8_TRG_COM_TIM14_IRQHandler( void ){ HAL_TIM_IRQHandler( &(TimHandle[9]) ); }
 
-int Timer_Init( Timer_Callback_t cb )
+int Timer_Init(void)
 {
-    callback = cb;
     for( int i=0; i<MAX_LL_TIMERS; i++ ){
         TimHandle[i].Instance = _timer[i].Instance;
 
@@ -106,7 +105,7 @@ void HAL_TIM_PeriodElapsedCallback( TIM_HandleTypeDef *htim )
     if( !USB_TIM_PeriodElapsedCallback(htim) ){
         for( int i=0; i<MAX_LL_TIMERS; i++ ){
             if( htim == &(TimHandle[i]) ){
-                (*callback)(i); // raise callback
+                (*callback[i])(i); // raise callback
                 return;
             }
         }
@@ -129,9 +128,10 @@ void Timer_Set_Params( int ix, float seconds )
     }
 }
 
-void Timer_Start( int ix )
+void Timer_Start( int ix, Timer_Callback_t cb )
 {
     uint8_t err;
+    callback[ix] = cb;
     BLOCK_IRQS(
         err = HAL_TIM_Base_Start_IT( &(TimHandle[ix]) );
     );

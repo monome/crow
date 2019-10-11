@@ -2,7 +2,7 @@
 
 extern const int MAX_NUM_METROS;
 
-void Metro_Init(void);
+void Metro_Init( int num_metros );
 
 // create a metro at the specified index
 // seconds < 0 == use previous period

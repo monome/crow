@@ -26,9 +26,9 @@ static void Metro_bang( int ix );
 
 // public definitions
 int max_num_metros = 0;
-void Metro_Init(void)
+void Metro_Init( int num_metros )
 {
-    max_num_metros = Timer_Init( Metro_bang );
+    max_num_metros = num_metros;
     metros = malloc( sizeof(Metro_t) * max_num_metros );
 
     for( int i=0; i<max_num_metros; i++ ){
@@ -55,7 +55,7 @@ void Metro_start( int   ix
     t->stage  = stage;
 
     Timer_Set_Params( ix, seconds );
-    Timer_Start( ix );
+    Timer_Start( ix, Metro_bang );
 }
 
 // cancel all scheduled iterations
@@ -83,11 +83,7 @@ void Metro_set_time( int ix, float sec )
 static void Metro_bang( int ix )
 {
     // TODO confirm lua(1) makes a single tick
-    if( ix < 2 ){
-        L_queue_in_stream( ix );
-    } else {
-        L_queue_metro( ix, metros[ix].stage );
-    }
+    L_queue_metro( ix, metros[ix].stage );
     metros[ix].stage++;
     //FIXME next line causes system not to load?
     if( metros[ix].stage == 0x7FFFFFFF ){ metros[ix].stage = 0x7FFFFFFE; } // overflow
