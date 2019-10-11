@@ -5,7 +5,6 @@
 
 #include "../ll/timers.h"      // _Init() _Start() _Stop() _Set_Params()
 #include "lualink.h"           // L_handle_metro()
-#include "io.h"                // IO_handle_timer
 
 typedef enum { METRO_STATUS_RUNNING
              , METRO_STATUS_STOPPED
