@@ -15,7 +15,7 @@ crow development can mean many things, but if you want to write anything beyond 
 ### Get the project
 - `git clone --recursive https://github.com/monome/crow.git`
 - `cd crow`
-- `git submodule --init` *nb: will take a while to download*
+- `git submodule update --init` *nb: will take a while to download*
 
 ### Building
 
