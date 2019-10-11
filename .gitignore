@@ -65,7 +65,6 @@ dkms.conf
 
 trace*
 build/
-util/l2h.lua
 druid/
 crow-*/
 *.swp
