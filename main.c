@@ -29,7 +29,8 @@ int main(void)
     IO_Init();
     IO_Start(); // must start IO before running lua init() script
     events_init();
-    Metro_Init( Timer_Init() );
+    int max_timers = Timer_Init();
+    Metro_Init( max_timers );
     Caw_Init();
     CDC_clear_buffers();
     ii_init( II_CROW );
