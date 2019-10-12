@@ -91,8 +91,8 @@ function init()
   -- start sequence!
   input[1]{ mode = 'change'
           , direction = 'rising'
-	  , threshold = 1.0
-	  }
+          , threshold = 1.0
+          }
   dec = metro.init{ event = env, time = 0.1 }
   dec:start()
 end
