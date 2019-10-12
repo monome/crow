@@ -15,7 +15,7 @@ crow development can mean many things, but if you want to write anything beyond 
 ### Get the project
 - `git clone --recursive https://github.com/monome/crow.git`
 - `cd crow`
-- `git submodule --init` *nb: will take a while to download*
+- `git submodule update --init` *nb: will take a while to download*
 
 ### Building
 
@@ -257,8 +257,10 @@ To clear the existing script use `^^c` which will erase the current contents of
 the user-script, and crow will load the default script on next load.
 
 If the user-script stops crow from appearing as a USB device at all, you can erase
-it directly by entering bootloader-mode and running the `erase_userscript.sh` script
-in the `crow/util` folder.
+it directly by [forcing bootloader-mode](README.md#forcing-the-bootloader) and 
+running the `erase_userscript.sh` script in the `crow/util` folder.
+
+
 
 #### Printing the user-script
 
