@@ -5,14 +5,16 @@
 typedef enum{ C_none
             , C_repl
             , C_boot
-            , C_flashstart
-            , C_flashend
+            , C_startupload
+            , C_endupload
+            , C_flashupload
             , C_flashclear
             , C_restart
             , C_print
             , C_version
             , C_identity
             , C_killlua
+            , C_loadFirst
 } C_cmd_t;
 
 uint8_t Caw_Init( void );

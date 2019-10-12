@@ -59,15 +59,20 @@ static C_cmd_t _find_cmd( char* str, uint32_t len )
     while( len-- ){ // FIXME should decrement first?
         if( *pStr++ == '^' ){
             if( *pStr++ == '^' ){
-                if(      *pStr == 'b' ){ return C_boot; }
-                else if( *pStr == 's' ){ return C_flashstart; }
-                else if( *pStr == 'e' ){ return C_flashend; }
-                else if( *pStr == 'c' ){ return C_flashclear; }
-                else if( *pStr == 'r' ){ return C_restart; }
-                else if( *pStr == 'p' ){ return C_print; }
-                else if( *pStr == 'v' ){ return C_version; }
-                else if( *pStr == 'i' ){ return C_identity; }
-                else if( *pStr == 'k' ){ return C_killlua; }
+                switch( *pStr ){
+                    case 'b': return C_boot;
+                    case 's': return C_startupload;
+                    case 'e': return C_endupload;
+                    case 'w': return C_flashupload;
+                    case 'c': return C_flashclear;
+                    case 'r': return C_restart;
+                    case 'p': return C_print;
+                    case 'v': return C_version;
+                    case 'i': return C_identity;
+                    case 'k': return C_killlua;
+                    case 'f': // fall through ->
+                    case 'F': return C_loadFirst;
+                }
             }
         }
     }
@@ -108,18 +113,8 @@ C_cmd_t Caw_try_receive( void )
 // we're assuming that a new CDC_Itf_Receive interrupt won't occur before below
 
     if( USB_rx_dequeue( &buf, &len ) ){
-        switch( _find_cmd( (char*)buf, len ) ){ // check for a system command
-            case C_boot:       retcmd = C_boot; goto exit;
-            case C_flashstart: retcmd = C_flashstart; goto exit;
-            case C_flashend:   retcmd = C_flashend; goto exit;
-            case C_flashclear: retcmd = C_flashclear; goto exit;
-            case C_restart:    retcmd = C_restart; goto exit;
-            case C_print:      retcmd = C_print; goto exit;
-            case C_version:    retcmd = C_version; goto exit;
-            case C_identity:   retcmd = C_identity; goto exit;
-            case C_killlua:    retcmd = C_killlua; goto exit;
-            default: break;
-        }
+        retcmd = _find_cmd( (char*)buf, len ); // check for a system command
+        if( retcmd != C_none ){ goto exit; } // sys command received, so skip ahead
         if( *buf == '\e' ){ // escape key
             pReader = 0;    // clear buffer
             retcmd = C_none;  // no action

@@ -4,6 +4,16 @@
 --
 Asllib = {} -- how should we refer to the below?
 
+-- clamp to bounds, must be greater than zero
+function boundgz( n )
+    if type(n) == 'function' then
+        return function()
+            local nn = n()
+            return (nn <= 0.01) and 0.01 or nn
+        end
+    else return (n <= 0.01) and 0.01 or n end
+end
+
 function div( n,d )
     if type(n) == 'function' then
         return function() return n()/d end
@@ -31,8 +41,8 @@ end
 function lfo( time, level )
     time, level = time or 1, level or 5
 
-    return loop{ to(        level , div(time,2) )
-               , to( negate(level), div(time,2) )
+    return loop{ to(        level , div(boundgz(time),2) )
+               , to( negate(level), div(boundgz(time),2) )
                }
 
 end

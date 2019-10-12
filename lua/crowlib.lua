@@ -41,6 +41,15 @@ end
 -- open all libs by default
 _crow.libs()
 
+function _crow.reset()
+    for n=1,2 do input[n].mode = 'none' end
+    for n=1,4 do
+        output[n].slew = 0
+        output[n].volts = 0
+    end
+    metro.free_all()
+end
+
 --- Communication functions
 -- these will be called from norns (or the REPL)
 -- they return values wrapped in strings that can be used in Lua directly
@@ -149,6 +158,9 @@ for _,fn in ipairs( wrapped_fns ) do
     -- below is original version that didn't work. nb: wrapped_fns was fns not strs
     -- fn = closure_if_table( fn ) -- this *doesn't* redirect the identifier
 end
+
+-- empty init function in case userscript doesn't define it
+function init() end
 
 print'crowlib loaded'
 

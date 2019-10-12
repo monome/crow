@@ -15,7 +15,7 @@ crow development can mean many things, but if you want to write anything beyond 
 ### Get the project
 - `git clone --recursive https://github.com/monome/crow.git`
 - `cd crow`
-- `git submodule --init` *nb: will take a while to download*
+- `git submodule update --init` *nb: will take a while to download*
 
 ### Building
 
@@ -217,8 +217,9 @@ based on the first character following the symbol. Full names are listed here fo
 mnemonic assistance:
 - `^^bootloader`: jump to the bootloader.
 - `^^reset` / `^^restart`: reboots crow including the USB connection.
-- `^^startscript`: sets crow to reception mode. following code will be saved
-- `^^endscript`: saved code above will be written to flash. crow returns to repl mode
+- `^^startscript`: sets crow to reception mode. following code will be saved to a buffer
+- `^^endscript`: saved code buffer will be run immediately. crow returns to repl mode
+- `^^writescript`: saved code buffer will be written to flash. crow returns to repl mode
 - `^^clearscript`: clears onboard user script. use if your script is crashing crow
 - `^^printscript`: the current user script is sent over usb to the host
 - `^^version`: prints crow's semantic version to the usb host
@@ -256,8 +257,10 @@ To clear the existing script use `^^c` which will erase the current contents of
 the user-script, and crow will load the default script on next load.
 
 If the user-script stops crow from appearing as a USB device at all, you can erase
-it directly by entering bootloader-mode and running the `erase_userscript.sh` script
-in the `crow/util` folder.
+it directly by [forcing bootloader-mode](README.md#forcing-the-bootloader) and 
+running the `erase_userscript.sh` script in the `crow/util` folder.
+
+
 
 #### Printing the user-script
 

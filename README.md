@@ -46,7 +46,7 @@ A text editor alongside Druid provides an interactive platform for designing new
 
 crow integrates seamlessly with norns as a CV and II interface.
 
-See the full [crow studies](norns) for a complete guide.
+See the full [crow studies](https://monome.org/docs/crow/norns/) for a complete guide.
 
 #### Max
 
