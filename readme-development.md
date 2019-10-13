@@ -1,6 +1,6 @@
 # crow development setup
 
-crow development can mean many things, but if you want to write anything beyond a user script, you'll need to setup the dev environment so you can build binaries. A binary can then be flash to crow using the DFU bootloader over USB. If you want to work on the bootloader itself, or want a slightly easier workflow you'll need an ST-Link and an edge-connector (see below).
+crow development can mean many things, but if you want to write anything beyond a user script, you'll need to setup the dev environment so you can build binaries. A binary can then be flash to crow using the DFU bootloader over USB. If you want to work on the bootloader itself you'll need an ST-Link and an edge-connector (see below).
 
 ## Toolchain setup
 
@@ -8,8 +8,6 @@ crow development can mean many things, but if you want to write anything beyond 
 
 - [arm-none-eabi-gcc 4.9.3](https://launchpad.net/gcc-arm-embedded/4.9)
 - lua 5.2 or higher
-- luarocks
-- fennel: `luarocks install fennel`
 - dfu-util 0.8+
 
 ### Get the project
@@ -21,6 +19,8 @@ crow development can mean many things, but if you want to write anything beyond 
 
 - `make` build the project binary (**see nb below**)
 - `make clean` remove all binary objects to force a rebuild on next `make`
+
+I always add the `-j` flag to `make` so it runs multi-threaded (as the compile time is over 10s on my machine). So run `make -j` for fastest build time.
 
 ### Docker
 
@@ -92,11 +92,10 @@ If you have suggestions for greater debug controls, I'd love to hear them!
 ### Build process
 The makefile is pretty unwieldy, but here's the basic approach:
 
-1. Compile all `.fnl` files to `.lua`, specifically for the `l2h.fnl` script
-2. Run the `util/ii_gen.lua` script to autogenerat i2c links of anything in `lua/ii/*` -> results put into `build/*`
-3. Wrap all remaining `.lua` files in `lua/*` and `build/*` into c-headers with the `l2h.lua` script
-4. Build the C objects, including lua which is built directly into the binary
-5. Run the linker and create the binary
+1. Run the `util/ii_gen.lua` script to autogenerat i2c links of anything in `lua/ii/*` -> results put into `build/*`
+2. Wrap all remaining `.lua` files in `lua/*` and `build/*` into c-headers with the `l2h.lua` script
+3. Build the C objects, including the lua VM which is built directly into the binary
+4. Run the linker and create the binary
 
 Then you can upload to crow with `make dfu` or `make flash`.
 
@@ -112,6 +111,7 @@ If you want to improve the way lua code is included in the binary see issue [#40
 
 - `util/*`: helpers for the build process
 - `tests/*`: a few tests for the lua scripts
+- `build/`: a temporary folder for collecting generated sources
 
 ### Linking C functions and Lua
 
@@ -190,7 +190,7 @@ The results of the parsing are handled in `main.c`'s `while(1)` loop.
 Received strings are forwarded through the `REPL_eval()` function which chooses
 between 2 functions depending on the REPL state:
 1. Forwards the details to `Lua_eval()` to be executed immediately.
-2. Forwards to `REPL_receive_script()` to save the incoming text to flash.
+2. Forwards to `REPL_receive_script()` to save the incoming text to a buffer.
 
 In the first case, the incoming serial stream is expected to be a well-formed lua
 script and is called directly with `lua_pcall()`. If the script contains errors
@@ -200,77 +200,12 @@ Switching between modes is accomplished by sending a *crow command* alerting the
 device that, until further notice, the following serial data should be saved for
 later use as a full lua script. Once the full script is sent, the user ends with
 another *crow command*. On completion of this sequence a number of things happen:
+- crow is restarted to stop the currently running script
 - serial stream is validated for correct lua syntax
 - lua code is loaded with `lua_pcall()` again checking for errors
-- stream is saved into flash memory, and the 'user-script-present' bit is set
+- if using `^^w` (not `^^e`) stream is saved into flash memory
 - temporary buffer holding the script is destroyed
 - REPL switches back to direct mode, where it will interpret incoming text directly
-
-### Crow commands ^^
-
-*crow commands* are special symbols that are intercepted before being passed through
-to the lua environment. These commands control meta-functionality of the input
-stream and allow a remote-host to control the hardware in special ways.
-
-All crow commands start with the crow symbol: `^^`. They then choose the action
-based on the first character following the symbol. Full names are listed here for
-mnemonic assistance:
-- `^^bootloader`: jump to the bootloader.
-- `^^reset` / `^^restart`: reboots crow including the USB connection.
-- `^^startscript`: sets crow to reception mode. following code will be saved to a buffer
-- `^^endscript`: saved code buffer will be run immediately. crow returns to repl mode
-- `^^writescript`: saved code buffer will be written to flash. crow returns to repl mode
-- `^^clearscript`: clears onboard user script. use if your script is crashing crow
-- `^^printscript`: the current user script is sent over usb to the host
-- `^^version`: prints crow's semantic version to the usb host
-- `^^identity`: print's this crow's unique ID to the usb host
-- `^^kill`: resets the lua vm and re-runs the userscript (or default)
-
-#### Bootloader
-
-To upload a new crow firmware, you must first tell crow to enter bootloader mode.
-This can be called directly from the repl with the command `^^b`.
-
-#### Reset
-
-Crow can be restarted with the `^^r` command which has the same effect as turning
-the power on and off on your system. This is useful if your script has crashed crow,
-or if you are designing / debugging a certain start-up procedure.
-
-#### Uploading a user-script
-
-The first pair of commands works together, in the structure:
-```
-^^s
-<lua chunk>
-<another lua chunk>
-^^e
-```
-Thus placing the two chunks into flash memory after being validated.
-
-#### Clearing the user-script
-
-As the user-script is loaded automatically whenever crow starts, if your script
-causes the system to lockup or crash, you'll need to clear or overwrite the script.
-
-To clear the existing script use `^^c` which will erase the current contents of
-the user-script, and crow will load the default script on next load.
-
-If the user-script stops crow from appearing as a USB device at all, you can erase
-it directly by entering bootloader-mode and running the `erase_userscript.sh` script
-in the `crow/util` folder.
-
-#### Printing the user-script
-
-On `^^p` request, crow will print the current user-script over the serial port to
-the curious host. The code on crow is stored as plain lua text, so it should come
-back exactly as you had entered it into the device.
-
-This function can be used as a rudimentary 'save' capability, where the printed
-script is saved into a text file.
-
-A `druid` extension that adds some high-level script management functionality
-that uses this would be a great addition.
 
 #### Communication details
 
@@ -280,14 +215,9 @@ limitations to keep in mind:
 The usb connection will break up any messages into 64byte blocks. If you want
 to send a codeblock longer than this, you need to use the multiline helper.
 first send a command of 3 backticks "```", then your codeblock, then another
-3 backticks. This should be hidden from the end-user.
+3 backticks. This should be hidden from the end-user. This is limited to 2kB.
 
-However! If you are sending a full lua script and it's over 4kB, it must
-be broken up into smaller chunks. If you are in script-transmission-mode then
-you can arbitrarily break up the message every 4kB. If you're sending a giant
-codeblock directly to the lua repl, you'll need to split the message so the
-lua interpreter sees each portion as valid code, as each multi-line segment
-is evaluated upon reception.
+For longer chunks where you're uploading a whole script, use the `^^s <code> ^^e` sequence to run immediately. Alternatively, use `^^s <code> ^^w` if you want to write the script to flash so it persists across power cycles. The code block is limited to 8kB.
 
 ### Signals
 
