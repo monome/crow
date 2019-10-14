@@ -6,9 +6,9 @@ do return
 , commands     =
   { { name = 'tr'
     , cmd  = 0x0
-    , docs = 'Set TR *port* to *value* (0/1)'
+    , docs = 'Set TR *port* to *state* (0/1)'
     , args = { { 'port', u8 }
-             , { 'value', s16 }
+             , { 'state', s16 }
              }
     }
   , { name = 'tr_tog'
@@ -23,44 +23,44 @@ do return
     }
   , { name = 'tr_time'
     , cmd  = 0x2
-    , docs = 'Time for TR.PULSE *port* in *value* milliseconds'
+    , docs = 'Time for TR.PULSE *port* in *ms*'
     , args = { { 'port', u8 }
-             , { 'value', s16 }
+             , { 'ms', s16 }
              }
     }
   , { name = 'tr_pol'
     , cmd  = 0x6
-    , docs = 'Polarity for TO.TR.PULSE *port* set to *value* (0/1)'
+    , docs = 'Polarity for TO.TR.PULSE *port* set to *rising* (0/1)'
     , args = { { 'port', u8 }
-             , { 'value', s16 }
+             , { 'rising', s16 }
              }
     }
   , { name = 'cv'
     , cmd  = 0x10
-    , docs = 'Set *port* CV to *value* (bipolar), following SLEW time'
+    , docs = 'Set *port* CV to *volts* (bipolar), following SLEW time'
     , args = { { 'port', u8 }
-             , { 'value', s16V }
+             , { 'volts', s16V }
              }
     }
   , { name = 'cv_slew'
     , cmd  = 0x12
-    , docs = 'CV *port* slew time in *value* milliseconds'
+    , docs = 'CV *port* slew time in *ms*'
     , args = { { 'port', u8 }
-             , { 'value', s16 }
+             , { 'ms', s16 }
              }
     }
   , { name = 'cv_set'
     , cmd  = 0x11
-    , docs = 'Set CV *port* to *value* (bipolar), ignoring SLEW time'
+    , docs = 'Set CV *port* to *volts* (bipolar), ignoring SLEW time'
     , args = { { 'port', u8 }
-             , { 'value', s16V }
+             , { 'volts', s16V }
              }
     }
   , { name = 'cv_off'
     , cmd  = 0x15
-    , docs = 'CV *port* offset, *value* added at final stage'
+    , docs = 'CV *port* offset, *volts* added at final stage'
     , args = { { 'port', u8 }
-             , { 'value', s16V }
+             , { 'volts', s16V }
              }
     }
   }
