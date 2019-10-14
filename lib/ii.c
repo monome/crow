@@ -177,6 +177,7 @@ float* _ii_decode_packet( float* decoded
 void I2C_Lead_RxCallback( uint8_t address, uint8_t cmd, uint8_t* data )
 {
     printf("ii_lead_rx: cmd %i, data %i %i %i\n", cmd, data[0], data[1], data[2]);
+    ii_unpickle(&address, &cmd, data);
     const ii_Cmd_t* c = ii_find_command(address, cmd);
     float val;
     L_handle_ii_leadRx( address
@@ -243,6 +244,7 @@ uint8_t ii_broadcast( uint8_t address
                     , data
                     );
     if( len == 0 ){ return 2; }
+    ii_pickle( &address, tx_buf, &len ); // mutate in place
     if( I2C_LeadTx( address
                   , tx_buf
                   , len
@@ -265,6 +267,7 @@ uint8_t ii_query( uint8_t address
                     , data
                     );
     if( byte == 0 ){ return 2; }
+    ii_pickle( &address, rx_buf, &byte ); // mutate in place
     if( I2C_LeadRx( address
                   , rx_buf
                   , byte
