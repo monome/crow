@@ -92,7 +92,7 @@ function c_unpickle(f)
            .. '\tuint8_t nop = 0; // make switch() happy\n'
            .. '\tswitch( *address ){\n'
     for _,f in ipairs(files) do
-        if f.pickle then
+        if f.unpickle then
             s = s .. '\t\tcase ' .. f.i2c_address .. ': // '.. f.module_name..'\n'
                   .. '\t\t\tnop = nop;\n'
                   .. '\t\t\t' .. string.gsub(f.unpickle,"\n","\n\t\t\t")
