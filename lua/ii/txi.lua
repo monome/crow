@@ -13,11 +13,43 @@ do return
     }
   }
 , getters =
-  { { name = 'value'
-    , cmd  = 1
+  { { name = 'in'
+    , cmd  = 0x0
     , args = { 'channel', s8 }
-    , retval = { 'value', u16 }
+    , retval = { 'volts', s16V }
+    }
+  , { name = 'in_quant'
+    , cmd  = 0x8
+    , args = { 'channel', s8 }
+    , retval = { 'volts', s16V }
+    }
+  , { name = 'in_N'
+    , cmd  = 0x10
+    , args = { 'channel', s8 }
+    , retval = { 'volts', s16V }
+    }
+  , { name = 'param'
+    , cmd  = 0x4
+    , args = { 'channel', s8 }
+    , retval = { 'volts', s16V }
     }
   }
+, pickle = -- combine command & channel into a single byte & set address
+--void pickle( uint8_t* address, uint8_t* data, uint8_t* byte_count );
+[[
+
+uint8_t chan = data[1] - 1;  // zero-index the channel
+data[0] |= (chan & 0x3);     // mask channel
+*byte_count = 1;             // packed into a single byte
+*address += chan >> 2;       // ascending vals increment address
+
+]]
+, unpickle = -- using the same command to parse the response from any channel
+-- void unpickle( uint8_t* address, uint8_t* command, uint8_t* data );
+[[
+
+*command &= ~0x3;  // use same command for all 4 channels (by discarding 2LSBs)
+
+]]
 }
 end
