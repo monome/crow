@@ -399,8 +399,8 @@ Available types are:
 - s16V  -- voltage as signed 16-bit integer (-32768, 32767) {converts teletype to V}
 - float -- 32bit floating point number
 
-*u16* *s16* and *s16V* expect MSB before LSB.
-*float* is little-endian
+*u16*, *s16*, and *s16V* expect MSB before LSB.
+*float* is little-endian.
 
 Note *s16V* is used to bridge from teletype native 16bit integers, and crow's
 floating point voltage representation. If you typically use `N` or `V` teletype
