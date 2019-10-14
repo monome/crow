@@ -34,24 +34,21 @@ do return
     , retval = { 'volts', s16V }
     }
   }
-, pickle = -- before sending a command to txi:
---  zero-index the channel
---  mask & pack the channel into the command bytes lowest 2 bits
---  change byte_count to 1 as we're only sending the packed command byte
---  use the channel number to determine txi address
+, pickle = -- combine command & channel into a single byte & set address
+--void pickle( uint8_t* address, uint8_t* data, uint8_t* byte_count );
 [[
 
-uint8_t chan = data[1] - 1; // zero index
-data[0] |= (chan & 0x3); // mask channel
-*byte_count = 1; // packed into a single byte
-*address += chan >> 2; // ascending vals increment address
+uint8_t chan = data[1] - 1;  // zero-index the channel
+data[0] |= (chan & 0x3);     // mask channel
+*byte_count = 1;             // packed into a single byte
+*address += chan >> 2;       // ascending vals increment address
 
 ]]
-, unpickle = -- when receiving the value from txi:
---  mask the 2 lowest bits of the command byte to 0 to collate all chans
+, unpickle = -- using the same command to parse the response from any channel
+-- void unpickle( uint8_t* address, uint8_t* command, uint8_t* data );
 [[
 
-*command &= ~0x3; // discard channel info on first 2 bits
+*command &= ~0x3;  // use same command for all 4 channels (by discarding 2LSBs)
 
 ]]
 }

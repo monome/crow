@@ -441,6 +441,46 @@ add them to the 'getters' table in much the same way as the 'commands' table.
 To simplify the build process, the 'lua_name' variable currently must match
 the name of the .lua file (ie. `jf.lua` must have `lua_name = 'jf'`)
 
+#### Supporting custom protocols with the `pickle` and `unpickle` params
+While the i2c framework in crow is quite elegant, there are a few edge cases & pre-existing devices that just don't fit with the assumptions. To handle these situations, you can use the `pickle` and `unpickle` keys to write custom handlers.
+
+The idea is to provide a low-level translation layer from crow's internal i2c representation, into the required bytes on the i2c line. In general, you should keep the i2c descriptor file as similar to the others as possible.
+
+For example, on Telex-I, when crow queries it for a value, it expects the command (what input to grab) and the choice of input to be sent in a single byte. We emulate this by allowing the i2c framework to treat them separately- 1 parameter for command, and a separate parameter for channel, then provide a `pickle` and `unpickle` function to do the dirty work of pushing the two bytes together.
+
+```lua
+, pickle = -- combine command & channel into a single byte & set address
+--void pickle( uint8_t* address, uint8_t* data, uint8_t* byte_count );
+[[
+
+uint8_t chan = data[1] - 1;  // zero index
+data[0] |= (chan & 0x3);     // mask channel
+*byte_count = 1;             // packed into a single byte
+*address += chan >> 2;       // ascending vals increment address
+
+]]
+, unpickle = -- using the same command to parse the response from any channel
+-- void unpickle( uint8_t* address, uint8_t* command, uint8_t* data );
+[[
+
+*command &= ~0x3;  // use same command for all 4 channels (by discarding 2LSBs)
+
+]]
+```
+
+* Everything between the `[[` and `]]` is a multi-line string in Lua
+* The code block in the middle is written in C (see below for fn signature)
+* `pickle` is for crow -> i2c, while `unpickle` is i2c -> crow.
+
+The C function signatures for pickle and unpickle are like this, and it's a good idea to include them in the descriptor for reference if you're using them:
+```C
+void pickle( uint8_t* address, uint8_t* data, uint8_t* byte_count );
+void unpickle( uint8_t* address, uint8_t* command, uint8_t* data );
+```
+
+In general, these functions should only be used if the serial protocol isn't working correctly, or there's some kind of low-level hack required to satisfy an existing device. If at all possible, try to avoid using them, and if you're desigining a new device, please use the standard protocol!
+
+
 #### I2C Roadmap: Fract types & normalization
 While extensive, this descriptive framework could be extended to add any or all of
 the below features. See the github issue #49 for discussion:
