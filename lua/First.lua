@@ -89,10 +89,7 @@ function init()
   output[4].action = ar(get_a,get_d)
 
   -- start sequence!
-  input[1]{ mode = 'change'
-          , direction = 'rising'
-          , threshold = 1.0
-          }
+  input[1]{ mode = 'change', direction = 'rising' }
   dec = metro.init{ event = env, time = 0.1 }
   dec:start()
 end
