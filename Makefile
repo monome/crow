@@ -121,8 +121,9 @@ all: $(TARGET).hex $(BIN)
 ### pre-process only files
 
 # fennel script conversion to lua
-FNL_SRC = $(wildcard util/*.fnl) \
-	$(wildcard lua/*.fnl) \
+FNL_SRC = $(wildcard lua/*.fnl) \
+#FNL_SRC  = $(wildcard util/*.fnl) \
+
 
 FNL_PP = $(FNL_SRC:%.fnl=%.lua)
 
@@ -288,7 +289,7 @@ clean:
 	@rm -rf Startup.lst $(TARGET).elf.lst $(OBJS) $(AUTOGEN) \
 	$(TARGET).bin  $(TARGET).out  $(TARGET).hex \
 	$(TARGET).map  $(TARGET).dmp  $(EXECUTABLE) $(DEP) \
-	$(BUILD_DIR) lua/*.lua.h util/l2h.lua \
+	$(BUILD_DIR) lua/*.lua.h \
 	$(TARGET)-$(GIT_VERSION)/  *.zip \
 
 splint:
