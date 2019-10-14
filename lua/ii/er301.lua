@@ -64,5 +64,14 @@ do return
              }
     }
   }
+, pickle = -- zero-index the port & send to multiple devices for port >= 100
+--void pickle( uint8_t* address, uint8_t* data, uint8_t* byte_count );
+[[
+
+uint8_t port = data[1] - 1;  // zero-index the port
+data[1]   = port % 100;      // wrap command for subsequent devices
+*address += port / 100;      // increment address for subsequent devices
+
+]]
 }
 end
