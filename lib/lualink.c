@@ -20,6 +20,7 @@
 #include "../ll/system.h"   // getUID_Word()
 #include "lib/events.h"     // event_t event_post()
 #include "lib/midi.h"       // MIDI_Active()
+#include "../ll/timers.h"   // Timer_*()
 #include "stm32f7xx_hal.h"  // HAL_GetTick()
 
 // Lua libs wrapped in C-headers: Note the extra '.h'
@@ -260,11 +261,8 @@ static int _set_input_stream( lua_State *L )
     Detect_t* d = Detect_ix_to_p( ix ); // Lua is 1-based
     if(d){ // valid index
         Detect_none( d );
-        Metro_start( ix
-                   , luaL_checknumber(L, 2)
-                   , -1
-                   , 0
-                   );
+        Timer_Set_Params( ix, luaL_checknumber(L, 2) );
+        Timer_Start( ix, L_queue_in_stream );
         if( ix == 0 ){ MIDI_Active( 0 ); } // deactivate MIDI if first chan
     }
     lua_pop( L, 2 );
@@ -276,7 +274,7 @@ static int _set_input_change( lua_State *L )
     uint8_t ix = luaL_checkinteger(L, 1)-1;
     Detect_t* d = Detect_ix_to_p( ix ); // Lua is 1-based
     if(d){ // valid index
-        Metro_stop( ix );
+        Timer_Stop( ix );
         Detect_change( d
                      , L_queue_change
                      , luaL_checknumber(L, 2)
@@ -296,7 +294,7 @@ static int _set_input_midi( lua_State *L )
         Detect_t* d = Detect_ix_to_p( ix ); // Lua is 1-based
         if(d){ // valid index
             Detect_none( d );
-            Metro_stop( ix );
+            Timer_Stop( ix );
             MIDI_Active( 1 );
         }
     }
