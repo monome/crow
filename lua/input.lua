@@ -10,7 +10,7 @@ function Input.new( chan )
     local i = { channel    = chan
               , _mode      = 'none'
               , time       = 0.1
-              , threshold  = 0.5
+              , threshold  = 1.0
               , hysteresis = 0.1
               , direction  = 'both'
               , windows    = {}
