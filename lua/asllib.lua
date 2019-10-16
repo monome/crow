@@ -14,6 +14,16 @@ function boundgz( n )
     else return (n <= 0.01) and 0.01 or n end
 end
 
+function clamp(input, min, max)
+	min = min or 0.001
+	max = max or 1e10 -- picked this as an arbitrarily large number...
+	if type(input) == 'function' then
+		return function() return clamp(input(),min,max) end
+    else 
+		return math.min(math.max(min,input),max)
+	end
+end
+
 function div(n,d)
     if type(n) == 'function' then
 		if type(d) == 'function' then
@@ -27,6 +37,7 @@ function div(n,d)
 		return n/d
 	end
 end
+
 
 function sub(a,b)
     if type(a) == 'function' then
@@ -90,16 +101,17 @@ end
 
 function lfo( time, level )
     time, level = time or 1, level or 5
-
-    return loop{ to(        level , div(boundgz(time),2) )
-               , to( negate(level), div(boundgz(time),2) )
+	time = clamp(time,0.006,1e10)
+	halfTime = div(time,2)
+    return loop{ to(        level , halfTime )
+               , to( negate(level), halfTime )
                }
 
 end
 
 function pulse( time, level, polarity )
     time, level, polarity = time or 0.01, level or 5, polarity or 1
-
+	time = clamp(time,0.006,1e10)
     local rest = 0
     if polarity == 0 then
         rest  = level
@@ -117,14 +129,17 @@ function ramp( time, skew, level )
     time,skew,level = time  or 1 
                     , skew  or 0.25 
                     , level or 5 
-  
-    -- note skew expects 0-1 range 
+	
+	time = clamp(time,0.006,1e10)
+	skew = clamp(skew,0,1)
+	
     local rise = div(0.5,plus(mult(skew,0.998),0.001))
     local fall = div(1.0,sub(2.0,div(1.0,rise)))
-	 
-  
-    return{ loop{ to(  level, div(time,rise) ) 
-                , to( negate(level), div(time,fall)) 
+	local riseTime = div(time,rise) 
+	local fallTime = div(time,fall)
+	
+    return{ loop{ to(  level, riseTime ) 
+                , to( negate(level), fallTime ) 
                 } 
           } 
 end 
@@ -134,7 +149,9 @@ function ar( attack, release, level )
                          , release or 0.5
                          , level   or 7
 
-    return{ to( level, attack )
+    attack = clamp(attack,0.002,1e10)
+	release = clamp(release,0.002,1e10)
+	return{ to( level, attack )
           , to( 0,     release )
           }
 end
@@ -145,7 +162,12 @@ function adsr( attack, decay, sustain, release )
                                  , sustain or 2
                                  , release or 2
 
-    return{ held{ to( 5.0, attack )
+    
+	attack = clamp(attack,0.002,1e10)
+	decay = clamp(decay,0.002,1e10)
+	release = clamp(release,0.002,1e10)
+	
+	return{ held{ to( 5.0, attack )
                 , to( sustain, decay )
                 }
           , to( 0, release )
