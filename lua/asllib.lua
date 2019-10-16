@@ -14,10 +14,60 @@ function boundgz( n )
     else return (n <= 0.01) and 0.01 or n end
 end
 
-function div( n,d )
+function div(n,d)
     if type(n) == 'function' then
-        return function() return n()/d end
-    else return n/d end
+		if type(d) == 'function' then
+			return function() return n()/d() end
+		else
+			return function() return n()/d end
+		end
+	elseif type(d) == 'function' then
+		return function() return n/d() end
+    else 
+		return n/d
+	end
+end
+
+function sub(a,b)
+    if type(a) == 'function' then
+		if type(b) == 'function' then
+			return function() return a()-b() end
+		else
+			return function() return a()-b end
+		end
+	elseif type(b) == 'function' then
+		return function() return a-b() end
+    else 
+		return a-b
+	end
+end
+
+function mult(a,b)
+    if type(a) == 'function' then
+		if type(b) == 'function' then
+			return function() return a()*b() end
+		else
+			return function() return a()*b end
+		end
+	elseif type(b) == 'function' then
+		return function() return a*b() end
+    else 
+		return a*b
+	end
+end
+
+function plus(a,b)
+    if type(a) == 'function' then
+		if type(b) == 'function' then
+			return function() return a()+b() end
+		else
+			return function() return a()+b end
+		end
+	elseif type(b) == 'function' then
+		return function() return a+b() end
+    else 
+		return a+b
+	end
 end
 
 function negate( v )
@@ -63,20 +113,21 @@ function pulse( time, level, polarity )
 end
 
 
-function ramp( time, skew, level )
-    time,skew,level = time  or 1
-                    , skew  or 0.25
-                    , level or 5
-
-    -- note skew expects 0-1 range
-    local rise = 0.5/(0.998 * skew + 0.001)
-    local fall = 1.0/(2.0 - 1.0/rise)
-
-    return{ loop{ to(  level, time/rise )
-                , to( -level, time/fall )
-                }
-          }
-end
+function ramp( time, skew, level ) 
+    time,skew,level = time  or 1 
+                    , skew  or 0.25 
+                    , level or 5 
+  
+    -- note skew expects 0-1 range 
+    local rise = div(0.5,plus(mult(skew,0.998),0.001))
+    local fall = div(1.0,sub(2.0,div(1.0,rise)))
+	 
+  
+    return{ loop{ to(  level, div(time,rise) ) 
+                , to( negate(level), div(time,fall)) 
+                } 
+          } 
+end 
 
 function ar( attack, release, level )
     attack,release,level = attack  or 0.05
