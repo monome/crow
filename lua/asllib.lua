@@ -102,7 +102,7 @@ end
 function lfo( time, level )
     time, level = time or 1, level or 5
 	time = clamp(time,0.006,1e10)
-	halfTime = div(time,2)
+	local halfTime = div(time,2)
     return loop{ to(        level , halfTime )
                , to( negate(level), halfTime )
                }
