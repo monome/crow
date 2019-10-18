@@ -78,11 +78,19 @@ void REPL_upload( int flash )
                     printf("flash write failed\n");
                     Caw_send_luachunk("User script upload failed!");
                 } else {
+                    printf("script saved, len: %i\n", new_script_len);
                     Caw_send_luachunk("User script updated.");
+                    Lua_crowbegin( Flash_script_name() );
                 }
-                printf("script saved, len: %i\n", new_script_len);
+            } else {
+                char script[32];
+                strcpy( script, "Running: " );
+                Flash_script_name_from_mem( &script[9]
+                                          , new_script
+                                          , 22
+                                          );
+                Lua_crowbegin( script );
             }
-            Lua_crowbegin( Flash_script_name() );
         } else {
             Caw_send_luachunk("User script evaluation failed.");
         }
