@@ -110,7 +110,7 @@ void REPL_print_script( void )
     uint16_t length; // satisfy switch
     switch( Flash_which_user_script() ){
         case USERSCRIPT_Default:
-            Caw_send_luachunk("running 'First' script.");
+            Caw_send_luachunk("Running 'First' script.");
             break;
         case USERSCRIPT_User:
             length = Flash_read_user_scriptlen();
@@ -125,7 +125,7 @@ void REPL_print_script( void )
             Caw_send_raw( (uint8_t*)addr, length );
             break;
         case USERSCRIPT_Clear:
-            Caw_send_luachunk("no user script.");
+            Caw_send_luachunk("No user script.");
             break;
     }
 }
@@ -134,7 +134,7 @@ void REPL_print_script( void )
 static void REPL_receive_script( char* buf, uint32_t len, ErrorHandler_t errfn )
 {
     if( new_script_len + len >= USER_SCRIPT_SIZE ){
-        Caw_send_luachunk("!script: upload is too big");
+        Caw_send_luachunk("!ERROR! Script is too long.");
         repl_mode = REPL_discard;
         free(new_script);
     } else {
@@ -148,7 +148,7 @@ static bool REPL_new_script_buffer( uint32_t len )
     new_script = malloc(len);
     if( new_script == NULL ){
         printf("out of mem\n");
-        Caw_send_luachunk("!script: out of memory");
+        Caw_send_luachunk("!ERROR! Out of memory.");
         return false;
     }
     memset(new_script, 0, len);

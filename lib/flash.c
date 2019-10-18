@@ -128,7 +128,7 @@ char* Flash_script_name( void )
     static char script[32];
     memset( script, '\0', 32 );
     switch( Flash_which_user_script() ){
-        case USERSCRIPT_Clear: strcpy( script, "No user script running." ); break;
+        case USERSCRIPT_Clear: strcpy( script, "User script cleared. Running." ); break;
         case USERSCRIPT_Default: strcpy( script, "'First' script running." ); break;
         case USERSCRIPT_User:
             strcpy( script, "Running: " );
