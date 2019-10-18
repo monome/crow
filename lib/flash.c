@@ -1,5 +1,7 @@
 #include "flash.h"
 
+#include <string.h>
+
 #include "../ll/debug_usart.h"
 
 #define USER_MAGIC 0xA  // bit pattern
@@ -20,10 +22,6 @@ USERSCRIPT_t Flash_which_user_script( void )
         default:         return USERSCRIPT_Default;
     }
 }
-//uint8_t Flash_is_user_script( void )
-//{
-//    return (USER_MAGIC == (0xF & (*(__IO uint32_t*)USER_SCRIPT_LOCATION)));
-//}
 
 void Flash_default_user_script( void )
 {
@@ -123,6 +121,31 @@ uint8_t Flash_read_user_script( char* buffer )
         sd_addr += 4;
     }
     return 0;
+}
+
+char* Flash_script_name( void )
+{
+    static char script[32];
+    memset( script, '\0', 32 );
+    switch( Flash_which_user_script() ){
+        case USERSCRIPT_Clear: strcpy( script, "No user script running." ); break;
+        case USERSCRIPT_Default: strcpy( script, "'First' script running." ); break;
+        case USERSCRIPT_User:
+            strcpy( script, "Running: " );
+            char* name = (char*)(USER_SCRIPT_LOCATION + 4);
+            while( *name == '-' ){ name++; } // skip commments
+            while( *name == ' ' ){ name++; } // skip spaces
+            char* linebreak = strchr( name, '\n' );
+            if( linebreak ){ // print until newline
+                int len = (int)(linebreak - name);
+                if( len > 22 ){ len = 22; }
+                strncpy( &script[9], name, len );
+            } else { // can't find a new line, so just fill the buffer
+                strncpy( &script[9], name, 22 );
+            }
+            break;
+    }
+    return script;
 }
 
 // CALIBRATION //

@@ -38,8 +38,7 @@ int main(void)
 
     REPL_init( Lua_Init() );
 
-    Lua_crowbegin();
-
+    Lua_crowbegin( Flash_script_name() );
 
     while(1){
         U_PrintNow();
@@ -60,12 +59,13 @@ int main(void)
             case C_flashclear:
                 Lua_Reset();
                 Flash_clear_user_script();
+                Lua_crowbegin( Flash_script_name() );
                 break;
             case C_loadFirst:
                 Lua_Reset();
                 Flash_default_user_script();
                 Lua_load_default_script(); // load default.lua
-                Lua_crowbegin(); // run init()
+                Lua_crowbegin( Flash_script_name() );
                 break;
             default: break; // 'C_none' does nothing
         }

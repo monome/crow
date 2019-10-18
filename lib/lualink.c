@@ -534,8 +534,9 @@ static float Lua_check_memory( void )
     return mem;
 }
 
-void Lua_crowbegin( void )
+void Lua_crowbegin( char* scriptname )
 {
+    Caw_send_luachunk( scriptname );
     printf("init()\n"); // call in C to avoid user seeing in lua
     lua_getglobal(L,"init");
     lua_pcall(L,0,0,0);

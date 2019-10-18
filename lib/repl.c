@@ -82,7 +82,7 @@ void REPL_upload( int flash )
             } else {
                 Caw_send_luachunk("running...");
             }
-            Lua_crowbegin();
+            Lua_crowbegin( Flash_script_name() );
         } else {
             Caw_send_luachunk("evaluation failed");
         }
