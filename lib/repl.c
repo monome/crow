@@ -83,13 +83,13 @@ void REPL_upload( int flash )
             } else {
                 Caw_send_luachunk("running...");
             }
-            Lua_resume_inputs();
             Lua_crowbegin();
         } else {
             Caw_send_luachunk("evaluation failed");
         }
         free(new_script);
     }
+    Lua_resume_inputs();
     repl_mode = REPL_normal;
 }
 
