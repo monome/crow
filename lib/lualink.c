@@ -98,6 +98,20 @@ void Lua_DeInit(void)
     lua_close(L);
 }
 
+void Lua_pause_inputs( void )
+{
+    for (uint8_t ix = 0; ix < 2; ix++){
+	Timer_Stop(ix);
+    }
+}
+
+void Lua_resume_inputs( void )
+{
+    for (uint8_t ix = 0; ix < 2; ix++){
+	Timer_Start( ix, L_queue_in_stream );
+    }
+}
+
 // C-fns accessible to lua
 
 // NB these static functions are prefixed  with '_'

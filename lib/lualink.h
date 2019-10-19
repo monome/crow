@@ -19,6 +19,8 @@ uint8_t Lua_eval( lua_State*     L
                 , ErrorHandler_t errfn
                 );
 void Lua_load_default_script( void );
+void Lua_pause_inputs( void );
+void Lua_resume_inputs( void );
 
 // Event enqueue wrappers
 extern void L_queue_toward( int id );

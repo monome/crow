@@ -53,6 +53,7 @@ void REPL_init( lua_State* lua )
 
 void REPL_begin_upload( void )
 {
+    Lua_pause_inputs();
     Lua_Reset(); // free up memory
     if( REPL_new_script_buffer( USER_SCRIPT_SIZE ) ){
         repl_mode = REPL_reception;
@@ -82,6 +83,7 @@ void REPL_upload( int flash )
             } else {
                 Caw_send_luachunk("running...");
             }
+            Lua_resume_inputs();
             Lua_crowbegin();
         } else {
             Caw_send_luachunk("evaluation failed");
