@@ -1,96 +1,45 @@
 --- ASL library
 --
 -- a collection of basic asl scripts
---
-Asllib = {} -- how should we refer to the below?
 
--- clamp to bounds, must be greater than zero
-function boundgz( n )
-    if type(n) == 'function' then
-        return function()
-            local nn = n()
-            return (nn <= 0.01) and 0.01 or nn
+Asllib = {}
+
+-- apply a function of n-args to either literal values or return a
+-- closure to be computed when the value is called.
+function m1( fn, a, ... )
+    if type(a) == 'function' then
+        return function() return m1( fn, a(), ... ) end -- recursive!
+    else
+        return fn( a, ... )
+    end
+end
+
+-- one-closurable-arg functions
+function n2v( n ) return m1( function(a) return a/12 end, n ) end
+function negate( n ) return m1( function(a) return -a end, n ) end
+function clamp( input, min, max )
+    return m1( function( a, b, c )
+                 return math.min( math.max( b, a ), c )
+               end
+             , input, min, max )
+end
+
+-- apply a 2-arg function to literal or function arguments
+-- use this to allow execution of a function to happen at runtime
+-- additonal args are passed through, but literal only
+-- TODO build this recursively with m1 above for n-args
+function m2( fn, a, b, ... )
+    if type(a) == 'function' then
+        if type(b) == 'function' then
+            return function() return fn(a(),b(),...) end
+        else
+            return function() return fn(a(),b,...) end
         end
-    else return (n <= 0.01) and 0.01 or n end
-end
-
-function clamp(input, min, max)
-	min = min or 0.001
-	max = max or 1e10 -- picked this as an arbitrarily large number...
-	if type(input) == 'function' then
-		return function() return clamp(input(),min,max) end
-    else 
-		return math.min(math.max(min,input),max)
-	end
-end
-
-function div(n,d)
-    if type(n) == 'function' then
-		if type(d) == 'function' then
-			return function() return n()/d() end
-		else
-			return function() return n()/d end
-		end
-	elseif type(d) == 'function' then
-		return function() return n/d() end
-    else 
-		return n/d
-	end
-end
-
-
-function sub(a,b)
-    if type(a) == 'function' then
-		if type(b) == 'function' then
-			return function() return a()-b() end
-		else
-			return function() return a()-b end
-		end
-	elseif type(b) == 'function' then
-		return function() return a-b() end
-    else 
-		return a-b
-	end
-end
-
-function mult(a,b)
-    if type(a) == 'function' then
-		if type(b) == 'function' then
-			return function() return a()*b() end
-		else
-			return function() return a()*b end
-		end
-	elseif type(b) == 'function' then
-		return function() return a*b() end
-    else 
-		return a*b
-	end
-end
-
-function plus(a,b)
-    if type(a) == 'function' then
-		if type(b) == 'function' then
-			return function() return a()+b() end
-		else
-			return function() return a()+b end
-		end
-	elseif type(b) == 'function' then
-		return function() return a+b() end
-    else 
-		return a+b
-	end
-end
-
-function negate( v )
-    if type(v) == 'function' then
-        return function() return -v() end
-    else return -v end
-end
-
-function n2v( n )
-    if type(n) == 'function' then
-        return function () return n()/12 end
-    else return n/12 end
+    elseif type(b) == 'function' then
+        return function() return fn(a,b(),...) end
+    else
+        return fn(a,b,...)
+    end
 end
 
 function note( noteNum, duration )
@@ -101,58 +50,62 @@ end
 
 function lfo( time, level )
     time, level = time or 1, level or 5
-	time = clamp(time,0.006,1e10)
-	local halfTime = div(time,2)
-    return loop{ to(        level , halfTime )
-               , to( negate(level), halfTime )
-               }
+    local function half(t) = m1( function(a) return clamp(a/2) end, t )
+
+    return loop{ to(        level , half(time) )
+               , to( negate(level), half(time) )}
 
 end
 
 function pulse( time, level, polarity )
     time, level, polarity = time or 0.01, level or 5, polarity or 1
-	time = clamp(time,0.006,1e10)
-    local rest = 0
-    if polarity == 0 then
-        rest  = level
-        level = 0
+
+    local function active(mag,pol)
+        return m2( function(a,b) return (b == 0) and 0 or a end
+                 , mag, pol)
+    end
+    local function resting(mag,pol)
+        return m2( function(a,b) return (b == 0) and a or 0 end
+                 , mag, pol)
     end
 
-    return{ to( level, 0 )
-          , to( level, time )
-          , to( rest , 0 )
+    return{ to( active(level,pol) , 0 )
+          , to( 'here'            , clamp(time) )
+          , to( resting(level,pol), 0 )
           }
 end
 
+function ramp( time, skew, level )
+    time,skew,level = time  or 1
+                    , skew  or 0.25
+                    , level or 5
 
-function ramp( time, skew, level ) 
-    time,skew,level = time  or 1 
-                    , skew  or 0.25 
-                    , level or 5 
-	
-	time = clamp(time,0.006,1e10)
-	skew = clamp(skew,0,1)
-	
-    local rise = div(0.5,plus(mult(skew,0.998),0.001))
-    local fall = div(1.0,sub(2.0,div(1.0,rise)))
-	local riseTime = div(time,rise) 
-	local fallTime = div(time,fall)
-	
-    return{ loop{ to(  level, riseTime ) 
-                , to( negate(level), fallTime ) 
-                } 
-          } 
-end 
+    time2 = clamp(time)
+    skew2 = clamp(skew,0,1)
+
+    local function riser(t,sk)
+        return m2( function(a,b) return a*(1.996*b + 0.001) end
+                 , t, sk)
+    end
+
+    local function faller(t,sk)
+        return m2( function(a,b) return a*(1.998 - 1.996*b) end
+                 , t, sk)
+    end
+
+    return{ loop{ to(        level , riser(time,skew) )
+                , to( negate(level), faller(time,skew) )
+                }
+          }
+end
 
 function ar( attack, release, level )
     attack,release,level = attack  or 0.05
                          , release or 0.5
                          , level   or 7
 
-    attack = clamp(attack,0.002,1e10)
-	release = clamp(release,0.002,1e10)
-	return{ to( level, attack )
-          , to( 0,     release )
+    return{ to( level, clamp(attack)  )
+          , to( 0,     clamp(release) )
           }
 end
 
@@ -162,15 +115,10 @@ function adsr( attack, decay, sustain, release )
                                  , sustain or 2
                                  , release or 2
 
-    
-	attack = clamp(attack,0.002,1e10)
-	decay = clamp(decay,0.002,1e10)
-	release = clamp(release,0.002,1e10)
-	
-	return{ held{ to( 5.0, attack )
-                , to( sustain, decay )
+    return{ held{ to( 5.0    , clamp(attack) )
+                , to( sustain, clamp(decay)  )
                 }
-          , to( 0, release )
+          , to( 0, clamp(release) )
           }
 end
 
