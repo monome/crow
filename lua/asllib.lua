@@ -50,7 +50,7 @@ end
 
 function lfo( time, level )
     time, level = time or 1, level or 5
-    local function half(t) = m1( function(a) return clamp(a/2) end, t )
+    local function half(t) = m1( function(a) return clamp(a/2) end, t ) end
 
     return loop{ to(        level , half(time) )
                , to( negate(level), half(time) )}
