@@ -56,17 +56,8 @@ int main(void)
             case C_version:     system_print_version(); break;
             case C_identity:    system_print_identity(); break;
             case C_killlua:     Lua_Reset(); break;
-            case C_flashclear:
-                Lua_Reset();
-                Flash_clear_user_script();
-                Lua_crowbegin( Flash_script_name() );
-                break;
-            case C_loadFirst:
-                Lua_Reset();
-                Flash_default_user_script();
-                Lua_load_default_script(); // load default.lua
-                Lua_crowbegin( Flash_script_name() );
-                break;
+            case C_flashclear:  REPL_clear_script(); break;
+            case C_loadFirst:   REPL_default_script(); break;
             default: break; // 'C_none' does nothing
         }
         Random_Update();

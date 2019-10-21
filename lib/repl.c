@@ -99,6 +99,21 @@ void REPL_upload( int flash )
     repl_mode = REPL_normal;
 }
 
+void REPL_clear_script( void )
+{
+    Lua_Reset();
+    Flash_clear_user_script();
+    Lua_crowbegin( Flash_script_name() );
+}
+
+void REPL_default_script( void )
+{
+    Lua_Reset();
+    Flash_default_user_script();
+    Lua_load_default_script();
+    Lua_crowbegin( Flash_script_name() );
+}
+
 void REPL_eval( char* buf, uint32_t len, ErrorHandler_t errfn )
 {
     if( repl_mode == REPL_normal ){
