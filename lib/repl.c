@@ -156,12 +156,14 @@ void REPL_print_script_name( char* buffer )
         case USERSCRIPT_User:
             buffer[0] = buffer[0]; // satisfy switch
             char script[32];
+            memset( script, '\0', 32 );
             strcpy( script, "Running: " );
             REPL_script_name_from_mem( &script[9]
                                      , buffer ? buffer
                                               : (char*)(USER_SCRIPT_LOCATION+4 )
                                      , 22
                                      );
+            Caw_send_luachunk(script);
             break;
         case USERSCRIPT_Clear:
             Caw_send_luachunk("No user script.");
