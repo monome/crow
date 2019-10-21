@@ -38,7 +38,8 @@ int main(void)
 
     REPL_init( Lua_Init() );
 
-    Lua_crowbegin( Flash_script_name() );
+    REPL_print_script_name(NULL);
+    Lua_crowbegin();
 
     while(1){
         U_PrintNow();

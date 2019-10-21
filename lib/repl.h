@@ -17,3 +17,4 @@ void REPL_default_script( void );
 
 void REPL_eval( char* buf, uint32_t len, ErrorHandler_t errfn );
 void REPL_print_script( void );
+void REPL_print_script_name( char* buffer );

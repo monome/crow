@@ -123,39 +123,6 @@ uint8_t Flash_read_user_script( char* buffer )
     return 0;
 }
 
-char* Flash_script_name_from_mem( char* dest, char* src, int max_len )
-{
-    while( *src == '-' ){ src++; } // skip commments
-    while( *src == ' ' ){ src++; } // skip spaces
-    char* linebreak = strchr( src, '\n' );
-    if( linebreak ){ // print until newline
-        int len = (int)(linebreak - src);
-        if( len > max_len ){ len = max_len; }
-        strncpy( dest, src, len );
-    } else { // can't find a new line, so just fill the buffer
-        strncpy( dest, src, max_len );
-    }
-    return dest;
-}
-
-char* Flash_script_name( void )
-{
-    static char script[32];
-    memset( script, '\0', 32 );
-    switch( Flash_which_user_script() ){
-        case USERSCRIPT_Clear: strcpy( script, "User script cleared. Running." ); break;
-        case USERSCRIPT_Default: strcpy( script, "'First' script running." ); break;
-        case USERSCRIPT_User:
-            strcpy( script, "Running: " );
-            Flash_script_name_from_mem( &script[9]
-                                      , (char*)(USER_SCRIPT_LOCATION+4 )
-                                      , 22
-                                      );
-            break;
-    }
-    return script;
-}
-
 // CALIBRATION //
 
 uint8_t Flash_is_calibrated( void )

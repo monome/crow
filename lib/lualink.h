@@ -12,7 +12,7 @@ lua_State* Lua_Init(void);
 void Lua_Reset(void);
 void Lua_DeInit(void);
 
-void Lua_crowbegin( char* scriptname );
+void Lua_crowbegin( void );
 uint8_t Lua_eval( lua_State*     L
                 , const char*    script
                 , size_t         script_len
