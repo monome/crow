@@ -155,13 +155,13 @@ void REPL_print_script_name( char* buffer )
             break;
         case USERSCRIPT_User:
             buffer[0] = buffer[0]; // satisfy switch
-            char script[32];
-            memset( script, '\0', 32 );
+            char script[64];
+            memset( script, '\0', 64 );
             strcpy( script, "Running: " );
             REPL_script_name_from_mem( &script[9]
                                      , buffer ? buffer
                                               : (char*)(USER_SCRIPT_LOCATION+4 )
-                                     , 22
+                                     , 64-10
                                      );
             Caw_send_luachunk(script);
             break;
