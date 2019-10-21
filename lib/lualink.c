@@ -81,6 +81,14 @@ lua_State* Lua_Init(void)
 
 void Lua_Reset( void )
 {
+    Metro_stop_all();
+    for( int i=0; i<2; i++ ){
+        Detect_none( Detect_ix_to_p(i) );
+    }
+    for( int i=0; i<4; i++ ){
+        S_toward( i, 0.0, 0.0, SHAPE_Linear, NULL );
+    }
+    events_clear();
     Lua_DeInit();
     Lua_Init();
 }

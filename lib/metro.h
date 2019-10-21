@@ -14,6 +14,7 @@ void Metro_start( int   idx
 
 // cancel all scheduled iterations
 void Metro_stop( int idx );
+void Metro_stop_all( void );
 
 // set period of metro
 // NB: if the metro is running, its hard to say if new value will take effect

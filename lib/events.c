@@ -25,17 +25,8 @@ void (*app_event_handlers[E_COUNT])(event_t *e) = { handler_none };
 // initialize event handler
 void events_init() {
     printf("\ninitializing event handler\n");
-    int k;
 
-    // set queue (circular list) to empty
-    putIdx = 0;
-    getIdx = 0;
-
-    // zero out the event records
-    for ( k = 0; k < MAX_EVENTS; k++ ) {
-        sysEvents[ k ].type   = 0;
-        sysEvents[ k ].data.i = 0;
-    }
+    events_clear();
 
     // assign event handlers
     app_event_handlers[E_none] = &handler_none;
@@ -44,6 +35,19 @@ void events_init() {
     app_event_handlers[E_change] = &handler_change;
     app_event_handlers[E_toward] = &handler_toward;
     app_event_handlers[E_midi] = &handler_midi;
+}
+
+void events_clear(void)
+{
+    // set queue (circular list) to empty
+    putIdx = 0;
+    getIdx = 0;
+
+    // zero out the event records
+    for ( int k = 0; k < MAX_EVENTS; k++ ) {
+        sysEvents[ k ].type   = 0;
+        sysEvents[ k ].data.i = 0;
+    }
 }
 
 // get next event

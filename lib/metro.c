@@ -70,6 +70,13 @@ void Metro_stop( int ix )
     }
 }
 
+void Metro_stop_all( void )
+{
+    for( int i=0; i<max_num_metros; i++ ){
+        Metro_stop(i);
+    }
+}
+
 // set period of metro
 void Metro_set_time( int ix, float sec )
 {
