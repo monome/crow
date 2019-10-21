@@ -84,6 +84,4 @@ function ii_followRxTx_handler( cmd, ... )
     return ii._c[name](...)
 end
 
-print 'ii loaded'
-
 return ii

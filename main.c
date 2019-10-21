@@ -38,16 +38,16 @@ int main(void)
 
     REPL_init( Lua_Init() );
 
+    REPL_print_script_name(NULL);
     Lua_crowbegin();
-
 
     while(1){
         U_PrintNow();
         switch( Caw_try_receive() ){ // true on pressing 'enter'
-            case C_repl:       REPL_eval( Caw_get_read()
-                                        , Caw_get_read_len()
-                                        , Caw_send_luaerror
-                                        ); break;
+            case C_repl:        REPL_eval( Caw_get_read()
+                                         , Caw_get_read_len()
+                                         , Caw_send_luaerror
+                                         ); break;
             case C_boot:        bootloader_enter(); break;
             case C_startupload: REPL_begin_upload(); break;
             case C_endupload:   REPL_upload(0); break;
@@ -57,16 +57,8 @@ int main(void)
             case C_version:     system_print_version(); break;
             case C_identity:    system_print_identity(); break;
             case C_killlua:     Lua_Reset(); break;
-            case C_flashclear:
-                Lua_Reset();
-                Flash_clear_user_script();
-                break;
-            case C_loadFirst:
-                Lua_Reset();
-                Flash_default_user_script();
-                Lua_load_default_script(); // load default.lua
-                Lua_crowbegin(); // run init()
-                break;
+            case C_flashclear:  REPL_clear_script(); break;
+            case C_loadFirst:   REPL_default_script(); break;
             default: break; // 'C_none' does nothing
         }
         Random_Update();

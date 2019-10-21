@@ -53,6 +53,7 @@
 // Private define
 #define APP_RX_DATA_SIZE  256 // tmp buffer until the parser runs in main loop
 #define APP_TX_DATA_SIZE  1024 // the only tx buffer
+#define CONNECTION_DELAY  250 // millisecond delay before sending buffer after connect
 
 // Private vars
 USBD_CDC_LineCodingTypeDef LineCoding = { 115200  // baud rate
@@ -100,11 +101,10 @@ int timerdelay = 0;
 static int8_t CDC_Itf_Init(void)
 {
     USBD_CDC_SetRxBuffer(&USBD_Device, UserRxBuffer);
-    USBD_CDC_SetTxBuffer(&USBD_Device, UserTxBuffer, 0);
 
     // set the timerdelay, so the TIM can be started but *not* send for
     // the first 100ms to solve ECHO issue on norns. see #137
-    timerdelay = 100 / CDC_POLLING_INTERVAL;
+    timerdelay = CONNECTION_DELAY / CDC_POLLING_INTERVAL;
     TIM_Config();
     if( HAL_TIM_Base_Start_IT(&USBTimHandle) != HAL_OK ){
         printf("!usb tim_start\n");

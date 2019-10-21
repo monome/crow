@@ -101,6 +101,4 @@ function adsr( attack, decay, sustain, release )
           }
 end
 
-print 'asllib loaded'
-
 return Asllib

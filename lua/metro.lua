@@ -164,7 +164,4 @@ metro_handler = function(idx, stage)
    end
 end
 
-
-print'metro loaded'
-
 return Metro

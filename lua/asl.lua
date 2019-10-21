@@ -285,6 +285,4 @@ function held( fns ) -- table -> table
           }
 end
 
-print 'asl loaded'
-
 return Asl
