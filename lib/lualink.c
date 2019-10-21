@@ -256,7 +256,7 @@ static int _set_input_none( lua_State *L )
     Detect_t* d = Detect_ix_to_p( ix ); // Lua is 1-based
     if(d){ // valid index
         Detect_none( d );
-        Metro_stop( ix );
+        Timer_Stop( ix );
         if( ix == 0 ){ MIDI_Active( 0 ); } // deactivate MIDI if first chan
     }
     lua_pop( L, 1 );
