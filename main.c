@@ -43,10 +43,10 @@ int main(void)
     while(1){
         U_PrintNow();
         switch( Caw_try_receive() ){ // true on pressing 'enter'
-            case C_repl:       REPL_eval( Caw_get_read()
-                                        , Caw_get_read_len()
-                                        , Caw_send_luaerror
-                                        ); break;
+            case C_repl:        REPL_eval( Caw_get_read()
+                                         , Caw_get_read_len()
+                                         , Caw_send_luaerror
+                                         ); break;
             case C_boot:        bootloader_enter(); break;
             case C_startupload: REPL_begin_upload(); break;
             case C_endupload:   REPL_upload(0); break;
