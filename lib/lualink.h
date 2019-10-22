@@ -9,10 +9,10 @@ typedef void (*ErrorHandler_t)(char* error_message);
 struct lua_lib_locator{ const char* name; const char* addr_of_luacode; };
 
 lua_State* Lua_Init(void);
-void Lua_Reset(void);
+lua_State* Lua_Reset( void );
 void Lua_DeInit(void);
 
-void Lua_crowbegin(void);
+void Lua_crowbegin( void );
 uint8_t Lua_eval( lua_State*     L
                 , const char*    script
                 , size_t         script_len

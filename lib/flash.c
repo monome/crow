@@ -20,10 +20,6 @@ USERSCRIPT_t Flash_which_user_script( void )
         default:         return USERSCRIPT_Default;
     }
 }
-//uint8_t Flash_is_user_script( void )
-//{
-//    return (USER_MAGIC == (0xF & (*(__IO uint32_t*)USER_SCRIPT_LOCATION)));
-//}
 
 void Flash_default_user_script( void )
 {

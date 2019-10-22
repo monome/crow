@@ -116,9 +116,10 @@ float* S_step_v( int     index
         int after_break = size - i - 1; // 1 is the iRem + after_breakRem
 
         *out2++ = self->here + self->delta;
-        i--;
-        while(i--){
-            *out2++ = *out3++ + self->delta;
+        if(i--){ // account for above, and skip if zero
+            while(i--){
+                *out2++ = *out3++ + self->delta;
+            }
         }
         *out2++ = self->dest;
         // TODO compesnate for this amount of overshoot with the new trajectory

@@ -79,10 +79,20 @@ lua_State* Lua_Init(void)
     return L;
 }
 
-void Lua_Reset( void )
+lua_State* Lua_Reset( void )
 {
+    printf("Lua_Reset\n");
+    Metro_stop_all();
+    for( int i=0; i<2; i++ ){
+        Timer_Stop(i);
+        Detect_none( Detect_ix_to_p(i) );
+    }
+    for( int i=0; i<4; i++ ){
+        S_toward( i, 0.0, 0.0, SHAPE_Linear, NULL );
+    }
+    events_clear();
     Lua_DeInit();
-    Lua_Init();
+    return Lua_Init();
 }
 
 void Lua_load_default_script( void )
@@ -248,7 +258,7 @@ static int _set_input_none( lua_State *L )
     Detect_t* d = Detect_ix_to_p( ix ); // Lua is 1-based
     if(d){ // valid index
         Detect_none( d );
-        Metro_stop( ix );
+        Timer_Stop( ix );
         if( ix == 0 ){ MIDI_Active( 0 ); } // deactivate MIDI if first chan
     }
     lua_pop( L, 1 );

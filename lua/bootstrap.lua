@@ -43,8 +43,6 @@ function luapath_to_cpath( path )
             )
 end
 
-print'lua bootstrapped'
-
 _c = dofile('lua/crowlib.lua')
 crow = _c
 

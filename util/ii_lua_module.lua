@@ -51,7 +51,6 @@ function make_lua(f)
             .. lua_events(f)
             .. 'function ' .. f.lua_name
                 .. '.event(e,data)ii.e(\'' .. f.lua_name .. '\',e,data)end\n'
-            .. 'print\'' .. f.lua_name .. ' loaded\'\n'
             .. 'return ' .. f.lua_name .. '\n'
     return l
 end
