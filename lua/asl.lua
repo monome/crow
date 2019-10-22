@@ -191,7 +191,6 @@ Asl.__index = function(self, ix)
     end
 end
 
-setmetatable(Asl, Asl)
 
 --------------------------------
 -- low level ASL building blocks
@@ -220,7 +219,7 @@ end
 function Asl.runtime(fn,...)
     local args = {...}
     if #args == 0 then
-        return fn()
+        return fn
     else
         local a = table.remove(args,1)
         if type(a) == 'function' then
@@ -298,5 +297,8 @@ function held( fns ) -- table -> table
           , 'unhold'
           }
 end
+
+-- at bottom to make sure we capture all the metamethods & Asl namespace functions
+setmetatable(Asl, Asl)
 
 return Asl
