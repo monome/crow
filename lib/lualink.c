@@ -79,8 +79,9 @@ lua_State* Lua_Init(void)
     return L;
 }
 
-void Lua_Reset( void )
+lua_State* Lua_Reset( void )
 {
+    printf("Lua_Reset\n");
     Metro_stop_all();
     for( int i=0; i<2; i++ ){
         Timer_Stop(i);
@@ -91,7 +92,7 @@ void Lua_Reset( void )
     }
     events_clear();
     Lua_DeInit();
-    Lua_Init();
+    return Lua_Init();
 }
 
 void Lua_load_default_script( void )
