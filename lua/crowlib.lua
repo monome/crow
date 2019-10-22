@@ -11,8 +11,8 @@ local function closelibs()
     -- TODO does this free the RAM used by 'dofile'?
     Input  = nil
     Output = nil
-    Asl    = nil
-    Asllib = nil
+    asl    = nil
+    asllib = nil
     metro  = nil
     ii     = nil
     cal    = nil
@@ -24,8 +24,8 @@ function _crow.libs( lib )
         -- load all
         Input  = dofile('lua/input.lua')
         Output = dofile('lua/output.lua')
-        Asl    = dofile('lua/asl.lua')
-        Asllib = dofile('lua/asllib.lua')
+        asl    = dofile('lua/asl.lua')
+        asllib = dofile('lua/asllib.lua')
         metro  = dofile('lua/metro.lua')
         ii     = dofile('lua/ii.lua')
         cal    = dofile('lua/calibrate.lua')
@@ -81,19 +81,19 @@ for chan = 1, #output do
     output[chan] = Output.new( chan )
 end
 
---- Asl
-function toward_handler( id ) end -- do nothing if Asl not active
+--- asl
+function toward_handler( id ) end -- do nothing if asl not active
 -- if defined, make sure active before setting up actions and banging
-if Asl then
+if asl then
     toward_handler = function( id )
         output[id].asl:step()
     end
 end
 -- special wrapper should really be in the ASL lib itself?
 function LL_toward( id, d, t, s )
-    if type(d) == 'function' then d = d() end
-    if type(t) == 'function' then t = t() end
-    if type(s) == 'function' then s = s() end
+    while type(d) == 'function' do d = d() end
+    while type(t) == 'function' do t = t() end
+    while type(s) == 'function' do s = s() end
     go_toward( id, d, t, s )
 end
 
