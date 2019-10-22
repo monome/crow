@@ -174,6 +174,8 @@ void REPL_print_script_name( char* buffer )
 // private funcs
 static void REPL_receive_script( char* buf, uint32_t len, ErrorHandler_t errfn )
 {
+    if( repl_mode == REPL_discard ){ return; } // EARLY RETURN
+
     if( new_script_len + len >= USER_SCRIPT_SIZE ){
         Caw_send_luachunk("!ERROR! Script is too long.");
         repl_mode = REPL_discard;
