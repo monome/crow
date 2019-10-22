@@ -86,7 +86,6 @@ function toward_handler( id ) end -- do nothing if asl not active
 -- if defined, make sure active before setting up actions and banging
 if asl then
     toward_handler = function( id )
-        print(collectgarbage('count'))
         output[id].asl:step()
     end
 end
