@@ -6,8 +6,8 @@ function Output.new( chan )
               , rate    = 1/chan
               , shape   = 'linear'
               , slew    = 0.0
-              , asl     = Asl.new( chan )
---              , trig    = { asl      = Asl.new(k)
+              , asl     = asl.new( chan )
+--              , trig    = { asl      = asl.new(k)
 --                          , polarity = 1
 --                          , time     = 1
 --                          , level    = 5

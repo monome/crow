@@ -11,8 +11,8 @@ local function closelibs()
     -- TODO does this free the RAM used by 'dofile'?
     Input  = nil
     Output = nil
-    Asl    = nil
-    Asllib = nil
+    asl    = nil
+    asllib = nil
     metro  = nil
     ii     = nil
     cal    = nil
@@ -24,8 +24,8 @@ function _crow.libs( lib )
         -- load all
         Input  = dofile('lua/input.lua')
         Output = dofile('lua/output.lua')
-        Asl    = dofile('lua/asl.lua')
-        Asllib = dofile('lua/asllib.lua')
+        asl    = dofile('lua/asl.lua')
+        asllib = dofile('lua/asllib.lua')
         metro  = dofile('lua/metro.lua')
         ii     = dofile('lua/ii.lua')
         cal    = dofile('lua/calibrate.lua')
@@ -81,10 +81,10 @@ for chan = 1, #output do
     output[chan] = Output.new( chan )
 end
 
---- Asl
-function toward_handler( id ) end -- do nothing if Asl not active
+--- asl
+function toward_handler( id ) end -- do nothing if asl not active
 -- if defined, make sure active before setting up actions and banging
-if Asl then
+if asl then
     toward_handler = function( id )
         print(collectgarbage('count'))
         output[id].asl:step()

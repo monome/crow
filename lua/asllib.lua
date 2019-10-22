@@ -4,9 +4,6 @@
 
 Asllib = {}
 
-
-
-
 function n2v( n ) return asl.runtime( function(a) return a/12 end, n ) end
 function negate( n ) return asl.runtime( function(a) return -a end, n ) end
 function clamp( input, min, max )
@@ -16,7 +13,6 @@ function clamp( input, min, max )
                end
              , input, min, max )
 end
-
 
 function note( noteNum, duration )
     return{ to( n2v(noteNum), 0 )
