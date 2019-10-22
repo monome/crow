@@ -53,7 +53,7 @@
 // Private define
 #define APP_RX_DATA_SIZE  256 // tmp buffer until the parser runs in main loop
 #define APP_TX_DATA_SIZE  1024 // the only tx buffer
-#define CONNECTION_DELAY  250 // millisecond delay before sending buffer after connect
+#define CONNECTION_DELAY  500 // millisecond delay before sending buffer after connect
 
 // Private vars
 USBD_CDC_LineCodingTypeDef LineCoding = { 115200  // baud rate
