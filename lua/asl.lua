@@ -217,6 +217,20 @@ function to( dest, time, shape )
     end
 end
 
+function Asl.runtime(fn,...)
+    local args = {...}
+    if #args == 0 then
+        return fn()
+    else
+        local a = table.remove(args,1)
+        if type(a) == 'function' then
+            return Asl.runtime(function(...) return fn(a(),...) end, table.unpack(args))
+        else
+            return Asl.runtime(function(...) return fn(a,...) end, table.unpack(args))
+        end
+    end
+end
+
 function asl_prepend( fn_head, fns )
     table.insert( fns, 1, fn_head )
     return fns
