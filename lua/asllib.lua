@@ -8,7 +8,8 @@ Asllib = {}
 -- closure to be computed when the value is called.
 function m1( fn, a, ... )
     if type(a) == 'function' then
-        return function() return m1( fn, a(), ... ) end -- recursive!
+        local t = {...}
+        return function() return fn( a(), table.unpack(t) ) end
     else
         return fn( a, ... )
     end
@@ -18,6 +19,7 @@ end
 function n2v( n ) return m1( function(a) return a/12 end, n ) end
 function negate( n ) return m1( function(a) return -a end, n ) end
 function clamp( input, min, max )
+    min, max = min or 0.005, max or 1e10
     return m1( function( a, b, c )
                  return math.min( math.max( b, a ), c )
                end
@@ -30,13 +32,15 @@ end
 -- TODO build this recursively with m1 above for n-args
 function m2( fn, a, b, ... )
     if type(a) == 'function' then
+        local t = {...}
         if type(b) == 'function' then
-            return function() return fn(a(),b(),...) end
+            return function() return fn(a(),b(),table.unpack(t)) end
         else
-            return function() return fn(a(),b,...) end
+            return function() return fn(a(),b,table.unpack(t)) end
         end
     elseif type(b) == 'function' then
-        return function() return fn(a,b(),...) end
+        local t = {...}
+        return function() return fn(a,b(),table.unpack(t)) end
     else
         return fn(a,b,...)
     end
@@ -50,7 +54,8 @@ end
 
 function lfo( time, level )
     time, level = time or 1, level or 5
-    local function half(t) = m1( function(a) return clamp(a/2) end, t ) end
+    local function half(t) return m1( function(a) return clamp(a/2) end, t ) end
+
 
     return loop{ to(        level , half(time) )
                , to( negate(level), half(time) )}
@@ -69,9 +74,9 @@ function pulse( time, level, polarity )
                  , mag, pol)
     end
 
-    return{ to( active(level,pol) , 0 )
-          , to( 'here'            , clamp(time) )
-          , to( resting(level,pol), 0 )
+    return{ to( active(level,polarity) , 0 )
+          , to( 'here'                 , clamp(time) )
+          , to( resting(level,polarity), 0 )
           }
 end
 

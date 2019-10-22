@@ -86,14 +86,15 @@ function toward_handler( id ) end -- do nothing if Asl not active
 -- if defined, make sure active before setting up actions and banging
 if Asl then
     toward_handler = function( id )
+        print(collectgarbage('count'))
         output[id].asl:step()
     end
 end
 -- special wrapper should really be in the ASL lib itself?
 function LL_toward( id, d, t, s )
-    if type(d) == 'function' then d = d() end
-    if type(t) == 'function' then t = t() end
-    if type(s) == 'function' then s = s() end
+    while type(d) == 'function' do d = d() end
+    while type(t) == 'function' do t = t() end
+    while type(s) == 'function' do s = s() end
     go_toward( id, d, t, s )
 end
 
