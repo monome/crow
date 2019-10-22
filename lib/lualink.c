@@ -83,6 +83,7 @@ void Lua_Reset( void )
 {
     Metro_stop_all();
     for( int i=0; i<2; i++ ){
+        Timer_Stop(i);
         Detect_none( Detect_ix_to_p(i) );
     }
     for( int i=0; i<4; i++ ){
