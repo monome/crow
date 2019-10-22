@@ -228,20 +228,28 @@ static int8_t CDC_Itf_Receive( uint8_t* buf, uint32_t *len )
     return USBD_OK;
 }
 
-// user function grabs data from the queue
-uint8_t USB_rx_dequeue( uint8_t** buf, uint32_t* len )
+uint8_t USB_rx_dequeue_LOCK( uint8_t** buf, uint32_t* len )
 {
     if( UserRxDataLen ){ // non-zero means data is present
         *buf = UserRxBuffer;
         *len = UserRxDataLen;
         UserRxDataLen = 0; // reset rx array
+        return 1;
+    }
+    return 0;
+}
+
+// ONLY call this at the end of `if( USB_rx_dequeue_LOCK ){}`
+void USB_rx_dequeue_UNLOCK( void )
+{
+    if( !UserRxDataLen ){ // zero means data has been processed
 uint32_t old_primask = __get_PRIMASK();
 __disable_irq();
         USBD_CDC_ReceivePacket(&USBD_Device); // Receive the next packet
 __set_PRIMASK( old_primask );
-        return 1;
+    } else {
+        printf("data in rx_queue means something's wrong.\n");
     }
-    return 0;
 }
 
 static void TIM_Config(void)

@@ -99,20 +99,13 @@ static uint8_t _packet_complete( char* last_char )
 
 C_cmd_t Caw_try_receive( void )
 {
-    // TODO add scanning for 'goto_bootloader' override command. return 2
-    // TODO add start_flash_chunk command handling. return 3
-    // TODO add end_flash_chunk command handling. return 4
     static uint8_t* buf;
     static uint32_t len;
     static uint8_t multiline = 0;
 
     C_cmd_t retcmd = C_none; // if nothing to dequeue do nothing
 
-// FIXME
-// do we know that the buf & len haven't been overwritten? can we check?
-// we're assuming that a new CDC_Itf_Receive interrupt won't occur before below
-
-    if( USB_rx_dequeue( &buf, &len ) ){
+    if( USB_rx_dequeue_LOCK( &buf, &len ) ){
         retcmd = _find_cmd( (char*)buf, len ); // check for a system command
         if( retcmd != C_none ){ goto exit; } // sys command received, so skip ahead
         if( *buf == '\e' ){ // escape key
@@ -155,10 +148,7 @@ C_cmd_t Caw_try_receive( void )
             goto exit;
         }
     exit:
-        if( USB_rx_dequeue( &buf, &len ) ){
-            // if this happens it means the buffer is not being dealt with in time
-            printf("you thought this couldn't happen in caw.c %i\n",retcmd);
-        }
+        USB_rx_dequeue_UNLOCK();
     }
     return retcmd;
 }
