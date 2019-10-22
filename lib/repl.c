@@ -54,7 +54,7 @@ void REPL_init( lua_State* lua )
 
 void REPL_begin_upload( void )
 {
-    Lua_Reset(); // free up memory
+    REPL_reset(); // free up memory
     if( REPL_new_script_buffer( USER_SCRIPT_SIZE ) ){
         repl_mode = REPL_reception;
     } else {
@@ -98,7 +98,7 @@ void REPL_upload( int flash )
 
 void REPL_clear_script( void )
 {
-    Lua_Reset();
+    REPL_reset();
     Flash_clear_user_script();
     Caw_send_luachunk("User script cleared.");
     REPL_print_script_name(NULL);
@@ -107,12 +107,17 @@ void REPL_clear_script( void )
 
 void REPL_default_script( void )
 {
-    Lua_Reset();
+    REPL_reset();
     Flash_default_user_script();
     Caw_send_luachunk("Using default script.");
     REPL_print_script_name(NULL);
     Lua_load_default_script();
     Lua_crowbegin();
+}
+
+void REPL_reset( void )
+{
+    Lua = Lua_Reset();
 }
 
 void REPL_eval( char* buf, uint32_t len, ErrorHandler_t errfn )

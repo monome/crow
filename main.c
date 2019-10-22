@@ -56,7 +56,7 @@ int main(void)
             case C_print:       REPL_print_script(); break;
             case C_version:     system_print_version(); break;
             case C_identity:    system_print_identity(); break;
-            case C_killlua:     Lua_Reset(); break;
+            case C_killlua:     REPL_reset(); break;
             case C_flashclear:  REPL_clear_script(); break;
             case C_loadFirst:   REPL_default_script(); break;
             default: break; // 'C_none' does nothing
