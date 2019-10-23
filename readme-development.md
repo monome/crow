@@ -478,7 +478,7 @@ void pickle( uint8_t* address, uint8_t* data, uint8_t* byte_count );
 void unpickle( uint8_t* address, uint8_t* command, uint8_t* data );
 ```
 
-In general, these functions should only be used if the serial protocol isn't working correctly, or there's some kind of low-level hack required to satisfy an existing device. If at all possible, try to avoid using them, and if you're desigining a new device, please use the standard protocol!
+In general, these functions should only be used if the serial protocol isn't working correctly, or there's some kind of low-level hack required to satisfy an existing device. If at all possible, try to avoid using them, and if you're designing a new device, please use the standard protocol!
 
 
 #### I2C Roadmap: Fract types & normalization
