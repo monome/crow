@@ -14,6 +14,7 @@ function Asl.new(id)
     asl.hold    = false    -- is the slope trigger currently held high
     asl.in_hold = false    -- is eval currently in a held construct
     asl.locked  = false    -- flag to lockout bangs during lock{}
+    asl.running = false    -- flag to mark if asl is active
     asl.retStk = {}
     asl.pc = 1
     asl.done = function() end -- function that does nothing
@@ -26,6 +27,7 @@ function Asl:init() -- reset to defaults
     self.hold    = false  -- is the slope trigger currently held high
     self.in_hold = false  -- is eval currently in a held construct
     self.locked  = false  -- flag to lockout bangs during lock{}
+    self.running = false  -- flag to mark if asl is active
     self.retStk = {}
     self.pc = 1
     return self
@@ -46,6 +48,7 @@ local function set_action( self, exe )
 end
 
 local function do_action( self, dir )
+    self.running = true  -- mark asl as running
     local t = type(dir)
     if t == 'table' then
         set_action(self,dir) -- assign new action. dir is an ASL!
@@ -127,8 +130,8 @@ function Asl:step()
             if self:nek() then print'layer doesnt exist'
             else self:step() end
         else
-            print'asl complete?'
-            self.done()
+            self.running = false
+            self.done() -- user callback on completion
         end
         return
     end

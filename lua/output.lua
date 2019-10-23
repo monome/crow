@@ -40,7 +40,7 @@ end
 Output.__index = function(self, ix)
     if     ix == 'action'  then return self.asl.action
     elseif ix == 'volts'   then return LL_get_state(self.channel)
-    elseif ix == 'running' then return self.asl:isOver() or false
+    elseif ix == 'running' then return self.asl.running
     end
 end
 
