@@ -16,9 +16,6 @@ function Output.new( chan )
     o.asl.action = lfo( function() return o.rate  end
                       , function() return o.level end
                       )
-    -- function to be called on completion of asl sequence
-    o.done = function() _c.tell('asl_done',o.channel) end
-    o.asl.done = o.done
 
     setmetatable( o, Output )
 
@@ -33,6 +30,8 @@ Output.__newindex = function(self, ix, val)
     elseif ix == 'volts' then
         self.asl.action = {to(val, self.slew)}
         self.asl:action()
+    elseif ix == 'done' then
+        self.asl.done = val
     end
 end
 
