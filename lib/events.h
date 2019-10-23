@@ -30,6 +30,7 @@ extern void (*app_event_handlers[])(event_t *e);
 
 
 extern void events_init(void);
+extern void events_clear(void);
 extern uint8_t event_post(event_t *e);
 extern uint8_t event_next(event_t *e);
 

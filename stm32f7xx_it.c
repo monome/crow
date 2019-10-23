@@ -41,15 +41,19 @@
 #include "stm32f7xx_hal.h"
 #include "stm32f7xx_it.h"
 
+#include "ll/debug_usart.h" // U_PrintNow()
+
 /******************************************************************************/
 /*            Cortex-M7 Processor Exceptions Handlers                         */
 /******************************************************************************/
 
+void wait(void){ U_PrintNow(); while(1); }
+
 void NMI_Handler(void){ printf("!!NMI\n"); }
-void HardFault_Handler(void){ printf("!!HardFault\n"); while(1){} }
-void MemManage_Handler(void){ printf("!!MemManage\n"); while(1){} }
-void BusFault_Handler(void){ printf("!!BusFault\n"); while(1){} }
-void UsageFault_Handler(void){ printf("!!UsageFault\n"); while(1){} }
+void HardFault_Handler(void){ printf("!!HardFault\n"); wait(); }
+void MemManage_Handler(void){ printf("!!MemManage\n"); wait(); }
+void BusFault_Handler(void){ printf("!!BusFault\n"); wait(); }
+void UsageFault_Handler(void){ printf("!!UsageFault\n"); wait(); }
 void SVC_Handler(void){ printf("!!SVC\n"); }
 void DebugMon_Handler(void){ printf("!!DebugMon\n"); }
 void PendSV_Handler(void){ printf("!!PendSV\n"); }

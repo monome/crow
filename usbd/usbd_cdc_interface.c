@@ -53,6 +53,7 @@
 // Private define
 #define APP_RX_DATA_SIZE  256 // tmp buffer until the parser runs in main loop
 #define APP_TX_DATA_SIZE  1024 // the only tx buffer
+#define CONNECTION_DELAY  500 // millisecond delay before sending buffer after connect
 
 // Private vars
 USBD_CDC_LineCodingTypeDef LineCoding = { 115200  // baud rate
@@ -100,11 +101,10 @@ int timerdelay = 0;
 static int8_t CDC_Itf_Init(void)
 {
     USBD_CDC_SetRxBuffer(&USBD_Device, UserRxBuffer);
-    USBD_CDC_SetTxBuffer(&USBD_Device, UserTxBuffer, 0);
 
     // set the timerdelay, so the TIM can be started but *not* send for
     // the first 100ms to solve ECHO issue on norns. see #137
-    timerdelay = 100 / CDC_POLLING_INTERVAL;
+    timerdelay = CONNECTION_DELAY / CDC_POLLING_INTERVAL;
     TIM_Config();
     if( HAL_TIM_Base_Start_IT(&USBTimHandle) != HAL_OK ){
         printf("!usb tim_start\n");
@@ -228,20 +228,28 @@ static int8_t CDC_Itf_Receive( uint8_t* buf, uint32_t *len )
     return USBD_OK;
 }
 
-// user function grabs data from the queue
-uint8_t USB_rx_dequeue( uint8_t** buf, uint32_t* len )
+uint8_t USB_rx_dequeue_LOCK( uint8_t** buf, uint32_t* len )
 {
     if( UserRxDataLen ){ // non-zero means data is present
         *buf = UserRxBuffer;
         *len = UserRxDataLen;
         UserRxDataLen = 0; // reset rx array
+        return 1;
+    }
+    return 0;
+}
+
+// ONLY call this at the end of `if( USB_rx_dequeue_LOCK ){}`
+void USB_rx_dequeue_UNLOCK( void )
+{
+    if( !UserRxDataLen ){ // zero means data has been processed
 uint32_t old_primask = __get_PRIMASK();
 __disable_irq();
         USBD_CDC_ReceivePacket(&USBD_Device); // Receive the next packet
 __set_PRIMASK( old_primask );
-        return 1;
+    } else {
+        printf("data in rx_queue means something's wrong.\n");
     }
-    return 0;
 }
 
 static void TIM_Config(void)

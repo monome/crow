@@ -23,6 +23,7 @@ uint16_t    new_script_len;
 // prototypes
 static bool REPL_new_script_buffer( uint32_t len );
 static void REPL_receive_script( char* buf, uint32_t len, ErrorHandler_t errfn );
+static char* REPL_script_name_from_mem( char* dest, char* src, int max_len );
 
 // public interface
 void REPL_init( lua_State* lua )
@@ -53,7 +54,7 @@ void REPL_init( lua_State* lua )
 
 void REPL_begin_upload( void )
 {
-    Lua_Reset(); // free up memory
+    REPL_reset(); // free up memory
     if( REPL_new_script_buffer( USER_SCRIPT_SIZE ) ){
         repl_mode = REPL_reception;
     } else {
@@ -76,19 +77,47 @@ void REPL_upload( int flash )
                                            , new_script_len
                                            ) ){
                     printf("flash write failed\n");
-                    Caw_send_luachunk("flash write failed");
+                    Caw_send_luachunk("User script upload failed!");
+                } else {
+                    printf("script saved, len: %i\n", new_script_len);
+                    Caw_send_luachunk("User script updated.");
+                    REPL_print_script_name(NULL);
+                    Lua_crowbegin();
                 }
-                printf("script saved, len: %i\n", new_script_len);
             } else {
-                Caw_send_luachunk("running...");
+                REPL_print_script_name(new_script);
+                Lua_crowbegin();
             }
-            Lua_crowbegin();
         } else {
-            Caw_send_luachunk("evaluation failed");
+            Caw_send_luachunk("User script evaluation failed.");
         }
         free(new_script);
     }
     repl_mode = REPL_normal;
+}
+
+void REPL_clear_script( void )
+{
+    REPL_reset();
+    Flash_clear_user_script();
+    Caw_send_luachunk("User script cleared.");
+    REPL_print_script_name(NULL);
+    Lua_crowbegin();
+}
+
+void REPL_default_script( void )
+{
+    REPL_reset();
+    Flash_default_user_script();
+    Caw_send_luachunk("Using default script.");
+    REPL_print_script_name(NULL);
+    Lua_load_default_script();
+    Lua_crowbegin();
+}
+
+void REPL_reset( void )
+{
+    Lua = Lua_Reset();
 }
 
 void REPL_eval( char* buf, uint32_t len, ErrorHandler_t errfn )
@@ -100,32 +129,49 @@ void REPL_eval( char* buf, uint32_t len, ErrorHandler_t errfn )
                    )){
             printf("!eval\n");
         }
-    } else { // REPL_reception
+    } else if( repl_mode == REPL_reception ){ // REPL_reception
         REPL_receive_script( buf, len, errfn );
-    }
+    } // else REPL_discard
 }
 
 void REPL_print_script( void )
 {
-    uint16_t length; // satisfy switch
+    if( Flash_which_user_script() == USERSCRIPT_User ){
+        uint16_t length = Flash_read_user_scriptlen();
+        char* addr = Flash_read_user_scriptaddr();
+        const int chunk = 0x200;
+        while( length > chunk ){
+            Caw_send_raw( (uint8_t*)addr, chunk );
+            length -= chunk;
+            addr += chunk;
+            HAL_Delay(3); // wait for usb tx
+        }
+        Caw_send_raw( (uint8_t*)addr, length );
+    } else {
+        REPL_print_script_name(NULL);
+    }
+}
+
+void REPL_print_script_name( char* buffer )
+{
     switch( Flash_which_user_script() ){
         case USERSCRIPT_Default:
-            Caw_send_luachunk("running 'First' script.");
+            Caw_send_luachunk("Running: First.lua");
             break;
         case USERSCRIPT_User:
-            length = Flash_read_user_scriptlen();
-            char* addr = Flash_read_user_scriptaddr();
-            const int chunk = 0x200;
-            while( length > chunk ){
-                Caw_send_raw( (uint8_t*)addr, chunk );
-                length -= chunk;
-                addr += chunk;
-                HAL_Delay(3); // wait for usb tx
-            }
-            Caw_send_raw( (uint8_t*)addr, length );
+            buffer[0] = buffer[0]; // satisfy switch
+            char script[64];
+            memset( script, '\0', 64 );
+            strcpy( script, "Running: " );
+            REPL_script_name_from_mem( &script[9]
+                                     , buffer ? buffer
+                                              : (char*)(USER_SCRIPT_LOCATION+4 )
+                                     , 64-10
+                                     );
+            Caw_send_luachunk(script);
             break;
         case USERSCRIPT_Clear:
-            Caw_send_luachunk("no user script.");
+            Caw_send_luachunk("No user script.");
             break;
     }
 }
@@ -134,7 +180,7 @@ void REPL_print_script( void )
 static void REPL_receive_script( char* buf, uint32_t len, ErrorHandler_t errfn )
 {
     if( new_script_len + len >= USER_SCRIPT_SIZE ){
-        Caw_send_luachunk("!script: upload is too big");
+        Caw_send_luachunk("!ERROR! Script is too long.");
         repl_mode = REPL_discard;
         free(new_script);
     } else {
@@ -147,11 +193,26 @@ static bool REPL_new_script_buffer( uint32_t len )
 {
     new_script = malloc(len);
     if( new_script == NULL ){
-        printf("out of mem\n");
-        Caw_send_luachunk("!script: out of memory");
+        printf("malloc failed. REPL\n");
+        Caw_send_luachunk("!ERROR! Out of memory.");
         return false;
     }
     memset(new_script, 0, len);
     new_script_len = 0;
     return true;
+}
+
+static char* REPL_script_name_from_mem( char* dest, char* src, int max_len )
+{
+    while( *src == '-' ){ src++; } // skip commments
+    while( *src == ' ' ){ src++; } // skip spaces
+    char* linebreak = strchr( src, '\n' );
+    if( linebreak ){ // print until newline
+        int len = (int)(linebreak - src);
+        if( len > max_len ){ len = max_len; }
+        strncpy( dest, src, len );
+    } else { // can't find a new line, so just fill the buffer
+        strncpy( dest, src, max_len );
+    }
+    return dest;
 }
