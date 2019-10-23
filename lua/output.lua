@@ -16,7 +16,12 @@ function Output.new( chan )
     o.asl.action = lfo( function() return o.rate  end
                       , function() return o.level end
                       )
+    -- function to be called on completion of asl sequence
+    o.done = function() _c.tell('asl_done',o.channel) end
+    o.asl.done = o.done
+
     setmetatable( o, Output )
+
     return o
 end
 
@@ -43,6 +48,7 @@ end
 Output.__call = function(self, ...)
     self.asl:action(...)
 end
+
 
 setmetatable(Output, Output) -- capture the metamethods
 

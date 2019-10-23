@@ -16,6 +16,7 @@ function Asl.new(id)
     asl.locked  = false    -- flag to lockout bangs during lock{}
     asl.retStk = {}
     asl.pc = 1
+    asl.done = function() end -- function that does nothing
     setmetatable( asl, Asl )
     return asl
 end
@@ -125,6 +126,9 @@ function Asl:step()
         if self:exit() then
             if self:nek() then print'layer doesnt exist'
             else self:step() end
+        else
+            print'asl complete?'
+            self.done()
         end
         return
     end
