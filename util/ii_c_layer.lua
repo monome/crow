@@ -96,7 +96,7 @@ function c_unpickle(f)
             s = s .. '\t\tcase ' .. f.i2c_address .. ': // '.. f.module_name..'\n'
                   .. '\t\t\tnop = nop;\n'
                   .. '\t\t\t' .. string.gsub(f.unpickle,"\n","\n\t\t\t")
-                  .. 'break;\n'
+                  .. '\n\t\t\tbreak;\n'
         end
     end
     s = s .. '\t\tdefault: return; // no custom pickler\n'
@@ -117,7 +117,7 @@ function c_pickle(f)
             s = s .. '\t\tcase ' .. f.i2c_address .. ': // '.. f.module_name..'\n'
                   .. '\t\t\tnop = nop;\n'
                   .. '\t\t\t' .. string.gsub(f.pickle,"\n","\n\t\t\t")
-                  .. 'break;\n'
+                  .. '\n\t\t\tbreak;\n'
         end
     end
     s = s .. '\t\tdefault: return; // no custom pickler\n'
