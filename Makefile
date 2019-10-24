@@ -245,8 +245,9 @@ boot:
 
 zip: $(BIN)
 	mkdir -p $(TARGET)-$(GIT_VERSION)
-	cp util/erase_userscript.command $(TARGET)-$(GIT_VERSION)/
-	cp util/update_firmware_osx_linux.command $(TARGET)-$(GIT_VERSION)/
+	cp util/osx_linux-erase_userscript.command $(TARGET)-$(GIT_VERSION)/
+	cp util/osx_linux-update_firmware.command $(TARGET)-$(GIT_VERSION)/
+	cp util/windows-update_firmware.bat $(TARGET)-$(GIT_VERSION)/
 	cp util/blank.bin $(TARGET)-$(GIT_VERSION)/
 	cp $(BIN) $(TARGET)-$(GIT_VERSION)/
 	zip -r $(TARGET)-$(GIT_VERSION).zip $(TARGET)-$(GIT_VERSION)/
