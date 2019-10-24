@@ -82,6 +82,6 @@ do return
   , retval = { 'state', u8 }
   }
 --void pickle( uint8_t* address, uint8_t* data, uint8_t* byte_count );
-, pickle = 'data[0] -= 1;  // zero-index the channel'
+, pickle = 'data[1] -= 1;  // zero-index the channel'
 }
 end
