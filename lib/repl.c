@@ -169,7 +169,7 @@ void REPL_print_script_name( char* buffer )
                                      );
             Caw_send_luachunk(script);
             break;
-	}
+            }
         case USERSCRIPT_Clear:
             Caw_send_luachunk("No user script.");
             break;
