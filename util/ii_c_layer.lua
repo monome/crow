@@ -89,14 +89,12 @@ function c_unpickle(f)
            .. '                       , uint8_t* command\n'
            .. '                       , uint8_t* data\n'
            .. '                       ){\n'
-           .. '\tuint8_t nop = 0; // make switch() happy\n'
            .. '\tswitch( *address ){\n'
     for _,f in ipairs(files) do
         if f.unpickle then
-            s = s .. '\t\tcase ' .. f.i2c_address .. ': // '.. f.module_name..'\n'
-                  .. '\t\t\tnop = nop;\n'
+            s = s .. '\t\tcase ' .. f.i2c_address .. ':{ // '.. f.module_name..'\n'
                   .. '\t\t\t' .. string.gsub(f.unpickle,"\n","\n\t\t\t")
-                  .. '\n\t\t\tbreak;\n'
+                  .. '\n\t\t\tbreak;}\n'
         end
     end
     s = s .. '\t\tdefault: return; // no custom pickler\n'
@@ -110,14 +108,12 @@ function c_pickle(f)
            .. '                     , uint8_t* data\n'
            .. '                     , uint8_t* byte_count\n'
            .. '                     ){\n'
-           .. '\tuint8_t nop = 0; // make switch() happy\n'
            .. '\tswitch( *address ){\n'
     for _,f in ipairs(files) do
         if f.pickle then
-            s = s .. '\t\tcase ' .. f.i2c_address .. ': // '.. f.module_name..'\n'
-                  .. '\t\t\tnop = nop;\n'
+            s = s .. '\t\tcase ' .. f.i2c_address .. ':{ // '.. f.module_name..'\n'
                   .. '\t\t\t' .. string.gsub(f.pickle,"\n","\n\t\t\t")
-                  .. '\n\t\t\tbreak;\n'
+                  .. '\n\t\t\tbreak;}\n'
         end
     end
     s = s .. '\t\tdefault: return; // no custom pickler\n'
