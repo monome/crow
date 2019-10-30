@@ -9,7 +9,7 @@ typedef enum{ SHAPE_Linear
             , SHAPE_Sine
             , SHAPE_Cosine
             , SHAPE_Log
-            , SHAPE_Exp
+            , SHAPE_Expo
 } Shape_t;
 
 typedef void (*Callback_t)(int channel);
@@ -30,8 +30,14 @@ typedef struct{
 
 #define SLOPE_CHANNELS 4
 
-// register a new destination
+// refactor for dynamic SLOPE_CHANNELS
+// refactor for dynamic SAMPLE_RATE
+// refactor to S_init returning pointers, but internally tracking indexes?
+
 void S_init( int channels );
+
+Shape_t S_str_to_shape( const char* s );
+
 float S_get_state( int index );
 void S_toward( int        index
              , float      destination

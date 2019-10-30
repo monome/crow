@@ -45,6 +45,18 @@ void S_init( int channels )
     }
 }
 
+Shape_t S_str_to_shape( const char* s )
+{
+    if( *s == 'l' ){
+        if( s[1] == 'o' ){  return SHAPE_Log;
+        } else {            return SHAPE_Linear; }
+    } else if( *s == 's' ){ return SHAPE_Sine;
+    } else if( *s == 'c' ){ return SHAPE_Cosine;
+    } else if( *s == 'e' ){ return SHAPE_Expo;
+    } else {                return SHAPE_Linear; //fallback to linear
+    }
+}
+
 float S_get_state( int index )
 {
     if( index < 0 || index >= SLOPE_CHANNELS ){ return 0.0; }

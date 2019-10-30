@@ -227,11 +227,10 @@ static int _time( lua_State *L )
 }
 static int _go_toward( lua_State *L )
 {
-    //const char* shape = luaL_checkstring(L, 4);
     S_toward( luaL_checkinteger(L, 1)-1 // C is zero-based
             , luaL_checknumber(L, 2)
             , luaL_checknumber(L, 3) * 1000.0
-            , SHAPE_Linear // Shape_t
+            , S_str_to_shape( luaL_checkstring(L, 4) )
             , L_queue_toward
             );
     lua_pop( L, 4 );
