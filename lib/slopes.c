@@ -1,19 +1,38 @@
 #include "slopes.h"
 
 #include <stdlib.h>
+#include <math.h>
 
 #include "stm32f7xx.h"
 
+
+////////////////////////////////
+// global vars
 uint8_t slope_count = 0;
 Slope_t* slopes = NULL;
 
-// register a new destination
+
+////////////////////////////////
+// private declarations
+
+static float* step_v( Slope_t* self, float* out, int size );
+static float* static_v( Slope_t* self, float* out, int size );
+static float* motion_v( Slope_t* self, float* out, int size );
+static float* breakpoint_v( Slope_t* self, float* out, int size );
+static float* shaper_v( Slope_t* self, float* out, int size );
+static float shaper( Slope_t* self, float out );
+
+
+////////////////////////////////
+// public definitions
+
 void S_init( int channels )
 {
     slope_count = channels;
     slopes = malloc( sizeof( Slope_t ) * channels );
     if( !slopes ){ printf("slopes malloc failed\n"); return; }
     for( int j=0; j<SLOPE_CHANNELS; j++ ){
+        slopes[j].index  = j;
         slopes[j].dest   = 0.0;
         slopes[j].shape  = SHAPE_Linear;
         slopes[j].action = NULL;
@@ -33,6 +52,7 @@ float S_get_state( int index )
     return self->here;
 }
 
+// register a new destination
 void S_toward( int        index
              , float      destination
              , float      ms
@@ -81,91 +101,131 @@ float* S_step_v( int     index
     if( index < 0 || index >= SLOPE_CHANNELS ){ return out; }
     Slope_t* self = &slopes[index]; // safe pointer
 
-    //TODO wrap the below in a function
-    // then apply it to a 'shaper' function that uses last & dest to calc
-    // shaper function should have default shapes, but also capacity
-    // to handle an array of quantize values either over the full range
-    // or on a repeating octave
+    return step_v( self, out, size );
+}
 
+
+
+///////////////////////
+// private defns
+
+static float* step_v( Slope_t* self
+                    , float*   out
+                    , int      size
+                    )
+{
+    if( self->countdown <= 0.0 ){ // at destination
+        static_v( self, out, size );
+    } else if( self->countdown > (float)size ){ // no edge case
+        motion_v( self, out, size );
+    } else {
+        breakpoint_v( self, out, size );
+    }
+    return out;
+}
+
+static float* static_v( Slope_t* self, float* out, int size )
+{
+    float* out2 = out;
+    for( int i=0; i<size; i++ ){
+        *out2++ = self->here;
+    }
+    if( self->countdown > -1024.0 ){ // count overflow samples
+        self->countdown -= (float)size;
+    }
+    return shaper_v( self, out, size );
+}
+
+static float* motion_v( Slope_t* self, float* out, int size )
+{
     float* out2 = out;
     float* out3 = out;
-    if( self->countdown <= 0.0 ){ // at destination
+
+    if( self->delta == 0.0 ){ // delay only
         for( int i=0; i<size; i++ ){
             *out2++ = self->here;
         }
-        if( self->countdown > -1024.0 ){ // count overflow samples
-            self->countdown -= (float)size;
-        }
-    } else if( self->countdown > (float)size ){ // no edge case
-        if( self->delta == 0.0 ){ // delay only
-            for( int i=0; i<size; i++ ){
-                *out2++ = self->here;
-            }
-        } else {
-            *out2++ = self->here + self->delta;
-            for( int i=1; i<size; i++ ){
-                *out2++ = *out3++ + self->delta;
-            }
-        }
-        self->countdown -= (float)size;
     } else {
-        // TODO add special case for delta == 0.0 ie delay
-        int i = (int)self->countdown;
-        float iRem = self->countdown - (float)i;
-        float after_breakRem = 1.0 - iRem;
-        int after_break = size - i - 1; // 1 is the iRem + after_breakRem
-
         *out2++ = self->here + self->delta;
-        if(i--){ // account for above, and skip if zero
-            while(i--){
-                *out2++ = *out3++ + self->delta;
-            }
+        for( int i=1; i<size; i++ ){
+            *out2++ = *out3++ + self->delta;
         }
-        *out2++ = self->dest;
-        // TODO compesnate for this amount of overshoot with the new trajectory
-        // this means don't `+ self->delta` the last but just set to self->dest
-        self->countdown = -after_breakRem;
-
-        // BREAKPOINT!
-        //TODO set self->action to NULL before calling
-        if( self->action != NULL ){
-            (*self->action)(index);
-            // FIXME to allow the action to be async we pretend we've 'arrived'
-            // TODO a number of refinements can be added to improve accuracy:
-            //  1 set a flag and count samples to compensate on next stage
-            //  2 setup a continuation so next breakpoint can backtrack and fix samps
-            //  3 request self->action 1 frame *before* breakpoint and enqueue the
-            //      settings, so the vals are ready to be used locally
-            self->here  = self->dest;
-            self->delta = 0.0;
-            self->countdown -= (float)after_break; // compensate!
-            for(; after_break>0; after_break-- ){
-                *out2++ = self->here;
-            }
-            return out;
-        }
-
-        // NO ACTION (S_toward was not called by action)
-        if( self->countdown <= 0.0 ){ // treat as 'arrived'
-            self->here  = self->dest;
-            self->delta = 0.0;
-            self->countdown -= (float)after_break; // compensate!
-            for(; after_break>0; after_break-- ){
-                *out2++ = self->here;
-            }
-            return out;
-        }
-
-        // NEXT STAGE
-        // FIXME recursive function for 3 options takes i
-        // TODO apply the partial step
-        // FIXME currently assuming no breakpoint occurs here
-        for( i=after_break; i>0; i-- ){
-            //*out2++ = *out3++ + self->delta; // <- broken by event system
-            *out2++ = self->here; // FIXME just clamping bc action hasn't applied yet
-        }
-        self->countdown -= (float)after_break;
     }
-    self->here = out[size-1]; // TODO overwrites delay() breakpoint
+    self->countdown -= (float)size;
+    self->here = out[size-1];
+    return shaper_v( self, out, size );
+}
+
+static float* breakpoint_v( Slope_t* self, float* out, int size )
+{
+    if( size <= 0 ){ return out; }
+
+    self->here += self->delta; // no collision can happen on first samp
+
+    self->countdown -= 1.0;
+    if( self->countdown <= 0.0 ){
+        self->here = self->dest; // clamp for overshoot
+        if( self->action != NULL ){
+            Callback_t act = self->action;
+            self->action = NULL;
+            (*act)(self->index);
+            // side-affects: self->{dest, shape, action, countdown, delta, (here)}
+        }
+        if( self->action != NULL ){ // instant callback
+            printf("FIXME: shouldn't happen on crow\n");
+            out[0] = shaper( self, self->here );
+            // 1. unwind self->countdown (ADD it to countdown)
+            // 2. recalc current sample with new slope
+            // 3. below call should be on out[0] and size
+            return step_v( self, &out[1], size-1 );
+        } else { // slope complete, or queued response
+            self->here  = self->dest;
+            self->delta = 0.0;
+            out[0] = shaper( self, self->here );
+            return static_v( self, &out[1], size-1 );
+        }
+    } else {
+        out[0] = shaper( self, self->here );
+        return breakpoint_v( self, &out[1], size-1 ); // recursive call
+    }
+}
+
+static float* shaper_v( Slope_t* self, float* out, int size )
+{
+    float* out2 = out;
+    for( int i=0; i<size; i++ ){
+        *out2 = shaper( self, *out2 );
+        out2++;
+    }
     return out;
 }
+
+#define M_PI   (3.14159)
+#define M_PI_2 (3.14159/2.0)
+static float shaper( Slope_t* self, float out )
+{
+    switch( self->shape ){
+        case SHAPE_Sine:   return shaper_sin( self, out );
+        case SHAPE_Cosine: return shaper_cos( self, out );
+        case SHAPE_Log:    return shaper_log( self, out );
+        case SHAPE_Exp:    return shaper_exp( self, out );
+        case SHAPE_Linear: return out;
+    }
+}
+
+
+static float shaper_sin( Slope_t* self, float out )
+{
+    float range = self->dest - self->last;
+    return self->last + range*sinf((out - self->last)*M_PI_2/(range));
+}
+static float shaper_cos( Slope_t* self, float out )
+{
+    float range = self->dest - self->last;
+    return self->last + range*sinf((out - self->last)*M_PI_2/(range));
+}
+
+
+
+
+

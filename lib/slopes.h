@@ -7,13 +7,15 @@
 
 typedef enum{ SHAPE_Linear
             , SHAPE_Sine
+            , SHAPE_Cosine
             , SHAPE_Log
-            , SHAPE_Expo
+            , SHAPE_Exp
 } Shape_t;
 
 typedef void (*Callback_t)(int channel);
 
 typedef struct{
+    int         index;
     // destination
     float       dest;
     Shape_t     shape;
