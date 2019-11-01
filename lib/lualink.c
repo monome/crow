@@ -347,8 +347,6 @@ static int _ii_pullup( lua_State *L )
 
 static int _ii_set( lua_State *L )
 {
-    printf("\nlua ii broadcast\n");
-
     // FIXME: 4 is max number of arguments. is this ok?
     float data[4] = {0,0,0,0}; // always zero out data
     int nargs = lua_gettop(L);

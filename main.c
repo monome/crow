@@ -67,5 +67,6 @@ int main(void)
         if( event_next(&e) ){
             (*app_event_handlers[e.type])(&e);
         }
+        ii_process();
     }
 }
