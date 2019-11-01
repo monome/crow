@@ -5,6 +5,8 @@
 
 #include "stm32f7xx.h"
 
+#include "wrBlocks.h" // for vectorized shapers
+
 
 ////////////////////////////////
 // global vars
@@ -22,6 +24,17 @@ static float* breakpoint_v( Slope_t* self, float* out, int size );
 static float* shaper_v( Slope_t* self, float* out, int size );
 static float shaper( Slope_t* self, float out );
 
+static float shaper_sin( Slope_t* self, float out );
+static float shaper_cos( Slope_t* self, float out );
+static float shaper_log( Slope_t* self, float out );
+static float shaper_exp( Slope_t* self, float out );
+
+typedef float (trig_t)(float in);
+static float* shaper_v_sincos( Slope_t* self, trig_t fn, float* out, int size );
+static float* shaper_v_sin( Slope_t* self, float* out, int size );
+static float* shaper_v_cos( Slope_t* self, float* out, int size );
+static float* shaper_v_exp( Slope_t* self, float* out, int size );
+static float* shaper_v_log( Slope_t* self, float* out, int size );
 
 ////////////////////////////////
 // public definitions
@@ -202,8 +215,22 @@ static float* breakpoint_v( Slope_t* self, float* out, int size )
     }
 }
 
+
+///////////////////////////////
+// shapers
+
+// vectors for optimized segments (assume: self->shape is constant)
 static float* shaper_v( Slope_t* self, float* out, int size )
 {
+    //switch( self->shape ){
+    //    case SHAPE_Sine:   return shaper_v_sincos( self, &sinf, out, size );
+    //    case SHAPE_Cosine: return shaper_v_sincos( self, &cosf, out, size );
+    //    //case SHAPE_Log:    return shaper_v_log( self, out, size );
+    //    //case SHAPE_Expo:   return shaper_v_exp( self, out, size );
+    //    case SHAPE_Linear: return out;
+    //    default: break; // if no vector, use single-sample below >>>
+    //}
+
     float* out2 = out;
     for( int i=0; i<size; i++ ){
         *out2 = shaper( self, *out2 );
@@ -212,32 +239,85 @@ static float* shaper_v( Slope_t* self, float* out, int size )
     return out;
 }
 
-#define M_PI   (3.14159)
-#define M_PI_2 (3.14159/2.0)
+// single sample for breakpoint segment
 static float shaper( Slope_t* self, float out )
 {
     switch( self->shape ){
         case SHAPE_Sine:   return shaper_sin( self, out );
         case SHAPE_Cosine: return shaper_cos( self, out );
         case SHAPE_Log:    return shaper_log( self, out );
-        case SHAPE_Exp:    return shaper_exp( self, out );
-        case SHAPE_Linear: return out;
+        case SHAPE_Expo:   return shaper_exp( self, out );
+        case SHAPE_Linear: default: return out; // Linear falls through
     }
 }
 
+
+//////////////////////////////
+// single sample shapers
+
+#define M_PI   (3.141592653589793) // 64bit compatible
+#define M_PI_2 (M_PI/2.0)
 
 static float shaper_sin( Slope_t* self, float out )
 {
     float range = self->dest - self->last;
     return self->last + range*sinf((out - self->last)*M_PI_2/(range));
 }
+
 static float shaper_cos( Slope_t* self, float out )
 {
     float range = self->dest - self->last;
-    return self->last + range*sinf((out - self->last)*M_PI_2/(range));
+    return self->last + (range/2.0)*(1.0-cosf((out - self->last)*M_PI/(range)));
+}
+
+static float shaper_exp( Slope_t* self, float out )
+{
+    float range = self->dest - self->last;
+    float zero = out - self->last;
+    return self->last + range*(expf(4.0*(zero/range) - 3.98) - 0.01865);
+}
+
+static float shaper_log( Slope_t* self, float out )
+{
+    float range = self->dest - self->last;
+    float zero = out - self->last;
+    return self->last + (0.25*range) * logf(53.6*(zero/range) + 1.0);
 }
 
 
+////////////////////////////////
+// vectorized shapers
 
+static float* shaper_v_sincos( Slope_t* self, trig_t fn, float* out, int size )
+{
+    float range = self->dest - self->last;
+    float pi2range = M_PI_2/range;
+    printf("sincos\n");
 
+    return b_accum(
+                b_mul(
+                    b_map( fn,
+                        b_mul(
+                            b_sub( out
+                                 , self->last
+                                 , size )
+                             , pi2range
+                             , size )
+                         , size )
+                     , range
+                     , size )
+                  , self->last
+                  , size );
+}
 
+static float* shaper_v_exp( Slope_t* self, float* out, int size )
+{
+    printf("TODO shaper_v_exp\n");
+    return out;
+}
+
+static float* shaper_v_log( Slope_t* self, float* out, int size )
+{
+    printf("TODO shaper_v_log\n");
+    return out;
+}
