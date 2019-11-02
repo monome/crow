@@ -175,13 +175,12 @@ uint8_t* ii_processLeadRx( void )
 
 void I2C_Lead_RxCallback( uint8_t address, uint8_t cmd, uint8_t* data )
 {
-    printf("ii_lead_rx: cmd %i, data %i %i %i\n", cmd, data[0], data[1], data[2]);
-    const ii_Cmd_t* c = ii_find_command(address, cmd);
-    float val;
-    L_handle_ii_leadRx( address
-               , cmd
-               , *decode_packet( &val, data, c, 0 )
-               );
+    L_queue_ii_leadRx( address
+                     , cmd
+                     , decode( data
+                             , ii_find_command(address, cmd)->return_type
+                             )
+                     );
 }
 
 void I2C_Follow_RxCallback( uint8_t* data )
@@ -193,9 +192,9 @@ void I2C_Follow_RxCallback( uint8_t* data )
     // run the callback directly
     // TODO: THIS GOES IN THE EVENT SYSTEM
     L_handle_ii_followRx( cmd
-                   , c->args
-                   , decode_packet( args, data, c, 1 )
-                   );
+                        , c->args
+                        , decode_packet( args, data, c, 1 )
+                        );
 }
 
 void I2C_Follow_TxCallback( uint8_t* data )
