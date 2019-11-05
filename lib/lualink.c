@@ -347,8 +347,6 @@ static int _ii_pullup( lua_State *L )
 
 static int _ii_set( lua_State *L )
 {
-    printf("\nlua ii broadcast\n");
-
     // FIXME: 4 is max number of arguments. is this ok?
     float data[4] = {0,0,0,0}; // always zero out data
     int nargs = lua_gettop(L);
@@ -554,8 +552,8 @@ void Lua_crowbegin( void )
 // Public Callbacks from C to Lua
 void L_queue_toward( int id )
 {
-    event_t e = { .type  = E_toward
-                , .index = id
+    event_t e = { .type    = E_toward
+                , .index.i = id
                 };
     event_post(&e);
 }
@@ -573,9 +571,9 @@ void L_handle_toward( int id )
 
 void L_queue_metro( int id, int state )
 {
-    event_t e = { .type   = E_metro
-                , .index  = id
-                , .data.i = state
+    event_t e = { .type    = E_metro
+                , .index.i = id
+                , .data.i  = state
                 };
     event_post(&e);
 }
@@ -593,9 +591,9 @@ void L_handle_metro( const int id, const int stage)
 
 void L_queue_in_stream( int id )
 {
-    event_t e = { .type   = E_stream
-                , .index  = id
-                , .data.f = IO_GetADC(id)
+    event_t e = { .type    = E_stream
+                , .index.i = id
+                , .data.f  = IO_GetADC(id)
                 };
     event_post(&e);
 }
@@ -613,9 +611,9 @@ void L_handle_in_stream( int id, float value )
 
 void L_queue_change( int id, float state )
 {
-    event_t e = { .type   = E_change
-                , .index  = id
-                , .data.f = state
+    event_t e = { .type    = E_change
+                , .index.i = id
+                , .data.f  = state
                 };
     event_post(&e);
 }
@@ -632,12 +630,21 @@ void L_handle_change( int id, float state )
     }
 }
 
+void L_queue_ii_leadRx( uint8_t address, uint8_t cmd, float data )
+{
+    event_t e = { .type   = E_ii_leadRx
+                , .data.f = data
+                };
+    e.index.u8s[0] = address;
+    e.index.u8s[1] = cmd;
+    event_post(&e);
+}
 void L_handle_ii_leadRx( uint8_t address, uint8_t cmd, float data )
 {
     lua_getglobal(L, "ii_LeadRx_handler");
     lua_pushinteger(L, address);
     lua_pushinteger(L, cmd);
-    lua_pushnumber(L, data); // TODO currently limited to single retval
+    lua_pushnumber(L, data);
     if( lua_pcall(L, 3, 0, 0) != LUA_OK ){
         printf("!ii.leadRx\n");
         Caw_send_luachunk("error: ii lead event");
