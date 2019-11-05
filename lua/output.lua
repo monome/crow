@@ -16,7 +16,9 @@ function Output.new( chan )
     o.asl.action = lfo( function() return o.rate  end
                       , function() return o.level end
                       )
+
     setmetatable( o, Output )
+
     return o
 end
 
@@ -28,21 +30,23 @@ Output.__newindex = function(self, ix, val)
     elseif ix == 'volts' then
         self.asl.action = {to(val, self.slew)}
         self.asl:action()
+    elseif ix == 'done' then
+        self.asl.done = val
     end
 end
 
 -- getters
 Output.__index = function(self, ix)
-    if ix == 'action' then
-        return self.asl.action
-    elseif ix == 'volts' then
-        return LL_get_state(self.channel)
+    if     ix == 'action'  then return self.asl.action
+    elseif ix == 'volts'   then return LL_get_state(self.channel)
+    elseif ix == 'running' then return self.asl.running
     end
 end
 
 Output.__call = function(self, ...)
     self.asl:action(...)
 end
+
 
 setmetatable(Output, Output) -- capture the metamethods
 

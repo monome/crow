@@ -158,8 +158,7 @@ void REPL_print_script_name( char* buffer )
         case USERSCRIPT_Default:
             Caw_send_luachunk("Running: First.lua");
             break;
-        case USERSCRIPT_User:
-            buffer[0] = buffer[0]; // satisfy switch
+        case USERSCRIPT_User: {
             char script[64];
             memset( script, '\0', 64 );
             strcpy( script, "Running: " );
@@ -170,6 +169,7 @@ void REPL_print_script_name( char* buffer )
                                      );
             Caw_send_luachunk(script);
             break;
+            }
         case USERSCRIPT_Clear:
             Caw_send_luachunk("No user script.");
             break;
