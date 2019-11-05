@@ -1,3 +1,10 @@
+-- bitmask definitions for commands
+local PARAM = 0x0
+local IN    = 0x4
+
+local QUANT = 0x8
+local N     = 0x10
+
 do return
 { module_name  = 'TXi'
 , manufacturer = 'bpc'
@@ -13,23 +20,33 @@ do return
     }
   }
 , getters =
-  { { name = 'in'
-    , cmd  = 0x0
+  { { name = 'param'
+    , cmd  = PARAM
+    , args = { 'channel', s8 }
+    , retval = { 'volts', s16V }
+    }
+  , { name = 'param_quant'
+    , cmd  = PARAM | QUANT
+    , args = { 'channel', s8 }
+    , retval = { 'volts', s16V }
+    }
+  , { name = 'param_N'
+    , cmd  = PARAM | N
+    , args = { 'channel', s8 }
+    , retval = { 'volts', s16V }
+    }
+  , { name = 'in'
+    , cmd  = IN
     , args = { 'channel', s8 }
     , retval = { 'volts', s16V }
     }
   , { name = 'in_quant'
-    , cmd  = 0x8
+    , cmd  = IN | QUANT
     , args = { 'channel', s8 }
     , retval = { 'volts', s16V }
     }
   , { name = 'in_N'
-    , cmd  = 0x10
-    , args = { 'channel', s8 }
-    , retval = { 'volts', s16V }
-    }
-  , { name = 'param'
-    , cmd  = 0x4
+    , cmd  = IN | N
     , args = { 'channel', s8 }
     , retval = { 'volts', s16V }
     }
