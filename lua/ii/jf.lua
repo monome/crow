@@ -13,19 +13,16 @@ do return
     }
   , { name = 'run_mode'
     , cmd  = 2
-    , get  = true
     , docs = 'Activate RUN if *mode* is non-zero'
     , args = { 'mode', s8 }
     }
   , { name = 'run'
     , cmd  = 3
-    , get  = true
     , docs = 'Set RUN value to *volts*. Requires run_mode(1)'
     , args = { 'volts', s16V }
     }
   , { name = 'transpose'
     , cmd  = 4
-    , get  = true
     , docs = 'Add *pitch* to the current TIME setting'
     , args = { 'pitch', s16V }
     }
@@ -38,13 +35,11 @@ do return
     }
   , { name = 'mode'
     , cmd  = 6
-    , get  = true
     , docs = 'If *mode* is non-zero, enter Synthesis / Geode'
     , args = { 'mode', s8 }
     }
   , { name = 'tick'
     , cmd  = 7
-    , get  = true
     , docs = 'Set geode tempo to *bpm*, or accept *clock* for geode'
     , args = { 'clock-or-bpm', s8 }
     }
@@ -67,7 +62,6 @@ do return
     }
   , { name = 'god_mode'
     , cmd  = 10
-    , get  = true
     , docs = 'If *state* is non-zero, shift pitch base to A=432Hz'
     , args = { 'state', s8 }
     }
@@ -81,16 +75,8 @@ do return
     }
   , { name = 'quantize'
     , cmd  = 12
-    , get  = true
     , docs = 'Quantize commands to every (bar/*divisions*)'
     , args = { 'divisions', s8 }
-    }
-  }
-, getters =
-  { { name = 'retune'
-    , cmd  = 11 + get_offset
-    , args = { 'channel', s8 }
-    , retval = { 'numerator', s8 }
     }
   }
 }
