@@ -42,9 +42,9 @@ function ii_LeadRx_handler( addr, cmd, data )
 end
 
 -- NOTE: weird double-escaped quotes down here for the c compiler
-function ii.e( name, event, data ) _c.tell('ii.'..name,'\\''..tostring(event)..'\\'',data) end
+function ii.e( name, event, data ) self.tell('ii.'..name,'\\''..tostring(event)..'\\'',data) end
 
-ii._c =
+ii.self =
     { cmds = { [1]='output'
              , [2]='slew'
              , [4]='call1'
@@ -73,13 +73,13 @@ ii._c =
 }
 
 function ii_followRx_handler( cmd, ... )
-    local name = ii._c.cmds[cmd]
-    ii._c[name](...)
+    local name = ii.self.cmds[cmd]
+    ii.self[name](...)
 end
 
 function ii_followRxTx_handler( cmd, ... )
-    local name = ii._c.cmds[cmd]
-    return ii._c[name](...)
+    local name = ii.self.cmds[cmd]
+    return ii.self[name](...)
 end
 
 return ii
