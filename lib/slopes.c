@@ -24,10 +24,12 @@ static float* breakpoint_v( Slope_t* self, float* out, int size );
 static float* shaper_v( Slope_t* self, float* out, int size );
 static float shaper( Slope_t* self, float out );
 
-static float shaper_sin( Slope_t* self, float out );
-static float shaper_cos( Slope_t* self, float out );
-static float shaper_log( Slope_t* self, float out );
-static float shaper_exp( Slope_t* self, float out );
+static float shaper_sin( float in );
+static float shaper_log( float in );
+static float shaper_exp( float in );
+static float shaper_ease_in_back( float in );
+static float shaper_ease_out_back( float in );
+static float shaper_ease_out_rebound( float in );
 
 typedef float (trig_t)(float in);
 static float* shaper_v_sincos( Slope_t* self, trig_t fn, float* out, int size );
@@ -47,14 +49,14 @@ void S_init( int channels )
     for( int j=0; j<SLOPE_CHANNELS; j++ ){
         slopes[j].index  = j;
         slopes[j].dest   = 0.0;
+        slopes[j].last   = 0.0;
         slopes[j].shape  = SHAPE_Linear;
         slopes[j].action = NULL;
-        slopes[j].here   = 0.0;
-        slopes[j].delta  = 0.0; //
-        slopes[j].scalar = SAMPLE_RATE / 1000.0; // TODO send SR as arg
-        slopes[j].last   = 0.0;
 
+        slopes[j].here   = 0.0;
+        slopes[j].delta  = 0.0;
         slopes[j].countdown = -1.0;
+        slopes[j].scale = 0.0;
     }
 }
 
@@ -64,8 +66,10 @@ Shape_t S_str_to_shape( const char* s )
         if( s[1] == 'o' ){  return SHAPE_Log;
         } else {            return SHAPE_Linear; }
     } else if( *s == 's' ){ return SHAPE_Sine;
-    } else if( *s == 'c' ){ return SHAPE_Cosine;
     } else if( *s == 'e' ){ return SHAPE_Expo;
+    } else if( *s == 'o' ){ return SHAPE_Over;
+    } else if( *s == 'u' ){ return SHAPE_Under;
+    } else if( *s == 'r' ){ return SHAPE_Rebound;
     } else {                return SHAPE_Linear; //fallback to linear
     }
 }
@@ -74,7 +78,7 @@ float S_get_state( int index )
 {
     if( index < 0 || index >= SLOPE_CHANNELS ){ return 0.0; }
     Slope_t* self = &slopes[index]; // safe pointer
-    return self->here;
+    return self->shaped;
 }
 
 // register a new destination
@@ -88,30 +92,32 @@ void S_toward( int        index
     if( index < 0 || index >= SLOPE_CHANNELS ){ return; }
     Slope_t* self = &slopes[index]; // safe pointer
 
-    // save current destination (for future shaping)
-    self->last   = self->here;
+    // save current output level as new starting point
+    self->last   = self->shaped;
 
     // update destination
     self->dest   = destination;
     self->shape  = shape;
     self->action = cb;
+    self->scale  = self->dest - self->last;
 
     // direct update & callback if ms = 0 (ie instant)
     if( ms <= 0.0 ){
-        self->here      = destination; // hard set
-        self->countdown = -1.0;        // inactive
-        // FIXME. delay is broken without calling the next action directly
-        //if( self->action != NULL ){ (*self->action)(index); } // call next step
+        self->here = 1.0; // hard set to end of range
+        self->countdown = -1.0; // inactive
+        self->last = self->dest;
+        self->shaped = self->dest;
     } else {
         float overflow = 0.0;
         if( self->countdown < 0.0 && self->countdown > -1023.0 ){
-            overflow = self->countdown;
+            overflow = -(self->countdown);
         }
-        self->countdown = ms * self->scalar; // samples until callback
-        self->delta = (self->dest - self->here) / self->countdown;
-        if( overflow < 0.0 ){
-            self->here -= overflow * self->delta;
-            self->countdown += overflow;
+        self->countdown = ms * SAMPLES_PER_MS; // samples until callback
+        self->delta = 1.0 / self->countdown;
+        self->here = 0.0; // start of slope
+        if( overflow > 0.0 ){
+            self->here += overflow * self->delta;
+            self->countdown -= overflow;
             // TODO add protection against overshoot for very <1block slopes
         }
     }
@@ -166,7 +172,7 @@ static float* motion_v( Slope_t* self, float* out, int size )
     float* out2 = out;
     float* out3 = out;
 
-    if( self->delta == 0.0 ){ // delay only
+    if( self->scale == 0.0 || self->delta == 0.0 ){ // delay only
         for( int i=0; i<size; i++ ){
             *out2++ = self->here;
         }
@@ -189,7 +195,7 @@ static float* breakpoint_v( Slope_t* self, float* out, int size )
 
     self->countdown -= 1.0;
     if( self->countdown <= 0.0 ){
-        self->here = self->dest; // clamp for overshoot
+        self->here = 1.0; // clamp for overshoot
         if( self->action != NULL ){
             Callback_t act = self->action;
             self->action = NULL;
@@ -198,20 +204,20 @@ static float* breakpoint_v( Slope_t* self, float* out, int size )
         }
         if( self->action != NULL ){ // instant callback
             printf("FIXME: shouldn't happen on crow\n");
-            out[0] = shaper( self, self->here );
+            *out++ = shaper( self, self->here );
             // 1. unwind self->countdown (ADD it to countdown)
             // 2. recalc current sample with new slope
             // 3. below call should be on out[0] and size
-            return step_v( self, &out[1], size-1 );
+            return step_v( self, out, size-1 );
         } else { // slope complete, or queued response
-            self->here  = self->dest;
+            self->here  = 1.0;
             self->delta = 0.0;
-            out[0] = shaper( self, self->here );
-            return static_v( self, &out[1], size-1 );
+            *out++ = shaper( self, self->here );
+            return static_v( self, out, size-1 );
         }
     } else {
-        out[0] = shaper( self, self->here );
-        return breakpoint_v( self, &out[1], size-1 ); // recursive call
+        *out++ = shaper( self, self->here );
+        return breakpoint_v( self, out, size-1 ); // recursive call
     }
 }
 
@@ -222,20 +228,30 @@ static float* breakpoint_v( Slope_t* self, float* out, int size )
 // vectors for optimized segments (assume: self->shape is constant)
 static float* shaper_v( Slope_t* self, float* out, int size )
 {
-    //switch( self->shape ){
-    //    case SHAPE_Sine:   return shaper_v_sincos( self, &sinf, out, size );
-    //    case SHAPE_Cosine: return shaper_v_sincos( self, &cosf, out, size );
-    //    //case SHAPE_Log:    return shaper_v_log( self, out, size );
-    //    //case SHAPE_Expo:   return shaper_v_exp( self, out, size );
-    //    case SHAPE_Linear: return out;
-    //    default: break; // if no vector, use single-sample below >>>
-    //}
-
-    float* out2 = out;
-    for( int i=0; i<size; i++ ){
-        *out2 = shaper( self, *out2 );
-        out2++;
+    switch( self->shape ){
+        //case SHAPE_Sine:   shaper_v_sincos( self, &sinf, out, size ); break;
+        //case SHAPE_Cosine: shaper_v_sincos( self, &cosf, out, size ); break;
+        //case SHAPE_Log:    shaper_v_log( self, out, size ); break;
+        //case SHAPE_Expo:   shaper_v_exp( self, out, size ); break;
+        case SHAPE_Linear: break;
+        default: { // if no vector, use single-sample
+            float* out2 = out;
+            for( int i=0; i<size; i++ ){
+                *out2 = shaper( self, *out2 );
+                out2++;
+            }
+            // shaper() cleans up self->shaped etc
+            return out; }
     }
+    // map to output range
+    b_add(
+       b_mul( out
+            , self->scale
+            , size )
+         , self->last
+         , size );
+    // save last state
+    self->shaped = out[size-1];
     return out;
 }
 
@@ -243,46 +259,74 @@ static float* shaper_v( Slope_t* self, float* out, int size )
 static float shaper( Slope_t* self, float out )
 {
     switch( self->shape ){
-        case SHAPE_Sine:   return shaper_sin( self, out );
-        case SHAPE_Cosine: return shaper_cos( self, out );
-        case SHAPE_Log:    return shaper_log( self, out );
-        case SHAPE_Expo:   return shaper_exp( self, out );
-        case SHAPE_Linear: default: return out; // Linear falls through
+        case SHAPE_Sine:    out = shaper_sin( out ); break;
+        case SHAPE_Log:     out = shaper_log( out ); break;
+        case SHAPE_Expo:    out = shaper_exp( out ); break;
+        case SHAPE_Over:    out = shaper_ease_out_back( out ); break;
+        case SHAPE_Under:   out = shaper_ease_in_back( out ); break;
+        case SHAPE_Rebound: out = shaper_ease_out_rebound( out ); break;
+        case SHAPE_Linear: default: break; // Linear falls through
     }
+    // map to output range
+    out = (out * self->scale) + self->last;
+    // save last state
+    self->shaped = out;
+    return out;
 }
 
 
 //////////////////////////////
 // single sample shapers
+// all operate over a range of (0,1)
 
 #define M_PI   (3.141592653589793) // 64bit compatible
 #define M_PI_2 (M_PI/2.0)
 
-static float shaper_sin( Slope_t* self, float out )
+// shapers normalized (0,1). from:
+// http://probesys.blogspot.com/2011/10/useful-math-functions.html
+
+static float shaper_sin( float in )
 {
-    float range = self->dest - self->last;
-    return self->last + range*sinf((out - self->last)*M_PI_2/(range));
+    return -0.5 * (cosf( M_PI * in ) - 1.0);
 }
 
-static float shaper_cos( Slope_t* self, float out )
+static float shaper_exp( float in )
 {
-    float range = self->dest - self->last;
-    return self->last + (range/2.0)*(1.0-cosf((out - self->last)*M_PI/(range)));
+    return 1.0 - powf(2.0, -10.0 * in);
 }
 
-static float shaper_exp( Slope_t* self, float out )
+static float shaper_log( float in )
 {
-    float range = self->dest - self->last;
-    float zero = out - self->last;
-    return self->last + range*(expf(4.0*(zero/range) - 3.98) - 0.01865);
+    return powf(2.0, 10.0 * (in - 1.0));
 }
 
-static float shaper_log( Slope_t* self, float out )
+static float shaper_ease_in_back( float in )
 {
-    float range = self->dest - self->last;
-    float zero = out - self->last;
-    return self->last + (0.25*range) * logf(53.6*(zero/range) + 1.0);
+    return in * in * ((1.70158 + 1.0) * in - 1.70158);
 }
+
+static float shaper_ease_out_back( float in )
+{
+    float in_1 = in - 1.0;
+    return in_1 * in_1 * ((1.70158 + 1.0) * in_1 + 1.70158) + 1.0;
+}
+
+static float shaper_ease_out_rebound( float in )
+{
+    if( in < (1.0/2.75) ){
+        return 7.5625 * in * in;
+    } else if( in < (2.0/2.75) ){
+        float in_c = in - 1.5/2.75;
+        return 7.5625 * in_c * in_c + 0.75;
+    } else if( in < (2.5/2.75) ){
+        float in_c = in - 2.25/2.75;
+        return 7.5625 * in_c * in_c + 0.9375;
+    } else {
+        float in_c = in - 2.625/2.75;
+        return 7.5625 * in_c * in_c + 0.984375;
+    }
+}
+
 
 
 ////////////////////////////////
@@ -294,12 +338,12 @@ static float* shaper_v_sincos( Slope_t* self, trig_t fn, float* out, int size )
     float pi2range = M_PI_2/range;
     printf("sincos\n");
 
-    return b_accum(
+    return b_add(
                 b_mul(
                     b_map( fn,
                         b_mul(
-                            b_sub( out
-                                 , self->last
+                            b_add( out
+                                 , -self->last
                                  , size )
                              , pi2range
                              , size )
