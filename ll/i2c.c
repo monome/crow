@@ -3,6 +3,7 @@
 #include <stm32f7xx_hal.h>
 
 #include "debug_usart.h"
+#include "lib/caw.h" // Caw_send_luachunk (pullup suggestion)
 
 I2C_HandleTypeDef i2c_handle;
 
@@ -512,8 +513,10 @@ PE=0 - Write PE=1.
         I2C_DeInit();
         I2C_Init( temp_addr );
     } else {
-        if( h->ErrorCode == 2 ){ printf("!I2C: lines are low. try II.pullup(1)\n"); }
-        else{
+        if( h->ErrorCode == 2 ){
+            printf("!ii: lines are low. try ii.pullup(true)\n");
+            Caw_send_luachunk("!ii: lines are low. try ii.pullup(true)");
+        } else{
             printf("I2C_ERROR %i\n", (int)h->ErrorCode);
         }
     }
