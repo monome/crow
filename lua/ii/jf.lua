@@ -19,13 +19,13 @@ do return
     }
   , { name = 'run'
     , cmd  = 3
-    , get  = true
+    --, get  = true
     , docs = 'Set RUN value to *volts*. Requires run_mode(1)'
     , args = { 'volts', s16V }
     }
   , { name = 'transpose'
     , cmd  = 4
-    , get  = true
+    --, get  = true
     , docs = 'Add *pitch* to the current TIME setting'
     , args = { 'pitch', s16V }
     }
@@ -44,7 +44,7 @@ do return
     }
   , { name = 'tick'
     , cmd  = 7
-    , get  = true
+    --, get  = true
     , docs = 'Set geode tempo to *bpm*, or accept *clock* for geode'
     , args = { 'clock-or-bpm', s8 }
     }
@@ -67,7 +67,7 @@ do return
     }
   , { name = 'god_mode'
     , cmd  = 10
-    , get  = true
+    --, get  = true
     , docs = 'If *state* is non-zero, shift pitch base to A=432Hz'
     , args = { 'state', s8 }
     }
@@ -81,16 +81,28 @@ do return
     }
   , { name = 'quantize'
     , cmd  = 12
-    , get  = true
+    --, get  = true
     , docs = 'Quantize commands to every (bar/*divisions*)'
     , args = { 'divisions', s8 }
     }
+  , { name = 'voice_pitch'
+    , cmd  = 13
+    , docs = 'Synthesis: Set *channel* to *pitch*'
+    , args = { { 'channel', s8 }
+             , { 'pitch', s16V }
+             }
+    }
   }
 , getters =
-  { { name = 'retune'
-    , cmd  = 11 + get_offset
-    , args = { 'channel', s8 }
-    , retval = { 'numerator', s8 }
+  { { name = 'speed'
+    , cmd  = 14 + get_offset
+    , docs = 'Speed switch setting: 0 for shape and 1 for sound'
+    , retval = { 'shape/sound', s8 }
+    }
+  , { name = 'tsc'
+    , cmd  = 15 + get_offset
+    , docs = 'MODE switch setting: 0/1/2 for transient/sustain/cycle'
+    , retval = { 'transient/sustain/cycle', s8 }
     }
   }
 }
