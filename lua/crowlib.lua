@@ -159,6 +159,20 @@ for _,fn in ipairs( wrapped_fns ) do
     -- fn = closure_if_table( fn ) -- this *doesn't* redirect the identifier
 end
 
+--- Delay execution of a function
+-- dynamically assigns metros (clashes with indexed metro syntax)
+function delay(time, action)
+    local d = {}
+    function devent(c)
+        if c > 1 then
+            action()
+            metro.free(d.id)
+        end
+    end
+    d = metro.init(devent, time)
+    if d then d:start() end
+end
+
 -- empty init function in case userscript doesn't define it
 function init() end
 
