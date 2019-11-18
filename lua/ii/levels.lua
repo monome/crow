@@ -12,49 +12,43 @@ do return
     }
   , { name = 'reset'
     , cmd  = 1
-    , get  = false
-    , docs = 'reset positions'
+    , docs = 'reset positions. 0 = on next tick. 1 = now'
+    , args = { 'now', u8 }
     }
   , { name = 'position'
     , cmd  = 2
     , get  = true
     , docs = 'set positions'
-    , args = { { 'track', u8 }
-             , { 'pos', u8 } 
-           }
+    , args = { 'pos', u8 }
     }
   , { name = 'loop_start'
     , cmd  = 3
     , get  = true
     , docs = 'set loop start'
-    , args = { { 'track', u8 }
-             , { 'pos', u8 }
-           }
+    , args = { 'pos', u8 }
     }
   , { name = 'loop_length'
     , cmd  = 4
     , get  = true
     , docs = 'set loop loop length'
-    , args = { { 'track', u8 }
-             , { 'pos', u8 }
-           }
+    , args = { 'pos', u8 }
     }
   , { name = 'loop_direction'
     , cmd  = 5
-    , get  = true 
-    , docs = 'set loop direction'
-    , args = { { 'track', u8 }
-             , { 'direction', u8 }
-           } 
-    }
-  , { name = 'cv'
-    , cmd  = 6 
     , get  = true
-    , docs = 'set cv'
-    , args = { { 'track', u8 }
-             , { 'volts', u16 }
-           }
-    }       
+    , docs = 'set loop direction'
+    , args = { 'direction', u8 }
+    }
   }
+, getters =
+  { { name = 'cv'
+    , cmd  = 6 + get_offset
+    , docs = 'get voltage on the provided track'
+    , args = { 'track', u8 }
+    , retval = { 'volts', s16V }
+    }
+  }
+--void pickle( uint8_t* address, uint8_t* data, uint8_t* byte_count );
+, pickle = 'if( data[0] == (128+6) ){ data[1] -= 1; }  // zero-index the cv request'
 }
 end
