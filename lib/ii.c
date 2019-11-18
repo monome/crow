@@ -5,11 +5,47 @@
 #include "../build/ii_c_layer.h"
 
 #include "lualink.h"
+#include "wrQueue.h"
+
 
 // WithType implementation (move to separate file)
 #define II_MAX_BROADCAST_LEN 4 // just u8 or u16
+#define II_QUEUE_LENGTH 16
 
-// public defns
+
+///////////////////////////
+// type declarations
+
+typedef struct{
+    uint8_t is_query; // true for leader queries
+    uint8_t address;
+    uint8_t length;
+    uint8_t data[II_MAX_BROADCAST_LEN + 1 ];
+} ii_q_t;
+
+
+////////////////////////////////////////
+// private declarations
+
+ii_q_t* get_queue( void );
+int queue_is_full( void );
+
+static uint8_t type_size( ii_Type_t t );
+static float decode( uint8_t* data, ii_Type_t type );
+static uint8_t encode( uint8_t* dest, ii_Type_t type, float data );
+static float* decode_packet( float* decoded, uint8_t* data, const ii_Cmd_t* c, int is_following);
+static uint8_t encode_packet( uint8_t* dest, const ii_Cmd_t* c, uint8_t cmd, float* data );
+
+
+////////////////////////////////
+// local variables
+queue_t* qix;
+ii_q_t iq[II_QUEUE_LENGTH];
+
+
+////////////////////////
+// setup
+
 uint8_t ii_init( uint8_t address )
 {
     if( address != II_CROW
@@ -19,37 +55,102 @@ uint8_t ii_init( uint8_t address )
     if( I2C_Init( (uint8_t)address ) ){
         printf("I2C Failed to Init\n");
     }
+
+    qix = queue_init( II_QUEUE_LENGTH );
+    for( int i=0; i<II_QUEUE_LENGTH; i++ ){
+        iq[i].length = 0; // mark as no-packet
+    }
+
     return address;
 }
-void ii_deinit( void )
-{
+void ii_deinit( void ){
     I2C_DeInit();
 }
-
-const char* ii_list_modules( void )
-{
+const char* ii_list_modules( void ){
     return ii_module_list;
 }
-
-const char* ii_list_cmds( uint8_t address )
-{
+const char* ii_list_cmds( uint8_t address ){
     return ii_list_commands(address);
 }
-
-void ii_set_pullups( uint8_t state )
-{
+void ii_set_pullups( uint8_t state ){
     I2C_SetPullups(state);
 }
-
-uint8_t ii_get_address( void )
-{
+uint8_t ii_get_address( void ){
     return I2C_GetAddress();
 }
-
-void ii_set_address( uint8_t address )
-{
+void ii_set_address( uint8_t address ){
     I2C_SetAddress( address );
 }
+
+
+////////////////////////////////
+// leader commands
+
+uint8_t ii_broadcast( uint8_t address
+                    , uint8_t cmd
+                    , float*  data
+                    )
+{
+    int ix = queue_enqueue( qix );
+    if( ix < 0 ){
+        printf("ii_broadcast failed. queue full\n");
+        return 1;
+    }
+    ii_q_t* q = &iq[ix];
+
+    q->is_query = 0;
+    q->address  = address;
+    const ii_Cmd_t* c = ii_find_command(address, cmd);
+    q->length = encode_packet( q->data
+                             , c
+                             , cmd
+                             , data
+                             );
+    return 0;
+}
+
+uint8_t ii_query( uint8_t address
+                , uint8_t cmd
+                , float*  data
+                )
+{
+    static uint8_t rx_buf[1+II_MAX_BROADCAST_LEN];
+    const ii_Cmd_t* c = ii_find_command(address, cmd);
+    uint8_t byte = encode_packet( rx_buf
+                              , c
+                              , cmd
+                              , data
+                              );
+    if( I2C_LeadRx( address
+                  , rx_buf
+                  , byte
+                  , type_size( c->return_type )
+                  ) ){ return 1; }
+    return 0;
+}
+
+void ii_process( void )
+{
+    if( !I2C_is_ready() ){ return; } // I2C lib is busy
+    int ix = queue_dequeue(qix);
+    if( ix < 0 ){ return; } // queue is empty!
+    ii_q_t* q = &iq[ix];
+
+    if( q->is_query ){
+        printf("TODO: lead Rx\n");
+    } else {
+        if( I2C_LeadTx( q->address
+                      , q->data
+                      , q->length
+                      ) ){
+            printf("leadTx failed\n");
+        }
+    }
+}
+
+
+///////////////////////////////////
+// follower: polling mode
 
 uint8_t* ii_processFollowRx( void )
 {
@@ -67,6 +168,53 @@ uint8_t* ii_processLeadRx( void )
     }
     return pRetval; // NULL for finished
 }
+
+
+////////////////////////////////////////////
+// LL driver callbacks
+
+void I2C_Lead_RxCallback( uint8_t address, uint8_t cmd, uint8_t* data )
+{
+    L_queue_ii_leadRx( address
+                     , cmd
+                     , decode( data
+                             , ii_find_command(address, cmd)->return_type
+                             )
+                     );
+}
+
+void I2C_Follow_RxCallback( uint8_t* data )
+{
+    printf("ii_follow_rx: cmd %i, data %i, %i\n", data[0], data[1], data[2]);
+    uint8_t cmd = *data++; // first data holds command
+    const ii_Cmd_t* c = ii_find_command(ii_get_address(), cmd);
+    float args[c->args];
+    // run the callback directly
+    // TODO: THIS GOES IN THE EVENT SYSTEM
+    L_handle_ii_followRx( cmd
+                        , c->args
+                        , decode_packet( args, data, c, 1 )
+                        );
+}
+
+void I2C_Follow_TxCallback( uint8_t* data )
+{
+    printf("ii_follow_tx: cmd %i, data %i, %i\n", data[0], data[1], data[2]);
+    uint8_t cmd = *data++; // first data holds command
+    const ii_Cmd_t* c = ii_find_command(ii_get_address(), cmd);
+    float args[c->args];
+    // run the callback directly!
+    float response = L_handle_ii_followRxTx( cmd
+                   , c->args
+                   , decode_packet( args, data, c, 1 )
+                   );
+    static uint8_t d[4]; // TODO: only allow a single retval currently
+    uint8_t length = encode( d, c->return_type, response );
+    //I2C_SetTxData( d, type_size( c->return_type ) );
+    //FIXME type_size doesn't work on an auto-generated retval for a getter
+    I2C_SetTxData( d, length );
+}
+
 
 /////////////////////////////////////
 // ii Type Encode/Decode
@@ -118,7 +266,7 @@ static float decode( uint8_t* data, ii_Type_t type )
     return val;
 }
 
-static uint8_t pack_data( uint8_t* dest, ii_Type_t type, float data )
+static uint8_t encode( uint8_t* dest, ii_Type_t type, float data )
 {
     uint8_t len = 0;
     uint8_t* d = dest;
@@ -155,11 +303,11 @@ static uint8_t pack_data( uint8_t* dest, ii_Type_t type, float data )
     return len;
 }
 
-float* _ii_decode_packet( float* decoded
-                        , uint8_t* data
-                        , const ii_Cmd_t* c
-                        , int is_following
-                        )
+static float* decode_packet( float* decoded
+                           , uint8_t* data
+                           , const ii_Cmd_t* c
+                           , int is_following
+                           )
 {
     float* d = decoded;
     if( is_following ){
@@ -174,104 +322,16 @@ float* _ii_decode_packet( float* decoded
     return decoded;
 }
 
-void I2C_Lead_RxCallback( uint8_t address, uint8_t cmd, uint8_t* data )
-{
-    printf("ii_lead_rx: cmd %i, data %i %i %i\n", cmd, data[0], data[1], data[2]);
-    ii_unpickle(&address, &cmd, data);
-    const ii_Cmd_t* c = ii_find_command(address, cmd);
-    float val;
-    L_handle_ii_leadRx( address
-               , cmd
-               , *_ii_decode_packet( &val, data, c, 0 )
-               );
-}
-
-void I2C_Follow_RxCallback( uint8_t* data )
-{
-    printf("ii_follow_rx: cmd %i, data %i, %i\n", data[0], data[1], data[2]);
-    uint8_t cmd = *data++; // first data holds command
-    const ii_Cmd_t* c = ii_find_command(ii_get_address(), cmd);
-    float args[c->args];
-    // run the callback directly
-    // TODO: THIS GOES IN THE EVENT SYSTEM
-    L_handle_ii_followRx( cmd
-                   , c->args
-                   , _ii_decode_packet( args, data, c, 1 )
-                   );
-}
-
-void I2C_Follow_TxCallback( uint8_t* data )
-{
-    printf("ii_follow_tx: cmd %i, data %i, %i\n", data[0], data[1], data[2]);
-    uint8_t cmd = *data++; // first data holds command
-    const ii_Cmd_t* c = ii_find_command(ii_get_address(), cmd);
-    float args[c->args];
-    // run the callback directly!
-    float response = L_handle_ii_followRxTx( cmd
-                   , c->args
-                   , _ii_decode_packet( args, data, c, 1 )
-                   );
-    static uint8_t d[4]; // TODO: only allow a single retval currently
-    uint8_t length = pack_data( d, c->return_type, response );
-    //I2C_SetTxData( d, type_size( c->return_type ) );
-    //FIXME type_size doesn't work on an auto-generated retval for a getter
-    I2C_SetTxData( d, length );
-}
-
-uint8_t _ii_make_packet( uint8_t* dest, const ii_Cmd_t* c, uint8_t cmd, float* data )
+static uint8_t encode_packet( uint8_t* dest
+                            , const ii_Cmd_t* c
+                            , uint8_t cmd
+                            , float* data
+                            )
 {
     uint8_t len = 0;
     dest[len++] = cmd; // first byte is command
     for( int i=0; i<(c->args); i++ ){
-        len += pack_data( &dest[len], c->argtype[i], *data++ );
+        len += encode( &dest[len], c->argtype[i], *data++ );
     }
     return len;
-}
-
-// Leader Transmit
-uint8_t ii_broadcast( uint8_t address
-                    , uint8_t cmd
-                    , float*  data
-                    )
-{
-    // need a queue here to allow repetitive calls to the fn
-    // best to implement the DMA
-    static uint8_t tx_buf[1+II_MAX_BROADCAST_LEN]; // empty buf to write
-    const ii_Cmd_t* c = ii_find_command(address, cmd);
-    uint8_t len = _ii_make_packet( tx_buf
-                    , c
-                    , cmd
-                    , data
-                    );
-    if( len == 0 ){ return 2; }
-    ii_pickle( &address, tx_buf, &len ); // mutate in place
-    if( I2C_LeadTx( address
-                  , tx_buf
-                  , len
-                  ) ){ return 1; }
-    return 0;
-}
-
-// Leader Request
-// consider how this should be integrated. what args??
-uint8_t ii_query( uint8_t address
-                , uint8_t cmd
-                , float*  data
-                )
-{
-    static uint8_t rx_buf[1+II_MAX_BROADCAST_LEN];
-    const ii_Cmd_t* c = ii_find_command(address, cmd);
-    uint8_t byte = _ii_make_packet( rx_buf
-                    , c
-                    , cmd
-                    , data
-                    );
-    if( byte == 0 ){ return 2; }
-    ii_pickle( &address, rx_buf, &byte ); // mutate in place
-    if( I2C_LeadRx( address
-                  , rx_buf
-                  , byte
-                  , type_size( c->return_type )
-                  ) ){ return 1; }
-    return 0;
 }
