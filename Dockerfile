@@ -29,4 +29,4 @@ RUN tar -xzf lua.tar.gz && \
 RUN luarocks install fennel
 
 WORKDIR /target
-CMD ["make"]
+ENTRYPOINT ["make"]

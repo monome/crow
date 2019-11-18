@@ -1,0 +1,22 @@
+name: Build release firmware
+on:
+  release:
+    types: [created, edited]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v1
+      with:
+        submodules: true
+    - name: Build
+      uses: ./.github/actions/build-firmware
+      with:
+        release: '1'
+    - name: Upload artifact
+      uses: actions/upload-artifact@master
+      with:
+        name: crow-${{ github.sha }}.bin
+        path: crow.bin

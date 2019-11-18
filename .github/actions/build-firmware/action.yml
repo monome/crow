@@ -1,0 +1,12 @@
+name: Build firmware
+
+runs:
+  using: docker
+  image: ../../../Dockerfile
+  args:
+    - R=${{ inputs.release }}
+inputs:
+  release:
+    description: Enables release build
+    required: false
+    default: '0'
