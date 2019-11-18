@@ -106,6 +106,7 @@ uint8_t ii_broadcast( uint8_t address
                              , cmd
                              , data
                              );
+    ii_pickle( &q->address, q->data, &q->length );
     return 0;
 }
 
@@ -121,6 +122,8 @@ uint8_t ii_query( uint8_t address
                               , cmd
                               , data
                               );
+    if( byte == 0 ){ return 2; }
+    ii_pickle( &address, rx_buf, &byte );
     if( I2C_LeadRx( address
                   , rx_buf
                   , byte
@@ -175,6 +178,7 @@ uint8_t* ii_processLeadRx( void )
 
 void I2C_Lead_RxCallback( uint8_t address, uint8_t cmd, uint8_t* data )
 {
+    ii_unpickle( &address, &cmd, data );
     L_queue_ii_leadRx( address
                      , cmd
                      , decode( data

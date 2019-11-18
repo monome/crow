@@ -75,11 +75,13 @@ do return
   -- no setter for CMD 10 input
   }
 , getters =
-    { name = 'input'
-    , cmd  = 10 + get_offset
-    , args = { '', u8 }
-    --, docs = 'get input state'
-    , retval = { 'state', u8 }
-    }
+  { name = 'input'
+  , cmd  = 10 + get_offset
+  , args = { '', u8 }
+  --, docs = 'get input state'
+  , retval = { 'state', u8 }
+  }
+--void pickle( uint8_t* address, uint8_t* data, uint8_t* byte_count );
+, pickle = 'data[1] -= 1;  // zero-index the channel'
 }
 end
