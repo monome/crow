@@ -165,7 +165,9 @@ function generate_prototypes( d )
     local proto_prefix = 'ii.' .. d.lua_name .. '.'
     for _,v in ipairs( d.commands ) do
         local s = '"' .. proto_prefix .. v.name .. '( '
-        if type(v.args[1]) == 'table' then -- more than 1 arg
+        if not v.args then -- no args
+            s = s .. void
+        elseif type(v.args[1]) == 'table' then -- more than 1 arg
             local arg_count = #(v.args)
             for i=1,arg_count do
                 s = s .. v.args[i][1]
