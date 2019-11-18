@@ -69,8 +69,8 @@ do return
     , cmd  = 11
     , docs = 'Redefine INTONE of *channel* to (*num*/*denom*)'
     , args = { { 'channel', s8 }
-             , { 'numerator', s16 }
-             , { 'denominator', s16 }
+             , { 'numerator', s8 }
+             , { 'denominator', s8 }
              }
     }
   , { name = 'quantize'
