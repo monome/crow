@@ -36,6 +36,7 @@ void events_init() {
     app_event_handlers[E_toward] = &handler_toward;
     app_event_handlers[E_midi] = &handler_midi;
     app_event_handlers[E_ii_leadRx] = &handler_ii_leadRx;
+    app_event_handlers[E_ii_followRx] = &handler_ii_followRx;
 }
 
 void events_clear(void)
@@ -127,11 +128,15 @@ static void handler_toward(event_t *e) {
 }
 
 static void handler_midi(event_t *e) {
-    //printf("midi %d\n",e->data);
+    //printf("midi %d\n",e->data.u8s[0]);
     L_handle_midi( e->data.u8s );
 }
 
 static void handler_ii_leadRx(event_t *e) {
-    //printf("ii_leadRx %d\n",e->data);
+    //printf("ii_leadRx %d\n",e->data.f);
     L_handle_ii_leadRx( e->index.u8s[0], e->index.u8s[1], e->data.f );
+}
+static void handler_ii_followRx(event_t *e) {
+    //printf("ii_followRx %p\n",e->data.p);
+    L_handle_ii_followRx();
 }

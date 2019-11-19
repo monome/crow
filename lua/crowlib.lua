@@ -103,26 +103,12 @@ end
 
 
 --- ii default actions
---TODO int16 conversion should be rolled into i2c generation tool
-ii._c.input = function(chan)
-    if chan == 1 or chan == 2 then
-        return (1638.4 * input[chan]())
-    else return 0 end
+ii.self.output = function(chan,val)
+    output[chan].volts = val
 end
 
---TODO deprecate to the single `input` after format conversion added
-ii._c.inputF = function(chan)
-    if chan == 1 or chan == 2 then return input[chan]()
-    else return 0 end
-end
-
-ii._c.output = function(chan,val)
-    output[chan].level = val
-    --TODO step ASL
-end
-
-ii._c.slew = function(chan,slew)
-    output[chan].rate = slew/1000 -- ms
+ii.self.slew = function(chan,slew)
+    output[chan].slew = slew/1000 -- ms
 end
 
 --- True Random Number Generator
@@ -157,6 +143,20 @@ for _,fn in ipairs( wrapped_fns ) do
     load( string.format('%s=closure_if_table(%s)',fn,fn))()
     -- below is original version that didn't work. nb: wrapped_fns was fns not strs
     -- fn = closure_if_table( fn ) -- this *doesn't* redirect the identifier
+end
+
+--- Delay execution of a function
+-- dynamically assigns metros (clashes with indexed metro syntax)
+function delay(time, action)
+    local d = {}
+    function devent(c)
+        if c > 1 then
+            action()
+            metro.free(d.id)
+        end
+    end
+    d = metro.init(devent, time)
+    if d then d:start() end
 end
 
 -- empty init function in case userscript doesn't define it

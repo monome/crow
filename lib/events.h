@@ -10,10 +10,12 @@ typedef enum {
     E_toward,
     E_midi,
     E_ii_leadRx,
+    E_ii_followRx,
     E_COUNT
 } event_type_t;
 
 union Data{
+    void* p;
     int i;
     float f;
     uint8_t u8s[4];
@@ -42,3 +44,4 @@ static void handler_change(event_t *e);
 static void handler_toward(event_t *e);
 static void handler_midi(event_t *e);
 static void handler_ii_leadRx(event_t *e);
+static void handler_ii_followRx(event_t *e);

@@ -230,7 +230,7 @@ void ADC_CalibrateShift( uint8_t channel, float volts )
 
 float ADC_GetValue( uint8_t channel )
 {
-    return last[channel];
+    return last[!!channel]; // force 0/1
 }
 
 void ADC_Rx( uint16_t* aRxBuffer, uint32_t size )
