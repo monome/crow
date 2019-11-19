@@ -3,6 +3,7 @@
 #include <stm32f7xx_hal.h>
 #include <string.h>
 
+#include "lib/caw.h" // Caw_send_luachunk (pullup suggestion)
 
 ////////////////////////////
 // type definitions
@@ -393,8 +394,11 @@ reset. This is ensured by writing the following software sequence: - Write PE=0 
 PE=0 - Write PE=1.
 */
     } else {
-        if( h->ErrorCode == 2 ){ printf("!I2C: lines are low. try II.pullup(1)\n"); }
-        else{ printf("I2C_ERROR %i\n", (int)h->ErrorCode); }
+        if( h->ErrorCode == 2 ){
+            Caw_send_luachunk("ii: lines are low. try ii.pullup(true)");
+        } else{
+            printf("I2C_ERROR %i\n", (int)h->ErrorCode);
+        }
     }
     HAL_I2C_ListenCpltCallback( &i2c_handle );
 }
