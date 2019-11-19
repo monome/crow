@@ -42,7 +42,7 @@ function ii_LeadRx_handler( addr, cmd, data )
 end
 
 -- NOTE: weird double-escaped quotes down here for the c compiler
-function ii.e( name, event, data ) self.tell('ii.'..name,'\\''..tostring(event)..'\\'',data) end
+function ii.e( name, event, data ) crow.tell('ii.'..name,'\\''..tostring(event)..'\\'',data) end
 
 ii.self =
     { cmds = { [1]='output'

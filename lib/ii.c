@@ -117,6 +117,7 @@ uint8_t ii_leader_enqueue( uint8_t address
                              , cmd
                              , data
                              );
+    ii_pickle( &q->address, q->data, &q->length );
     return 0;
 }
 
@@ -176,6 +177,7 @@ uint8_t* ii_processLeadRx( void )
 
 static void lead_callback( uint8_t address, uint8_t command, uint8_t* rx_data )
 {
+    ii_unpickle( &address, &command, rx_data );
     L_queue_ii_leadRx( address
                      , command
                      , decode( rx_data

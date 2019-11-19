@@ -103,11 +103,11 @@ end
 
 
 --- ii default actions
-ii._c.output = function(chan,val)
+ii.self.output = function(chan,val)
     output[chan].volts = val
 end
 
-ii._c.slew = function(chan,slew)
+ii.self.slew = function(chan,slew)
     output[chan].slew = slew/1000 -- ms
 end
 
@@ -143,6 +143,20 @@ for _,fn in ipairs( wrapped_fns ) do
     load( string.format('%s=closure_if_table(%s)',fn,fn))()
     -- below is original version that didn't work. nb: wrapped_fns was fns not strs
     -- fn = closure_if_table( fn ) -- this *doesn't* redirect the identifier
+end
+
+--- Delay execution of a function
+-- dynamically assigns metros (clashes with indexed metro syntax)
+function delay(time, action)
+    local d = {}
+    function devent(c)
+        if c > 1 then
+            action()
+            metro.free(d.id)
+        end
+    end
+    d = metro.init(devent, time)
+    if d then d:start() end
 end
 
 -- empty init function in case userscript doesn't define it
