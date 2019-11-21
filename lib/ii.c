@@ -90,10 +90,22 @@ void ii_set_pullups( uint8_t state ){
     I2C_SetPullups(state);
 }
 uint8_t ii_get_address( void ){
-    return I2C_GetAddress();
+    switch(I2C_GetAddress()){
+        case II_CROW2: return 2;
+        case II_CROW3: return 3;
+        case II_CROW4: return 4;
+        default:       return 1;
+    }
 }
-void ii_set_address( uint8_t address ){
-    I2C_SetAddress( address );
+void ii_set_address( uint8_t index ){
+    uint8_t i2c = II_CROW;
+    switch(index){
+        case 2: i2c = II_CROW2; break;
+        case 3: i2c = II_CROW3; break;
+        case 4: i2c = II_CROW4; break;
+        default: break;
+    }
+    I2C_SetAddress( i2c );
 }
 
 

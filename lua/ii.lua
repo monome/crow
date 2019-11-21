@@ -26,6 +26,10 @@ function ii.pullup( state )
     ii_pullup(state)
 end
 
+-- aliases to C functions
+ii.set_address = ii_set_add
+ii.get_address = ii_get_add
+
 -- TODO is it possible to just define ii.lead from c directly?
 function ii.set( address, cmd, ... )
     ii_lead( address, cmd, ... )
