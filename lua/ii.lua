@@ -7,7 +7,7 @@ ii.is = dofile('build/iihelp.lua')
 
 --- METAMETHODS
 ii.__index = function( self, ix )
-    local e = rawget(ii.is, ix)
+    local e = rawget(ii.is, ix) -- avoids openlib() in case of .help
     if e ~= nil then return e
     else print'not found. try ii.help()' end
 end

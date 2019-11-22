@@ -18,21 +18,31 @@ end
 
 function Is.openlib( self )
     local n = self.name
-    rawset(ii,n,dofile(string.format('build/ii_%s.lua',n)))
-    local new = rawget(ii,n)
-    rawset(new,'help',self.help)
-    return new
+    ii[n] = dofile(string.format('build/ii_%s.lua',n))
+    ii[n].help = self.help
+    return ii[n]
 end
 
 Is.__index = function( self, ix )
-    return rawget( Is.openlib(self), ix )
+    return Is.openlib(self)[ix]
 end
 
 Is.__newindex = function( self, ix, val )
-    return rawset( Is.openlib(self), ix, val )
+    Is.openlib(self)[ix] = val
 end
 
 ]]
+
+function ii_help_body( files )
+    local h = ''
+    for _,f in ipairs(files) do
+        local ii = f.i2c_address
+        if type(ii) == 'table' then ii = ii[1] end
+        h = h .. 'Is.' ..  f.lua_name .. '=Is.new(\''
+              .. f.lua_name .. '\',' .. ii .. ')\n'
+    end
+    return h
+end
 
 local ii_help_end = [[
 setmetatable(Is, Is)
@@ -41,13 +51,9 @@ return Is
 ]]
 
 function make_iihelp(files)
-    local h = ii_help_start
-    for _,f in ipairs(files) do
-        h = h .. 'Is.' ..  f.lua_name .. '=Is.new(\''
-              .. f.lua_name .. '\',' .. f.i2c_address .. ')\n'
-    end
-    h = h .. ii_help_end
-    return h
+    return ii_help_start
+        .. ii_help_body(files)
+        .. ii_help_end
 end
 
 local in_file_dir = arg[1]

@@ -1,12 +1,31 @@
 get_offset = 0x80
 
+ii_address = ''
+
+function prepare_multi_address(f)
+    local h = ''
+    if type(f.i2c_address) == 'table' then
+        h = h .. 'local _addrs={'
+        for _,v in ipairs(f.i2c_address) do
+            h = h .. v .. ','
+        end
+        h = h .. '}\n'
+            .. 'local _addr=' .. f.i2c_address[1] .. '\n'
+            .. 'local _ix=1\n\n'
+        ii_address = '_addr'
+    else
+        ii_address = f.i2c_address
+    end
+    return h
+end
+
 function lua_cmds(f)
     local c = ''
     for _,v in ipairs( f.commands ) do
         c = c .. 'function ' .. f.lua_name .. '.' .. v.name .. '(...)ii.set('
-          .. f.i2c_address .. ',' .. v.cmd .. ',...)end\n'
+          .. ii_address .. ',' .. v.cmd .. ',...)end\n'
     end
-    return c
+    return c .. '\n'
 end
 
 function lua_getters(f)
@@ -24,7 +43,7 @@ function lua_getters(f)
     g = g .. '}\n'
 
     g = g .. 'function ' .. f.lua_name .. '.get(name,...)ii.get('
-      .. f.i2c_address .. ',' .. f.lua_name .. '.g[name],...)end\n'
+      .. ii_address .. ',' .. f.lua_name .. '.g[name],...)end\n\n'
     return g
 end
 
@@ -40,17 +59,34 @@ function lua_events(f)
             e = e .. '\t[' .. v.cmd .. ']=\'' .. v.name .. '\',\n'
         end
     end
-    e = e .. '}\n'
-    return e
+    return e .. '}\n'
+             .. 'function ' .. f.lua_name
+                .. '.event(e,data)ii.e(\'' .. f.lua_name .. '\',e,data)end\n\n'
+end
+
+function lua_meta(f)
+    if type(f.i2c_address) == 'number' then return '' end
+    return f.lua_name .. '.__index=function(self,ix)\n'
+            .. '\tif type(ix)==\'number\' then\n'
+            .. '\t\t_ix=ix\n'
+            .. '\t\t_addr=_addrs[ix]\n'
+            .. '\t\tif not _addr then\n'
+            .. '\t\t\t_ix=1\n'
+            .. '\t\t\t_addr=_addrs[ix]\n'
+            .. '\t\tend\n'
+            .. '\t\treturn self\n'
+            .. '\tend\n'
+            .. 'end\n'
+            .. 'setmetatable(' .. f.lua_name .. ',' .. f.lua_name .. ')\n\n'
 end
 
 function make_lua(f)
     local l = 'local ' .. f.lua_name .. '={}\n\n'
+            .. prepare_multi_address(f)
             .. lua_cmds(f)
             .. lua_getters(f)
             .. lua_events(f)
-            .. 'function ' .. f.lua_name
-                .. '.event(e,data)ii.e(\'' .. f.lua_name .. '\',e,data)end\n'
+            .. lua_meta(f)
             .. 'return ' .. f.lua_name .. '\n'
     return l
 end
