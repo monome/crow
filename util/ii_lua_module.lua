@@ -59,9 +59,14 @@ function lua_events(f)
             e = e .. '\t[' .. v.cmd .. ']=\'' .. v.name .. '\',\n'
         end
     end
-    return e .. '}\n'
-             .. 'function ' .. f.lua_name
-                .. '.event(e,data)ii.e(\'' .. f.lua_name .. '\',e,data)end\n\n'
+    e = e .. '}\n'
+          .. 'function ' .. f.lua_name
+    if type(f.i2c_address) == 'table' then
+        e = e .. '.event(e,data,ix)ii.e(\'' .. f.lua_name .. '\',e,data,ix)end\n\n'
+    else
+        e = e .. '.event(e,data)ii.e(\'' .. f.lua_name .. '\',e,data)end\n\n'
+    end
+    return e
 end
 
 function lua_meta(f)

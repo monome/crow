@@ -41,12 +41,12 @@ function ii.get( address, cmd, ... )
 end
 
 function ii_LeadRx_handler( addr, cmd, data )
-    local name = ii.is.lu[addr]
-    ii[name].event(ii[name].e[cmd], data)
+    local name, ix = ii.is.lookup(addr) -- optionally returns a device index
+    ii[name].event(ii[name].e[cmd], data, ix)
 end
 
 -- NOTE: weird double-escaped quotes down here for the c compiler
-function ii.e( name, event, data ) crow.tell('ii.'..name,'\\''..tostring(event)..'\\'',data) end
+function ii.e( name, event, ... ) crow.tell('ii.'..name,'\\''..tostring(event)..'\\'',...) end
 
 ii.self =
     { cmds = { [1]='output'

@@ -12,8 +12,23 @@ function Is.new( name, address )
     self.name = name
     self.help = function() ii.m_help(address) end
     setmetatable( self, Is )
-    Is.lu[address] = name
+    if type(address)=='table' then
+        for k,v in ipairs(address) do
+            Is.lu[v] = {name,k}
+        end
+    else
+        Is.lu[address] = name
+    end
     return self
+end
+
+function Is.lookup( addr )
+    local a=Is.lu[addr]
+    if type(a)=='table' then
+        return a[1],a[2] -- name & device index
+    else
+        return a
+    end
 end
 
 function Is.openlib( self )
@@ -36,10 +51,17 @@ end
 function ii_help_body( files )
     local h = ''
     for _,f in ipairs(files) do
-        local ii = f.i2c_address
-        if type(ii) == 'table' then ii = ii[1] end
-        h = h .. 'Is.' ..  f.lua_name .. '=Is.new(\''
-              .. f.lua_name .. '\',' .. ii .. ')\n'
+        h = h .. 'Is.' ..  f.lua_name .. '=Is.new(\'' .. f.lua_name .. '\','
+        if type(f.i2c_address) == 'table' then
+            h = h .. '{'
+            for k,v in ipairs(f.i2c_address) do
+                h = h .. v .. ','
+            end
+            h = h .. '}'
+        else
+            h = h .. f.i2c_address
+        end
+        h = h .. ')\n'
     end
     return h
 end
