@@ -147,7 +147,7 @@ end
 
 --- Delay execution of a function
 -- dynamically assigns metros (clashes with indexed metro syntax)
-function delay(time, action, repeats)
+function delay(action, time, repeats)
     local r = repeats or 1
     local d = {}
     function devent(c)
