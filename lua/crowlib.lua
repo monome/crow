@@ -154,16 +154,21 @@ end
 
 --- Delay execution of a function
 -- dynamically assigns metros (clashes with indexed metro syntax)
-function delay(time, action)
+function delay(action, time, repeats)
+    local r = repeats or 1
     local d = {}
     function devent(c)
         if c > 1 then
-            action()
-            metro.free(d.id)
+            action(c-1) -- make the action aware of current iteration
+            if c > r then
+                metro.free(d.id)
+                d = nil
+            end
         end
     end
     d = metro.init(devent, time)
     if d then d:start() end
+    return d
 end
 
 -- empty init function in case userscript doesn't define it
