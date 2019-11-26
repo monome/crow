@@ -52,8 +52,9 @@ void S_init( int channels )
 
 Shape_t S_str_to_shape( const char* s )
 {
-    if( *s < 0x61 ){ *s += 0x20; } // convert upper to lowercase
-    switch( *s ){ // match on first char unless necessary
+    char ps = (char)*s;
+    if( ps < 0x61 ){ ps += 0x20; } // convert upper to lowercase
+    switch( ps ){ // match on first char unless necessary
         case 's': return SHAPE_Sine;
         case 'e': return SHAPE_Expo;
         case 'n': return SHAPE_Now;
