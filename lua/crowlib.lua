@@ -81,6 +81,7 @@ for chan = 1, #output do
     output[chan] = Output.new( chan )
 end
 
+
 --- asl
 function toward_handler( id ) end -- do nothing if asl not active
 -- if defined, make sure active before setting up actions and banging
@@ -102,7 +103,11 @@ function LL_get_state( id )
 end
 
 
---- ii default actions
+--- ii
+-- pullups on by default
+ii.pullup(true)
+
+--- follower default actions
 ii.self.output = function(chan,val)
     output[chan].volts = val
 end
@@ -110,6 +115,7 @@ end
 ii.self.slew = function(chan,slew)
     output[chan].slew = slew/1000 -- ms
 end
+
 
 --- True Random Number Generator
 -- redefine library function to use stm native rng
@@ -119,6 +125,7 @@ math.random = function(a,b)
     else return random_int(a,b)
     end
 end
+
 
 --- Syntax extensions
 function closure_if_table( f )
@@ -147,16 +154,21 @@ end
 
 --- Delay execution of a function
 -- dynamically assigns metros (clashes with indexed metro syntax)
-function delay(time, action)
+function delay(action, time, repeats)
+    local r = repeats or 1
     local d = {}
     function devent(c)
         if c > 1 then
-            action()
-            metro.free(d.id)
+            action(c-1) -- make the action aware of current iteration
+            if c > r then
+                metro.free(d.id)
+                d = nil
+            end
         end
     end
     d = metro.init(devent, time)
     if d then d:start() end
+    return d
 end
 
 -- empty init function in case userscript doesn't define it
