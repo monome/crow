@@ -43,8 +43,7 @@ function pulse( time, level, polarity )
                  , mag, pol)
     end
 
-    return{ to( active(level,polarity) , 0 )
-          , to( 'here'                 , clamp(time) )
+    return{ to( active(level,polarity) , clamp(time), 'now' )
           , to( resting(level,polarity), 0 )
           }
 end
