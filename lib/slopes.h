@@ -11,6 +11,8 @@ typedef enum{ SHAPE_Linear
             , SHAPE_Sine
             , SHAPE_Log
             , SHAPE_Expo
+            , SHAPE_Now
+            , SHAPE_Wait
             , SHAPE_Over
             , SHAPE_Under
             , SHAPE_Rebound
