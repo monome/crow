@@ -26,13 +26,14 @@ function ii.pullup( state )
     ii_pullup(state)
 end
 
--- TODO is it possible to just define ii.set from c directly?
+-- TODO is it possible to just define ii.lead from c directly?
 function ii.set( address, cmd, ... )
-    ii_set( address, cmd, ... )
+    ii_lead( address, cmd, ... )
 end
 
 function ii.get( address, cmd, ... )
-    ii_get( address, cmd, ... )
+    if not cmd then print'param not found'
+    else ii_lead( address, cmd, ... ) end
 end
 
 function ii_LeadRx_handler( addr, cmd, data )
@@ -41,21 +42,20 @@ function ii_LeadRx_handler( addr, cmd, data )
 end
 
 -- NOTE: weird double-escaped quotes down here for the c compiler
-function ii.e( name, event, data ) _c.tell('ii.'..name,'\\''..tostring(event)..'\\'',data) end
+function ii.e( name, event, data ) crow.tell('ii.'..name,'\\''..tostring(event)..'\\'',data) end
 
-ii._c =
+ii.self =
     { cmds = { [1]='output'
              , [2]='slew'
              , [4]='call1'
              , [5]='call2'
              , [6]='call3'
              , [7]='call4'
-             , [3+128]='input'
-             , [4+128]='query0'
-             , [5+128]='query1'
-             , [6+128]='query2'
-             , [7+128]='query3'
-             , [8+128]='inputF'
+             -- input & output queries in C only
+             , [5+128]='query0'
+             , [6+128]='query1'
+             , [7+128]='query2'
+             , [8+128]='query3'
              }
     , output = function(chan,val) print('output '..chan..' to '..val)end
     , slew = function(chan,slew) print('slew '..chan..' at '..slew)end
@@ -64,24 +64,22 @@ ii._c =
     , call3 = function(a,a2,a3) print('call3('..a..','..a2..','..a3..')')end
     , call4 = function(a,a2,a3,a4) print('call4('..a..','..a2..','..a3..','..a4..')')end
 
-    , input = function(chan) print('input('..chan..')') return 3 end
-    , query0 = function() print('query0()'); return 4 end
-    , query1 = function(a) print('query1('..a..')'); return 5 end
-    , query2 = function(a,a2) print('query2('..a..','..a2..')'); return 6 end
+    , query0 = function() print('query0()'); return 5 end
+    , query1 = function(a) print('query1('..a..')'); return 6 end
+    , query2 = function(a,a2) print('query2('..a..','..a2..')'); return 7 end
     , query3 = function(a,a2,a3) print('query3('..a..','..a2..','..a3..')')
-        return 7
+        return 8
     end
-    , inputF = function(chan) print('input('..chan..')') return 8 end
 }
 
 function ii_followRx_handler( cmd, ... )
-    local name = ii._c.cmds[cmd]
-    ii._c[name](...)
+    local name = ii.self.cmds[cmd]
+    ii.self[name](...)
 end
 
 function ii_followRxTx_handler( cmd, ... )
-    local name = ii._c.cmds[cmd]
-    return ii._c[name](...)
+    local name = ii.self.cmds[cmd]
+    return ii.self[name](...)
 end
 
 return ii

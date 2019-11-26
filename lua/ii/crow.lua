@@ -48,34 +48,34 @@ do return
     , args   = { 'channel', s8 }
     , retval = { 'value', s16V }
     }
-  , { name   = 'query0'
+  , { name   = 'output'
     , cmd    = 4 + get_offset
+    , args   = { 'channel', s8 }
+    , retval = { 'value', s16V }
+    }
+  , { name   = 'query0'
+    , cmd    = 5 + get_offset
     , retval = { 'value', s16 }
     }
   , { name   = 'query1'
-    , cmd    = 5 + get_offset
+    , cmd    = 6 + get_offset
     , args   = { 'arg1', s16 }
     , retval = { 'value', s16 }
     }
   , { name   = 'query2'
-    , cmd    = 6 + get_offset
+    , cmd    = 7 + get_offset
     , args   = { { 'arg1', s16 }
                , { 'arg2', s16 }
                }
     , retval = { 'retval', s16 }
     }
   , { name   = 'query3'
-    , cmd    = 7 + get_offset
+    , cmd    = 8 + get_offset
     , args   = { { 'arg1', s16 }
                , { 'arg2', s16 }
                , { 'arg3', s16 }
                }
     , retval = { 'value', s16 }
-    }
-  , { name   = 'inputF'
-    , cmd    = 8 + get_offset
-    , args   = { 'channel', s8 }
-    , retval = { 'value', float }
     }
   }
 }

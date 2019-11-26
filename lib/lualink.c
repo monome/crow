@@ -344,41 +344,20 @@ static int _ii_pullup( lua_State *L )
     return 0;
 }
 
-static int _ii_set( lua_State *L )
+static int _ii_lead( lua_State *L )
 {
-    printf("\nlua ii broadcast\n");
-
-    // FIXME: 4 is max number of arguments. is this ok?
     float data[4] = {0,0,0,0}; // always zero out data
     int nargs = lua_gettop(L);
     if( nargs > 2
      && nargs <= 6 ){
         for( int i=0; i<(nargs-2); i++ ){
-            data[i] = luaL_checknumber(L, i+3); // 1-ix'd
+            data[i] = luaL_checknumber(L, i+3);
         }
     }
-    ii_broadcast( luaL_checkinteger(L, 1) // address
-                , luaL_checkinteger(L, 2) // command
-                , data
-                );
-    lua_settop(L, 0);
-    return 0;
-}
-static int _ii_get( lua_State *L )
-{
-    printf("\nlua ii query\n");
-    float data[4] = {0,0,0,0}; // always zero out data
-    int nargs = lua_gettop(L);
-    if( nargs > 2
-     && nargs <= 6 ){
-        for( int i=0; i<(nargs-2); i++ ){
-            data[i] = luaL_checknumber(L, i+3); // 1-ix'd
-        }
-    }
-    if(ii_query( luaL_checkinteger(L, 1) // address
-            , luaL_checkinteger(L, 2) // command
-            , data
-            )){ printf("ii_query failed\n"); }
+    if( ii_leader_enqueue( luaL_checkinteger(L, 1) // address
+                         , luaL_checkinteger(L, 2) // command
+                         , data
+                         ) ){ printf("ii_lead failed\n"); }
     lua_settop(L, 0);
     return 0;
 }
@@ -482,8 +461,7 @@ static const struct luaL_Reg libCrow[]=
     , { "ii_list_modules"  , _ii_list_modules  }
     , { "ii_list_commands" , _ii_list_commands }
     , { "ii_pullup"        , _ii_pullup        }
-    , { "ii_set"           , _ii_set           }
-    , { "ii_get"           , _ii_get           }
+    , { "ii_lead"          , _ii_lead          }
     , { "ii_address"       , _ii_address       }
         // metro
     , { "metro_start"      , _metro_start      }
@@ -553,8 +531,8 @@ void Lua_crowbegin( void )
 // Public Callbacks from C to Lua
 void L_queue_toward( int id )
 {
-    event_t e = { .type  = E_toward
-                , .index = id
+    event_t e = { .type    = E_toward
+                , .index.i = id
                 };
     event_post(&e);
 }
@@ -572,9 +550,9 @@ void L_handle_toward( int id )
 
 void L_queue_metro( int id, int state )
 {
-    event_t e = { .type   = E_metro
-                , .index  = id
-                , .data.i = state
+    event_t e = { .type    = E_metro
+                , .index.i = id
+                , .data.i  = state
                 };
     event_post(&e);
 }
@@ -592,9 +570,9 @@ void L_handle_metro( const int id, const int stage)
 
 void L_queue_in_stream( int id )
 {
-    event_t e = { .type   = E_stream
-                , .index  = id
-                , .data.f = IO_GetADC(id)
+    event_t e = { .type    = E_stream
+                , .index.i = id
+                , .data.f  = IO_GetADC(id)
                 };
     event_post(&e);
 }
@@ -612,9 +590,9 @@ void L_handle_in_stream( int id, float value )
 
 void L_queue_change( int id, float state )
 {
-    event_t e = { .type   = E_change
-                , .index  = id
-                , .data.f = state
+    event_t e = { .type    = E_change
+                , .index.i = id
+                , .data.f  = state
                 };
     event_post(&e);
 }
@@ -631,12 +609,21 @@ void L_handle_change( int id, float state )
     }
 }
 
+void L_queue_ii_leadRx( uint8_t address, uint8_t cmd, float data )
+{
+    event_t e = { .type   = E_ii_leadRx
+                , .data.f = data
+                };
+    e.index.u8s[0] = address;
+    e.index.u8s[1] = cmd;
+    event_post(&e);
+}
 void L_handle_ii_leadRx( uint8_t address, uint8_t cmd, float data )
 {
     lua_getglobal(L, "ii_LeadRx_handler");
     lua_pushinteger(L, address);
     lua_pushinteger(L, cmd);
-    lua_pushnumber(L, data); // TODO currently limited to single retval
+    lua_pushnumber(L, data);
     if( lua_pcall(L, 3, 0, 0) != LUA_OK ){
         printf("!ii.leadRx\n");
         Caw_send_luachunk("error: ii lead event");
@@ -645,7 +632,16 @@ void L_handle_ii_leadRx( uint8_t address, uint8_t cmd, float data )
     }
 }
 
-void L_handle_ii_followRx( uint8_t cmd, int args, float* data )
+void L_queue_ii_followRx( void )
+{
+    event_t e = { .type = E_ii_followRx };
+    event_post(&e);
+}
+void L_handle_ii_followRx( void )
+{
+    ii_process_dequeue_decode();
+}
+void L_handle_ii_followRx_cont( uint8_t cmd, int args, float* data )
 {
     lua_getglobal(L, "ii_followRx_handler");
     lua_pushinteger(L, cmd);
