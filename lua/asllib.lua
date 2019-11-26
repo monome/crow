@@ -20,13 +20,14 @@ function note( noteNum, duration )
           }
 end
 
-function lfo( time, level )
+function lfo( time, level, shape )
     time, level = time or 1, level or 5
+
     local function half(t) return asl.runtime( function(a) return clamp(a/2) end, t ) end
 
-
-    return loop{ to(        level , half(time) )
-               , to( negate(level), half(time) )}
+    return loop{ to(        level , half(time), shape )
+               , to( negate(level), half(time), shape )
+               }
 
 end
 
@@ -66,32 +67,32 @@ function ramp( time, skew, level )
                  , t, sk)
     end
 
-    return{ loop{ to(        level , riser(time,skew) )
-                , to( negate(level), faller(time,skew) )
+    return{ loop{ to(        level , riser(time2,skew) )
+                , to( negate(level), faller(time2,skew) )
                 }
           }
 end
 
-function ar( attack, release, level )
+function ar( attack, release, level, shape )
     attack,release,level = attack  or 0.05
                          , release or 0.5
                          , level   or 7
 
-    return{ to( level, clamp(attack)  )
-          , to( 0,     clamp(release) )
+    return{ to( level, clamp(attack) , shape )
+          , to( 0    , clamp(release), shape )
           }
 end
 
-function adsr( attack, decay, sustain, release )
+function adsr( attack, decay, sustain, release, shape )
     attack,decay,sustain,release = attack  or 0.05
                                  , decay   or 0.3
                                  , sustain or 2
                                  , release or 2
 
-    return{ held{ to( 5.0    , clamp(attack) )
-                , to( sustain, clamp(decay)  )
+    return{ held{ to( 5.0    , clamp(attack), shape )
+                , to( sustain, clamp(decay) , shape  )
                 }
-          , to( 0, clamp(release) )
+          , to( 0, clamp(release), shape )
           }
 end
 
