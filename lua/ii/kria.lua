@@ -84,12 +84,34 @@ do return
     , docs = 'clock'
     , args = { 'track', u8 }
     }
+  , { name = 'page'
+    , cmd = 12
+    , docs = 'get/set active parameter page'
+    , args = { 'page', u8 }
+    }
+  , { name = 'cue'
+    , cmd  = 13
+    , args = { 'pattern', u8 }
+    , docs = 'get/set next pattern to play'
+    }
+  , { name = 'direction'
+    , cmd = 14
+    , args = { { 'track', u8 }
+             , { 'direction', u8 }
+	     }
+    , docs = 'get/set track step direction'
+    }
   }
 , getters =
   { { name = 'cv'
     , cmd  = 8 + get_offset
     , args = { 'track', u8 }
-    , retval = { 'volts', u16 }
+    , retval = { 'volts', s16V }
+    }
+  , { name = 'duration'
+    , cmd = 15 + get_offset
+    , args = { { 'track', u8 } }
+    , retval = { 'ms', u16 }
     }
   }
 }
