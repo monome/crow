@@ -15,9 +15,7 @@ function clamp( input, min, max )
 end
 
 function note( noteNum, duration )
-    return{ to( n2v(noteNum), 0 )
-          , to( 'here', duration  )
-          }
+    return to( n2v(noteNum), duration, 'now' )
 end
 
 function lfo( time, level, shape )
