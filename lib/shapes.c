@@ -22,12 +22,12 @@ float shapes_sin( float in )
 
 float shapes_exp( float in )
 {
-    return 1.0 - powf(2.0, -10.0 * in);
+    return powf(2.0, 10.0 * (in - 1.0));
 }
 
 float shapes_log( float in )
 {
-    return powf(2.0, 10.0 * (in - 1.0));
+    return 1.0 - powf(2.0, -10.0 * in);
 }
 
 float shapes_step_now( float in )
@@ -89,20 +89,20 @@ static float pow2( float in ){ return powf(2.0,in); }
 
 float* shapes_v_exp( float* in, int size )
 {
-    return b_sub(
-            b_map( pow2,
-                b_mul( in, -10.0, size )
-                 , size )
-                , 1.0
-                , size );
-}
-
-float* shapes_v_log( float* in, int size )
-{
     return b_map( pow2,
             b_mul(
                 b_add( in, -1.0, size )
                  , 10.0
                  , size )
+                , size );
+}
+
+float* shapes_v_log( float* in, int size )
+{
+    return b_sub(
+            b_map( pow2,
+                b_mul( in, -10.0, size )
+                 , size )
+                , 1.0
                 , size );
 }
