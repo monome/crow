@@ -357,6 +357,10 @@ made by 'mannequins' and can be talked to at the hexadecimal address 0x70. The
 `lua_name` field *must* match the filename (jf.lua -> 'jf'), and is the name
 by which users will refer to this device in their scripts eg: `ii.jf.trigger()`.
 
+*NEW in v1.0.3*: `address` may now be a table of addresses to allow automatic support for devices that support multiple units by using different i2c addresses.
+eg txI: `address = {0x68, 0x69, 0x6A, 0x6B, 0x6C, 0x6D, 0x6E, 0x6F}`
+Note that an enumerate list is required (not just a range), and the should be listed in the order that users will address them. In the case of txI, `ii.txi[1]` will refer to address `0x68`.
+
 Following this header is a big table called 'commands' which is itself full of
 tables, one for each 'setter' command the device can receive. A 'setter' in this
 context typically allows crow to remotely-control a parameter or event. More
