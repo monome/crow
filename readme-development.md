@@ -219,6 +219,8 @@ first send a command of 3 backticks "```", then your codeblock, then another
 
 For longer chunks where you're uploading a whole script, use the `^^s <code> ^^e` sequence to run immediately. Alternatively, use `^^s <code> ^^w` if you want to write the script to flash so it persists across power cycles. The code block is limited to 8kB.
 
+There is a known bug on OSX & Windows machines where packets with length equal to a multiple of 64bytes will kill the USB connection. Before sending a packet over USB, check if (length % 64 == 0) and if so, add a trailing newline (`\n`) character to the stream.
+
 ### Signals
 
 The signal i/o for the input and output jacks happens in the `lib/io.c` file in
@@ -233,6 +235,8 @@ the maximum when reaching the output driver.
 The `IO_block_t` type is a struct described in `ll/adda.h` and should be used to
 access the signals and metadata in the block processor.
 
+In general, signal processing extensions should be built in C and provide declarative-style hooks to the lua environment. As the signal processing runs at higher priority than the lua environment, this ensures that signal outputs don't run into underruns due to high CPU usage. Accompanying lua libraries to provide lua-style syntax is encouraged (see metro.lua or input.lua for examples).
+
 #### Inputs
 
 The input jacks are only sampled once per block, but the `b->in[channel][]` array
@@ -241,9 +245,10 @@ available directly from the low-level driver to avoid this smoothing, and for ac
 without having to change the block process with `IO_GetADC(channel)`.
 
 The block process passes the input buffers to the Detect library implemented in
-`lib/detect.c` which analysis the input for changes that should generate events in
+`lib/detect.c` which analyse the input for changes that should generate events in
 the lua environment. Event descriptors are sent from the lua Input library, which
 define what will cause event interrupts to occur.
+
 
 #### Input Dev Roadmap: More detection modes
 
@@ -257,8 +262,15 @@ Additional modes in the style of `change` will be added specifically covering:
 - quantize: like 'scale' but with arbitrary divisions. (ie 'scale' is 12tone ET)
 - ji: a just-intonation version of 'scale' where the scale is defined as ratios
 
-The syntax of these are described in Issue [#14](https://github.com/monome/crow/issues/14).
+The proposed syntax of these are described in Issue [#14](https://github.com/monome/crow/issues/14).
 A working example in Lua is available in `crow/ref/shaper.lua` at the end of file.
+
+#### Input Dev Roadmap: Input signal types
+
+In addition to the current 'voltage' inputs, adding 'amplitude' and 'pitch' options. The different detection modes will likely still be relevant, eg: 'detect' in 'amplitude' mode would provide an event when the volume of an input passes some threshold.
+
+See discussion in [#242](https://github.com/monome/crow/issues/242).
+
 
 #### Outputs
 
@@ -306,11 +318,18 @@ The clear use-case of this functionality is for highly-flexible quantization. A
 simple example is found at the end of `ref/shaper.c` called `S_absolute()`, whereby
 a sample is quantized into it's nearest scale-division (here chromatic).
 
-Additionally this functionality is useful if the user desires to shape the
+This use-case will likely encourage a lot more use of the ASL system as it allows the musician to describe melodies in terms of their shape, then independently describe the harmonic qualities (ie scale).
+
+NB: Once this is implemented, it is likely some ability to perform an action when the value passes into a different quantization bucket will be desired. This may be difficult to handle in lua as it could potentially cause a lot of very rapid traffic with fast slopes or LFOs.
+
+Secondarily this functionality is useful if the user desires to shape the
 distribution of output values to some specific range. An absolute-exponential would
 pull the distribution toward zero, and would effectively zero-out negative values.
 The utility of the above is apparent when used with stochastic or chaotic systems,
 allowing the values to be focused in spite of their non-determinism.
+
+Counter:
+Should this secondary functionality (arbitrary non-linear transfer functions) be done by the user in lua, changing the values in their script. This would likely be clearer when reading the script, as the output values will at least be ballpark correct, while exponentially shaping the whole output stream will decorrelate the values written.
 
 #### Output Dev Roadmap: Composite slopes
 
@@ -481,7 +500,7 @@ void unpickle( uint8_t* address, uint8_t* command, uint8_t* data );
 In general, these functions should only be used if the serial protocol isn't working correctly, or there's some kind of low-level hack required to satisfy an existing device. If at all possible, try to avoid using them, and if you're designing a new device, please use the standard protocol!
 
 
-#### I2C Roadmap: Fract types & normalization
+#### I2C Roadmap: Descriptor improvements
 While extensive, this descriptive framework could be extended to add any or all of
 the below features. See the github issue #49 for discussion:
 
