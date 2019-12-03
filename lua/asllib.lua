@@ -19,7 +19,9 @@ function note( noteNum, duration )
 end
 
 function lfo( time, level, shape )
-    time, level = time or 1, level or 5
+    time,level,shape = time  or 1
+                     , level or 5
+                     , shape or 'sine'
 
     local function half(t) return asl.runtime( function(a) return clamp(a/2) end, t ) end
 
@@ -64,16 +66,17 @@ function ramp( time, skew, level )
                  , t, sk)
     end
 
-    return{ loop{ to(        level , riser(time2,skew) )
-                , to( negate(level), faller(time2,skew) )
+    return{ loop{ to(        level , riser(time2,skew2) )
+                , to( negate(level), faller(time2,skew2) )
                 }
           }
 end
 
 function ar( attack, release, level, shape )
-    attack,release,level = attack  or 0.05
-                         , release or 0.5
-                         , level   or 7
+    attack,release,level,shape = attack  or 0.05
+                               , release or 0.5
+                               , level   or 7
+                               , shape   or 'log'
 
     return{ to( level, clamp(attack) , shape )
           , to( 0    , clamp(release), shape )
