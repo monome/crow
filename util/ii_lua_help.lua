@@ -10,7 +10,11 @@ Is.lu={}
 function Is.new( name, address )
     local self = {}
     self.name = name
-    self.help = function() ii.m_help(address) end
+    if type(address)=='table' then
+        self.help = function() ii.m_help(address[1]) end
+    else
+        self.help = function() ii.m_help(address) end
+    end
     setmetatable( self, Is )
     if type(address)=='table' then
         for k,v in ipairs(address) do
