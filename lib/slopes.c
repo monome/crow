@@ -112,7 +112,10 @@ void S_toward( int        index
         if( overflow > 0.0 ){
             self->here += overflow * self->delta;
             self->countdown -= overflow;
-            // TODO add protection against overshoot for very <1block slopes
+            if( self->countdown <= 0.0 ){ // guard against overflow hitting callback
+                self->countdown = 0.00001; // force callback on next sample
+                self->here = 1.0; // set to destination
+            }
         }
     }
 }
