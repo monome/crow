@@ -1,7 +1,7 @@
 do return
 { module_name  = 'ER-301'
 , manufacturer = 'Orthogonal Devices'
-, i2c_address  = 0x31
+, i2c_address  = {0x31, 0x32, 0x33}
 , lua_name     = 'er301' -- NB: must match the file name. er301.lua -> 'er301'
 , commands     =
   { { name = 'tr'
