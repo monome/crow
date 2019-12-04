@@ -70,9 +70,11 @@ function make_commandlist(files)
 
         local i = 0
         -- setters
-        for _,v in ipairs( f.commands ) do
-            c = c .. make_a_cmd( f.lua_name, i, v.cmd, v.args, void )
-            i = i + 1
+        if f.commands then
+            for _,v in ipairs( f.commands ) do
+                c = c .. make_a_cmd( f.lua_name, i, v.cmd, v.args, void )
+                i = i + 1
+            end
         end
 
         local function get_last_argtype( args )
@@ -97,15 +99,17 @@ function make_commandlist(files)
         end
 
         -- auto getters
-        for _,v in ipairs( f.commands ) do
-            if v.get == true then
-                c = c .. make_a_cmd( f.lua_name
-                                   , i
-                                   , v.cmd + get_offset
-                                   , drop_last_arg( v.args )
-                                   , get_last_argtype( v.args )
-                                   )
-                i = i + 1
+        if f.commands then
+            for _,v in ipairs( f.commands ) do
+                if v.get == true then
+                    c = c .. make_a_cmd( f.lua_name
+                                       , i
+                                       , v.cmd + get_offset
+                                       , drop_last_arg( v.args )
+                                       , get_last_argtype( v.args )
+                                       )
+                    i = i + 1
+                end
             end
         end
         -- explicit getters
@@ -155,18 +159,20 @@ function c_switch(files)
 
         s = s .. '\t\t\tswitch( cmd ){\n'
         local ix = 0
-        for _,v in ipairs( f.commands ) do
-            -- setters
-            s = s .. '\t\t\t\tcase ' .. v.cmd .. ': return &'
-                  .. f.lua_name .. ix .. ';\n'
-            ix = ix + 1
-        end
-        for _,v in ipairs( f.commands ) do
-            if v.get == true then
-                -- implicit getter
-                s = s .. '\t\t\t\tcase ' .. (v.cmd + get_offset) .. ': return &'
+        if f.commands then
+            for _,v in ipairs( f.commands ) do
+                -- setters
+                s = s .. '\t\t\t\tcase ' .. v.cmd .. ': return &'
                       .. f.lua_name .. ix .. ';\n'
                 ix = ix + 1
+            end
+            for _,v in ipairs( f.commands ) do
+                if v.get == true then
+                    -- implicit getter
+                    s = s .. '\t\t\t\tcase ' .. (v.cmd + get_offset) .. ': return &'
+                          .. f.lua_name .. ix .. ';\n'
+                    ix = ix + 1
+                end
             end
         end
         if f.getters ~= nil then
@@ -188,7 +194,8 @@ end
 
 -- generate a printable c-string describing the module's commands
 function generate_prototypes( d )
-    local prototypes = ''
+    local prototypes = '"-- commands\\n\\r"\n'
+    if not d.commands then return prototypes end
     local proto_prefix = 'ii.' .. d.lua_name .. '.'
     for _,v in ipairs( d.commands ) do
         local s = '"' .. proto_prefix .. v.name .. '( '
@@ -214,18 +221,20 @@ function generate_getters( d )
     local get_prefix = '"ii.' .. d.lua_name .. '.get( \''
 
     -- commands that have standard getters
-    for _,v in ipairs( d.commands ) do
-        if v.get == true then
-            local s = get_prefix .. v.name .. '\''
-            if v.args ~= nil then
-                if type(v.args[1]) == 'table' then -- >1 arg
-                    for i=1,#(v.args)-1 do -- ignore last
-                        s = s .. ', ' .. v.args[i][1]
-                    end
-                end -- if only 1 arg it is ignored!
+    if d.commands then
+        for _,v in ipairs( d.commands ) do
+            if v.get == true then
+                local s = get_prefix .. v.name .. '\''
+                if v.args ~= nil then
+                    if type(v.args[1]) == 'table' then -- >1 arg
+                        for i=1,#(v.args)-1 do -- ignore last
+                            s = s .. ', ' .. v.args[i][1]
+                        end
+                    end -- if only 1 arg it is ignored!
+                end
+                s = s .. ' )\\n\\r"\n'
+                getters = getters .. s
             end
-            s = s .. ' )\\n\\r"\n'
-            getters = getters .. s
         end
     end
 
@@ -249,6 +258,7 @@ end
 
 function generate_events( d )
     local has_get_cmd = function(d)
+        if not d.commands then return false end
         for _,v in ipairs( d.commands ) do
             if v.get == true then return true end
         end
@@ -301,8 +311,7 @@ function make_helpstrings(files)
             return false
         end
 
-        local h = '"-- commands\\n\\r"\n'
-                .. generate_prototypes(f) .. '"\\n\\r"\n'
+        local h = generate_prototypes(f) .. '"\\n\\r"\n'
         if has_getters(f) then
             h = h .. '"-- request params\\n\\r"\n'
                   .. generate_getters(f) .. '"\\n\\r"\n'
