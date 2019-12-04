@@ -85,29 +85,30 @@ void S_toward( int        index
     if( index < 0 || index >= SLOPE_CHANNELS ){ return; }
     Slope_t* self = &slopes[index]; // safe pointer
 
-    // save current output level as new starting point
-    self->last   = self->shaped;
 
     // update destination
     self->dest   = destination;
     self->shape  = shape;
     self->action = cb;
-    self->scale  = self->dest - self->last;
 
     // direct update & callback if ms = 0 (ie instant)
     if( ms <= 0.0 ){
-        self->here = 1.0; // hard set to end of range
+        self->last      = self->dest;
+        self->shaped    = self->dest;
+        self->scale     = 0.0;
+        self->here      = 1.0; // hard set to end of range
         self->countdown = -1.0; // inactive
-        self->last = self->dest;
-        self->shaped = self->dest;
     } else {
+        // save current output level as new starting point
+        self->last   = self->shaped;
+        self->scale  = self->dest - self->last;
         float overflow = 0.0;
         if( self->countdown < 0.0 && self->countdown > -1023.0 ){
             overflow = -(self->countdown);
         }
         self->countdown = ms * SAMPLES_PER_MS; // samples until callback
-        self->delta = 1.0 / self->countdown;
-        self->here = 0.0; // start of slope
+        self->delta     = 1.0 / self->countdown;
+        self->here      = 0.0; // start of slope
         if( overflow > 0.0 ){
             self->here += overflow * self->delta;
             self->countdown -= overflow;
