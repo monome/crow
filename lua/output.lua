@@ -28,7 +28,7 @@ Output.__newindex = function(self, ix, val)
     if ix == 'action' then
         self.asl.action = val
     elseif ix == 'volts' then
-        self.asl.action = {to(val, self.slew, self.shape)}
+        self.asl.action = to(val, self.slew, self.shape)
         self.asl:action()
     elseif ix == 'done' then
         self.asl.done = val
