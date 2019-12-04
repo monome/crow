@@ -20,6 +20,7 @@ function prepare_multi_address(f)
 end
 
 function lua_cmds(f)
+    if not f.commands then return '' end
     local c = ''
     for _,v in ipairs( f.commands ) do
         c = c .. 'function ' .. f.lua_name .. '.' .. v.name .. '(...)ii.set('
@@ -30,9 +31,11 @@ end
 
 function lua_getters(f)
     local g = f.lua_name .. '.g={\n'
-    for _,v in ipairs( f.commands ) do
-        if v.get == true then
-            g = g .. '\t[\'' .. v.name .. '\']=' .. (v.cmd + get_offset) .. ',\n'
+    if f.commands then
+        for _,v in ipairs( f.commands ) do
+            if v.get == true then
+                g = g .. '\t[\'' .. v.name .. '\']=' .. (v.cmd + get_offset) .. ',\n'
+            end
         end
     end
     if f.getters ~= nil then
@@ -49,9 +52,11 @@ end
 
 function lua_events(f)
     local e = f.lua_name .. '.e={\n'
-    for _,v in ipairs( f.commands ) do
-        if v.get == true then
-            e = e .. '\t[' .. (v.cmd + get_offset) .. ']=\'' .. v.name .. '\',\n'
+    if f.commands then
+        for _,v in ipairs( f.commands ) do
+            if v.get == true then
+                e = e .. '\t[' .. (v.cmd + get_offset) .. ']=\'' .. v.name .. '\',\n'
+            end
         end
     end
     if f.getters ~= nil then
