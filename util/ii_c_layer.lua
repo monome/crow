@@ -130,19 +130,29 @@ function make_commandlist(files)
     return c .. '\n'
 end
 
+function build_cases(address, name, indent)
+    local s = ''
+    if type(address) == 'table' then
+        for k,v in ipairs(address) do
+            s = s .. indent .. 'case ' .. v .. ':'
+            if k==#address then s = s .. '{' end
+            if k==1 then s = s .. ' // '.. name end
+            s = s .. '\n'
+        end
+    else
+        s = s .. indent .. 'case ' .. address .. ':{ // '.. name..'\n'
+    end
+    return s
+end
+
+
 function c_switch(files)
     local s = 'const ii_Cmd_t* ii_find_command( uint8_t address, uint8_t cmd ){\n'
            .. '\tswitch( address ){\n'
     for _,f in ipairs(files) do
-        if type(f.i2c_address) == 'table' then
-            for k,v in ipairs(f.i2c_address) do
-                s = s .. '\t\tcase ' .. v .. ':'
-                if k==1 then s = s .. ' // '.. f.module_name end
-                s = s .. '\n'
-            end
-        else
-            s = s .. '\t\tcase ' .. f.i2c_address .. ': // '.. f.module_name..'\n'
-        end
+
+        s = s .. build_cases(f.i2c_address, f.module_name, '\t\t')
+
         s = s .. '\t\t\tswitch( cmd ){\n'
         local ix = 0
         for _,v in ipairs( f.commands ) do
@@ -168,6 +178,7 @@ function c_switch(files)
         end
         s = s .. '\t\t\t\tdefault: return NULL; // unknown command\n'
               .. '\t\t\t}\n'
+              .. '\t\t}\n'
     end
     s = s .. '\t\tdefault: return NULL; // unknown address\n'
           .. '\t}\n'
@@ -330,7 +341,7 @@ function c_pickle(files)
            .. '\tswitch( *address ){\n'
     for _,f in ipairs(files) do
         if f.pickle then
-            s = s .. '\t\tcase ' .. f.i2c_address .. ':{ // '.. f.module_name..'\n'
+            s = s .. build_cases(f.i2c_address, f.module_name, '\t\t')
                   .. '\t\t\t' .. string.gsub(f.pickle,"\n","\n\t\t\t")
                   .. '\n\t\t\tbreak;}\n'
         end
@@ -349,7 +360,7 @@ function c_unpickle(files)
            .. '\tswitch( *address ){\n'
     for _,f in ipairs(files) do
         if f.unpickle then
-            s = s .. '\t\tcase ' .. f.i2c_address .. ':{ // '.. f.module_name..'\n'
+            s = s .. build_cases(f.i2c_address, f.module_name, '\t\t')
                   .. '\t\t\t' .. string.gsub(f.unpickle,"\n","\n\t\t\t")
                   .. '\n\t\t\tbreak;}\n'
         end
