@@ -7,7 +7,7 @@ Asllib = {}
 function n2v( n ) return asl.runtime( function(a) return a/12 end, n ) end
 function negate( n ) return asl.runtime( function(a) return -a end, n ) end
 function clamp( input, min, max )
-    min, max = min or 0.005, max or 1e10
+    min, max = min or 0.001, max or 1e10
     return asl.runtime( function( a, b, c )
                  return math.min( math.max( b, a ), c )
                end
