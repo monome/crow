@@ -194,8 +194,8 @@ end
 
 -- generate a printable c-string describing the module's commands
 function generate_prototypes( d )
+    if not d.commands then return '' end
     local prototypes = '"-- commands\\n\\r"\n'
-    if not d.commands then return prototypes end
     local proto_prefix = 'ii.' .. d.lua_name .. '.'
     for _,v in ipairs( d.commands ) do
         local s = '"' .. proto_prefix .. v.name .. '( '
@@ -218,13 +218,13 @@ end
 
 function generate_getters( d )
     local getters = ''
-    local get_prefix = '"ii.' .. d.lua_name .. '.get( \''
+    local get_prefix = '"ii.' .. d.lua_name .. '.get( '
 
     -- commands that have standard getters
     if d.commands then
         for _,v in ipairs( d.commands ) do
             if v.get == true then
-                local s = get_prefix .. v.name .. '\''
+                local s = get_prefix .. '\'' .. v.name .. '\''
                 if v.args ~= nil then
                     if type(v.args[1]) == 'table' then -- >1 arg
                         for i=1,#(v.args)-1 do -- ignore last
@@ -241,7 +241,12 @@ function generate_getters( d )
     -- get-only commands, or custom getters
     if d.getters ~= nil then
         for _,v in ipairs( d.getters ) do
-            local s = get_prefix .. v.name .. '\''
+            local s = get_prefix
+            if type(v.name) == 'number' then
+                s = s .. v.name
+            else
+                s = s .. '\'' .. v.name .. '\''
+            end
             if v.args ~= nil then
                 if type(v.args[1]) == 'table' then -- multiple args
                     for i=1,#(v.args)-1 do -- ignore last
@@ -274,23 +279,28 @@ function generate_events( d )
         local heading = true
         for _,v in ipairs( d.commands ) do
             if v.get == true then
+                local vn = type(v.name) == 'number' and v.name or '\'' .. v.name .. '\''
                 if heading then
-                    events = events .. '"\tif e == \'' .. v.name .. '\' then\\n\\r"\n'
-                           .. '"\t\t-- handle ' .. v.name .. ' param here\\n\\r"\n'
+                    events = events .. '"\tif e == ' .. vn .. ' then\\n\\r"\n'
+                           .. '"\t\t-- handle ' .. v.name .. ' response\\n\\r"\n'
                     heading = false
                 else
-                    events = events .. '"\telseif e == \'' .. v.name .. '\' then\\n\\r"\n'
+                    events = events .. '"\telseif e == ' .. vn .. ' then\\n\\r"\n'
                 end
             end
         end
     else
-        events = events .. '"\tif e == \'' .. d.getters[1].name .. '\' then\\n\\r"\n'
-               .. '"\t\t-- handle ' .. d.getters[1].name .. ' param here\\n\\r"\n'
+        local gn = type(d.getters[1].name) == 'number' and d.getters[1].name
+                                                       or '\'' .. d.getters[1].name .. '\''
+        events = events .. '"\tif e == ' .. gn .. ' then\\n\\r"\n'
+               .. '"\t\t-- handle ' .. d.getters[1].name .. ' response\\n\\r"\n'
     end
 
     if d.getters ~= nil then
         for i=(overloaded and 1 or 2),#(d.getters) do
-            events = events .. '"\telseif e == \'' .. d.getters[i].name .. '\' then\\n\\r"\n'
+            local gn = type(d.getters[i].name) == 'number' and d.getters[i].name
+                                                           or '\'' .. d.getters[i].name .. '\''
+            events = events .. '"\telseif e == ' .. gn .. ' then\\n\\r"\n'
         end
     end
     events = events .. '"\tend\\n\\r"\n'
