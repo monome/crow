@@ -17,7 +17,7 @@ void ii_deinit( void );
 void ii_set_pullups( uint8_t state );
 
 uint8_t ii_get_address( void );
-void ii_set_address( uint8_t address );
+void ii_set_address( uint8_t index );
 
 
 //////////////////////////

@@ -10,29 +10,65 @@ Is.lu={}
 function Is.new( name, address )
     local self = {}
     self.name = name
-    self.help = function() ii.m_help(address) end
+    if type(address)=='table' then
+        self.help = function() ii.m_help(address[1]) end
+    else
+        self.help = function() ii.m_help(address) end
+    end
     setmetatable( self, Is )
-    Is.lu[address] = name
+    if type(address)=='table' then
+        for k,v in ipairs(address) do
+            Is.lu[v] = {name,k}
+        end
+    else
+        Is.lu[address] = name
+    end
     return self
+end
+
+function Is.lookup( addr )
+    local a=Is.lu[addr]
+    if type(a)=='table' then
+        return a[1],a[2] -- name & device index
+    else
+        return a
+    end
 end
 
 function Is.openlib( self )
     local n = self.name
-    rawset(ii,n,dofile(string.format('build/ii_%s.lua',n)))
-    local new = rawget(ii,n)
-    rawset(new,'help',self.help)
-    return new
+    ii[n] = dofile(string.format('build/ii_%s.lua',n))
+    ii[n].help = self.help
+    return ii[n]
 end
 
 Is.__index = function( self, ix )
-    return rawget( Is.openlib(self), ix )
+    return Is.openlib(self)[ix]
 end
 
 Is.__newindex = function( self, ix, val )
-    return rawset( Is.openlib(self), ix, val )
+    Is.openlib(self)[ix] = val
 end
 
 ]]
+
+function ii_help_body( files )
+    local h = ''
+    for _,f in ipairs(files) do
+        h = h .. 'Is.' ..  f.lua_name .. '=Is.new(\'' .. f.lua_name .. '\','
+        if type(f.i2c_address) == 'table' then
+            h = h .. '{'
+            for k,v in ipairs(f.i2c_address) do
+                h = h .. v .. ','
+            end
+            h = h .. '}'
+        else
+            h = h .. f.i2c_address
+        end
+        h = h .. ')\n'
+    end
+    return h
+end
 
 local ii_help_end = [[
 setmetatable(Is, Is)
@@ -41,13 +77,9 @@ return Is
 ]]
 
 function make_iihelp(files)
-    local h = ii_help_start
-    for _,f in ipairs(files) do
-        h = h .. 'Is.' ..  f.lua_name .. '=Is.new(\''
-              .. f.lua_name .. '\',' .. f.i2c_address .. ')\n'
-    end
-    h = h .. ii_help_end
-    return h
+    return ii_help_start
+        .. ii_help_body(files)
+        .. ii_help_end
 end
 
 local in_file_dir = arg[1]

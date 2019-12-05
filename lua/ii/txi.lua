@@ -8,17 +8,8 @@ local N     = 0x10
 do return
 { module_name  = 'TXi'
 , manufacturer = 'bpc'
-, i2c_address  = 0x68
+, i2c_address  = {0x68, 0x69, 0x6A, 0x6B, 0x6C, 0x6D, 0x6E, 0x6F}
 , lua_name     = 'txi'
-, commands     =
-  { { name = 'nop'
-    , cmd  = 2
-    , docs = 'place holder'
-    , args = { { 'channel', s8 }
-             , { 'state', s8 }
-             }
-    }
-  }
 , getters =
   { { name = 'param'
     , cmd  = PARAM

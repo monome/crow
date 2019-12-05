@@ -368,6 +368,11 @@ static int _ii_address( lua_State *L )
     lua_settop(L, 0);
     return 0;
 }
+static int _ii_get_address( lua_State *L )
+{
+    lua_pushinteger( L, ii_get_address() );
+    return 1;
+}
 static int _metro_start( lua_State* L )
 {
     static int idx = 0;
@@ -462,7 +467,8 @@ static const struct luaL_Reg libCrow[]=
     , { "ii_list_commands" , _ii_list_commands }
     , { "ii_pullup"        , _ii_pullup        }
     , { "ii_lead"          , _ii_lead          }
-    , { "ii_address"       , _ii_address       }
+    , { "ii_set_add"       , _ii_address       }
+    , { "ii_get_add"       , _ii_get_address   }
         // metro
     , { "metro_start"      , _metro_start      }
     , { "metro_stop"       , _metro_stop       }

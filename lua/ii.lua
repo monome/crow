@@ -7,7 +7,7 @@ ii.is = dofile('build/iihelp.lua')
 
 --- METAMETHODS
 ii.__index = function( self, ix )
-    local e = rawget(ii.is, ix)
+    local e = rawget(ii.is, ix) -- avoids openlib() in case of .help
     if e ~= nil then return e
     else print'not found. try ii.help()' end
 end
@@ -26,6 +26,10 @@ function ii.pullup( state )
     ii_pullup(state)
 end
 
+-- aliases to C functions
+ii.set_address = ii_set_add
+ii.get_address = ii_get_add
+
 -- TODO is it possible to just define ii.lead from c directly?
 function ii.set( address, cmd, ... )
     ii_lead( address, cmd, ... )
@@ -37,12 +41,12 @@ function ii.get( address, cmd, ... )
 end
 
 function ii_LeadRx_handler( addr, cmd, data )
-    local name = ii.is.lu[addr]
-    ii[name].event(ii[name].e[cmd], data)
+    local name, ix = ii.is.lookup(addr) -- optionally returns a device index
+    ii[name].event(ii[name].e[cmd], data, ix)
 end
 
 -- NOTE: weird double-escaped quotes down here for the c compiler
-function ii.e( name, event, data ) crow.tell('ii.'..name,'\\''..tostring(event)..'\\'',data) end
+function ii.e( name, event, ... ) crow.tell('ii.'..name,'\\''..tostring(event)..'\\'',...) end
 
 ii.self =
     { cmds = { [1]='output'
