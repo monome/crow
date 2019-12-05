@@ -312,6 +312,9 @@ static uint8_t encode( uint8_t* dest, ii_Type_t type, float data )
             break;
         case ii_s16V:
             data *= 1638.4; // Scale float up to Teletype
+            // clamp range to 16bit
+            if( data > 32767.0 ){ data = 32767.0; }
+            else if( data < -32768.0 ){ data = -32768.0; }
             // FLOWS THROUGH
         case ii_s16:
             s16 = (int16_t)data;
