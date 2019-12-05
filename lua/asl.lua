@@ -50,7 +50,7 @@ end
 local function do_action( self, dir )
     self.running = true  -- mark asl as running
     local t = type(dir)
-    if t == 'table' then
+    if t == 'table' or t == 'function' then
         set_action(self,dir) -- assign new action. dir is an ASL!
         self.hold = true           -- call it!
     elseif t == 'string' then
