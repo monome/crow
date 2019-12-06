@@ -12,7 +12,7 @@ typedef struct{
     uint16_t size;
 } IO_block_t;
 
-uint16_t ADDA_Init( void );
+uint16_t ADDA_Init( int adc_timer_ix );
 void ADDA_Start( void );
 void ADDA_BlockProcess( uint32_t* dac_pickle_ptr );
 

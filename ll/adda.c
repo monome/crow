@@ -91,10 +91,11 @@ void CAL_WriteFlash( void )
     }
 }
 
-uint16_t ADDA_Init( void )
+uint16_t ADDA_Init( int adc_timer_ix )
 {
     ADC_Init( ADDA_BLOCK_SIZE
             , ADDA_ADC_CHAN_COUNT
+            , adc_timer_ix
             );
     DAC_Init( ADDA_BLOCK_SIZE
             , ADDA_DAC_CHAN_COUNT
