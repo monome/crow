@@ -3,9 +3,12 @@
 #include "../ll/debug_usart.h"
 
 USBD_HandleTypeDef USBD_Device;
+extern int timer_index;
 
-void USB_CDC_Init(void)
+void USB_CDC_Init( int timer )
 {
+    timer_index = timer;
+
     // Init Device Library
     if( USBD_Init(&USBD_Device, &VCP_Desc, 0) != USBD_OK ){
         printf("Invalid Device handle\n");
@@ -23,6 +26,10 @@ void USB_CDC_Init(void)
 
     // Start Device Process
     USBD_Start(&USBD_Device);
+}
+
+void USB_CDC_DeInit(void)
+{
 }
 
 extern PCD_HandleTypeDef hpcd;

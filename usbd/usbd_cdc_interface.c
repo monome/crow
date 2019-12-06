@@ -48,7 +48,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "usbd_main.h"
 
-#include "../ll/debug_usart.h" // debug printing
+#include "../ll/timers.h"
 
 // Private define
 #define APP_RX_DATA_SIZE  256 // tmp buffer until the parser runs in main loop
@@ -68,16 +68,18 @@ uint32_t UserTxDataLen  = 0;
 uint32_t UserRxDataLen  = 0;
 
 TIM_HandleTypeDef  USBTimHandle;
+int timer_index;
 
 extern USBD_HandleTypeDef  USBD_Device;
 
 // Private declarations
+
+static void USB_Timer_Callback( int count );
+
 static int8_t CDC_Itf_Init(void);
 static int8_t CDC_Itf_DeInit(void);
 static int8_t CDC_Itf_Control(uint8_t cmd, uint8_t* pbuf, uint16_t length);
 static int8_t CDC_Itf_Receive(uint8_t* pbuf, uint32_t *Len);
-
-static void TIM_Config(void);
 
 USBD_CDC_ItfTypeDef USBD_CDC_fops = { CDC_Itf_Init
                                     , CDC_Itf_DeInit
@@ -105,11 +107,9 @@ static int8_t CDC_Itf_Init(void)
     // set the timerdelay, so the TIM can be started but *not* send for
     // the first 100ms to solve ECHO issue on norns. see #137
     timerdelay = CONNECTION_DELAY / CDC_POLLING_INTERVAL;
-    TIM_Config();
-    if( HAL_TIM_Base_Start_IT(&USBTimHandle) != HAL_OK ){
-        printf("!usb tim_start\n");
-        return USBD_FAIL;
-    }
+
+    Timer_Set_Params( timer_index, CDC_POLLING_INTERVAL/1000.0 );
+    Timer_Start( timer_index, &USB_Timer_Callback );
 
     //TODO add lua callback when USB connects/disconnects
     //     also provide a flag to check that status
@@ -120,10 +120,7 @@ static int8_t CDC_Itf_Init(void)
 
 static int8_t CDC_Itf_DeInit(void)
 {
-    if( HAL_TIM_Base_Stop_IT(&USBTimHandle) != HAL_OK ){
-        printf("!usb tim_stop\n");
-        return USBD_FAIL;
-    }
+    Timer_Stop( timer_index );
     printf("USB_DeInit\n");
     return (USBD_OK);
 }
@@ -181,35 +178,28 @@ void USB_tx_enqueue( uint8_t* buf, uint32_t len )
 }
 
 // interrupt sends out any queued data
-uint8_t USB_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+static void USB_Timer_Callback( int count )
 {
-    if( htim == &USBTimHandle ){ // protect as it's called from timer lib
-        // here we NOP the first 100ms of timer clicks
-        // see PR #137. solves ECHO issue on norns.
-        if( timerdelay ){ timerdelay--; return 1; }
-        if( UserTxDataLen ){
-            if( UserTxDataLen >= APP_TX_DATA_SIZE ){
-                //printf("overflow %i\n",(int)UserTxDataLen);
-                UserTxDataLen = APP_TX_DATA_SIZE;
-            }
-            USBD_CDC_SetTxBuffer( &USBD_Device
-                                , UserTxBuffer
-                                , UserTxDataLen
-                                );
-//uint32_t old_primask = __get_PRIMASK();
-//__disable_irq();
-            int error = USBD_OK;
-            if( (error = USBD_CDC_TransmitPacket(&USBD_Device)) ){
-                // This means the buffer is full & hasn't been read
-                //printf("CDC_tx failed %i\n", error);
-            } else {
-                UserTxDataLen = 0; // only clear data if no error
-            }
-//__set_PRIMASK( old_primask );
+    // here we NOP the first 100ms of timer clicks
+    // see PR #137. solves ECHO issue on norns.
+    if( timerdelay ){ timerdelay--; return; }
+    if( UserTxDataLen ){
+        if( UserTxDataLen >= APP_TX_DATA_SIZE ){
+            //printf("overflow %i\n",(int)UserTxDataLen);
+            UserTxDataLen = APP_TX_DATA_SIZE;
         }
-        return 1;
+        USBD_CDC_SetTxBuffer( &USBD_Device
+                            , UserTxBuffer
+                            , UserTxDataLen
+                            );
+        int error = USBD_OK;
+        if( (error = USBD_CDC_TransmitPacket(&USBD_Device)) ){
+            // This means the buffer is full & hasn't been read
+            //printf("CDC_tx failed %i\n", error);
+        } else {
+            UserTxDataLen = 0; // only clear data if no error
+        }
     }
-    return 0;
 }
 
 
@@ -250,29 +240,6 @@ __set_PRIMASK( old_primask );
     } else {
         printf("data in rx_queue means something's wrong.\n");
     }
-}
-
-static void TIM_Config(void)
-{
-    // Set TIMu instance
-    USBTimHandle.Instance = TIMu;
-
-    TIMu_CLK_ENABLE();
-    // Initialize TIM3 peripheral as follow:
-    //     + Period = 10000 - 1
-    //     + Prescaler = ((SystemCoreClock/2)/10000) - 1
-    //     + ClockDivision = 0
-    //     + Counter direction = Up
-    //
-    USBTimHandle.Init.Period = (CDC_POLLING_INTERVAL*1000) - 1;
-    USBTimHandle.Init.Prescaler = 108-1;//84-1;
-    USBTimHandle.Init.ClockDivision = 0;
-    USBTimHandle.Init.CounterMode = TIM_COUNTERMODE_UP;
-    USBTimHandle.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-    if( HAL_TIM_Base_Init(&USBTimHandle) != HAL_OK ){ printf("!tim-base\n"); }
-
-    HAL_NVIC_SetPriority( TIMu_IRQn, TIMu_IRQPriority, 0 );
-    HAL_NVIC_EnableIRQ( TIMu_IRQn );
 }
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

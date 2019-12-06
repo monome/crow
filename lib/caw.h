@@ -17,7 +17,8 @@ typedef enum{ C_none
             , C_loadFirst
 } C_cmd_t;
 
-uint8_t Caw_Init( void );
+void Caw_Init( int timer_index );
+void Caw_DeInit( void );
 
 void Caw_send_raw( uint8_t* buf, uint32_t len );
 void Caw_send_luachunk( char* text );

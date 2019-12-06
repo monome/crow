@@ -30,8 +30,8 @@ int main(void)
     IO_Start(); // must start IO before running lua init() script
     events_init();
     int max_timers = Timer_Init();
-    Metro_Init( max_timers );
-    Caw_Init();
+    Metro_Init( max_timers-1 ); // reserve timer for USB
+    Caw_Init( max_timers-1 ); // use last timer
     CDC_clear_buffers();
     ii_init( II_CROW );
     Random_Init();
