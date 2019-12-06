@@ -114,11 +114,23 @@ void HAL_TIM_PeriodElapsedCallback( TIM_HandleTypeDef *htim )
 
 void Timer_Set_Params( int ix, float seconds )
 {
-    //TODO need to call Timer_Stop(ix); first to deactivate while changing params?
-    //FIXME limited to max~16s. possible to decrease speed of clock source?
+    //FIXME limited to max~20s (p=0xFFFF & ps=0xFFFF)
+    const float SECOND_SCALER = (float)((double)216000000.0 / (double)0x10000)-1.0;
 
-    TimHandle[ix].Init.Period            = (uint16_t)(seconds * (float)0x1000);
-    TimHandle[ix].Init.Prescaler         = 0xE000; // TODO
+    float pf = seconds * SECOND_SCALER; // exact when ps == 0xFFFF
+    uint16_t ps = 0xFFFF; // longest possible
+    while( pf < (float)(0x7FFF) ){ // decrement prescaler to maximize accuracy
+        ps >>= 1; // half the prescaler
+        pf *= 2.0; // double period
+        if( ps == 0 ){ break; }
+    }
+    uint16_t p = (pf < 0.0) ? 0x0
+                    : (pf > (float)0xFFFF) ? 0xFFFF
+                    : (uint16_t)pf;
+
+    printf("timer: per 0x%x, ps 0x%x\n",p,ps);
+    TimHandle[ix].Init.Period    = p;
+    TimHandle[ix].Init.Prescaler = ps;
     uint8_t err;
     BLOCK_IRQS(
         err = HAL_TIM_Base_Init( &(TimHandle[ix]) );
