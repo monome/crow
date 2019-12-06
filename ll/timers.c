@@ -128,7 +128,6 @@ void Timer_Set_Params( int ix, float seconds )
                     : (pf > (float)0xFFFF) ? 0xFFFF
                     : (uint16_t)pf;
 
-    printf("timer: per 0x%x, ps 0x%x\n",p,ps);
     TimHandle[ix].Init.Period    = p;
     TimHandle[ix].Init.Prescaler = ps;
     uint8_t err;
