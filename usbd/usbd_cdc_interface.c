@@ -109,6 +109,7 @@ static int8_t CDC_Itf_Init(void)
     timerdelay = CONNECTION_DELAY / CDC_POLLING_INTERVAL;
 
     Timer_Set_Params( timer_index, CDC_POLLING_INTERVAL/1000.0 );
+    Timer_Priority( timer_index, USB_IRQPriority );
     Timer_Start( timer_index, &USB_Timer_Callback );
 
     //TODO add lua callback when USB connects/disconnects

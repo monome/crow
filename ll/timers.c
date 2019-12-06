@@ -72,8 +72,8 @@ int Timer_Init(void)
 
         // static setup
         TimHandle[i].Init.ClockDivision     = TIM_CLOCKDIVISION_DIV4;
+
         TimHandle[i].Init.CounterMode       = TIM_COUNTERMODE_UP;
-        TimHandle[i].Init.RepetitionCounter = 0;
         TimHandle[i].Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
 
         Timer_Set_Params( i, 1.0 );
@@ -97,7 +97,8 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef *htim)
 
 void HAL_TIM_PeriodElapsedCallback( TIM_HandleTypeDef *htim )
 {
-    for( int i=0; i<MAX_LL_TIMERS; i++ ){
+    // counting down to prioritize statically allocated timers (eg usb)
+    for( int i=(MAX_LL_TIMERS-1); i>=0; i-- ){
         if( htim == &(TimHandle[i]) ){
             (*callback[i])(i);
             return;
@@ -154,3 +155,14 @@ void Timer_Stop( int ix )
         printf("Timer_Stop(%i)\n", ix);
     }
 }
+
+void Timer_Priority( int ix, int priority_level )
+{
+    HAL_NVIC_DisableIRQ( _timer[ix].IRQn );
+    HAL_NVIC_SetPriority( _timer[ix].IRQn
+                        , priority_level
+                        , 0
+                        );
+    HAL_NVIC_EnableIRQ( _timer[ix].IRQn );
+}
+
