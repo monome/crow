@@ -270,6 +270,7 @@ zip: $(BIN)
 	@$(FENNEL) --compile $< > $@
 
 %.lua.h: %.lua util/l2h.lua
+	@luac -p $<
 	@echo l2h $< "->" $@
 	@lua util/l2h.lua $<
 
