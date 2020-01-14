@@ -1,3 +1,5 @@
+get_offset = 0x80
+
 function need_events(f)
     if f.getters then return true end
     if f.commands then
