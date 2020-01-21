@@ -435,7 +435,7 @@ do return
   , { name = 'env_trig'
     , cmd  = 0x67
     , docs = 'Triggers the envelope to play'
-    , args = { { 'port', u8 } -- no args
+    , args = { { 'port', u8 }
              , { 'state', s16 }
              }
     }
