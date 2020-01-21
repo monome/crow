@@ -26,11 +26,11 @@ int main(void)
     printf("\n\nhi from crow!\n");
 
     // Drivers
-    IO_Init();
+    int max_timers = Timer_Init();
+    IO_Init( max_timers-2 ); // use second-last timer
     IO_Start(); // must start IO before running lua init() script
     events_init();
-    int max_timers = Timer_Init();
-    Metro_Init( max_timers-1 ); // reserve timer for USB
+    Metro_Init( max_timers-2 ); // reserve 2 timers for USB & ADC
     Caw_Init( max_timers-1 ); // use last timer
     CDC_clear_buffers();
     ii_init( II_CROW );

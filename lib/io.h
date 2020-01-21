@@ -2,7 +2,7 @@
 
 #include <stm32f7xx.h>
 
-void IO_Init( void );
+void IO_Init( int adc_timer_ix );
 void IO_Start( void );
 
 void IO_Process( void );
