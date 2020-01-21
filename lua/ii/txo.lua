@@ -65,7 +65,7 @@ do return
              }
     }
   , { name = 'tr_m'
-    , cmd  = 0x7
+    , cmd  = 0x8
     , docs = 'Time for TR.M *port* in *ms*'
     , args = { { 'port', u8 }
              , { 'ms', s16 }
