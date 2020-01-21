@@ -154,6 +154,7 @@ do return
     }
 
 -- TXo Control Voltage (CV) Extended Commands
+
   , { name = 'cv_slew_s'
     , cmd  = 0x13
     , docs = 'CV *port* slew time in *s*'
@@ -439,7 +440,7 @@ do return
              , { 'state', s16 }
              }
     }
--- eor, eoc, loop, bpol, cycl ??
+-- To do: eor, eoc, loop, bpol, cycl ?? Harmonize docs
 
 -- TXo Global Commands
 
