@@ -41,6 +41,7 @@ do return
              , { 'rising', s16 }
              }
     }
+
 -- TXo Trigger Output (TR) Extended Commands
 
   , { name = 'tr_time_s'
@@ -137,7 +138,6 @@ do return
              , { 'state', s16 }
              }
     }
-
 
 -- TXo Control Voltage (CV) Basic Commands
 
@@ -415,6 +415,7 @@ do return
     }
 
 -- TXo Control Voltage (CV) Experimental Commands - Envelope Generator
+
   , { name = 'env_act'
     , cmd  = 0x60
     , docs = 'Activates the envelope generator for the CV output; (0 = off; 1 = on)'
