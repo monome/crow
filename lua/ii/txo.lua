@@ -19,7 +19,7 @@ do return
     }
   , { name = 'tr_tog'
     , cmd  = 0x1
-    , docs = 'Toggle TR *port*'
+    , docs = 'Toggle TR port'
     , args = { 'port', u8 }
     }
   , { name = 'tr_pulse'
@@ -45,14 +45,14 @@ do return
 
   , { name = 'tr_time_s'
     , cmd  = 0x3
-    , docs = 'Time for TR.PULSE *port* in *s*'
+    , docs = 'Time for TR.PULSE port in s'
     , args = { { 'port', u8 }
              , { 's', s16 }
              }
     }
   , { name = 'tr_time_m'
     , cmd  = 0x4
-    , docs = 'Time for TR.PULSE *port* in *m*'
+    , docs = 'Time for TR.PULSE port in m'
     , args = { { 'port', u8 }
              , { 'm', s16 }
              }
@@ -62,35 +62,35 @@ do return
 
   , { name = 'tr_pulse_div'
     , cmd  = 0x7
-    , docs = 'Pulse divider for TR output; α in # of *pulses*'
+    , docs = 'Pulse divider for TR output # of pulses'
     , args = { { 'port', u8 }
              , { 'pulses', s16 }
              }
     }
   , { name = 'tr_m'
     , cmd  = 0x8
-    , docs = 'Time for TR.M *port* in *ms*'
+    , docs = 'Time for TR.M port in ms'
     , args = { { 'port', u8 }
              , { 'ms', s16 }
              }
     }
   , { name = 'tr_m_s'
     , cmd  = 0x9
-    , docs = 'Time for TR.M *port* in *s*'
+    , docs = 'Time for TR.M port in s'
     , args = { { 'port', u8 }
              , { 's', s16 }
              }
     }
   , { name = 'tr_m_m'
     , cmd  = 0x0A
-    , docs = 'Time for TR.M *port* in *m*'
+    , docs = 'Time for TR.M port in m'
     , args = { { 'port', u8 }
              , { 'm', s16 }
              }
     }
   , { name = 'tr_m_bpm'
     , cmd  = 0x0B
-    , docs = 'Time for TR.M *port* in *bpm*'
+    , docs = 'Time for TR.M port in bpm'
     , args = { { 'port', u8 }
              , { 'bpm', s16 }
              }
@@ -111,7 +111,7 @@ do return
     }
   , { name = 'tr_m_width'
     , cmd  = 0x0E
-    , docs = 'Time for TR.PULSE; α percentage of TR.M'
+    , docs = 'Time for TR.PULSE as a percentage of TR.M'
     , args = { { 'port', u8 }
              , { 'width', s16 }
              }
@@ -129,28 +129,28 @@ do return
 
   , { name = 'cv'
     , cmd  = 0x10
-    , docs = 'Set *port* CV to *volts* (bipolar), following SLEW time'
+    , docs = 'Set port CV to volts (bipolar), following SLEW time'
     , args = { { 'port', u8 }
              , { 'volts', s16V }
              }
     }
   , { name = 'cv_slew'
     , cmd  = 0x12
-    , docs = 'CV *port* slew time in *ms*'
+    , docs = 'CV port slew time in ms'
     , args = { { 'port', u8 }
              , { 'ms', s16 }
              }
     }
   , { name = 'cv_set'
     , cmd  = 0x11
-    , docs = 'Set CV *port* to *volts* (bipolar), ignoring SLEW time'
+    , docs = 'Set CV port to volts (bipolar), ignoring SLEW time'
     , args = { { 'port', u8 }
              , { 'volts', s16V }
              }
     }
   , { name = 'cv_off'
     , cmd  = 0x15
-    , docs = 'CV *port* offset, *volts* added at final stage'
+    , docs = 'CV port offset, volts added at final stage'
     , args = { { 'port', u8 }
              , { 'volts', s16V }
              }
@@ -160,28 +160,28 @@ do return
 
   , { name = 'cv_slew_s'
     , cmd  = 0x13
-    , docs = 'CV *port* slew time in *s*'
+    , docs = 'CV port slew time in s'
     , args = { { 'port', u8 }
              , { 's', s16 }
              }
     }
   , { name = 'cv_slew_m'
     , cmd  = 0x14
-    , docs = 'CV *port* slew time in *m*'
+    , docs = 'CV port slew time in m'
     , args = { { 'port', u8 }
              , { 'm', s16 }
              }
     }
   , { name = 'cv_qt'
     , cmd  = 0x30
-    , docs = 'CV target α; quantized to current CV.SCALE'
+    , docs = 'CV target quantized to current CV.SCALE'
     , args = { { 'port', u8 }
              , { 'qt', s16 }
              }
     }
   , { name = 'cv_qt_set'
     , cmd  = 0x31
-    , docs = 'CV target α; quantized to current CV.SCALE, ignoring slew'
+    , docs = 'CV target quantized to current CV.SCALE, ignoring slew'
     , args = { { 'port', u8 }
              , { 'qt', s16 }
              }
@@ -202,7 +202,7 @@ do return
     }
   , { name = 'cv_scale'
     , cmd  = 0x34
-    , docs = 'Select scale # α for individual CV output'
+    , docs = 'Select scale for individual CV output (see scales list)'
     , args = { { 'port', u8 }
              , { 'scale', s16 }
              }
@@ -219,42 +219,42 @@ do return
 
   , { name = 'osc'
     , cmd  = 0x40
-    , docs = 'Targets oscillation to α (1v/oct translated)'
+    , docs = 'Targets oscillation (1v/oct translated)'
     , args = { { 'port', u8 }
              , { 'volts', s16V }
              }
     }
   , { name = 'osc_set'
     , cmd  = 0x41
-    , docs = 'Sets oscillation to α; ignores OSC.SLEW'
+    , docs = 'Sets oscillation, ignores OSC.SLEW'
     , args = { { 'port', u8 }
              , { 'volts', s16V }
              }
     }
   , { name = 'osc_qt'
     , cmd  = 0x42
-    , docs = 'Targets oscillation to α (1v/oct translated); quantized to current OSC.SCALE'
+    , docs = 'Targets oscillation (1v/oct translated); quantized to current OSC.SCALE'
     , args = { { 'port', u8 }
              , { 'volts', s16V }
              }
     }
   , { name = 'osc_qt_set'
     , cmd  = 0x43
-    , docs = 'Sets oscillation to α in current OSC.SCALE; ignores OSC.SLEW'
+    , docs = 'Sets oscillation in current OSC.SCALE; ignores OSC.SLEW'
     , args = { { 'port', u8 }
              , { 'volts', s16V }
              }
     }
   , { name = 'osc_n'
     , cmd  = 0x46
-    , docs = 'Targets oscillation to note # α; quantized to current OSC.SCALE'
+    , docs = 'Targets oscillation to note; quantized to current OSC.SCALE'
     , args = { { 'port', u8 }
              , { 'note', s16V }
              }
     }
   , { name = 'osc_n_set'
     , cmd  = 0x47
-    , docs = 'Sets oscillation to note # α in current OSC.SCALE; ignores OSC.SLEW'
+    , docs = 'Sets oscillation to note # in current OSC.SCALE; ignores OSC.SLEW'
     , args = { { 'port', u8 }
              , { 'note', s16 }
              }
@@ -403,7 +403,7 @@ do return
 -- TXo Control Voltage (CV) Experimental Commands - Envelope Generator
   , { name = 'env_act'
     , cmd  = 0x60
-    , docs = 'Activates the envelope generator for the CV output; α (0 = off; 1 = on)'
+    , docs = 'Activates the envelope generator for the CV output; (0 = off; 1 = on)'
     , args = { { 'port', u8 }
              , { 'state', s16 }
              }
