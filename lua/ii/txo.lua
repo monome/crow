@@ -517,6 +517,16 @@ do return
     , docs = 'Init cv '
     , args = { 'port', u8 }
     }
+  , { name = 'cv_calib'
+    , cmd  = 0x6E
+    , docs = 'Locks the current offset as a calibration offset and saves it to persist between power cycles for output.'
+    , args = { 'port', u8 }
+    }
+  , { name = 'cv_reset'
+    , cmd  = 0x6F
+    , docs = 'Clears the calibration offset for output.'
+    , args = { 'port', u8 }
+    }
   , { name = 'init'
     , cmd  = 0x24
     , docs = 'Init txo'
