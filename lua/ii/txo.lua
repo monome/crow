@@ -1,3 +1,6 @@
+-- Please TT docs or https://github.com/bpcmusic/telex for full docs
+-- nordseele januar 2020
+
 do return
 { module_name  = 'TXO'
 , manufacturer = 'BPC Music'
@@ -9,7 +12,7 @@ do return
 
   { { name = 'tr'
     , cmd  = 0x0
-    , docs = 'Set TR *port* to *state* (0/1)'
+    , docs = 'Set trigger output x to y (0-1)'
     , args = { { 'port', u8 }
              , { 'state', s16 }
              }
@@ -21,19 +24,19 @@ do return
     }
   , { name = 'tr_pulse'
     , cmd  = 0x5
-    , docs = 'Pulse TR *port* using TR.TIME/S/M as an interval'
+    , docs = 'Pulse trigger output x'
     , args = { 'port', u8 }
     }
   , { name = 'tr_time'
     , cmd  = 0x2
-    , docs = 'Time for TR.PULSE *port* in *ms*'
+    , docs = 'Set the pulse time of trigger x to y ms'
     , args = { { 'port', u8 }
              , { 'ms', s16 }
              }
     }
   , { name = 'tr_pol'
     , cmd  = 0x6
-    , docs = 'Polarity for TR.PULSE *port* set to *rising* (0/1)'
+    , docs = 'Set polarity of trigger output x to y (0-1)'
     , args = { { 'port', u8 }
              , { 'rising', s16 }
              }
@@ -59,7 +62,7 @@ do return
 
   , { name = 'tr_pulse_div'
     , cmd  = 0x7
-    , docs = 'pulse divider for TR output; α in # of *pulses*'
+    , docs = 'Pulse divider for TR output; α in # of *pulses*'
     , args = { { 'port', u8 }
              , { 'pulses', s16 }
              }
@@ -200,6 +203,13 @@ do return
   , { name = 'cv_scale'
     , cmd  = 0x34
     , docs = 'Select scale # α for individual CV output'
+    , args = { { 'port', u8 }
+             , { 'scale', s16 }
+             }
+    }
+  , { name = 'cv_log'
+    , cmd  = 0x35
+    , docs = 'Translates the output for CV output x to logarithmic mode'
     , args = { { 'port', u8 }
              , { 'scale', s16 }
              }
@@ -382,6 +392,13 @@ do return
              , { 'm', s16 }
              }
     }
+  , { name = 'osc_ctr'
+    , cmd  = 0x5A
+    , docs = 'Centers the oscillation on CV output; values are bipolar (-16384 to +16383) and map to -10 to +10'
+    , args = { { 'port', u8 }
+             , { 'ctr', s16 }
+             }
+    }
 
 -- TXo Control Voltage (CV) Experimental Commands - Envelope Generator
   , { name = 'env_act'
@@ -440,7 +457,35 @@ do return
              , { 'state', s16 }
              }
     }
--- To do: eor, eoc, loop, bpol, cycl ?? Harmonize docs
+-- To do: eor, eoc, loop, bpol, cycl ??
+  , { name = 'env_eoc'
+    , cmd  = 0x6B
+    , docs = 'End of Cycle pulse'
+    , args = { { 'port', u8 }
+             , { 'state', s16 }
+             }
+    }
+  , { name = 'env_eor'
+    , cmd  = 0x6A
+    , docs = 'End of Rise pulse'
+    , args = { { 'port', u8 }
+             , { 'state', s16 }
+             }
+    }
+  , { name = 'env_loop'
+    , cmd  = 0x6C
+    , docs = 'End of Rise pulse'
+    , args = { { 'port', u8 }
+             , { 'state', s16 }
+             }
+    }
+  , { name = 'env'
+    , cmd  = 0x6D
+    , docs = 'Allows output to act as a gate between the 0 and 1 state. Changing this value from 0 to 1 causes the envelope to trigger the attack phase and hold at the peak CV value'
+    , args = { { 'port', u8 }
+             , { 'state', s16 }
+             }
+    }
 
 -- TXo Global Commands
 
