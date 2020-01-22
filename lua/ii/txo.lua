@@ -1,4 +1,4 @@
--- Please TT docs or https://github.com/bpcmusic/telex for full docs
+-- Please read the TT docs or https://github.com/bpcmusic/telex for full docs
 -- nordseele januar 2020
 
 do return
