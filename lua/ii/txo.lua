@@ -457,7 +457,6 @@ do return
              , { 'state', s16 }
              }
     }
--- To do: eor, eoc, loop, bpol, cycl ??
   , { name = 'env_eoc'
     , cmd  = 0x6B
     , docs = 'End of Cycle pulse'
