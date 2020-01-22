@@ -263,7 +263,7 @@ do return
     , cmd  = 0x46
     , docs = 'Targets oscillation to note; quantized to current OSC.SCALE'
     , args = { { 'port', u8 }
-             , { 'note', s16V }
+             , { 'note', s16 }
              }
     }
   , { name = 'osc_n_set'
