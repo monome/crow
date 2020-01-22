@@ -123,6 +123,20 @@ do return
              , { 'count', s16 }
              }
     }
+  , { name = 'tr_m_mul'
+    , cmd  = 0x17
+    , docs = 'Multiplies the M rate on TR output; defaults to 1 - no multiplication'
+    , args = { { 'port', u8 }
+             , { 'mult', s16 }
+             }
+    }
+  , { name = 'tr_pulse_mute'
+    , cmd  = 0x16
+    , docs = 'Mutes or un-mutes TR output; 1 (mute) or 0 (un-mute)'
+    , args = { { 'port', u8 }
+             , { 'state', s16 }
+             }
+    }
 
 
 -- TXo Control Voltage (CV) Basic Commands
