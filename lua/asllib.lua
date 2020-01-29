@@ -7,7 +7,7 @@ Asllib = {}
 function n2v( n ) return asl.runtime( function(a) return a/12 end, n ) end
 function negate( n ) return asl.runtime( function(a) return -a end, n ) end
 function clamp( input, min, max )
-    min, max = min or 0.005, max or 1e10
+    min, max = min or 0.001, max or 1e10
     return asl.runtime( function( a, b, c )
                  return math.min( math.max( b, a ), c )
                end
@@ -15,18 +15,19 @@ function clamp( input, min, max )
 end
 
 function note( noteNum, duration )
-    return{ to( n2v(noteNum), 0 )
-          , to( 'here', duration  )
-          }
+    return to( n2v(noteNum), duration, 'now' )
 end
 
-function lfo( time, level )
-    time, level = time or 1, level or 5
+function lfo( time, level, shape )
+    time,level,shape = time  or 1
+                     , level or 5
+                     , shape or 'sine'
+
     local function half(t) return asl.runtime( function(a) return clamp(a/2) end, t ) end
 
-
-    return loop{ to(        level , half(time) )
-               , to( negate(level), half(time) )}
+    return loop{ to(        level , half(time), shape )
+               , to( negate(level), half(time), shape )
+               }
 
 end
 
@@ -42,8 +43,7 @@ function pulse( time, level, polarity )
                  , mag, pol)
     end
 
-    return{ to( active(level,polarity) , 0 )
-          , to( 'here'                 , clamp(time) )
+    return{ to( active(level,polarity) , clamp(time), 'now' )
           , to( resting(level,polarity), 0 )
           }
 end
@@ -66,32 +66,33 @@ function ramp( time, skew, level )
                  , t, sk)
     end
 
-    return{ loop{ to(        level , riser(time,skew) )
-                , to( negate(level), faller(time,skew) )
+    return{ loop{ to(        level , riser(time2,skew2) )
+                , to( negate(level), faller(time2,skew2) )
                 }
           }
 end
 
-function ar( attack, release, level )
-    attack,release,level = attack  or 0.05
-                         , release or 0.5
-                         , level   or 7
+function ar( attack, release, level, shape )
+    attack,release,level,shape = attack  or 0.05
+                               , release or 0.5
+                               , level   or 7
+                               , shape   or 'log'
 
-    return{ to( level, clamp(attack)  )
-          , to( 0,     clamp(release) )
+    return{ to( level, clamp(attack) , shape )
+          , to( 0    , clamp(release), shape )
           }
 end
 
-function adsr( attack, decay, sustain, release )
+function adsr( attack, decay, sustain, release, shape )
     attack,decay,sustain,release = attack  or 0.05
                                  , decay   or 0.3
                                  , sustain or 2
                                  , release or 2
 
-    return{ held{ to( 5.0    , clamp(attack) )
-                , to( sustain, clamp(decay)  )
+    return{ held{ to( 5.0    , clamp(attack), shape )
+                , to( sustain, clamp(decay) , shape  )
                 }
-          , to( 0, clamp(release) )
+          , to( 0, clamp(release), shape )
           }
 end
 

@@ -227,11 +227,10 @@ static int _time( lua_State *L )
 }
 static int _go_toward( lua_State *L )
 {
-    //const char* shape = luaL_checkstring(L, 4);
     S_toward( luaL_checkinteger(L, 1)-1 // C is zero-based
             , luaL_checknumber(L, 2)
             , luaL_checknumber(L, 3) * 1000.0
-            , SHAPE_Linear // Shape_t
+            , S_str_to_shape( luaL_checkstring(L, 4) )
             , L_queue_toward
             );
     lua_pop( L, 4 );
@@ -345,39 +344,20 @@ static int _ii_pullup( lua_State *L )
     return 0;
 }
 
-static int _ii_set( lua_State *L )
+static int _ii_lead( lua_State *L )
 {
-    // FIXME: 4 is max number of arguments. is this ok?
     float data[4] = {0,0,0,0}; // always zero out data
     int nargs = lua_gettop(L);
     if( nargs > 2
      && nargs <= 6 ){
         for( int i=0; i<(nargs-2); i++ ){
-            data[i] = luaL_checknumber(L, i+3); // 1-ix'd
+            data[i] = luaL_checknumber(L, i+3);
         }
     }
-    ii_broadcast( luaL_checkinteger(L, 1) // address
-                , luaL_checkinteger(L, 2) // command
-                , data
-                );
-    lua_settop(L, 0);
-    return 0;
-}
-static int _ii_get( lua_State *L )
-{
-    printf("\nlua ii query\n");
-    float data[4] = {0,0,0,0}; // always zero out data
-    int nargs = lua_gettop(L);
-    if( nargs > 2
-     && nargs <= 6 ){
-        for( int i=0; i<(nargs-2); i++ ){
-            data[i] = luaL_checknumber(L, i+3); // 1-ix'd
-        }
-    }
-    if(ii_query( luaL_checkinteger(L, 1) // address
-            , luaL_checkinteger(L, 2) // command
-            , data
-            )){ printf("ii_query failed\n"); }
+    if( ii_leader_enqueue( luaL_checkinteger(L, 1) // address
+                         , luaL_checkinteger(L, 2) // command
+                         , data
+                         ) ){ printf("ii_lead failed\n"); }
     lua_settop(L, 0);
     return 0;
 }
@@ -387,6 +367,11 @@ static int _ii_address( lua_State *L )
     lua_pop( L, 1 );
     lua_settop(L, 0);
     return 0;
+}
+static int _ii_get_address( lua_State *L )
+{
+    lua_pushinteger( L, ii_get_address() );
+    return 1;
 }
 static int _metro_start( lua_State* L )
 {
@@ -481,9 +466,9 @@ static const struct luaL_Reg libCrow[]=
     , { "ii_list_modules"  , _ii_list_modules  }
     , { "ii_list_commands" , _ii_list_commands }
     , { "ii_pullup"        , _ii_pullup        }
-    , { "ii_set"           , _ii_set           }
-    , { "ii_get"           , _ii_get           }
-    , { "ii_address"       , _ii_address       }
+    , { "ii_lead"          , _ii_lead          }
+    , { "ii_set_add"       , _ii_address       }
+    , { "ii_get_add"       , _ii_get_address   }
         // metro
     , { "metro_start"      , _metro_start      }
     , { "metro_stop"       , _metro_stop       }
@@ -653,7 +638,16 @@ void L_handle_ii_leadRx( uint8_t address, uint8_t cmd, float data )
     }
 }
 
-void L_handle_ii_followRx( uint8_t cmd, int args, float* data )
+void L_queue_ii_followRx( void )
+{
+    event_t e = { .type = E_ii_followRx };
+    event_post(&e);
+}
+void L_handle_ii_followRx( void )
+{
+    ii_process_dequeue_decode();
+}
+void L_handle_ii_followRx_cont( uint8_t cmd, int args, float* data )
 {
     lua_getglobal(L, "ii_followRx_handler");
     lua_pushinteger(L, cmd);

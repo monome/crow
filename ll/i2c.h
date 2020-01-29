@@ -1,7 +1,7 @@
 #pragma once
 
 #include <stm32f7xx.h>
-#include "../lib/ii.h" // I2C_RxCpltCallback()
+#include <stdbool.h>
 #include "interrupts.h" // I2C_Priority
 
 //////////////////////////////////////////
@@ -40,15 +40,18 @@
 #define I2C_BUFFER_LEN    32
 
 
-//////////////////////////////////////////////////////////
-// define these functions in your application program
-extern void I2C_Follow_RxCallback( uint8_t* data );
-extern void I2C_Lead_RxCallback( uint8_t address, uint8_t cmd, uint8_t* data );
+///////////////////////////////////////
+// fnptr typedefs for low-level
+typedef void (*I2C_lead_callback_t)( uint8_t address, uint8_t command, uint8_t* rx_data );
+typedef int (*I2C_follow_callback_t)( uint8_t* pdata );
 
 
 /////////////////
 // setup
-uint8_t I2C_Init( uint8_t address );
+uint8_t I2C_Init( uint8_t               address
+                , I2C_lead_callback_t   lead_callback
+                , I2C_follow_callback_t follow_action_callback
+                , I2C_follow_callback_t follow_request_callback );
 void I2C_DeInit( void );
 
 uint8_t I2C_is_boot( void );
@@ -71,30 +74,3 @@ int I2C_LeadRx( uint8_t  address
               , uint8_t  size
               , uint8_t  rx_size
               );
-
-void I2C_BufferRx( uint8_t* data );
-uint8_t* I2C_PopFollowBuffer( void );
-uint8_t I2C_FollowBufferNotEmpty( void );
-uint8_t* I2C_PopLeadBuffer( void );
-uint8_t I2C_LeadBufferNotEmpty( void );
-void I2C_SetTxData( uint8_t* data, uint8_t size );
-
-//////////////////////////////////////////
-// public handlers for HAL
-void I2Cx_EV_IRQHandler( void );
-
-// leader
-void HAL_I2C_MasterTxCpltCallback( I2C_HandleTypeDef* h );
-void HAL_I2C_MasterRxCpltCallback( I2C_HandleTypeDef* h );
-
-// follower
-void HAL_I2C_AddrCallback( I2C_HandleTypeDef* h
-                         , uint8_t            TransferDirection
-                         , uint16_t           AddrMatchCode );
-void HAL_I2C_SlaveRxCpltCallback( I2C_HandleTypeDef* h );
-void HAL_I2C_SlaveTxCpltCallback( I2C_HandleTypeDef* h );
-void HAL_I2C_ListenCpltCallback( I2C_HandleTypeDef* hi2c );
-
-// error
-void I2Cx_ER_IRQHandler( void );
-void HAL_I2C_ErrorCallback( I2C_HandleTypeDef* h );

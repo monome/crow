@@ -109,6 +109,7 @@ SRC = main.c \
 	$(WRLIB)/wrConvert.c \
 	$(WRLIB)/wrMath.c \
 	$(WRLIB)/wrQueue.c \
+	$(WRDSP)/wrBlocks.c \
 
 
 # lua tests
@@ -269,6 +270,7 @@ zip: $(BIN)
 	@$(FENNEL) --compile $< > $@
 
 %.lua.h: %.lua util/l2h.lua
+	@luac -p $<
 	@echo l2h $< "->" $@
 	@lua util/l2h.lua $<
 
