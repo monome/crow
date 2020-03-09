@@ -38,7 +38,7 @@ int main(void)
 
     REPL_init( Lua_Init() );
 
-    REPL_print_script_name(NULL);
+    REPL_print_script_name();
     Lua_crowbegin();
 
     while(1){
