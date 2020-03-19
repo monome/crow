@@ -11,8 +11,8 @@
 I2S_HandleTypeDef dac_i2s;
 
 // pointer to the malloc()d buffer from DAC_Init()
-uint32_t  samp_count;
-uint32_t* samples;
+uint32_t  samp_count = 0;
+uint32_t* samples = NULL;
 
 #define DAC_ZERO_VOLTS      ((uint16_t)(((uint32_t)0xFFFF * 2)/3))
 #define DAC_V_TO_U16        ((float)(65535.0 / 15.0))
