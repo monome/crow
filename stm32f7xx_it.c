@@ -1,66 +1,80 @@
-/**
-  ******************************************************************************
-  * @file    Templates/Src/stm32f7xx.c
-  * @author  MCD Application Team
-  * @version V1.0.0
-  * @date    22-April-2016
-  * @brief   Main Interrupt Service Routines.
-  *          This file provides template for all exceptions handler and 
-  *          peripherals interrupt service routine.
-  ******************************************************************************
-  * @attention
-  *
-  * <h2><center>&copy; COPYRIGHT(c) 2016 STMicroelectronics</center></h2>
-  *
-  * Redistribution and use in source and binary forms, with or without modification,
-  * are permitted provided that the following conditions are met:
-  *   1. Redistributions of source code must retain the above copyright notice,
-  *      this list of conditions and the following disclaimer.
-  *   2. Redistributions in binary form must reproduce the above copyright notice,
-  *      this list of conditions and the following disclaimer in the documentation
-  *      and/or other materials provided with the distribution.
-  *   3. Neither the name of STMicroelectronics nor the names of its contributors
-  *      may be used to endorse or promote products derived from this software
-  *      without specific prior written permission.
-  *
-  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-  * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-  * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-  *
-  ******************************************************************************
-  */
-
-/* Includes ------------------------------------------------------------------*/
-#include "stm32f7xx_hal.h"
 #include "stm32f7xx_it.h"
 
-#include "ll/debug_usart.h" // U_PrintNow()
+#include <stdio.h> // printf
 
-/******************************************************************************/
-/*            Cortex-M7 Processor Exceptions Handlers                         */
-/******************************************************************************/
+#include "stm32f7xx_hal.h" // HAL_IncTick
 
-void wait(void){ U_PrintNow(); while(1); }
+#include "ll/debug_usart.h" // U_PrintNow
 
-void NMI_Handler(void){ printf("!!NMI\n"); }
-void HardFault_Handler(void){ printf("!!HardFault\n"); wait(); }
-void MemManage_Handler(void){ printf("!!MemManage\n"); wait(); }
-void BusFault_Handler(void){ printf("!!BusFault\n"); wait(); }
-void UsageFault_Handler(void){ printf("!!UsageFault\n"); wait(); }
-void SVC_Handler(void){ printf("!!SVC\n"); }
-void DebugMon_Handler(void){ printf("!!DebugMon\n"); }
-void PendSV_Handler(void){ printf("!!PendSV\n"); }
+static void error( char* msg ){
+    //__disable_irq();
 
-void SysTick_Handler(void)
+    printf("%s\n", msg);
+    U_PrintNow();
+    while(1);
+}
+void NMI_Handler(void){ error("!NMI"); }
+//void HardFault_Handler(void){ error("!HardFault"); }
+void MemManage_Handler(void){ HardFault_Handler(); error("!MemManage"); }
+void BusFault_Handler(void){ error("!BusFault"); }
+void UsageFault_Handler(void){ error("!UsageFault"); }
+void SVC_Handler(void){ error("!SVC"); }
+void DebugMon_Handler(void){ error("!DebugMon"); }
+void PendSV_Handler(void){ error("!PendSV"); }
+
+void SysTick_Handler(void){ HAL_IncTick(); }
+
+
+///* The fault handler implementation calls a function called
+//prvGetRegistersFromStack(). */
+void HardFault_Handler(void)
 {
-  HAL_IncTick();
+    __asm volatile
+    (
+        " tst lr, #4                                                \n"
+        " ite eq                                                    \n"
+        " mrseq r0, msp                                             \n"
+        " mrsne r0, psp                                             \n"
+        " ldr r1, [r0, #24]                                         \n"
+        " ldr r2, handler2_address_const                            \n"
+        " bx r2                                                     \n"
+        " handler2_address_const: .word prvGetRegistersFromStack    \n"
+    );
 }
 
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
+void prvGetRegistersFromStack( uint32_t *pulFaultStackAddress )
+{
+// These are volatile to try and prevent the compiler/linker optimising them
+// away as the variables never actually get used.  If the debugger won't show the
+// values of the variables, make them global my moving their declaration outside
+// of this function.
+    volatile uint32_t r0;
+    volatile uint32_t r1;
+    volatile uint32_t r2;
+    volatile uint32_t r3;
+    volatile uint32_t r12;
+    volatile uint32_t lr; // Link register.
+    volatile uint32_t pc; // Program counter.
+    volatile uint32_t psr;// Program status register.
+
+    r0 = pulFaultStackAddress[ 0 ];
+    r1 = pulFaultStackAddress[ 1 ];
+    r2 = pulFaultStackAddress[ 2 ];
+    r3 = pulFaultStackAddress[ 3 ];
+
+    r12 = pulFaultStackAddress[ 4 ];
+    lr = pulFaultStackAddress[ 5 ];
+    pc = pulFaultStackAddress[ 6 ];
+    psr = pulFaultStackAddress[ 7 ];
+
+    printf("r0  %x\n",(int)r0);
+    printf("r1  %x\n",(int)r1);
+    printf("r2  %x\n",(int)r2);
+    printf("r3  %x\n",(int)r3);
+    printf("r12 %x\n",(int)r12);
+    printf("lr  %x\n",(int)lr);
+    printf("pc  %x\n",(int)pc);
+    printf("psr %x\n",(int)psr);
+    /* When the following line is hit, the variables contain the register values. */
+    error("HardFault");
+}

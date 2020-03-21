@@ -538,7 +538,8 @@ void Lua_crowbegin( void )
     printf("init()\n"); // call in C to avoid user seeing in lua
     lua_getglobal(L,"init");
     if( lua_pcall_protected(L,0,0,0) != LUA_OK ){
-        Caw_send_luachunk("Error running init()");
+        Caw_send_luachunk( (char*)lua_tostring( L, -1 ) );
+        lua_pop( L, 1 );
     }
 }
 
