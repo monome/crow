@@ -84,7 +84,7 @@ lua_State* Lua_Init(void)
     Lua_linkctolua(L);
     Lua_eval(L, lua_bootstrap
               , strlen(lua_bootstrap)
-              , _printf
+              , "=lib"
               ); // redefine dofile(), print(), load crowlib
     return L;
 }
@@ -109,7 +109,7 @@ void Lua_load_default_script( void )
 {
     Lua_eval(L, lua_First
               , strlen(lua_First)
-              , _printf
+              , "=First.lua"
               );
 }
 
@@ -506,9 +506,9 @@ static void Lua_linkctolua( lua_State *L )
 uint8_t Lua_eval( lua_State*     L
                 , const char*    script
                 , size_t         script_len
-                , ErrorHandler_t errfn
+                , const char*    chunkname
                 ){
-    int error = luaL_loadbuffer( L, script, script_len, "=eval" );
+    int error = luaL_loadbuffer( L, script, script_len, chunkname );
     if( error != LUA_OK ){
         Caw_send_luachunk( (char*)lua_tostring( L, -1 ) );
         lua_pop( L, 1 );
@@ -586,7 +586,9 @@ static int Lua_handle_error( lua_State *L )
         }
     }
     luaL_traceback( L, L, msg, 1 );
-    Caw_send_luachunk( (char*)lua_tostring( L, -1 ) );
+    char* traceback = (char*)lua_tostring( L, -1 );
+    Caw_send_luachunk( traceback );
+    _printf( traceback );
     return 1;
 }
 
