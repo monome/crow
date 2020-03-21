@@ -493,28 +493,54 @@ static void Lua_linkctolua( lua_State *L )
     }
 }
 
+static int Lua_handle_error( lua_State *L )
+{
+    const char *msg = lua_tostring( L, 1 );
+    if( msg == NULL ){
+        if( luaL_callmeta( L, 1, "__tostring" )
+	 && lua_type ( L, -1 ) == LUA_TSTRING ) {
+	    return 1;
+	}
+	else {
+	    msg = lua_pushfstring( L
+				 , "(error object is a %s value)"
+				 , luaL_typename( L, 1 ) );
+	}
+    }
+    luaL_traceback( L, L, msg, 1 );
+    return 1;
+}
+
 uint8_t Lua_eval( lua_State*     L
                 , const char*    script
                 , size_t         script_len
                 , ErrorHandler_t errfn
                 ){
-    int error;
-    if( (error = luaL_loadbuffer( L, script, script_len, "eval" )
-              || lua_pcall( L, 0, 0, 0 )
-        ) ){
-        //(*errfn)( (char*)lua_tostring( L, -1 ) );
-        Caw_send_luachunk( (char*)lua_tostring( L, -1 ) );
-        lua_pop( L, 1 );
-        switch( error ){
-            case LUA_ERRSYNTAX: printf("!load script: syntax\n"); break;
-            case LUA_ERRMEM:    printf("!load script: memory\n"); break;
-            case LUA_ERRRUN:    printf("!exec script: runtime\n"); break;
-            case LUA_ERRERR:    printf("!exec script: err in err handler\n"); break;
-            default: break;
-        }
-        return 1;
-    }
+    int status;
+    status = luaL_loadbuffer( L, script, script_len, "eval" );
+    if ( status != LUA_OK ) goto fail;
+
+    int err_index = lua_gettop(L);
+    lua_pushcfunction( L, Lua_handle_error );
+    lua_insert( L, err_index );
+    status = lua_pcall( L, 0, 0, err_index );
+    lua_remove( L, err_index );
+
+    if( status != LUA_OK ) goto fail;
     return 0;
+
+fail:
+    //(*errfn)( (char*)lua_tostring( L, -1 ) );
+    Caw_send_luachunk( (char*)lua_tostring( L, -1 ) );
+    lua_pop( L, 1 );
+    switch( status ){
+        case LUA_ERRSYNTAX: printf("!load script: syntax\n"); break;
+        case LUA_ERRMEM:    printf("!load script: memory\n"); break;
+        case LUA_ERRRUN:    printf("!exec script: runtime\n"); break;
+        case LUA_ERRERR:    printf("!exec script: err in err handler\n"); break;
+        default: break;
+    }
+    return 1;
 }
 
 static float Lua_check_memory( void )

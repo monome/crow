@@ -154,8 +154,8 @@ void REPL_eval( char* buf, uint32_t len, ErrorHandler_t errfn )
 {
     if( repl_mode == REPL_normal ){
         if(Lua_eval( Lua, buf
-                     , len
-                     , errfn
+                   , len
+                   , errfn
                    )){
             printf("!eval\n");
         }
