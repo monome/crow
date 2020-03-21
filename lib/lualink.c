@@ -77,7 +77,6 @@ lua_State* Lua_Init(void)
     L = luaL_newstate();
     luaL_openlibs(L);
     Lua_linkctolua(L);
-    lua_sethook(L, hook, LUA_MASKCOUNT, WATCHDOG_FREQ);
     Lua_eval(L, lua_bootstrap
               , strlen(lua_bootstrap)
               , _printf
