@@ -38,8 +38,8 @@
 
 #include "build/ii_lualink.h" // generated C header for linking to lua
 
-#define WATCHDOG_COUNT 2
-#define WATCHDOG_FREQ  0x7FFFF // ~500ms
+#define WATCHDOG_FREQ      0x100000 // ~1s how often we run the watchdog
+#define WATCHDOG_COUNT     2        // how many watchdogs before 'frozen'
 
 const struct lua_lib_locator Lua_libs[] =
     { { "lua_crowlib"   , lua_crowlib   }
@@ -516,9 +516,6 @@ uint8_t Lua_eval( lua_State*     L
             case LUA_ERRSYNTAX: printf("!load script: syntax\n"); break;
             case LUA_ERRMEM:    printf("!load script: memory\n"); break;
             case LUA_ERRRUN:    printf("!exec script: runtime\n"); break;
-            case LUA_YIELD:
-                Caw_send_luachunk( "WATCHDOG: Script too long, is there an infinite loop?" );
-                break;
             case LUA_ERRERR:    printf("!exec script: err in err handler\n"); break;
             default: break;
         }
@@ -530,8 +527,8 @@ uint8_t Lua_eval( lua_State*     L
 static float Lua_check_memory( void )
 {
     lua_getglobal(L,"collectgarbage");
-    lua_pushstring(L, "count"); // 1-ix'd
-    lua_pcall_protected(L,1,1,0);
+    lua_pushstring(L, "count");
+    lua_pcall(L,1,1,0); // NOT PROTECTED (called from watchdog)
     float mem = luaL_checknumber(L, 1);
     lua_pop(L,1);
     return mem;
@@ -548,14 +545,19 @@ void Lua_crowbegin( void )
 
 
 // Watchdog timer for infinite looped Lua scripts
-volatile int watchdog;
+volatile int watchdog = WATCHDOG_COUNT;
 static void hook( lua_State* L, lua_Debug* ar )
 {
-    if( --watchdog <= 0 ){ lua_error(L); }
+    if( --watchdog <= 0 ){
+        Caw_send_luachunk("CPU timed out.");
+        lua_sethook(L, hook, LUA_MASKLINE, 0); // error until top
+        luaL_error(L,"");
+    }
 }
 static int lua_pcall_protected( lua_State* L, int nargs, int nresults, int errFunc )
 {
-    watchdog = WATCHDOG_COUNT;
+    lua_sethook(L, hook, LUA_MASKCOUNT, WATCHDOG_FREQ); // reset hook
+    watchdog = WATCHDOG_COUNT; // reset hook counter
     return lua_pcall(L, nargs, nresults, errFunc);
 }
 
