@@ -564,11 +564,9 @@ static void timeouthook( lua_State* L, lua_Debug* ar )
 // Check for too much recursion
 static void callhook( lua_State* L, lua_Debug* ar )
 {
-    for (int level = 0; lua_getstack(L, level, ar); level++) {
-        if (level > MAX_CALLFRAMES) {
-	    Caw_send_luachunk("Call depth exceeded " TOSTRING(MAX_CALLFRAMES));
-	    luaL_error(L, "recursion limit exceeded");
-	}
+    if ( lua_getstack(L, MAX_CALLFRAMES, ar) != 0 ){
+        Caw_send_luachunk("Call depth exceeded " TOSTRING(MAX_CALLFRAMES));
+        luaL_error(L, "recursion limit exceeded");
     }
 }
 
