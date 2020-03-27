@@ -9,6 +9,7 @@ typedef enum {
     E_change,
     E_toward,
     E_midi,
+    E_window,
     E_ii_leadRx,
     E_ii_followRx,
     E_COUNT
@@ -43,5 +44,6 @@ static void handler_stream(event_t *e);
 static void handler_change(event_t *e);
 static void handler_toward(event_t *e);
 static void handler_midi(event_t *e);
+static void handler_window(event_t *e);
 static void handler_ii_leadRx(event_t *e);
 static void handler_ii_followRx(event_t *e);
