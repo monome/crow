@@ -550,7 +550,6 @@ void Lua_crowbegin( void )
     printf("init()\n"); // call in C to avoid user seeing in lua
     lua_getglobal(L,"init");
     if( Lua_call_usercode(L,0,0) != LUA_OK ){
-        Caw_send_luachunk("error running init()");
         lua_pop(L, 1);
     }
 }
@@ -617,9 +616,6 @@ void L_handle_toward( event_t* e )
     lua_getglobal(L, "toward_handler");
     lua_pushinteger(L, e->index.i + 1); // 1-ix'd
     if( Lua_call_usercode(L, 1, 0) != LUA_OK ){
-        Caw_send_luachunk("error running toward_handler");
-        Caw_send_luachunk( (char*)lua_tostring(L, -1) );
-        printf( "%s\n", (char*)lua_tostring(L, -1) );
         lua_pop( L, 1 );
     }
 }
@@ -638,8 +634,6 @@ void L_handle_metro( event_t* e )
     lua_pushinteger(L, e->index.i +1 -2); // 1-ix'd, less 2 for adc rebase
     lua_pushinteger(L, e->data.i +1);     // 1-ix'd
     if( Lua_call_usercode(L, 2, 0) != LUA_OK ){
-        Caw_send_luachunk("error running metro_handler");
-        Caw_send_luachunk( (char*)lua_tostring(L, -1) );
         lua_pop( L, 1 );
     }
 }
@@ -658,8 +652,6 @@ void L_handle_in_stream( event_t* e )
     lua_pushinteger(L, e->index.i +1); // 1-ix'd
     lua_pushnumber(L, e->data.f);
     if( Lua_call_usercode(L, 2, 0) != LUA_OK ){
-        Caw_send_luachunk("error: input stream");
-        Caw_send_luachunk( (char*)lua_tostring(L, -1) );
         lua_pop( L, 1 );
     }
 }
@@ -678,9 +670,6 @@ void L_handle_change( event_t* e )
     lua_pushinteger(L, e->index.i +1); // 1-ix'd
     lua_pushnumber(L, e->data.f);
     if( Lua_call_usercode(L, 2, 0) != LUA_OK ){
-        printf("ch er\n");
-        Caw_send_luachunk("error: input change");
-        Caw_send_luachunk( (char*)lua_tostring(L, -1) );
         lua_pop( L, 1 );
     }
 }
@@ -701,9 +690,6 @@ void L_handle_ii_leadRx( event_t* e )
     lua_pushinteger(L, e->index.u8s[1]); // command
     lua_pushnumber(L, e->data.f);
     if( Lua_call_usercode(L, 3, 0) != LUA_OK ){
-        printf("!ii.leadRx\n");
-        Caw_send_luachunk("error: ii lead event");
-        Caw_send_luachunk( (char*)lua_tostring(L, -1) );
         lua_pop( L, 1 );
     }
 }
@@ -727,9 +713,6 @@ void L_handle_ii_followRx_cont( uint8_t cmd, int args, float* data )
         lua_pushnumber(L, *data++);
     }
     if( Lua_call_usercode(L, 1+args, 0) != LUA_OK ){
-        printf("!ii.followRx\n");
-        Caw_send_luachunk("error: ii follow rx");
-        Caw_send_luachunk( (char*)lua_tostring(L, -1) );
         lua_pop( L, 1 );
     }
 }
@@ -744,9 +727,6 @@ float L_handle_ii_followRxTx( uint8_t cmd, int args, float* data )
         lua_pushnumber(L, *data++);
     }
     if( Lua_call_usercode(L, 1+args, 1) != LUA_OK ){
-        printf("!ii.followRxTx\n");
-        Caw_send_luachunk("error: ii follow query");
-        Caw_send_luachunk( (char*)lua_tostring(L, -1) );
         lua_pop( L, 1 );
     }
     float n = luaL_checknumber(L, 1);
@@ -771,9 +751,6 @@ void L_handle_midi( event_t* e )
         lua_pushinteger(L, data[i]);
     }
     if( Lua_call_usercode(L, count, 0) != LUA_OK ){
-        printf("midi lua-cb err\n");
-        Caw_send_luachunk("error: input midi");
-        Caw_send_luachunk( (char*)lua_tostring(L, -1) );
         lua_pop( L, 1 );
     }
 }
