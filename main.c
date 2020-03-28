@@ -62,11 +62,7 @@ int main(void)
             default: break; // 'C_none' does nothing
         }
         Random_Update();
-        // check/execute single event
-        event_t e;
-        if( event_next(&e) ){
-            (*app_event_handlers[e.type])(&e);
-        }
+        event_next(); // check/execute single event
         ii_leader_process();
     }
 }
