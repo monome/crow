@@ -40,9 +40,6 @@
 
 #define WATCHDOG_FREQ      0x100000 // ~1s how often we run the watchdog
 #define WATCHDOG_COUNT     2        // how many watchdogs before 'frozen'
-#define MAX_CALLFRAMES     255      // call depth before 'stack overflow'
-#define _TOSTRING(s) #s
-#define TOSTRING(s) _TOSTRING(s)
 
 const struct lua_lib_locator Lua_libs[] =
     { { "lua_crowlib"   , lua_crowlib   }
@@ -67,7 +64,6 @@ static float Lua_check_memory( void );
 static int Lua_call_usercode( lua_State* L, int nargs, int nresults );
 static int Lua_handle_error( lua_State* L );
 static void timeouthook( lua_State* L, lua_Debug* ar );
-static void callhook( lua_State* L, lua_Debug* ar );
 
 // Handler prototypes
 void L_handle_toward( event_t* e );
@@ -571,15 +567,6 @@ static void timeouthook( lua_State* L, lua_Debug* ar )
     }
 }
 
-// Check for too much recursion
-static void callhook( lua_State* L, lua_Debug* ar )
-{
-    if ( lua_getstack(L, MAX_CALLFRAMES, ar) != 0 ){
-        Caw_send_luachunk("Call depth exceeded " TOSTRING(MAX_CALLFRAMES));
-        luaL_error(L, "recursion limit exceeded");
-    }
-}
-
 static int Lua_handle_error( lua_State *L )
 {
     const char *msg = lua_tostring( L, 1 );
@@ -604,7 +591,6 @@ static int Lua_call_usercode( lua_State* L, int nargs, int nresults )
 {
     lua_sethook(L, timeouthook, LUA_MASKCOUNT, WATCHDOG_FREQ); // reset timeout hook
     watchdog = WATCHDOG_COUNT; // reset timeout hook counter
-    lua_sethook(L, callhook, LUA_MASKCALL, 0); // reset call hook
 
     int errFunc = lua_gettop(L) - nargs;
     lua_pushcfunction( L, Lua_handle_error );
@@ -613,7 +599,6 @@ static int Lua_call_usercode( lua_State* L, int nargs, int nresults )
     lua_remove( L, errFunc );
 
     lua_sethook(L, timeouthook, 0, 0);
-    lua_sethook(L, callhook, 0, 0);
 
     return status;
 }
