@@ -31,13 +31,5 @@ extern void L_queue_ii_leadRx( uint8_t address, uint8_t cmd, float data );
 extern void L_queue_ii_followRx( void );
 
 // Callback declarations
-extern void L_handle_toward( int id );
-extern void L_handle_metro( const int id, const int stage);
-extern void L_handle_in_stream( int id, float value );
-extern void L_handle_change( int id, float state );
-extern void L_handle_midi( uint8_t* data );
-extern void L_handle_window( int id, int window, int dir );
-extern void L_handle_ii_leadRx( uint8_t address, uint8_t cmd, float data );
-extern void L_handle_ii_followRx( void );
-extern void L_handle_ii_followRx_cont( uint8_t cmd, int args, float* data );
 extern float L_handle_ii_followRxTx( uint8_t cmd, int args, float* data );
+extern void L_handle_ii_followRx_cont( uint8_t cmd, int args, float* data );
