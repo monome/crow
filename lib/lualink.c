@@ -69,6 +69,16 @@ static int Lua_handle_error( lua_State* L );
 static void timeouthook( lua_State* L, lua_Debug* ar );
 static void callhook( lua_State* L, lua_Debug* ar );
 
+// Handler prototypes
+void L_handle_toward( event_t* e );
+void L_handle_metro( event_t* e );
+void L_handle_in_stream( event_t* e );
+void L_handle_change( event_t* e );
+void L_handle_ii_leadRx( event_t* e );;
+void L_handle_ii_followRx( event_t* e );
+void L_handle_ii_followRx_cont( uint8_t cmd, int args, float* data );
+void L_handle_midi( event_t* e );
+
 void _printf(char* error_message)
 {
     printf("%s\n",error_message);
@@ -612,15 +622,15 @@ static int Lua_call_usercode( lua_State* L, int nargs, int nresults )
 // Public Callbacks from C to Lua
 void L_queue_toward( int id )
 {
-    event_t e = { .type    = E_toward
+    event_t e = { .handler = L_handle_toward
                 , .index.i = id
                 };
     event_post(&e);
 }
-void L_handle_toward( int id )
+void L_handle_toward( event_t* e )
 {
     lua_getglobal(L, "toward_handler");
-    lua_pushinteger(L, id+1); // 1-ix'd
+    lua_pushinteger(L, e->index.i + 1); // 1-ix'd
     if( Lua_call_usercode(L, 1, 0) != LUA_OK ){
         Caw_send_luachunk("error running toward_handler");
         Caw_send_luachunk( (char*)lua_tostring(L, -1) );
@@ -631,17 +641,17 @@ void L_handle_toward( int id )
 
 void L_queue_metro( int id, int state )
 {
-    event_t e = { .type    = E_metro
+    event_t e = { .handler = L_handle_metro
                 , .index.i = id
                 , .data.i  = state
                 };
     event_post(&e);
 }
-void L_handle_metro( const int id, const int stage)
+void L_handle_metro( event_t* e )
 {
     lua_getglobal(L, "metro_handler");
-    lua_pushinteger(L, id+1 -2); // 1-ix'd, less 2 for adc rebase
-    lua_pushinteger(L, stage+1); // 1-ix'd
+    lua_pushinteger(L, e->index.i +1 -2); // 1-ix'd, less 2 for adc rebase
+    lua_pushinteger(L, e->data.i +1);     // 1-ix'd
     if( Lua_call_usercode(L, 2, 0) != LUA_OK ){
         Caw_send_luachunk("error running metro_handler");
         Caw_send_luachunk( (char*)lua_tostring(L, -1) );
@@ -651,17 +661,17 @@ void L_handle_metro( const int id, const int stage)
 
 void L_queue_in_stream( int id )
 {
-    event_t e = { .type    = E_stream
+    event_t e = { .handler = L_handle_in_stream
                 , .index.i = id
                 , .data.f  = IO_GetADC(id)
                 };
     event_post(&e);
 }
-void L_handle_in_stream( int id, float value )
+void L_handle_in_stream( event_t* e )
 {
     lua_getglobal(L, "stream_handler");
-    lua_pushinteger(L, id+1); // 1-ix'd
-    lua_pushnumber(L, value);
+    lua_pushinteger(L, e->index.i +1); // 1-ix'd
+    lua_pushnumber(L, e->data.f);
     if( Lua_call_usercode(L, 2, 0) != LUA_OK ){
         Caw_send_luachunk("error: input stream");
         Caw_send_luachunk( (char*)lua_tostring(L, -1) );
@@ -671,17 +681,17 @@ void L_handle_in_stream( int id, float value )
 
 void L_queue_change( int id, float state )
 {
-    event_t e = { .type    = E_change
+    event_t e = { .handler = L_handle_change
                 , .index.i = id
                 , .data.f  = state
                 };
     event_post(&e);
 }
-void L_handle_change( int id, float state )
+void L_handle_change( event_t* e )
 {
     lua_getglobal(L, "change_handler");
-    lua_pushinteger(L, id+1); // 1-ix'd
-    lua_pushnumber(L, state);
+    lua_pushinteger(L, e->index.i +1); // 1-ix'd
+    lua_pushnumber(L, e->data.f);
     if( Lua_call_usercode(L, 2, 0) != LUA_OK ){
         printf("ch er\n");
         Caw_send_luachunk("error: input change");
@@ -692,19 +702,19 @@ void L_handle_change( int id, float state )
 
 void L_queue_ii_leadRx( uint8_t address, uint8_t cmd, float data )
 {
-    event_t e = { .type   = E_ii_leadRx
-                , .data.f = data
+    event_t e = { .handler = L_handle_ii_leadRx
+                , .data.f  = data
                 };
     e.index.u8s[0] = address;
     e.index.u8s[1] = cmd;
     event_post(&e);
 }
-void L_handle_ii_leadRx( uint8_t address, uint8_t cmd, float data )
+void L_handle_ii_leadRx( event_t* e )
 {
     lua_getglobal(L, "ii_LeadRx_handler");
-    lua_pushinteger(L, address);
-    lua_pushinteger(L, cmd);
-    lua_pushnumber(L, data);
+    lua_pushinteger(L, e->index.u8s[0]); // address
+    lua_pushinteger(L, e->index.u8s[1]); // command
+    lua_pushnumber(L, e->data.f);
     if( Lua_call_usercode(L, 3, 0) != LUA_OK ){
         printf("!ii.leadRx\n");
         Caw_send_luachunk("error: ii lead event");
@@ -715,11 +725,12 @@ void L_handle_ii_leadRx( uint8_t address, uint8_t cmd, float data )
 
 void L_queue_ii_followRx( void )
 {
-    event_t e = { .type = E_ii_followRx };
+    event_t e = { .handler = L_handle_ii_followRx };
     event_post(&e);
 }
-void L_handle_ii_followRx( void )
+void L_handle_ii_followRx( event_t* e )
 {
+    // FIXME: should pass the 'cont' as a fnptr continuation
     ii_process_dequeue_decode();
 }
 void L_handle_ii_followRx_cont( uint8_t cmd, int args, float* data )
@@ -738,6 +749,7 @@ void L_handle_ii_followRx_cont( uint8_t cmd, int args, float* data )
     }
 }
 
+// FIXME called directly from ii lib for now
 float L_handle_ii_followRxTx( uint8_t cmd, int args, float* data )
 {
     lua_getglobal(L, "ii_followRxTx_handler");
@@ -759,14 +771,15 @@ float L_handle_ii_followRxTx( uint8_t cmd, int args, float* data )
 
 void L_queue_midi( uint8_t* data )
 {
-    event_t e = { .type = E_midi };
+    event_t e = { .handler = L_handle_midi };
     e.data.u8s[0] = data[0];
     e.data.u8s[1] = data[1];
     e.data.u8s[2] = data[2];
     event_post(&e);
 }
-void L_handle_midi( uint8_t* data )
+void L_handle_midi( event_t* e )
 {
+    uint8_t* data = e->data.u8s;
     lua_getglobal(L, "midi_handler");
     int count = MIDI_byte_count(data[0]) + 1; // +1 for cmd byte itself
     for( int i=0; i<count; i++ ){
