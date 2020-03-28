@@ -2,8 +2,11 @@
 
 #include <stm32f7xx.h>
 
+#define SCALE_MAX_COUNT 16
+
 typedef enum{ Detect_NONE
             , Detect_CHANGE
+            , Detect_SCALE
 } Detect_mode_t;
 
 typedef void (*Detect_callback_t)(int channel, float value);
@@ -13,6 +16,17 @@ typedef struct{
     float  hysteresis;
     int8_t direction;
 } D_change_t;
+
+typedef struct{
+    float scale[SCALE_MAX_COUNT];
+    int   sLen;
+    float divs;
+    float scaling;
+    // state / pre-computation
+    float offset;
+    int   lastNote;
+    float lastOct;
+} D_scale_t;
 
 typedef struct{
     uint8_t            channel;
@@ -26,6 +40,8 @@ typedef struct{
     // state
     float         last;
     uint8_t       state;
+  // Detect_scale
+    D_scale_t     scale;
 } Detect_t;
 
 void Detect_init( int channels );
@@ -41,8 +57,13 @@ void Detect_change( Detect_t*         self
                   , float             hysteresis
                   , int8_t            direction
                   );
+void Detect_scale( Detect_t*         self
+                 , Detect_callback_t cb
+                 , float*            scale
+                 , int               sLen
+                 , float             divs
+                 , float             scaling
+                 );
 
 // process fns
 void Detect( Detect_t* self, float level );
-
-Detect_mode_t Detect_str_to_mode( const char* str );

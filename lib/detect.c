@@ -57,6 +57,32 @@ void Detect_change( Detect_t*         self
     // can force update based on global struct members?
 }
 
+void Detect_scale( Detect_t*         self
+                 , Detect_callback_t cb
+                 , float*            scale
+                 , int               sLen
+                 , float             divs
+                 , float             scaling
+                 )
+{
+    self->mode          = Detect_SCALE;
+    self->action        = cb;
+    self->scale.sLen    = (sLen > SCALE_MAX_COUNT) ? SCALE_MAX_COUNT : sLen;
+    if( sLen == 0 ){ // assume chromatic
+        self->scale.sLen = 1;
+        self->scale.scale[0] = 0.0;
+        self->scale.scaling = scaling / self->scale.divs; // scale to n-TET
+        self->scale.divs    = 1.0; // force 1 div
+    } else {
+        for( int i=0; i<self->scale.sLen; i++ ){
+            self->scale.scale[i] = *scale++;
+        }
+        self->scale.divs    = divs;
+        self->scale.scaling = scaling;
+    }
+    self->scale.offset  = 0.5 * self->scale.scaling / self->scale.divs;
+}
+
 void Detect( Detect_t* self, float level )
 {
     switch( self->mode ){
@@ -81,20 +107,28 @@ void Detect( Detect_t* self, float level )
             }
             break;
 
+         case Detect_SCALE:
+            level += self->scale.offset;
+            float n_level = level / self->scale.scaling;
+            float octaves = (float)(int)n_level;
+            float phase = n_level - octaves;            // [0,1.0)
+            int note = (int)(phase * self->scale.sLen); // map phase to #scale
+
+            if( note    != self->scale.lastNote
+             || octaves != self->scale.lastOct
+              ){ // new note detected
+                //float note_map = self->scale.scale[note];   // apply lookup table
+                //note_map /= self->scale.divs;               // remap via num of options
+                //*out2++ = self->scaling * (divs + note_map); 
+                (*self->action)( self->channel
+                               , note + (self->scale.sLen * octaves)
+                               ); // callback!
+                self->scale.lastNote = note;
+                self->scale.lastOct  = octaves;
+            }
+            break;
+
         default:
             break;
-    }
-}
-
-Detect_mode_t Detect_str_to_mode( const char* mode )
-{
-    if( *mode == 's' ){
-        if( mode[1] == 'c' ){  return Detect_NONE; //In_scale;
-        } else {               return Detect_NONE; }//In_stream;
-    } else if( *mode == 'c' ){ return Detect_CHANGE; //In_change;
-    } else if( *mode == 'w' ){ return Detect_NONE; //In_window;
-    } else if( *mode == 'q' ){ return Detect_NONE; //In_quantize;
-    } else if( *mode == 'j' ){ return Detect_NONE; //In_justintonation;
-    } else {                   return Detect_NONE; //Detect_NONE;
     }
 }
