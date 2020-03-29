@@ -16,7 +16,7 @@ void Lua_crowbegin( void );
 uint8_t Lua_eval( lua_State*     L
                 , const char*    script
                 , size_t         script_len
-                , ErrorHandler_t errfn
+                , const char*    chunkname
                 );
 void Lua_load_default_script( void );
 

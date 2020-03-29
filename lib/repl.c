@@ -137,7 +137,7 @@ bool REPL_run_script( USERSCRIPT_t mode, char* buf, uint32_t len )
             strcpy( running_script_name, "Running: First.lua" );
             break;
         case USERSCRIPT_User:
-            if ( Lua_eval( Lua, buf, len, Caw_send_luaerror ) ){
+            if ( Lua_eval( Lua, buf, len, "=userscript" ) ){
                 return false;
             }
             strcpy( running_script_name, "Running: " );
@@ -154,8 +154,8 @@ void REPL_eval( char* buf, uint32_t len, ErrorHandler_t errfn )
 {
     if( repl_mode == REPL_normal ){
         if(Lua_eval( Lua, buf
-                     , len
-                     , errfn
+                   , len
+                   , "=repl"
                    )){
             printf("!eval\n");
         }
