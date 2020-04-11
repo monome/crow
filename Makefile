@@ -288,6 +288,10 @@ fsk-wav: $(BIN)
 erase:
 	st-flash erase
 
+norns:
+	lua util/ii_norns_actions.lua lua/ii/ $(NORNS_DIR)/lua/core/crow/ii_actions.lua
+	lua util/ii_norns_events.lua lua/ii/ $(NORNS_DIR)/lua/core/crow/ii_events.lua
+
 .PHONY: clean
 clean:
 	@rm -rf Startup.lst $(TARGET).elf.lst $(OBJS) $(AUTOGEN) \
