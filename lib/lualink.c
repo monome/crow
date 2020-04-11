@@ -518,16 +518,16 @@ uint8_t Lua_eval( lua_State*     L
     if( error != LUA_OK ){
         Caw_send_luachunk( (char*)lua_tostring( L, -1 ) );
         lua_pop( L, 1 );
-	return 1;
+        return 1;
     }
 
-    if( Lua_call_usercode( L, 0, 0 ) != LUA_OK ){
+    if( (error |= Lua_call_usercode( L, 0, 0 )) != LUA_OK ){
         lua_pop( L, 1 );
         switch( error ){
-            case LUA_ERRSYNTAX: printf("!load script: syntax\n"); break;
-            case LUA_ERRMEM:    printf("!load script: memory\n"); break;
-            case LUA_ERRRUN:    printf("!exec script: runtime\n"); break;
-            case LUA_ERRERR:    printf("!exec script: err in err handler\n"); break;
+            case LUA_ERRSYNTAX: Caw_send_luachunk("syntax error."); break;
+            case LUA_ERRMEM:    Caw_send_luachunk("not enough memory."); break;
+            case LUA_ERRRUN:    Caw_send_luachunk("runtime error."); break;
+            case LUA_ERRERR:    Caw_send_luachunk("error in error handler."); break;
             default: break;
         }
         return 1;
