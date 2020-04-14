@@ -281,8 +281,12 @@ function to( dest, time, shape )
 
     -- RUNTIME
     return function( self )
-        LL_toward( self.id
-                 , (d == 'here') and LL_get_state( self.id ) or d
+        while type(d) == 'function' do d = d() end
+        while type(t) == 'function' do t = t() end
+        while type(s) == 'function' do s = s() end
+        -- FIXME move to self.ref instead of id to allow direct assignment
+        go_toward( self.id
+                 , (d == 'here') and get_state( self.id ) or d
                  , t
                  , s
                  )
@@ -324,9 +328,12 @@ end
 
 
 ---------------------------------------------------------
--- capture all the metamethods & Asl namespace functions
+-- public event called from C event queue
 
-setmetatable(Asl, Asl)
+function asl_handler( id )
+    -- FIXME refactor to use ref instead of id for easier message passing
+    Asl.list[id]:step()
+end
 
 
 return Asl

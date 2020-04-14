@@ -82,27 +82,6 @@ for chan = 1, #output do
 end
 
 
---- asl
-function toward_handler( id ) end -- do nothing if asl not active
--- if defined, make sure active before setting up actions and banging
-if asl then
-    toward_handler = function( id )
-        output[id].asl:step()
-    end
-end
--- special wrapper should really be in the ASL lib itself?
-function LL_toward( id, d, t, s )
-    while type(d) == 'function' do d = d() end
-    while type(t) == 'function' do t = t() end
-    while type(s) == 'function' do s = s() end
-    go_toward( id, d, t, s )
-end
-
-function LL_get_state( id )
-    return get_state(id)
-end
-
-
 --- ii
 -- pullups on by default
 ii.pullup(true)

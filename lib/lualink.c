@@ -613,7 +613,7 @@ void L_queue_toward( int id )
 }
 void L_handle_toward( event_t* e )
 {
-    lua_getglobal(L, "toward_handler");
+    lua_getglobal(L, "asl_handler");
     lua_pushinteger(L, e->index.i + 1); // 1-ix'd
     if( Lua_call_usercode(L, 1, 0) != LUA_OK ){
         lua_pop( L, 1 );
