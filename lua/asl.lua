@@ -134,6 +134,10 @@ Asl.__index = function(self, ix)
     end
 end
 
+Asl.__call = function(self, ...)
+    do_action(self, ...)
+end
+
 
 --------------------------------------------
 -- program counter (runtime) manipulations
