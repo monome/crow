@@ -22,6 +22,7 @@
 #include "lib/midi.h"       // MIDI_Active()
 #include "../ll/timers.h"   // Timer_*()
 #include "stm32f7xx_hal.h"  // HAL_GetTick()
+#include "stm32f7xx_it.h"   // CPU_GetCount()
 
 // Lua libs wrapped in C-headers: Note the extra '.h'
 #include "lua/bootstrap.lua.h" // MUST LOAD THIS MANUALLY FIRST
@@ -239,6 +240,12 @@ static int _unique_id( lua_State *L )
 static int _time( lua_State *L )
 {
     lua_pushinteger(L, HAL_GetTick());
+    return 1;
+}
+static int _cpu_time( lua_State *L )
+{
+    // returns count of background loops for the last 8ms
+    lua_pushinteger(L, CPU_GetCount());
     return 1;
 }
 static int _go_toward( lua_State *L )
@@ -483,6 +490,7 @@ static const struct luaL_Reg libCrow[]=
     , { "sys_bootloader"   , _bootloader       }
     , { "unique_id"        , _unique_id        }
     , { "time"             , _time             }
+    , { "cputime"          , _cpu_time         }
     //, { "sys_cpu_load"     , _sys_cpu          }
         // io
     , { "go_toward"        , _go_toward        }
