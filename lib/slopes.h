@@ -18,7 +18,7 @@ typedef enum{ SHAPE_Linear
             , SHAPE_Rebound
 } Shape_t;
 
-typedef void (*Callback_t)(int channel);
+typedef void (*Callback_t)(void* ptr);
 
 typedef struct{
     int         index;
@@ -39,24 +39,21 @@ typedef struct{
     float shaped; // current shaped output voltage
 } Slope_t;
 
-#define SLOPE_CHANNELS 4
-
-// refactor for dynamic SLOPE_CHANNELS
 // refactor for dynamic SAMPLE_RATE
-// refactor to S_init returning pointers, but internally tracking indexes?
 
-void S_init( int channels );
+Slope_t* S_init( void );
+void S_deinit( Slope_t* self );
 
 Shape_t S_str_to_shape( const char* s );
 
-float S_get_state( int index );
-void S_toward( int        index
+float S_get_state( Slope_t* self );
+void S_toward( Slope_t*   self
              , float      destination
              , float      ms
              , Shape_t    shape
              , Callback_t cb
              );
-float* S_step_v( int     index
-               , float*  out
-               , int     size
-               );
+float* Slope_v( Slope_t* self
+              , float*   out
+              , int      size
+              );

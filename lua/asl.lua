@@ -6,33 +6,62 @@
 local Asl = {}
 Asl.__index = Asl
 
+-- Manage dynamic allocation & reference-to-id matching
+Asl.LIMIT = 4    -- MUST == SLOPE_CHANNELS (in lib/io.h)
+Asl.list    = {} -- Objects by id
+Asl.refs    = {} -- Objects by reference
+Asl.open_id = {} -- next to be assigned
+for n=1,Asl.LIMIT do
+    Asl.list[n] = {}
+    Asl.refs[n] = {}
+    table.insert( Asl.open_id, n )
+end
+
 function Asl.new(id)
-    local asl = {}
-    if id == nil then print'asl needs id of output channel' end
-    asl.id      = id or 1  -- id defaults to 1
-    asl.exe     = {}       -- a coroutine to be!
-    asl.hold    = false    -- is the slope trigger currently held high
-    asl.in_hold = false    -- is eval currently in a held construct
-    asl.locked  = false    -- flag to lockout bangs during lock{}
-    asl.running = false    -- flag to mark if asl is active
-    asl.retStk = {}
-    asl.pc = 1
-    asl.done = function() end -- function that does nothing
-    setmetatable( asl, Asl )
-    return asl
+    if not id then -- dynamically assign an ASL
+        if #Asl.open_id > 0 then           -- check for a free ASL
+            id = Asl.open_id[1]            -- copy it to id
+            table.remove( Asl.open_id, 1 ) -- rm from the dynamic list
+        else
+            print 'All ASLs already in use'
+            return
+        end
+    else -- overwrite a specific index
+        if id < 1 or id > Asl.LIMIT then
+            print 'ASL index out of range'
+            return
+        else
+            for k,v in ipairs( Asl.open_id ) do
+                if v == id then table.remove( Asl.open_id, k ) end
+                break
+            end
+        end
+    end
+
+    local a       = {}
+    local ref     = new_slope(id) -- get slope address from C-lib
+    Asl.list[id]  = a
+    Asl.refs[ref] = a
+
+    a.ref     = ref   -- C pointer to the Slope object TODO not needed
+    a.exe     = {}    -- an ASL to be
+    a.hold    = false -- is the slope trigger currently held high
+    a.in_hold = false -- is eval currently in a held construct
+    a.locked  = false -- flag to lockout bangs during lock{}
+    a.running = false
+    a.retStk  = {}
+    a.pc      = 1
+    a.done    = function() end -- function that does nothing
+    setmetatable( a, Asl )
+    return a
 end
 
-function Asl:init() -- reset to defaults
-    self.exe     = {}
-    self.hold    = false  -- is the slope trigger currently held high
-    self.in_hold = false  -- is eval currently in a held construct
-    self.locked  = false  -- flag to lockout bangs during lock{}
-    self.running = false  -- flag to mark if asl is active
-    self.retStk = {}
-    self.pc = 1
-    return self
+-- FIXME never called, use the __gc metamethod
+function Asl.free(id)
+    -- TODO stop ASL
+    -- TODO deactivate C layer
+    --Asl.list.id = nil -- TODO switch to ref-based action
 end
-
 
 -------------------------------
 -- setting & calling .action
@@ -93,7 +122,6 @@ Asl.__index = function(self, ix)
     if ix == 'action' then
         return function(self,a) do_action(self,a) end
     elseif ix == 'step' then return Asl.step
-    elseif ix == 'init' then return Asl.init
     -- private fns below (called from step)
     elseif ix == 'nek' then return Asl.nek
     elseif ix == 'enter' then return Asl.enter
@@ -266,8 +294,14 @@ function Asl.runtime(fn,...)
 end
 
 
+---------------------------------------------------------
+-- capture all the metamethods & Asl namespace functions
+
+setmetatable(Asl, Asl)
+
+
 -------------------------------------
--- public (global) ASL constructs
+-- global ASL constructs
 
 function to( dest, time, shape )
     -- COMPILE TIME
@@ -284,12 +318,7 @@ function to( dest, time, shape )
         while type(d) == 'function' do d = d() end
         while type(t) == 'function' do t = t() end
         while type(s) == 'function' do s = s() end
-        -- FIXME move to self.ref instead of id to allow direct assignment
-        go_toward( self.id
-                 , (d == 'here') and get_state( self.id ) or d
-                 , t
-                 , s
-                 )
+        go_toward( self.ref, d, t, s ) -- go_toward takes number or 'here' for *d*
         return (t ~= 0)
     end
 end
@@ -330,9 +359,8 @@ end
 ---------------------------------------------------------
 -- public event called from C event queue
 
-function asl_handler( id )
-    -- FIXME refactor to use ref instead of id for easier message passing
-    Asl.list[id]:step()
+function asl_handler( ref )
+    Asl.refs[ref]:step()
 end
 
 

@@ -21,7 +21,7 @@ uint8_t Lua_eval( lua_State*     L
 void Lua_load_default_script( void );
 
 // Event enqueue wrappers
-extern void L_queue_toward( int id );
+extern void L_queue_toward( void* ref );
 extern void L_queue_metro( int id, int state );
 extern void L_queue_in_stream( int id );
 extern void L_queue_change( int id, float state );

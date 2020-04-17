@@ -10,16 +10,7 @@
 
 
 ////////////////////////////////
-// global vars
-
-uint8_t slope_count = 0;
-Slope_t* slopes = NULL;
-
-
-////////////////////////////////
 // private declarations
-
-static float* step_v( Slope_t* self, float* out, int size );
 
 static float* static_v( Slope_t* self, float* out, int size );
 static float* motion_v( Slope_t* self, float* out, int size );
@@ -31,23 +22,27 @@ static float shaper( Slope_t* self, float out );
 ////////////////////////////////
 // public definitions
 
-void S_init( int channels )
+Slope_t* S_init( void )
 {
-    slope_count = channels;
-    slopes = malloc( sizeof( Slope_t ) * channels );
-    if( !slopes ){ printf("slopes malloc failed\n"); return; }
-    for( int j=0; j<SLOPE_CHANNELS; j++ ){
-        slopes[j].index  = j;
-        slopes[j].dest   = 0.0;
-        slopes[j].last   = 0.0;
-        slopes[j].shape  = SHAPE_Linear;
-        slopes[j].action = NULL;
+    Slope_t* self = malloc( sizeof( Slope_t ) );
+    if( !self ){ printf("slope malloc failed\n"); return NULL; }
 
-        slopes[j].here   = 0.0;
-        slopes[j].delta  = 0.0;
-        slopes[j].countdown = -1.0;
-        slopes[j].scale = 0.0;
-    }
+    self->dest   = 0.0;
+    self->last   = 0.0;
+    self->shape  = SHAPE_Linear;
+    self->action = NULL;
+
+    self->here      = 0.0;
+    self->delta     = 0.0;
+    self->countdown = -1.0;
+    self->scale     = 0.0;
+
+    return self;
+}
+
+void S_deinit( Slope_t* self )
+{
+    free(self); self = NULL;
 }
 
 Shape_t S_str_to_shape( const char* s )
@@ -67,25 +62,19 @@ Shape_t S_str_to_shape( const char* s )
     }
 }
 
-float S_get_state( int index )
+float S_get_state( Slope_t* self )
 {
-    if( index < 0 || index >= SLOPE_CHANNELS ){ return 0.0; }
-    Slope_t* self = &slopes[index]; // safe pointer
     return self->shaped;
 }
 
 // register a new destination
-void S_toward( int        index
+void S_toward( Slope_t*   self
              , float      destination
              , float      ms
              , Shape_t    shape
              , Callback_t cb
              )
 {
-    if( index < 0 || index >= SLOPE_CHANNELS ){ return; }
-    Slope_t* self = &slopes[index]; // safe pointer
-
-
     // update destination
     self->dest   = destination;
     self->shape  = shape;
@@ -120,27 +109,10 @@ void S_toward( int        index
     }
 }
 
-float* S_step_v( int     index
-               , float*  out
-               , int     size
-               )
-{
-    // turn index into pointer
-    if( index < 0 || index >= SLOPE_CHANNELS ){ return out; }
-    Slope_t* self = &slopes[index]; // safe pointer
-
-    return step_v( self, out, size );
-}
-
-
-
-///////////////////////
-// private defns
-
-static float* step_v( Slope_t* self
-                    , float*   out
-                    , int      size
-                    )
+float* Slope_v( Slope_t* self
+              , float*   out
+              , int      size
+              )
 {
     if( self->countdown <= 0.0 ){ // at destination
         static_v( self, out, size );
@@ -151,6 +123,10 @@ static float* step_v( Slope_t* self
     }
     return out;
 }
+
+
+///////////////////////
+// private defns
 
 static float* static_v( Slope_t* self, float* out, int size )
 {
@@ -196,7 +172,7 @@ static float* breakpoint_v( Slope_t* self, float* out, int size )
         if( self->action != NULL ){
             Callback_t act = self->action;
             self->action = NULL;
-            (*act)(self->index);
+            (*act)(self);
             // side-affects: self->{dest, shape, action, countdown, delta, (here)}
         }
         if( self->action != NULL ){ // instant callback
@@ -205,7 +181,7 @@ static float* breakpoint_v( Slope_t* self, float* out, int size )
             // 1. unwind self->countdown (ADD it to countdown)
             // 2. recalc current sample with new slope
             // 3. below call should be on out[0] and size
-            return step_v( self, out, size-1 );
+            return Slope_v( self, out, size-1 );
         } else { // slope complete, or queued response
             self->here  = 1.0;
             self->delta = 0.0;

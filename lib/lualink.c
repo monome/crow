@@ -14,7 +14,7 @@
 #include "lib/ii.h"         // ii_*()
 #include "lib/bootloader.h" // bootloader_enter()
 #include "lib/metro.h"      // metro_start() metro_stop() metro_set_time()
-#include "lib/io.h"         // IO_GetADC()
+#include "lib/io.h"         // IO_GetADC() IN_CHANNELS OUT_CHANNELS
 #include "../ll/random.h"   // Random_Get()
 #include "../ll/adda.h"     // CAL_Recalibrate() CAL_PrintCalibration()
 #include "../ll/system.h"   // getUID_Word()
@@ -99,12 +99,12 @@ lua_State* Lua_Reset( void )
 {
     printf("Lua_Reset\n");
     Metro_stop_all();
-    for( int i=0; i<2; i++ ){
+    for( int i=0; i<IN_CHANNELS; i++ ){
         Timer_Stop(i);
         Detect_none( Detect_ix_to_p(i) );
     }
-    for( int i=0; i<4; i++ ){
-        S_toward( i, 0.0, 0.0, SHAPE_Linear, NULL );
+    for( int i=0; i<OUT_CHANNELS; i++ ){
+        S_toward( IO_Slope_ptr_from_ix(i), 0.0, 0.0, SHAPE_Linear, NULL );
     }
     events_clear();
     Lua_DeInit();
@@ -243,9 +243,17 @@ static int _time( lua_State *L )
 }
 static int _go_toward( lua_State *L )
 {
-    S_toward( luaL_checkinteger(L, 1)-1 // C is zero-based
-            , luaL_checknumber(L, 2)
-            , luaL_checknumber(L, 3) * 1000.0
+    Slope_t* s = (Slope_t*)lua_topointer(L, 1);
+    float dest;
+    if( lua_isnumber(L, 2) ){ // voltage
+        dest = luaL_checknumber(L, 2);
+    } else { // assume 'here'
+        Caw_send_luachunk("'here'");
+        dest = S_get_state(s); // use current state of ASL
+    }
+    S_toward( s
+            , dest
+            , luaL_checknumber(L, 3) * 1000.0 // convert s to ms
             , S_str_to_shape( luaL_checkstring(L, 4) )
             , L_queue_toward
             );
@@ -255,9 +263,17 @@ static int _go_toward( lua_State *L )
 }
 static int _get_state( lua_State *L )
 {
-    float s = S_get_state( luaL_checkinteger(L, 1)-1 );
+    float s = IO_GetDAC( luaL_checkinteger(L, 1)-1 );
     lua_pop( L, 1 );
     lua_pushnumber( L, s );
+    return 1;
+}
+static int _new_slope( lua_State *L )
+{
+    Slope_t* s = IO_Slope_ptr_from_ix( luaL_checkinteger(L, 1)-1 );
+    S_toward( s, 0.0, 0.0, SHAPE_Linear, NULL ); // reset channel to 0
+    lua_pop( L, 1 );
+    lua_pushlightuserdata( L, s );
     return 1;
 }
 static int _io_get_input( lua_State *L )
@@ -471,6 +487,7 @@ static const struct luaL_Reg libCrow[]=
         // io
     , { "go_toward"        , _go_toward        }
     , { "get_state"        , _get_state        }
+    , { "new_slope"        , _new_slope        }
     , { "io_get_input"     , _io_get_input     }
     , { "set_input_none"   , _set_input_none   }
     , { "set_input_stream" , _set_input_stream }
@@ -604,17 +621,17 @@ static int Lua_call_usercode( lua_State* L, int nargs, int nresults )
 
 
 // Public Callbacks from C to Lua
-void L_queue_toward( int id )
+void L_queue_toward( void* ref )
 {
     event_t e = { .handler = L_handle_toward
-                , .index.i = id
+                , .index.p = ref
                 };
     event_post(&e);
 }
 void L_handle_toward( event_t* e )
 {
     lua_getglobal(L, "asl_handler");
-    lua_pushinteger(L, e->index.i + 1); // 1-ix'd
+    lua_pushlightuserdata(L, e->index.p);
     if( Lua_call_usercode(L, 1, 0) != LUA_OK ){
         lua_pop( L, 1 );
     }

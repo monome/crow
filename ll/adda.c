@@ -6,10 +6,11 @@
 #include "ads131.h"
 #include "dac8565.h"
 
-#include "../lib/flash.h"              // FLASH_*_t
-#include "cal_ll.h"      // CAL_LL_Init(),
-#include "../lib/slopes.h"             // S_toward()
-#include "../lib/caw.h" // Caw_send_raw
+#include "../lib/io.h"     // IO_Slope_ptr_from_ix
+#include "../lib/flash.h"  // FLASH_*_t
+#include "cal_ll.h"        // CAL_LL_Init(),
+#include "../lib/slopes.h" // S_toward()
+#include "../lib/caw.h"    // Caw_send_raw
 
 float _CAL_ADC_GetAverage( uint8_t chan );
 
@@ -216,13 +217,17 @@ IO_block_t* CAL_BlockProcess( IO_block_t* b )
 {
     const float vref           = 2.5;
     const float output_ref     = 7.0;
+    Slope_t* s0 = IO_Slope_ptr_from_ix(0);
+    Slope_t* s1 = IO_Slope_ptr_from_ix(0);
+    Slope_t* s2 = IO_Slope_ptr_from_ix(0);
+    Slope_t* s3 = IO_Slope_ptr_from_ix(0);
     switch( CAL_is_calibrating() ){
         case CAL_in_zero:
             if( CAL_Step( b, &(cal.adc[0].shift) ) ){
-                S_toward( 0, 0.0, 0.0, SHAPE_Linear, NULL );
-                S_toward( 1, 0.0, 0.0, SHAPE_Linear, NULL );
-                S_toward( 2, 0.0, 0.0, SHAPE_Linear, NULL );
-                S_toward( 3, 0.0, 0.0, SHAPE_Linear, NULL );
+                S_toward( s0, 0.0, 0.0, SHAPE_Linear, NULL );
+                S_toward( s1, 0.0, 0.0, SHAPE_Linear, NULL );
+                S_toward( s2, 0.0, 0.0, SHAPE_Linear, NULL );
+                S_toward( s3, 0.0, 0.0, SHAPE_Linear, NULL );
                 CAL_LL_ActiveChannel( CAL_LL_Ground ); } break;
 
         case CAL_in_scale:
@@ -271,40 +276,40 @@ IO_block_t* CAL_BlockProcess( IO_block_t* b )
         case CAL_dac0_shift:
             if( CAL_Step( b, &(cal.dac[0].shift) ) ){
                 CAL_LL_ActiveChannel( CAL_LL_dac0 );
-                S_toward( 0, 0.0, 0.0, SHAPE_Linear, NULL ); } break;
+                S_toward( s0, 0.0, 0.0, SHAPE_Linear, NULL ); } break;
         case CAL_dac0_scale:
             if( CAL_Step( b, &(cal.dac[0].scale) ) ){
-                S_toward( 0, output_ref, 0.0, SHAPE_Linear, NULL ); } break;
+                S_toward( s0, output_ref, 0.0, SHAPE_Linear, NULL ); } break;
 
         case CAL_dac1_shift:
             if( CAL_Step( b, &(cal.dac[1].shift) ) ){
-                S_toward( 0, 0.0, 0.0, SHAPE_Linear, NULL );
+                S_toward( s0, 0.0, 0.0, SHAPE_Linear, NULL );
                 CAL_LL_ActiveChannel( CAL_LL_dac1 );
-                S_toward( 1, 0.0, 0.0, SHAPE_Linear, NULL ); } break;
+                S_toward( s1, 0.0, 0.0, SHAPE_Linear, NULL ); } break;
         case CAL_dac1_scale:
             if( CAL_Step( b, &(cal.dac[1].scale) ) ){
-                S_toward( 1, output_ref, 0.0, SHAPE_Linear, NULL ); } break;
+                S_toward( s1, output_ref, 0.0, SHAPE_Linear, NULL ); } break;
 
         case CAL_dac2_shift:
             if( CAL_Step( b, &(cal.dac[2].shift) ) ){
-                S_toward( 1, 0.0, 0.0, SHAPE_Linear, NULL );
+                S_toward( s1, 0.0, 0.0, SHAPE_Linear, NULL );
                 CAL_LL_ActiveChannel( CAL_LL_dac2 );
-                S_toward( 2, 0.0, 0.0, SHAPE_Linear, NULL ); } break;
+                S_toward( s2, 0.0, 0.0, SHAPE_Linear, NULL ); } break;
         case CAL_dac2_scale:
             if( CAL_Step( b, &(cal.dac[2].scale) ) ){
-                S_toward( 2, output_ref, 0.0, SHAPE_Linear, NULL ); } break;
+                S_toward( s2, output_ref, 0.0, SHAPE_Linear, NULL ); } break;
 
         case CAL_dac3_shift:
             if( CAL_Step( b, &(cal.dac[3].shift) ) ){
-                S_toward( 2, 0.0, 0.0, SHAPE_Linear, NULL );
+                S_toward( s2, 0.0, 0.0, SHAPE_Linear, NULL );
                 CAL_LL_ActiveChannel( CAL_LL_dac3 );
-                S_toward( 3, 0.0, 0.0, SHAPE_Linear, NULL ); } break;
+                S_toward( s3, 0.0, 0.0, SHAPE_Linear, NULL ); } break;
         case CAL_dac3_scale:
             if( CAL_Step( b, &(cal.dac[3].scale) ) ){
-                S_toward( 3, output_ref, 0.0, SHAPE_Linear, NULL ); } break;
+                S_toward( s3, output_ref, 0.0, SHAPE_Linear, NULL ); } break;
 
         case CAL_dac_scales:
-            S_toward( 3, 0.0, 0.0, SHAPE_Linear, NULL );
+            S_toward( s3, 0.0, 0.0, SHAPE_Linear, NULL );
             CAL_LL_ActiveChannel( CAL_LL_Ground ); // mux off / gnd input
 
             for( uint8_t j=0; j<4; j++ ){
@@ -323,25 +328,25 @@ IO_block_t* CAL_BlockProcess( IO_block_t* b )
         case CAL_dac0_z:
             if( CAL_Step( b, &(cal.dac[0].shift) ) ){
                 CAL_LL_ActiveChannel( CAL_LL_dac0 );
-                S_toward( 0, 0.0, 0.0, SHAPE_Linear, NULL ); } break;
+                S_toward( s0, 0.0, 0.0, SHAPE_Linear, NULL ); } break;
             break;
 
         case CAL_dac1_z:
             if( CAL_Step( b, &(cal.dac[1].shift) ) ){
                 CAL_LL_ActiveChannel( CAL_LL_dac1 );
-                S_toward( 1, 0.0, 0.0, SHAPE_Linear, NULL ); } break;
+                S_toward( s1, 0.0, 0.0, SHAPE_Linear, NULL ); } break;
             break;
 
         case CAL_dac2_z:
             if( CAL_Step( b, &(cal.dac[2].shift) ) ){
                 CAL_LL_ActiveChannel( CAL_LL_dac2 );
-                S_toward( 2, 0.0, 0.0, SHAPE_Linear, NULL ); } break;
+                S_toward( s2, 0.0, 0.0, SHAPE_Linear, NULL ); } break;
             break;
 
         case CAL_dac3_z:
             if( CAL_Step( b, &(cal.dac[3].shift) ) ){
                 CAL_LL_ActiveChannel( CAL_LL_dac3 );
-                S_toward( 3, 0.0, 0.0, SHAPE_Linear, NULL ); } break;
+                S_toward( s3, 0.0, 0.0, SHAPE_Linear, NULL ); } break;
             break;
 
         case CAL_complete:
@@ -385,12 +390,16 @@ IO_block_t* CAL_BlockProcess( IO_block_t* b )
     }
 
     // run slopes to set output levels
-    for( int j=0; j<SLOPE_CHANNELS; j++ ){
-        S_step_v( j
-                , b->out[j]
-                , b->size
-                );
-    }
+    //for( int j=0; j<SLOPE_CHANNELS; j++ ){
+    //    S_step_v( j
+    //            , b->out[j]
+    //            , b->size
+    //            );
+    //}
+    Slope_v( s0, b->out[0], b->size );
+    Slope_v( s1, b->out[1], b->size );
+    Slope_v( s2, b->out[2], b->size );
+    Slope_v( s3, b->out[3], b->size );
     return b;
 }
 

@@ -215,17 +215,17 @@ static int follow_request( uint8_t* pdata )
     float response;
     switch( c->cmd ){
         case II_GET+3: // 'input'
-            response = IO_GetADC( (int)args[0] - 1 ); // i2c is 1-based
+            response = IO_GetADC( (int)args[0] - 1 ); // ii is 1-based
             break;
         case II_GET+4: // 'output'
-            response = S_get_state( (int)args[0] - 1 ); // i2c is 1-based
+            response = IO_GetDAC( (int)args[0] - 1 ); // ii is 1-based
             break;
         default: // 'query'
             // DANGER!! run the Lua callback directly!
             response = L_handle_ii_followRxTx( c->cmd
-                            , c->args
-                            , args
-                            );
+                                             , c->args
+                                             , args
+                                             );
             break;
     }
     return encode( pdata, c->return_type, response );
