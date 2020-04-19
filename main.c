@@ -14,6 +14,8 @@
 #include "usbd/usbd_cdc_interface.h" // CDC_main_init()
 #include "lib/bootloader.h" // bootloader_enter(), bootloader_restart()
 #include "lib/flash.h" // Flash_clear_user_script()
+#include "stm32f7xx_it.h" // CPU_count;
+
 
 int main(void)
 {
@@ -42,6 +44,7 @@ int main(void)
     Lua_crowbegin();
 
     while(1){
+        CPU_count++;
         U_PrintNow();
         switch( Caw_try_receive() ){ // true on pressing 'enter'
             case C_repl:        REPL_eval( Caw_get_read()
