@@ -57,7 +57,7 @@ do return
     , retval = { 'volts', s16V }
     }
   , { name = 14
-    , cmd  = 15
+    , cmd  = 13
     , retval = { 'volts', s16V }
     }
   , { name = 15
