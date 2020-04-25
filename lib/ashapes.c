@@ -49,7 +49,7 @@ void AShaper_set_scale( int    index
         self->divlist[0] = 0.0; // set to unity
 
         self->modulo = 1.0;
-        self->scaling = scaling / self->modulo;
+        self->scaling = scaling / modulo;
     } else {
         for( int i=0; i<(self->dlLen); i++ ){
             self->divlist[i] = divlist[i];
