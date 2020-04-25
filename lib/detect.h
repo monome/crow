@@ -2,8 +2,11 @@
 
 #include <stm32f7xx.h>
 
+#define WINDOW_MAX_COUNT 16
+
 typedef enum{ Detect_NONE
             , Detect_CHANGE
+            , Detect_WINDOW
 } Detect_mode_t;
 
 typedef void (*Detect_callback_t)(int channel, float value);
@@ -13,6 +16,13 @@ typedef struct{
     float  hysteresis;
     int8_t direction;
 } D_change_t;
+
+typedef struct{
+    float windows[WINDOW_MAX_COUNT];
+    int   wLen;
+    float hysteresis;
+    int   lastWin;
+} D_window_t;
 
 typedef struct{
     uint8_t            channel;
@@ -26,6 +36,8 @@ typedef struct{
     // state
     float         last;
     uint8_t       state;
+  // Detect_window
+    D_window_t    win;
 } Detect_t;
 
 void Detect_init( int channels );
@@ -40,6 +52,12 @@ void Detect_change( Detect_t*         self
                   , float             threshold
                   , float             hysteresis
                   , int8_t            direction
+                  );
+void Detect_window( Detect_t*         self
+                  , Detect_callback_t cb
+                  , float*            windows
+                  , int               wLen
+                  , float             hysteresis
                   );
 
 // process fns
