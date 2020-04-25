@@ -22,6 +22,7 @@
 #include "lib/midi.h"       // MIDI_Active()
 #include "../ll/timers.h"   // Timer_*()
 #include "stm32f7xx_hal.h"  // HAL_GetTick()
+#include "stm32f7xx_it.h"   // CPU_GetCount()
 
 // Lua libs wrapped in C-headers: Note the extra '.h'
 #include "lua/bootstrap.lua.h" // MUST LOAD THIS MANUALLY FIRST
@@ -61,8 +62,9 @@ const struct lua_lib_locator Lua_libs[] =
 // Private prototypes
 static void Lua_linkctolua( lua_State* L );
 static float Lua_check_memory( void );
-static void hook( lua_State* L, lua_Debug* ar );
-static int lua_pcall_protected( lua_State* L, int nargs, int nresults, int errFunc );
+static int Lua_call_usercode( lua_State* L, int nargs, int nresults );
+static int Lua_handle_error( lua_State* L );
+static void timeouthook( lua_State* L, lua_Debug* ar );
 
 // Handler prototypes
 void L_handle_toward( event_t* e );
@@ -90,7 +92,7 @@ lua_State* Lua_Init(void)
     Lua_linkctolua(L);
     Lua_eval(L, lua_bootstrap
               , strlen(lua_bootstrap)
-              , _printf
+              , "=lib"
               ); // redefine dofile(), print(), load crowlib
     return L;
 }
@@ -115,7 +117,7 @@ void Lua_load_default_script( void )
 {
     Lua_eval(L, lua_First
               , strlen(lua_First)
-              , _printf
+              , "=First.lua"
               );
 }
 
@@ -239,6 +241,12 @@ static int _unique_id( lua_State *L )
 static int _time( lua_State *L )
 {
     lua_pushinteger(L, HAL_GetTick());
+    return 1;
+}
+static int _cpu_time( lua_State *L )
+{
+    // returns count of background loops for the last 8ms
+    lua_pushinteger(L, CPU_GetCount());
     return 1;
 }
 static int _go_toward( lua_State *L )
@@ -494,6 +502,7 @@ static const struct luaL_Reg libCrow[]=
     , { "sys_bootloader"   , _bootloader       }
     , { "unique_id"        , _unique_id        }
     , { "time"             , _time             }
+    , { "cputime"          , _cpu_time         }
     //, { "sys_cpu_load"     , _sys_cpu          }
         // io
     , { "go_toward"        , _go_toward        }
@@ -540,21 +549,22 @@ static void Lua_linkctolua( lua_State *L )
 uint8_t Lua_eval( lua_State*     L
                 , const char*    script
                 , size_t         script_len
-                , ErrorHandler_t errfn
+                , const char*    chunkname
                 ){
-    int error;
-
-    if( (error = luaL_loadbuffer( L, script, script_len, "eval" )
-              || lua_pcall_protected( L, 0, 0, 0 )
-        ) ){
-        //(*errfn)( (char*)lua_tostring( L, -1 ) );
+    int error = luaL_loadbuffer( L, script, script_len, chunkname );
+    if( error != LUA_OK ){
         Caw_send_luachunk( (char*)lua_tostring( L, -1 ) );
         lua_pop( L, 1 );
+        return 1;
+    }
+
+    if( (error |= Lua_call_usercode( L, 0, 0 )) != LUA_OK ){
+        lua_pop( L, 1 );
         switch( error ){
-            case LUA_ERRSYNTAX: printf("!load script: syntax\n"); break;
-            case LUA_ERRMEM:    printf("!load script: memory\n"); break;
-            case LUA_ERRRUN:    printf("!exec script: runtime\n"); break;
-            case LUA_ERRERR:    printf("!exec script: err in err handler\n"); break;
+            case LUA_ERRSYNTAX: Caw_send_luachunk("syntax error."); break;
+            case LUA_ERRMEM:    Caw_send_luachunk("not enough memory."); break;
+            case LUA_ERRRUN:    Caw_send_luachunk("runtime error."); break;
+            case LUA_ERRERR:    Caw_send_luachunk("error in error handler."); break;
             default: break;
         }
         return 1;
@@ -576,28 +586,57 @@ void Lua_crowbegin( void )
 {
     printf("init()\n"); // call in C to avoid user seeing in lua
     lua_getglobal(L,"init");
-    if( lua_pcall_protected(L,0,0,0) != LUA_OK ){
-        Caw_send_luachunk( (char*)lua_tostring( L, -1 ) );
-        lua_pop( L, 1 );
+    if( Lua_call_usercode(L,0,0) != LUA_OK ){
+        lua_pop(L, 1);
     }
 }
 
 
 // Watchdog timer for infinite looped Lua scripts
 volatile int watchdog = WATCHDOG_COUNT;
-static void hook( lua_State* L, lua_Debug* ar )
+static void timeouthook( lua_State* L, lua_Debug* ar )
 {
     if( --watchdog <= 0 ){
         Caw_send_luachunk("CPU timed out.");
-        lua_sethook(L, hook, LUA_MASKLINE, 0); // error until top
-        luaL_error(L,"");
+        lua_sethook(L, timeouthook, LUA_MASKLINE, 0); // error until top
+        luaL_error(L, "user code timeout exceeded");
     }
 }
-static int lua_pcall_protected( lua_State* L, int nargs, int nresults, int errFunc )
+
+static int Lua_handle_error( lua_State *L )
 {
-    lua_sethook(L, hook, LUA_MASKCOUNT, WATCHDOG_FREQ); // reset hook
-    watchdog = WATCHDOG_COUNT; // reset hook counter
-    return lua_pcall(L, nargs, nresults, errFunc);
+    const char *msg = lua_tostring( L, 1 );
+    if( msg == NULL ){
+        if( luaL_callmeta( L, 1, "__tostring" )
+         && lua_type ( L, -1 ) == LUA_TSTRING ) {
+            return 1;
+        } else {
+            msg = lua_pushfstring( L
+                                 , "(error object is a %s value)"
+                                 , luaL_typename( L, 1 ) );
+        }
+    }
+    luaL_traceback( L, L, msg, 1 );
+    char* traceback = (char*)lua_tostring( L, -1 );
+    Caw_send_luachunk( traceback );
+    _printf( traceback );
+    return 1;
+}
+
+static int Lua_call_usercode( lua_State* L, int nargs, int nresults )
+{
+    lua_sethook(L, timeouthook, LUA_MASKCOUNT, WATCHDOG_FREQ); // reset timeout hook
+    watchdog = WATCHDOG_COUNT; // reset timeout hook counter
+
+    int errFunc = lua_gettop(L) - nargs;
+    lua_pushcfunction( L, Lua_handle_error );
+    lua_insert( L, errFunc );
+    int status = lua_pcall(L, nargs, nresults, errFunc);
+    lua_remove( L, errFunc );
+
+    lua_sethook(L, timeouthook, 0, 0);
+
+    return status;
 }
 
 
@@ -613,10 +652,7 @@ void L_handle_toward( event_t* e )
 {
     lua_getglobal(L, "toward_handler");
     lua_pushinteger(L, e->index.i + 1); // 1-ix'd
-    if( lua_pcall_protected(L, 1, 0, 0) != LUA_OK ){
-        Caw_send_luachunk("error running toward_handler");
-        Caw_send_luachunk( (char*)lua_tostring(L, -1) );
-        printf( "%s\n", (char*)lua_tostring(L, -1) );
+    if( Lua_call_usercode(L, 1, 0) != LUA_OK ){
         lua_pop( L, 1 );
     }
 }
@@ -634,9 +670,7 @@ void L_handle_metro( event_t* e )
     lua_getglobal(L, "metro_handler");
     lua_pushinteger(L, e->index.i +1 -2); // 1-ix'd, less 2 for adc rebase
     lua_pushinteger(L, e->data.i +1);     // 1-ix'd
-    if( lua_pcall_protected(L, 2, 0, 0) != LUA_OK ){
-        Caw_send_luachunk("error running metro_handler");
-        Caw_send_luachunk( (char*)lua_tostring(L, -1) );
+    if( Lua_call_usercode(L, 2, 0) != LUA_OK ){
         lua_pop( L, 1 );
     }
 }
@@ -654,9 +688,7 @@ void L_handle_in_stream( event_t* e )
     lua_getglobal(L, "stream_handler");
     lua_pushinteger(L, e->index.i +1); // 1-ix'd
     lua_pushnumber(L, e->data.f);
-    if( lua_pcall_protected(L, 2, 0, 0) != LUA_OK ){
-        Caw_send_luachunk("error: input stream");
-        Caw_send_luachunk( (char*)lua_tostring(L, -1) );
+    if( Lua_call_usercode(L, 2, 0) != LUA_OK ){
         lua_pop( L, 1 );
     }
 }
@@ -674,10 +706,7 @@ void L_handle_change( event_t* e )
     lua_getglobal(L, "change_handler");
     lua_pushinteger(L, e->index.i +1); // 1-ix'd
     lua_pushnumber(L, e->data.f);
-    if( lua_pcall_protected(L, 2, 0, 0) != LUA_OK ){
-        printf("ch er\n");
-        Caw_send_luachunk("error: input change");
-        Caw_send_luachunk( (char*)lua_tostring(L, -1) );
+    if( Lua_call_usercode(L, 2, 0) != LUA_OK ){
         lua_pop( L, 1 );
     }
 }
@@ -697,10 +726,7 @@ void L_handle_ii_leadRx( event_t* e )
     lua_pushinteger(L, e->index.u8s[0]); // address
     lua_pushinteger(L, e->index.u8s[1]); // command
     lua_pushnumber(L, e->data.f);
-    if( lua_pcall_protected(L, 3, 0, 0) != LUA_OK ){
-        printf("!ii.leadRx\n");
-        Caw_send_luachunk("error: ii lead event");
-        Caw_send_luachunk( (char*)lua_tostring(L, -1) );
+    if( Lua_call_usercode(L, 3, 0) != LUA_OK ){
         lua_pop( L, 1 );
     }
 }
@@ -723,10 +749,7 @@ void L_handle_ii_followRx_cont( uint8_t cmd, int args, float* data )
     while(a-- > 0){
         lua_pushnumber(L, *data++);
     }
-    if( lua_pcall_protected(L, 1+args, 0, 0) != LUA_OK ){
-        printf("!ii.followRx\n");
-        Caw_send_luachunk("error: ii follow rx");
-        Caw_send_luachunk( (char*)lua_tostring(L, -1) );
+    if( Lua_call_usercode(L, 1+args, 0) != LUA_OK ){
         lua_pop( L, 1 );
     }
 }
@@ -740,10 +763,7 @@ float L_handle_ii_followRxTx( uint8_t cmd, int args, float* data )
     while(a-- > 0){
         lua_pushnumber(L, *data++);
     }
-    if( lua_pcall_protected(L, 1+args, 1, 0) != LUA_OK ){
-        printf("!ii.followRxTx\n");
-        Caw_send_luachunk("error: ii follow query");
-        Caw_send_luachunk( (char*)lua_tostring(L, -1) );
+    if( Lua_call_usercode(L, 1+args, 1) != LUA_OK ){
         lua_pop( L, 1 );
     }
     float n = luaL_checknumber(L, 1);
@@ -767,10 +787,7 @@ void L_handle_midi( event_t* e )
     for( int i=0; i<count; i++ ){
         lua_pushinteger(L, data[i]);
     }
-    if( lua_pcall_protected(L, count, 0, 0) != LUA_OK ){
-        printf("midi lua-cb err\n");
-        Caw_send_luachunk("error: input midi");
-        Caw_send_luachunk( (char*)lua_tostring(L, -1) );
+    if( Lua_call_usercode(L, count, 0) != LUA_OK ){
         lua_pop( L, 1 );
     }
 }

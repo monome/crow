@@ -8,6 +8,8 @@
 typedef void (*ErrorHandler_t)(char* error_message);
 struct lua_lib_locator{ const char* name; const char* addr_of_luacode; };
 
+extern volatile int CPU_count; // count from main.c
+
 lua_State* Lua_Init(void);
 lua_State* Lua_Reset( void );
 void Lua_DeInit(void);
@@ -16,7 +18,7 @@ void Lua_crowbegin( void );
 uint8_t Lua_eval( lua_State*     L
                 , const char*    script
                 , size_t         script_len
-                , ErrorHandler_t errfn
+                , const char*    chunkname
                 );
 void Lua_load_default_script( void );
 

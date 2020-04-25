@@ -6,6 +6,8 @@
 
 #include "ll/debug_usart.h" // U_PrintNow
 
+volatile int CPU_count = 0;
+
 static void error( char* msg ){
     //__disable_irq();
 
@@ -22,7 +24,24 @@ void SVC_Handler(void){ error("!SVC"); }
 void DebugMon_Handler(void){ error("!DebugMon"); }
 void PendSV_Handler(void){ error("!PendSV"); }
 
-void SysTick_Handler(void){ HAL_IncTick(); }
+int counts[8] = {0,0,0,0,0,0,0,0};
+int pCount = 0;
+void SysTick_Handler(void)
+{
+    HAL_IncTick();
+    counts[pCount] = CPU_count;
+    if( (++pCount) >= 8 ){ pCount = 0; }
+    CPU_count = 0;
+}
+
+int CPU_GetCount( void )
+{
+    int c = 0;
+    for( int i=0; i<8; i++ ){
+        c += counts[i];
+    }
+    return c;
+}
 
 
 ///* The fault handler implementation calls a function called
