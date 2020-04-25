@@ -22,7 +22,7 @@ function Input.new( chan )
               , change     = function(state) _c.tell('change',chan,state and 1 or 0) end
               , midi       = function(data) _c.tell('midi',table.unpack(data)) end
               , window     = function(ix, direction) get_cv(chan) end
-              , scale      = function(s) _c.tell('scale',s.volts) end
+              , scale      = function(s) _c.tell('scale',s.note) end
               }
     setmetatable( i, Input )
     Input.inputs[chan] = i -- save reference for callback engine
