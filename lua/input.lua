@@ -22,7 +22,7 @@ function Input.new( chan )
               , change     = function(state) _c.tell('change',chan,state and 1 or 0) end
               , midi       = function(data) _c.tell('midi',table.unpack(data)) end
               , window     = function(ix, direction) get_cv(chan) end
-              , scale      = function(note) _c.tell('scale',chan,note) end
+              , scale      = function(s) _c.tell('scale',s.volts) end
               }
     setmetatable( i, Input )
     Input.inputs[chan] = i -- save reference for callback engine
@@ -109,6 +109,10 @@ setmetatable(Input, Input) -- capture the metamethods
 function stream_handler( chan, val ) Input.inputs[chan].stream( val ) end
 function change_handler( chan, val ) Input.inputs[chan].change( val ~= 0 ) end
 function midi_handler( ... ) d = {...}; Input.inputs[1].midi(d) end
-function scale_handler(chan,note) Input.inputs[chan].scale(note) end
+function scale_handler(chan,i,o,n,v)
+    --TODO build this table in C as it'll be faster?
+    s={index=i, octave=o, note=n, volts=v}
+    Input.inputs[chan].scale(s)
+end
 
 return Input

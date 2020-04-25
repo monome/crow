@@ -24,8 +24,10 @@ typedef struct{
     float scaling;
     // state / pre-computation
     float offset;
-    int   lastNote;
-    float lastOct;
+    int   lastIndex;
+    int   lastOct;
+    float lastNote;
+    float lastVolts;
 } D_scale_t;
 
 typedef struct{

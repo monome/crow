@@ -1,6 +1,7 @@
 #include "detect.h"
 
 #include <stdlib.h>
+#include <math.h>
 
 uint8_t channel_count = 0;
 
@@ -80,7 +81,8 @@ void Detect_scale( Detect_t*         self
         self->scale.divs    = divs;
         self->scale.scaling = scaling;
     }
-    self->scale.offset  = 0.5 * self->scale.scaling / self->scale.divs;
+    self->scale.offset = 0.5 * self->scale.scaling / self->scale.divs;
+    self->scale.lastNote = -100.0; // out of range, to force a new match
 }
 
 void Detect( Detect_t* self, float level )
@@ -108,23 +110,26 @@ void Detect( Detect_t* self, float level )
             break;
 
          case Detect_SCALE:
+            // TODO add hysteresis to avoid jittering
             level += self->scale.offset;
             float n_level = level / self->scale.scaling;
-            float octaves = (float)(int)n_level;
-            float phase = n_level - octaves;            // [0,1.0)
-            int note = (int)(phase * self->scale.sLen); // map phase to #scale
+            int octaves = (int)floorf(n_level);
+            float phase = n_level - (float)octaves; // [0,1.0)
+            float fix = phase * self->scale.sLen;
+            int ix = (int)fix; // map phase to #scale
 
-            if( note    != self->scale.lastNote
+            if( ix      != self->scale.lastIndex
              || octaves != self->scale.lastOct
               ){ // new note detected
-                //float note_map = self->scale.scale[note];   // apply lookup table
-                //note_map /= self->scale.divs;               // remap via num of options
-                //*out2++ = self->scaling * (divs + note_map); 
-                (*self->action)( self->channel
-                               , note + (self->scale.sLen * octaves)
-                               ); // callback!
-                self->scale.lastNote = note;
-                self->scale.lastOct  = octaves;
+                float note = self->scale.scale[ix]; // apply LUT within octave
+                float noteOct = note + (float)octaves*self->scale.divs;
+                float volts = (note / self->scale.divs + (float)octaves)
+                               * self->scale.scaling;
+                self->scale.lastIndex = ix;
+                self->scale.lastOct   = octaves;
+                self->scale.lastNote  = noteOct;
+                self->scale.lastVolts = volts;
+                (*self->action)( self->channel, 0.0 ); // callback! 0.0 is ignored
             }
             break;
 

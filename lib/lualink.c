@@ -796,18 +796,20 @@ void L_queue_in_scale( int id, float note )
 {
     event_t e = { .handler = L_handle_in_scale
                 , .index.i = id
-                , .data.f  = note
                 };
     event_post(&e);
 }
 void L_handle_in_scale( event_t* e )
 {
     lua_getglobal(L, "scale_handler");
+    Detect_t* d = Detect_ix_to_p( e->index.i );
+    // TODO these should be wrapped in a table here rather than lua
     lua_pushinteger(L, e->index.i +1); // 1-ix'd
-    lua_pushnumber(L, e->data.f);      // note
-    if( lua_pcall_protected(L, 2, 0, 0) != LUA_OK ){
-        Caw_send_luachunk("error: input scale");
-        Caw_send_luachunk( (char*)lua_tostring(L, -1) );
+    lua_pushinteger(L, d->scale.lastIndex +1); // 1-ix'd
+    lua_pushinteger(L, d->scale.lastOct);
+    lua_pushnumber(L, d->scale.lastNote);
+    lua_pushnumber(L, d->scale.lastVolts);
+    if( Lua_call_usercode(L, 5, 0) != LUA_OK ){
         lua_pop( L, 1 );
     }
 }
