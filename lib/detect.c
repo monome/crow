@@ -17,6 +17,7 @@ void Detect_init( int channels )
         selves[j].last    = 0.0;
         selves[j].state   = 0;
         Detect_none( &(selves[j]) );
+        selves[j].win.lastWin = 0;
     }
 }
 
@@ -85,6 +86,23 @@ void Detect_scale( Detect_t*         self
     self->scale.lastNote = -100.0; // out of range, to force a new match
 }
 
+void Detect_window( Detect_t*         self
+                  , Detect_callback_t cb
+                  , float*            windows
+                  , int               wLen
+                  , float             hysteresis
+                  )
+{
+    printf("TODO need to sort the windows!\n");
+    self->mode           = Detect_WINDOW;
+    self->action         = cb;
+    self->win.wLen       = (wLen > WINDOW_MAX_COUNT) ? WINDOW_MAX_COUNT : wLen;
+    self->win.hysteresis = hysteresis;
+    for( int i=0; i<self->win.wLen; i++ ){
+        self->win.windows[i] = *windows++;
+    }
+}
+
 void Detect( Detect_t* self, float level )
 {
     switch( self->mode ){
@@ -108,6 +126,28 @@ void Detect( Detect_t* self, float level )
                 }
             }
             break;
+
+        case Detect_WINDOW: {
+            // search index containing 'level'
+            int ix = 0;
+                // TODO optimize: start from 'lastWin' rather than 0
+            for(; ix<self->win.wLen; ix++ ){
+                if( level < self->win.windows[ix] ){
+                    break;
+                }
+            }
+            ix++; // 1-base the index so it can be passed with sign
+            // compare the found win with 'lastWin'
+            int lW = self->win.lastWin;
+            if( ix != lW ){ // window has changed
+                (*self->action)( self->channel
+                               , (ix > lW) // sign of index determines direction
+                                    ? ix
+                                    : -ix
+                               ); // callback!
+                self->win.lastWin = ix; // save newly entered window
+            }
+            break; }
 
          case Detect_SCALE:
             // TODO add hysteresis to avoid jittering
@@ -135,5 +175,18 @@ void Detect( Detect_t* self, float level )
 
         default:
             break;
+    }
+}
+
+Detect_mode_t Detect_str_to_mode( const char* mode )
+{
+    if( *mode == 's' ){
+        if( mode[1] == 'c' ){  return Detect_SCALE;  //In_scale;
+        } else {               return Detect_NONE; } //In_stream;
+    } else if( *mode == 'c' ){ return Detect_CHANGE; //In_change;
+    } else if( *mode == 'w' ){ return Detect_WINDOW; //In_window;
+    } else if( *mode == 'q' ){ return Detect_NONE;   //In_quantize;
+    } else if( *mode == 'j' ){ return Detect_NONE;   //In_justintonation;
+    } else {                   return Detect_NONE;   //Detect_NONE;
     }
 }

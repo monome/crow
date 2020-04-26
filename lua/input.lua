@@ -21,7 +21,7 @@ function Input.new( chan )
               , stream     = function(value) _c.tell('stream',chan,value) end
               , change     = function(state) _c.tell('change',chan,state and 1 or 0) end
               , midi       = function(data) _c.tell('midi',table.unpack(data)) end
-              , window     = function(ix, direction) get_cv(chan) end
+              , window     = function(win, dir) _c.tell('window',chan,win,dir and 1 or 0) end
               , scale      = function(s) _c.tell('scale',s.note) end
               }
     setmetatable( i, Input )
@@ -53,7 +53,7 @@ function Input:set_mode( mode, ... )
     elseif mode == 'window' then
         self.windows    = args[1] or self.windows
         self.hysteresis = args[2] or self.hysteresis
-        self.direction  = args[3] or self.direction
+        set_input_window( self.channel, self.windows, self.hysteresis )
     elseif mode == 'scale' then
         self.notes   = args[1] or self.notes
         self.temp    = args[2] or self.temp
@@ -109,6 +109,7 @@ setmetatable(Input, Input) -- capture the metamethods
 function stream_handler( chan, val ) Input.inputs[chan].stream( val ) end
 function change_handler( chan, val ) Input.inputs[chan].change( val ~= 0 ) end
 function midi_handler( ... ) d = {...}; Input.inputs[1].midi(d) end
+function window_handler( chan, win, dir ) Input.inputs[chan].window( win, dir ~= 0 ) end
 function scale_handler(chan,i,o,n,v)
     --TODO build this table in C as it'll be faster?
     s={index=i, octave=o, note=n, volts=v}
