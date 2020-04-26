@@ -108,8 +108,10 @@ SRC = main.c \
 	$(WRLIB)/str_buffer.c \
 	$(WRLIB)/wrConvert.c \
 	$(WRLIB)/wrMath.c \
+	$(WRLIB)/wrMeters.c \
 	$(WRLIB)/wrQueue.c \
 	$(WRDSP)/wrBlocks.c \
+	$(WRDSP)/wrFilter.c \
 
 
 # lua tests

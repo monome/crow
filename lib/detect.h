@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stm32f7xx.h>
+#include "wrMeters.h"
 
 #define SCALE_MAX_COUNT 16
 #define WINDOW_MAX_COUNT 16
