@@ -10,6 +10,11 @@
 typedef void (*Detect_callback_t)(int channel, float value);
 
 typedef struct{
+    int blocks;
+    int countdown;
+} D_stream_t;
+
+typedef struct{
     float  threshold;
     float  hysteresis;
     int8_t direction;
@@ -42,23 +47,18 @@ typedef struct{
 } D_volume_t;
 
 typedef struct detect{
-    uint8_t            channel;
+    uint8_t channel;
     void (*modefn)(struct detect* self, float level);
 
-    Detect_callback_t  action;
+    Detect_callback_t action;
 
 // mode specifics
-  // Detect_CHANGE
-    // params
+    D_stream_t stream;
     D_change_t change;
-    // state
     float      last;
     uint8_t    state;
-  // Detect_WINDOW
     D_window_t win;
-  // Detect_SCALE
     D_scale_t  scale;
-  // Detect_VOLUME
     D_volume_t volume;
 } Detect_t;
 
@@ -83,6 +83,10 @@ int8_t Detect_str_to_dir( const char* str );
 // mode configuration
 
 void Detect_none( Detect_t* self );
+void Detect_stream( Detect_t*         self
+                  , Detect_callback_t cb
+                  , float             interval
+                  );
 void Detect_change( Detect_t*         self
                   , Detect_callback_t cb
                   , float             threshold

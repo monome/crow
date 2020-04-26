@@ -20,7 +20,6 @@
 #include "../ll/system.h"   // getUID_Word()
 #include "lib/events.h"     // event_t event_post()
 #include "lib/midi.h"       // MIDI_Active()
-#include "../ll/timers.h"   // Timer_*()
 #include "stm32f7xx_hal.h"  // HAL_GetTick()
 #include "stm32f7xx_it.h"   // CPU_GetCount()
 
@@ -69,7 +68,7 @@ static void timeouthook( lua_State* L, lua_Debug* ar );
 // Handler prototypes
 void L_handle_toward( event_t* e );
 void L_handle_metro( event_t* e );
-void L_handle_in_stream( event_t* e );
+void L_handle_stream( event_t* e );
 void L_handle_change( event_t* e );
 void L_handle_ii_leadRx( event_t* e );;
 void L_handle_ii_followRx( event_t* e );
@@ -104,7 +103,6 @@ lua_State* Lua_Reset( void )
     printf("Lua_Reset\n");
     Metro_stop_all();
     for( int i=0; i<2; i++ ){
-        Timer_Stop(i);
         Detect_none( Detect_ix_to_p(i) );
     }
     for( int i=0; i<4; i++ ){
@@ -283,7 +281,6 @@ static int _set_input_none( lua_State *L )
     Detect_t* d = Detect_ix_to_p( ix ); // Lua is 1-based
     if(d){ // valid index
         Detect_none( d );
-        Timer_Stop( ix );
         if( ix == 0 ){ MIDI_Active( 0 ); } // deactivate MIDI if first chan
     }
     lua_pop( L, 1 );
@@ -295,9 +292,10 @@ static int _set_input_stream( lua_State *L )
     uint8_t ix = luaL_checkinteger(L, 1)-1;
     Detect_t* d = Detect_ix_to_p( ix ); // Lua is 1-based
     if(d){ // valid index
-        Detect_none( d );
-        Timer_Set_Params( ix, luaL_checknumber(L, 2) );
-        Timer_Start( ix, L_queue_in_stream );
+        Detect_stream( d
+                     , L_queue_stream
+                     , luaL_checknumber(L, 2)
+                     );
         if( ix == 0 ){ MIDI_Active( 0 ); } // deactivate MIDI if first chan
     }
     lua_pop( L, 2 );
@@ -309,7 +307,6 @@ static int _set_input_change( lua_State *L )
     uint8_t ix = luaL_checkinteger(L, 1)-1;
     Detect_t* d = Detect_ix_to_p( ix ); // Lua is 1-based
     if(d){ // valid index
-        Timer_Stop( ix );
         Detect_change( d
                      , L_queue_change
                      , luaL_checknumber(L, 2)
@@ -329,7 +326,6 @@ static int _set_input_midi( lua_State *L )
         Detect_t* d = Detect_ix_to_p( ix ); // Lua is 1-based
         if(d){ // valid index
             Detect_none( d );
-            Timer_Stop( ix );
             MIDI_Active( 1 );
         }
     }
@@ -342,7 +338,6 @@ static int _set_input_window( lua_State *L )
     uint8_t ix = luaL_checkinteger(L, 1)-1;
     Detect_t* d = Detect_ix_to_p( ix ); // Lua is 1-based
     if(d){ // valid index
-        Timer_Stop( ix );
         // capture window table from lua
         int wLen = lua_rawlen( L, 2 );           // length of the table
         float wins[wLen];
@@ -368,8 +363,6 @@ static int _set_input_scale( lua_State *L )
     uint8_t ix = luaL_checkinteger(L, 1)-1;
     Detect_t* d = Detect_ix_to_p( ix ); // Lua is 1-based
     if(d){ // valid index
-        Timer_Stop( ix );
-
         int sLen = lua_rawlen( L, 2 ); // length of the scale table
         float scale[sLen];
         for( int i=0; i<sLen; i++ ){              // iterate table to get pitch list
@@ -395,7 +388,6 @@ static int _set_input_volume( lua_State *L )
     uint8_t ix = luaL_checkinteger(L, 1)-1;
     Detect_t* d = Detect_ix_to_p( ix ); // Lua is 1-based
     if(d){ // valid index
-        Timer_Stop( ix );
         Detect_volume( d
                      , L_queue_volume
                      , luaL_checknumber(L, 2)
@@ -722,15 +714,15 @@ void L_handle_metro( event_t* e )
     }
 }
 
-void L_queue_in_stream( int id )
+void L_queue_stream( int id, float state )
 {
-    event_t e = { .handler = L_handle_in_stream
+    event_t e = { .handler = L_handle_stream
                 , .index.i = id
-                , .data.f  = IO_GetADC(id)
+                , .data.f  = state
                 };
     event_post(&e);
 }
-void L_handle_in_stream( event_t* e )
+void L_handle_stream( event_t* e )
 {
     lua_getglobal(L, "stream_handler");
     lua_pushinteger(L, e->index.i +1); // 1-ix'd
