@@ -76,6 +76,7 @@ void L_handle_ii_followRx( event_t* e );
 void L_handle_ii_followRx_cont( uint8_t cmd, int args, float* data );
 void L_handle_midi( event_t* e );
 void L_handle_window( event_t* e );
+void L_handle_in_scale( event_t* e );
 
 void _printf(char* error_message)
 {
@@ -335,13 +336,13 @@ static int _set_input_midi( lua_State *L )
     lua_settop(L, 0);
     return 0;
 }
+
 static int _set_input_window( lua_State *L )
 {
     uint8_t ix = luaL_checkinteger(L, 1)-1;
     Detect_t* d = Detect_ix_to_p( ix ); // Lua is 1-based
     if(d){ // valid index
         Timer_Stop( ix );
-
         // capture window table from lua
         int wLen = lua_rawlen( L, 2 );           // length of the table
         float wins[wLen];
@@ -360,6 +361,35 @@ static int _set_input_window( lua_State *L )
         if( ix == 0 ){ MIDI_Active( 0 ); } // deactivate MIDI if first chan
     }
     lua_pop( L, 3 );
+    return 0;
+}
+
+
+static int _set_input_scale( lua_State *L )
+{
+    uint8_t ix = luaL_checkinteger(L, 1)-1;
+    Detect_t* d = Detect_ix_to_p( ix ); // Lua is 1-based
+    if(d){ // valid index
+        Timer_Stop( ix );
+
+        int sLen = lua_rawlen( L, 2 ); // length of the scale table
+        float scale[sLen];
+        for( int i=0; i<sLen; i++ ){              // iterate table to get pitch list
+            lua_pushnumber( L, i+1 );             // lua is 1-based!
+            lua_gettable( L, 2 );                 // table is still in index 2
+            scale[i] = luaL_checknumber( L, -1 ); // value is now on top of the stack
+            lua_pop( L, 1 );                      // remove our introspected value
+        }
+        Detect_scale( d
+                    , L_queue_in_scale
+                    , scale
+                    , sLen
+                    , luaL_checknumber(L, 3) // divs-per-octave
+                    , luaL_checknumber(L, 4) // volts-per-octave
+                    );
+        if( ix == 0 ){ MIDI_Active( 0 ); } // deactivate MIDI if first chan
+    }
+    lua_pop( L, 4 );
     return 0;
 }
 
@@ -512,6 +542,7 @@ static const struct luaL_Reg libCrow[]=
     , { "set_input_stream" , _set_input_stream }
     , { "set_input_change" , _set_input_change }
     , { "set_input_midi"   , _set_input_midi   }
+    , { "set_input_scale"  , _set_input_scale  }
     , { "set_input_window" , _set_input_window }
         // usb
     , { "send_usb"         , _send_usb         }
@@ -791,6 +822,29 @@ void L_handle_midi( event_t* e )
         lua_pop( L, 1 );
     }
 }
+
+void L_queue_in_scale( int id, float note )
+{
+    event_t e = { .handler = L_handle_in_scale
+                , .index.i = id
+                };
+    event_post(&e);
+}
+void L_handle_in_scale( event_t* e )
+{
+    lua_getglobal(L, "scale_handler");
+    Detect_t* d = Detect_ix_to_p( e->index.i );
+    // TODO these should be wrapped in a table here rather than lua
+    lua_pushinteger(L, e->index.i +1); // 1-ix'd
+    lua_pushinteger(L, d->scale.lastIndex +1); // 1-ix'd
+    lua_pushinteger(L, d->scale.lastOct);
+    lua_pushnumber(L, d->scale.lastNote);
+    lua_pushnumber(L, d->scale.lastVolts);
+    if( Lua_call_usercode(L, 5, 0) != LUA_OK ){
+        lua_pop( L, 1 );
+    }
+}
+
 void L_queue_window( int id, float window )
 {
     event_t e = { .handler = L_handle_window
@@ -811,10 +865,7 @@ void L_handle_window( event_t* e )
     lua_pushinteger(L, e->index.i+1); // 1-ix'd
     lua_pushinteger(L, e->data.u8s[0]);
     lua_pushnumber(L, e->data.u8s[1]);
-    if( lua_pcall_protected(L, 3, 0, 0) != LUA_OK ){
-        printf("win er\n");
-        Caw_send_luachunk("error: input window");
-        Caw_send_luachunk( (char*)lua_tostring(L, -1) );
+    if( Lua_call_usercode(L, 3, 0) != LUA_OK ){
         lua_pop( L, 1 );
     }
 }

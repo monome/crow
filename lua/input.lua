@@ -15,17 +15,14 @@ function Input.new( chan )
               , direction  = 'both'
               , windows    = {}
               , notes      = {}
-              , tones      = 0
-              , quants     = {}
-              , ratios     = {}
+              , temp       = 12
+              , scaling    = 1.0
         -- user-customizable events
               , stream     = function(value) _c.tell('stream',chan,value) end
               , change     = function(state) _c.tell('change',chan,state and 1 or 0) end
               , midi       = function(data) _c.tell('midi',table.unpack(data)) end
               , window     = function(win, dir) _c.tell('window',chan,win,dir and 1 or 0) end
-              , scale      = function(octave, ix) get_cv(chan) end
-              , quantize   = function(octave, ix) get_cv(chan) end
-              , ji         = function(octave, ix) get_cv(chan) end
+              , scale      = function(s) _c.tell('scale',s.note) end
               }
     setmetatable( i, Input )
     Input.inputs[chan] = i -- save reference for callback engine
@@ -58,12 +55,14 @@ function Input:set_mode( mode, ... )
         self.hysteresis = args[2] or self.hysteresis
         set_input_window( self.channel, self.windows, self.hysteresis )
     elseif mode == 'scale' then
-        self.notes = args[1] or self.notes
-    elseif mode == 'quantize' then
-        self.tones = args[1] or self.tones
-        self.quants = args[2] or self.scale
-    elseif mode == 'ji' then
-        self.ratios = args[1]
+        self.notes   = args[1] or self.notes
+        self.temp    = args[2] or self.temp
+        self.scaling = args[3] or self.scaling
+        set_input_scale( self.channel
+                       , self.notes
+                       , self.temp
+                       , self.scaling
+                       )
     else
         set_input_none( self.channel )
     end
@@ -111,5 +110,10 @@ function stream_handler( chan, val ) Input.inputs[chan].stream( val ) end
 function change_handler( chan, val ) Input.inputs[chan].change( val ~= 0 ) end
 function midi_handler( ... ) d = {...}; Input.inputs[1].midi(d) end
 function window_handler( chan, win, dir ) Input.inputs[chan].window( win, dir ~= 0 ) end
+function scale_handler(chan,i,o,n,v)
+    --TODO build this table in C as it'll be faster?
+    s={index=i, octave=o, note=n, volts=v}
+    Input.inputs[chan].scale(s)
+end
 
 return Input

@@ -1,6 +1,7 @@
 #include "detect.h"
 
 #include <stdlib.h>
+#include <math.h>
 
 uint8_t channel_count = 0;
 
@@ -56,6 +57,33 @@ void Detect_change( Detect_t*         self
     self->change.direction  = direction;
     // TODO need to reset state params?
     // can force update based on global struct members?
+}
+
+void Detect_scale( Detect_t*         self
+                 , Detect_callback_t cb
+                 , float*            scale
+                 , int               sLen
+                 , float             divs
+                 , float             scaling
+                 )
+{
+    self->mode          = Detect_SCALE;
+    self->action        = cb;
+    self->scale.sLen    = (sLen > SCALE_MAX_COUNT) ? SCALE_MAX_COUNT : sLen;
+    if( sLen == 0 ){ // assume chromatic
+        self->scale.sLen = 1;
+        self->scale.scale[0] = 0.0;
+        self->scale.scaling = scaling / self->scale.divs; // scale to n-TET
+        self->scale.divs    = 1.0; // force 1 div
+    } else {
+        for( int i=0; i<self->scale.sLen; i++ ){
+            self->scale.scale[i] = *scale++;
+        }
+        self->scale.divs    = divs;
+        self->scale.scaling = scaling;
+    }
+    self->scale.offset = 0.5 * self->scale.scaling / self->scale.divs;
+    self->scale.lastNote = -100.0; // out of range, to force a new match
 }
 
 void Detect_window( Detect_t*         self
@@ -121,6 +149,30 @@ void Detect( Detect_t* self, float level )
             }
             break; }
 
+         case Detect_SCALE:
+            // TODO add hysteresis to avoid jittering
+            level += self->scale.offset;
+            float n_level = level / self->scale.scaling;
+            int octaves = (int)floorf(n_level);
+            float phase = n_level - (float)octaves; // [0,1.0)
+            float fix = phase * self->scale.sLen;
+            int ix = (int)fix; // map phase to #scale
+
+            if( ix      != self->scale.lastIndex
+             || octaves != self->scale.lastOct
+              ){ // new note detected
+                float note = self->scale.scale[ix]; // apply LUT within octave
+                float noteOct = note + (float)octaves*self->scale.divs;
+                float volts = (note / self->scale.divs + (float)octaves)
+                               * self->scale.scaling;
+                self->scale.lastIndex = ix;
+                self->scale.lastOct   = octaves;
+                self->scale.lastNote  = noteOct;
+                self->scale.lastVolts = volts;
+                (*self->action)( self->channel, 0.0 ); // callback! 0.0 is ignored
+            }
+            break;
+
         default:
             break;
     }
@@ -129,7 +181,7 @@ void Detect( Detect_t* self, float level )
 Detect_mode_t Detect_str_to_mode( const char* mode )
 {
     if( *mode == 's' ){
-        if( mode[1] == 'c' ){  return Detect_NONE;   //In_scale;
+        if( mode[1] == 'c' ){  return Detect_SCALE;  //In_scale;
         } else {               return Detect_NONE; } //In_stream;
     } else if( *mode == 'c' ){ return Detect_CHANGE; //In_change;
     } else if( *mode == 'w' ){ return Detect_WINDOW; //In_window;
