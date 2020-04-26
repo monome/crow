@@ -22,7 +22,8 @@ function Input.new( chan )
               , change     = function(state) _c.tell('change',chan,state and 1 or 0) end
               , midi       = function(data) _c.tell('midi',table.unpack(data)) end
               , window     = function(win, dir) _c.tell('window',chan,win,dir and 1 or 0) end
-              , scale      = function(s) _c.tell('scale',s.note) end
+              , scale      = function(s) _c.tell('scale',chan,s.note) end
+              , volume     = function(level) _c.tell('volume',chan,level) end
               }
     setmetatable( i, Input )
     Input.inputs[chan] = i -- save reference for callback engine
@@ -63,6 +64,9 @@ function Input:set_mode( mode, ... )
                        , self.temp
                        , self.scaling
                        )
+    elseif mode == 'volume' then
+        self.time = args[1] or self.time
+        set_input_volume( self.channel, self.time )
     else
         set_input_none( self.channel )
     end
@@ -115,5 +119,6 @@ function scale_handler(chan,i,o,n,v)
     s={index=i, octave=o, note=n, volts=v}
     Input.inputs[chan].scale(s)
 end
+function volume_handler( chan, val ) Input.inputs[chan].volume( val ) end
 
 return Input
