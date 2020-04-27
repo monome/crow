@@ -707,8 +707,8 @@ void L_queue_metro( int id, int state )
 void L_handle_metro( event_t* e )
 {
     lua_getglobal(L, "metro_handler");
-    lua_pushinteger(L, e->index.i +1 -2); // 1-ix'd, less 2 for adc rebase
-    lua_pushinteger(L, e->data.i +1);     // 1-ix'd
+    lua_pushinteger(L, e->index.i +1); // 1-ix'd
+    lua_pushinteger(L, e->data.i +1);  // 1-ix'd
     if( Lua_call_usercode(L, 2, 0) != LUA_OK ){
         lua_pop( L, 1 );
     }
