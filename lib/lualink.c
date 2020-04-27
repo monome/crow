@@ -77,6 +77,7 @@ void L_handle_ii_followRx_cont( uint8_t cmd, int args, float* data );
 void L_handle_midi( event_t* e );
 void L_handle_window( event_t* e );
 void L_handle_in_scale( event_t* e );
+void L_handle_volume( event_t* e );
 
 void _printf(char* error_message)
 {
@@ -336,7 +337,6 @@ static int _set_input_midi( lua_State *L )
     lua_settop(L, 0);
     return 0;
 }
-
 static int _set_input_window( lua_State *L )
 {
     uint8_t ix = luaL_checkinteger(L, 1)-1;
@@ -363,8 +363,6 @@ static int _set_input_window( lua_State *L )
     lua_pop( L, 3 );
     return 0;
 }
-
-
 static int _set_input_scale( lua_State *L )
 {
     uint8_t ix = luaL_checkinteger(L, 1)-1;
@@ -392,6 +390,23 @@ static int _set_input_scale( lua_State *L )
     lua_pop( L, 4 );
     return 0;
 }
+static int _set_input_volume( lua_State *L )
+{
+    uint8_t ix = luaL_checkinteger(L, 1)-1;
+    Detect_t* d = Detect_ix_to_p( ix ); // Lua is 1-based
+    if(d){ // valid index
+        Timer_Stop( ix );
+        Detect_volume( d
+                     , L_queue_volume
+                     , luaL_checknumber(L, 2)
+                     );
+        if( ix == 0 ){ MIDI_Active( 0 ); } // deactivate MIDI if first chan
+    }
+    lua_pop( L, 2 );
+    lua_settop(L, 0);
+    return 0;
+}
+
 
 static int _send_usb( lua_State *L )
 {
@@ -544,6 +559,7 @@ static const struct luaL_Reg libCrow[]=
     , { "set_input_midi"   , _set_input_midi   }
     , { "set_input_scale"  , _set_input_scale  }
     , { "set_input_window" , _set_input_window }
+    , { "set_input_volume" , _set_input_volume }
         // usb
     , { "send_usb"         , _send_usb         }
         // i2c
@@ -866,6 +882,24 @@ void L_handle_window( event_t* e )
     lua_pushinteger(L, e->data.u8s[0]);
     lua_pushnumber(L, e->data.u8s[1]);
     if( Lua_call_usercode(L, 3, 0) != LUA_OK ){
+        lua_pop( L, 1 );
+    }
+}
+
+void L_queue_volume( int id, float level )
+{
+    event_t e = { .handler = L_handle_volume
+                , .index.i = id
+                , .data.f  = level
+                };
+    event_post(&e);
+}
+void L_handle_volume( event_t* e )
+{
+    lua_getglobal(L, "volume_handler");
+    lua_pushinteger(L, e->index.i+1); // 1-ix'd
+    lua_pushnumber(L, e->data.f);
+    if( Lua_call_usercode(L, 2, 0) != LUA_OK ){
         lua_pop( L, 1 );
     }
 }

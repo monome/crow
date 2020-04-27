@@ -30,9 +30,8 @@ void IO_Start( void )
 IO_block_t* IO_BlockProcess( IO_block_t* b )
 {
     for( int j=0; j<IN_CHANNELS; j++ ){
-        Detect( Detect_ix_to_p( j )
-              , b->in[j][b->size-1]
-              );
+        Detect_t* d = Detect_ix_to_p(j);
+        (*d->modefn)( d, b->in[j][b->size-1] );
     }
     for( int j=0; j<SLOPE_CHANNELS; j++ ){
         S_step_v( j
