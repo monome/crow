@@ -86,7 +86,7 @@ do return
     , docs = 'Quantize commands to every (bar/*divisions*)'
     , args = { 'divisions', s8 }
     }
-  , { name = 'voice_pitch'
+  , { name = 'pitch'
     , cmd  = 13
     , docs = 'Synthesis: Set *channel* to *pitch*'
     , args = { { 'channel', s8 }
