@@ -4,13 +4,7 @@ do return
 , i2c_address  = {0x70,0x75}
 , lua_name     = 'jf' -- NB: must match the file name. jf.lua -> 'jf'
 , commands     =
-  { { name = 'address'
-    , cmd  = 0
-    , get  = true
-    , docs = 'Set i2c address to *index* (default)1 or 2'
-    , args = { 'index', s8 }
-    }
-  , { name = 'trigger'
+  { { name = 'trigger'
     , cmd  = 1
     , get  = true
     , docs = 'Set TRIGGER *channel* to *state*'
@@ -99,6 +93,11 @@ do return
              , { 'pitch', s16V }
              }
     }
+  , { name = 'address'
+    , cmd  = 14
+    , docs = 'Set i2c address to *index* (default)1 or 2'
+    , args = { 'index', s8 }
+    }
   }
 , getters =
   { { name = 'speed'
@@ -135,6 +134,11 @@ do return
     , cmd  = 20 + get_offset
     , docs = 'knob + cv for INTONE parameter'
     , retval = { 'volts', s16V }
+    }
+  , { name = 'address'
+    , cmd  = 21 + get_offset
+    , docs = 'i2c address 1 or 2'
+    , retval = { 'index', s8 }
     }
   }
 }
