@@ -56,8 +56,7 @@ CFLAGS += -fsingle-precision-constant -Wdouble-promotion
 CFLAGS += -DLUA_32BITS -DLUA_COMPAT_5_2
 CFLAGS += -fno-common
 CFLAGS += -DVERSION=\"$(GIT_VERSION)\"
-CFLAGS += -flto
-CFLAGS += -ffunction-sections -fdata-sections
+CFLAGS += -ffunction-sections -fdata-sections # provides majority of LTO binary size reduction
 
 # debugger: choose between uart (=0) & swtrace(=1). latter requires hardware mod
 TRACE ?= 0
@@ -69,12 +68,10 @@ endif
 R ?= 0
 ifeq ($(R), 1)
 	CFLAGS += -DRELEASE
+	CFLAGS += -flto # broken in debug mode. provides a small LTO binary size reduction
 endif
 
-
 LDFLAGS = -Wl,-T,stm32_flash.ld,-flto,-gc-sections
-LDFLAGS += ,-flto
-LDFLAGS += ,-gc-sections
 LIBS = -lm -lc -lnosys
 
 SRC = main.c \
