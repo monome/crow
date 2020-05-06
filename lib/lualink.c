@@ -22,6 +22,7 @@
 #include "lib/midi.h"       // MIDI_Active()
 #include "../ll/timers.h"   // Timer_*()
 #include "stm32f7xx_hal.h"  // HAL_GetTick()
+#include "stm32f7xx_it.h"   // CPU_GetCount()
 
 // Lua libs wrapped in C-headers: Note the extra '.h'
 #include "lua/bootstrap.lua.h" // MUST LOAD THIS MANUALLY FIRST
@@ -37,6 +38,9 @@
 #include "lua/midi.lua.h"
 
 #include "build/ii_lualink.h" // generated C header for linking to lua
+
+#define WATCHDOG_FREQ      0x100000 // ~1s how often we run the watchdog
+#define WATCHDOG_COUNT     2        // how many watchdogs before 'frozen'
 
 const struct lua_lib_locator Lua_libs[] =
     { { "lua_crowlib"   , lua_crowlib   }
@@ -58,6 +62,22 @@ const struct lua_lib_locator Lua_libs[] =
 // Private prototypes
 static void Lua_linkctolua( lua_State* L );
 static float Lua_check_memory( void );
+static int Lua_call_usercode( lua_State* L, int nargs, int nresults );
+static int Lua_handle_error( lua_State* L );
+static void timeouthook( lua_State* L, lua_Debug* ar );
+
+// Handler prototypes
+void L_handle_toward( event_t* e );
+void L_handle_metro( event_t* e );
+void L_handle_in_stream( event_t* e );
+void L_handle_change( event_t* e );
+void L_handle_ii_leadRx( event_t* e );;
+void L_handle_ii_followRx( event_t* e );
+void L_handle_ii_followRx_cont( uint8_t cmd, int args, float* data );
+void L_handle_midi( event_t* e );
+void L_handle_window( event_t* e );
+void L_handle_in_scale( event_t* e );
+void L_handle_volume( event_t* e );
 
 void _printf(char* error_message)
 {
@@ -74,7 +94,7 @@ lua_State* Lua_Init(void)
     Lua_linkctolua(L);
     Lua_eval(L, lua_bootstrap
               , strlen(lua_bootstrap)
-              , _printf
+              , "=lib"
               ); // redefine dofile(), print(), load crowlib
     return L;
 }
@@ -99,7 +119,7 @@ void Lua_load_default_script( void )
 {
     Lua_eval(L, lua_First
               , strlen(lua_First)
-              , _printf
+              , "=First.lua"
               );
 }
 
@@ -225,6 +245,12 @@ static int _time( lua_State *L )
     lua_pushinteger(L, HAL_GetTick());
     return 1;
 }
+static int _cpu_time( lua_State *L )
+{
+    // returns count of background loops for the last 8ms
+    lua_pushinteger(L, CPU_GetCount());
+    return 1;
+}
 static int _go_toward( lua_State *L )
 {
     S_toward( luaL_checkinteger(L, 1)-1 // C is zero-based
@@ -311,6 +337,76 @@ static int _set_input_midi( lua_State *L )
     lua_settop(L, 0);
     return 0;
 }
+static int _set_input_window( lua_State *L )
+{
+    uint8_t ix = luaL_checkinteger(L, 1)-1;
+    Detect_t* d = Detect_ix_to_p( ix ); // Lua is 1-based
+    if(d){ // valid index
+        Timer_Stop( ix );
+        // capture window table from lua
+        int wLen = lua_rawlen( L, 2 );           // length of the table
+        float wins[wLen];
+        for( int i=0; i<wLen; i++ ){             // iterate table to get windows
+            lua_pushnumber( L, i+1 );            // lua is 1-based!
+            lua_gettable( L, 2 );                // table is in index 2
+            wins[i] = luaL_checknumber( L, -1 ); // value is now on top of the stack
+            lua_pop( L, 1 );                     // remove our introspected value
+        }
+        Detect_window( d
+                     , L_queue_window
+                     , wins
+                     , wLen
+                     , luaL_checknumber(L, 3) // hysteresis
+                     );
+        if( ix == 0 ){ MIDI_Active( 0 ); } // deactivate MIDI if first chan
+    }
+    lua_pop( L, 3 );
+    return 0;
+}
+static int _set_input_scale( lua_State *L )
+{
+    uint8_t ix = luaL_checkinteger(L, 1)-1;
+    Detect_t* d = Detect_ix_to_p( ix ); // Lua is 1-based
+    if(d){ // valid index
+        Timer_Stop( ix );
+
+        int sLen = lua_rawlen( L, 2 ); // length of the scale table
+        float scale[sLen];
+        for( int i=0; i<sLen; i++ ){              // iterate table to get pitch list
+            lua_pushnumber( L, i+1 );             // lua is 1-based!
+            lua_gettable( L, 2 );                 // table is still in index 2
+            scale[i] = luaL_checknumber( L, -1 ); // value is now on top of the stack
+            lua_pop( L, 1 );                      // remove our introspected value
+        }
+        Detect_scale( d
+                    , L_queue_in_scale
+                    , scale
+                    , sLen
+                    , luaL_checknumber(L, 3) // divs-per-octave
+                    , luaL_checknumber(L, 4) // volts-per-octave
+                    );
+        if( ix == 0 ){ MIDI_Active( 0 ); } // deactivate MIDI if first chan
+    }
+    lua_pop( L, 4 );
+    return 0;
+}
+static int _set_input_volume( lua_State *L )
+{
+    uint8_t ix = luaL_checkinteger(L, 1)-1;
+    Detect_t* d = Detect_ix_to_p( ix ); // Lua is 1-based
+    if(d){ // valid index
+        Timer_Stop( ix );
+        Detect_volume( d
+                     , L_queue_volume
+                     , luaL_checknumber(L, 2)
+                     );
+        if( ix == 0 ){ MIDI_Active( 0 ); } // deactivate MIDI if first chan
+    }
+    lua_pop( L, 2 );
+    lua_settop(L, 0);
+    return 0;
+}
+
 
 static int _send_usb( lua_State *L )
 {
@@ -451,6 +547,7 @@ static const struct luaL_Reg libCrow[]=
     , { "sys_bootloader"   , _bootloader       }
     , { "unique_id"        , _unique_id        }
     , { "time"             , _time             }
+    , { "cputime"          , _cpu_time         }
     //, { "sys_cpu_load"     , _sys_cpu          }
         // io
     , { "go_toward"        , _go_toward        }
@@ -460,6 +557,9 @@ static const struct luaL_Reg libCrow[]=
     , { "set_input_stream" , _set_input_stream }
     , { "set_input_change" , _set_input_change }
     , { "set_input_midi"   , _set_input_midi   }
+    , { "set_input_scale"  , _set_input_scale  }
+    , { "set_input_window" , _set_input_window }
+    , { "set_input_volume" , _set_input_volume }
         // usb
     , { "send_usb"         , _send_usb         }
         // i2c
@@ -496,20 +596,22 @@ static void Lua_linkctolua( lua_State *L )
 uint8_t Lua_eval( lua_State*     L
                 , const char*    script
                 , size_t         script_len
-                , ErrorHandler_t errfn
+                , const char*    chunkname
                 ){
-    int error;
-    if( (error = luaL_loadbuffer( L, script, script_len, "eval" )
-              || lua_pcall( L, 0, 0, 0 )
-        ) ){
-        //(*errfn)( (char*)lua_tostring( L, -1 ) );
+    int error = luaL_loadbuffer( L, script, script_len, chunkname );
+    if( error != LUA_OK ){
         Caw_send_luachunk( (char*)lua_tostring( L, -1 ) );
         lua_pop( L, 1 );
+        return 1;
+    }
+
+    if( (error |= Lua_call_usercode( L, 0, 0 )) != LUA_OK ){
+        lua_pop( L, 1 );
         switch( error ){
-            case LUA_ERRSYNTAX: printf("!load script: syntax\n"); break;
-            case LUA_ERRMEM:    printf("!load script: memory\n"); break;
-            case LUA_ERRRUN:    printf("!exec script: runtime\n"); break;
-            case LUA_ERRERR:    printf("!exec script: err in err handler\n"); break;
+            case LUA_ERRSYNTAX: Caw_send_luachunk("syntax error."); break;
+            case LUA_ERRMEM:    Caw_send_luachunk("not enough memory."); break;
+            case LUA_ERRRUN:    Caw_send_luachunk("runtime error."); break;
+            case LUA_ERRERR:    Caw_send_luachunk("error in error handler."); break;
             default: break;
         }
         return 1;
@@ -520,8 +622,8 @@ uint8_t Lua_eval( lua_State*     L
 static float Lua_check_memory( void )
 {
     lua_getglobal(L,"collectgarbage");
-    lua_pushstring(L, "count"); // 1-ix'd
-    lua_pcall(L,1,1,0);
+    lua_pushstring(L, "count");
+    lua_pcall(L,1,1,0); // NOT PROTECTED (called from watchdog)
     float mem = luaL_checknumber(L, 1);
     lua_pop(L,1);
     return mem;
@@ -531,120 +633,159 @@ void Lua_crowbegin( void )
 {
     printf("init()\n"); // call in C to avoid user seeing in lua
     lua_getglobal(L,"init");
-    lua_pcall(L,0,0,0);
+    if( Lua_call_usercode(L,0,0) != LUA_OK ){
+        lua_pop(L, 1);
+    }
 }
+
+
+// Watchdog timer for infinite looped Lua scripts
+volatile int watchdog = WATCHDOG_COUNT;
+static void timeouthook( lua_State* L, lua_Debug* ar )
+{
+    if( --watchdog <= 0 ){
+        Caw_send_luachunk("CPU timed out.");
+        lua_sethook(L, timeouthook, LUA_MASKLINE, 0); // error until top
+        luaL_error(L, "user code timeout exceeded");
+    }
+}
+
+static int Lua_handle_error( lua_State *L )
+{
+    const char *msg = lua_tostring( L, 1 );
+    if( msg == NULL ){
+        if( luaL_callmeta( L, 1, "__tostring" )
+         && lua_type ( L, -1 ) == LUA_TSTRING ) {
+            return 1;
+        } else {
+            msg = lua_pushfstring( L
+                                 , "(error object is a %s value)"
+                                 , luaL_typename( L, 1 ) );
+        }
+    }
+    luaL_traceback( L, L, msg, 1 );
+    char* traceback = (char*)lua_tostring( L, -1 );
+    Caw_send_luachunk( traceback );
+    _printf( traceback );
+    return 1;
+}
+
+static int Lua_call_usercode( lua_State* L, int nargs, int nresults )
+{
+    lua_sethook(L, timeouthook, LUA_MASKCOUNT, WATCHDOG_FREQ); // reset timeout hook
+    watchdog = WATCHDOG_COUNT; // reset timeout hook counter
+
+    int errFunc = lua_gettop(L) - nargs;
+    lua_pushcfunction( L, Lua_handle_error );
+    lua_insert( L, errFunc );
+    int status = lua_pcall(L, nargs, nresults, errFunc);
+    lua_remove( L, errFunc );
+
+    lua_sethook(L, timeouthook, 0, 0);
+
+    return status;
+}
+
 
 // Public Callbacks from C to Lua
 void L_queue_toward( int id )
 {
-    event_t e = { .type    = E_toward
+    event_t e = { .handler = L_handle_toward
                 , .index.i = id
                 };
     event_post(&e);
 }
-void L_handle_toward( int id )
+void L_handle_toward( event_t* e )
 {
     lua_getglobal(L, "toward_handler");
-    lua_pushinteger(L, id+1); // 1-ix'd
-    if( lua_pcall(L, 1, 0, 0) != LUA_OK ){
-        Caw_send_luachunk("error running toward_handler");
-        Caw_send_luachunk( (char*)lua_tostring(L, -1) );
-        printf( "%s\n", (char*)lua_tostring(L, -1) );
+    lua_pushinteger(L, e->index.i + 1); // 1-ix'd
+    if( Lua_call_usercode(L, 1, 0) != LUA_OK ){
         lua_pop( L, 1 );
     }
 }
 
 void L_queue_metro( int id, int state )
 {
-    event_t e = { .type    = E_metro
+    event_t e = { .handler = L_handle_metro
                 , .index.i = id
                 , .data.i  = state
                 };
     event_post(&e);
 }
-void L_handle_metro( const int id, const int stage)
+void L_handle_metro( event_t* e )
 {
     lua_getglobal(L, "metro_handler");
-    lua_pushinteger(L, id+1 -2); // 1-ix'd, less 2 for adc rebase
-    lua_pushinteger(L, stage+1); // 1-ix'd
-    if( lua_pcall(L, 2, 0, 0) != LUA_OK ){
-        Caw_send_luachunk("error running metro_handler");
-        Caw_send_luachunk( (char*)lua_tostring(L, -1) );
+    lua_pushinteger(L, e->index.i +1 -2); // 1-ix'd, less 2 for adc rebase
+    lua_pushinteger(L, e->data.i +1);     // 1-ix'd
+    if( Lua_call_usercode(L, 2, 0) != LUA_OK ){
         lua_pop( L, 1 );
     }
 }
 
 void L_queue_in_stream( int id )
 {
-    event_t e = { .type    = E_stream
+    event_t e = { .handler = L_handle_in_stream
                 , .index.i = id
                 , .data.f  = IO_GetADC(id)
                 };
     event_post(&e);
 }
-void L_handle_in_stream( int id, float value )
+void L_handle_in_stream( event_t* e )
 {
     lua_getglobal(L, "stream_handler");
-    lua_pushinteger(L, id+1); // 1-ix'd
-    lua_pushnumber(L, value);
-    if( lua_pcall(L, 2, 0, 0) != LUA_OK ){
-        Caw_send_luachunk("error: input stream");
-        Caw_send_luachunk( (char*)lua_tostring(L, -1) );
+    lua_pushinteger(L, e->index.i +1); // 1-ix'd
+    lua_pushnumber(L, e->data.f);
+    if( Lua_call_usercode(L, 2, 0) != LUA_OK ){
         lua_pop( L, 1 );
     }
 }
 
 void L_queue_change( int id, float state )
 {
-    event_t e = { .type    = E_change
+    event_t e = { .handler = L_handle_change
                 , .index.i = id
                 , .data.f  = state
                 };
     event_post(&e);
 }
-void L_handle_change( int id, float state )
+void L_handle_change( event_t* e )
 {
     lua_getglobal(L, "change_handler");
-    lua_pushinteger(L, id+1); // 1-ix'd
-    lua_pushnumber(L, state);
-    if( lua_pcall(L, 2, 0, 0) != LUA_OK ){
-        printf("ch er\n");
-        Caw_send_luachunk("error: input change");
-        Caw_send_luachunk( (char*)lua_tostring(L, -1) );
+    lua_pushinteger(L, e->index.i +1); // 1-ix'd
+    lua_pushnumber(L, e->data.f);
+    if( Lua_call_usercode(L, 2, 0) != LUA_OK ){
         lua_pop( L, 1 );
     }
 }
 
 void L_queue_ii_leadRx( uint8_t address, uint8_t cmd, float data )
 {
-    event_t e = { .type   = E_ii_leadRx
-                , .data.f = data
+    event_t e = { .handler = L_handle_ii_leadRx
+                , .data.f  = data
                 };
     e.index.u8s[0] = address;
     e.index.u8s[1] = cmd;
     event_post(&e);
 }
-void L_handle_ii_leadRx( uint8_t address, uint8_t cmd, float data )
+void L_handle_ii_leadRx( event_t* e )
 {
     lua_getglobal(L, "ii_LeadRx_handler");
-    lua_pushinteger(L, address);
-    lua_pushinteger(L, cmd);
-    lua_pushnumber(L, data);
-    if( lua_pcall(L, 3, 0, 0) != LUA_OK ){
-        printf("!ii.leadRx\n");
-        Caw_send_luachunk("error: ii lead event");
-        Caw_send_luachunk( (char*)lua_tostring(L, -1) );
+    lua_pushinteger(L, e->index.u8s[0]); // address
+    lua_pushinteger(L, e->index.u8s[1]); // command
+    lua_pushnumber(L, e->data.f);
+    if( Lua_call_usercode(L, 3, 0) != LUA_OK ){
         lua_pop( L, 1 );
     }
 }
 
 void L_queue_ii_followRx( void )
 {
-    event_t e = { .type = E_ii_followRx };
+    event_t e = { .handler = L_handle_ii_followRx };
     event_post(&e);
 }
-void L_handle_ii_followRx( void )
+void L_handle_ii_followRx( event_t* e )
 {
+    // FIXME: should pass the 'cont' as a fnptr continuation
     ii_process_dequeue_decode();
 }
 void L_handle_ii_followRx_cont( uint8_t cmd, int args, float* data )
@@ -655,14 +796,12 @@ void L_handle_ii_followRx_cont( uint8_t cmd, int args, float* data )
     while(a-- > 0){
         lua_pushnumber(L, *data++);
     }
-    if( lua_pcall(L, 1+args, 0, 0) != LUA_OK ){
-        printf("!ii.followRx\n");
-        Caw_send_luachunk("error: ii follow rx");
-        Caw_send_luachunk( (char*)lua_tostring(L, -1) );
+    if( Lua_call_usercode(L, 1+args, 0) != LUA_OK ){
         lua_pop( L, 1 );
     }
 }
 
+// FIXME called directly from ii lib for now
 float L_handle_ii_followRxTx( uint8_t cmd, int args, float* data )
 {
     lua_getglobal(L, "ii_followRxTx_handler");
@@ -671,10 +810,7 @@ float L_handle_ii_followRxTx( uint8_t cmd, int args, float* data )
     while(a-- > 0){
         lua_pushnumber(L, *data++);
     }
-    if( lua_pcall(L, 1+args, 1, 0) != LUA_OK ){
-        printf("!ii.followRxTx\n");
-        Caw_send_luachunk("error: ii follow query");
-        Caw_send_luachunk( (char*)lua_tostring(L, -1) );
+    if( Lua_call_usercode(L, 1+args, 1) != LUA_OK ){
         lua_pop( L, 1 );
     }
     float n = luaL_checknumber(L, 1);
@@ -684,23 +820,86 @@ float L_handle_ii_followRxTx( uint8_t cmd, int args, float* data )
 
 void L_queue_midi( uint8_t* data )
 {
-    event_t e = { .type = E_midi };
+    event_t e = { .handler = L_handle_midi };
     e.data.u8s[0] = data[0];
     e.data.u8s[1] = data[1];
     e.data.u8s[2] = data[2];
     event_post(&e);
 }
-void L_handle_midi( uint8_t* data )
+void L_handle_midi( event_t* e )
 {
+    uint8_t* data = e->data.u8s;
     lua_getglobal(L, "midi_handler");
     int count = MIDI_byte_count(data[0]) + 1; // +1 for cmd byte itself
     for( int i=0; i<count; i++ ){
         lua_pushinteger(L, data[i]);
     }
-    if( lua_pcall(L, count, 0, 0) != LUA_OK ){
-        printf("midi lua-cb err\n");
-        Caw_send_luachunk("error: input midi");
-        Caw_send_luachunk( (char*)lua_tostring(L, -1) );
+    if( Lua_call_usercode(L, count, 0) != LUA_OK ){
+        lua_pop( L, 1 );
+    }
+}
+
+void L_queue_in_scale( int id, float note )
+{
+    event_t e = { .handler = L_handle_in_scale
+                , .index.i = id
+                };
+    event_post(&e);
+}
+void L_handle_in_scale( event_t* e )
+{
+    lua_getglobal(L, "scale_handler");
+    Detect_t* d = Detect_ix_to_p( e->index.i );
+    // TODO these should be wrapped in a table here rather than lua
+    lua_pushinteger(L, e->index.i +1); // 1-ix'd
+    lua_pushinteger(L, d->scale.lastIndex +1); // 1-ix'd
+    lua_pushinteger(L, d->scale.lastOct);
+    lua_pushnumber(L, d->scale.lastNote);
+    lua_pushnumber(L, d->scale.lastVolts);
+    if( Lua_call_usercode(L, 5, 0) != LUA_OK ){
+        lua_pop( L, 1 );
+    }
+}
+
+void L_queue_window( int id, float window )
+{
+    event_t e = { .handler = L_handle_window
+                , .index.i = id
+                };
+    if( window >= 0.0 ){
+        e.data.u8s[0] = window;
+        e.data.u8s[1] = 1;
+    } else {
+        e.data.u8s[0] = -window; // flip sign for positive index
+        e.data.u8s[1] = 0;
+    }
+    event_post(&e);
+}
+void L_handle_window( event_t* e )
+{
+    lua_getglobal(L, "window_handler");
+    lua_pushinteger(L, e->index.i+1); // 1-ix'd
+    lua_pushinteger(L, e->data.u8s[0]);
+    lua_pushnumber(L, e->data.u8s[1]);
+    if( Lua_call_usercode(L, 3, 0) != LUA_OK ){
+        lua_pop( L, 1 );
+    }
+}
+
+void L_queue_volume( int id, float level )
+{
+    event_t e = { .handler = L_handle_volume
+                , .index.i = id
+                , .data.f  = level
+                };
+    event_post(&e);
+}
+void L_handle_volume( event_t* e )
+{
+    lua_getglobal(L, "volume_handler");
+    lua_pushinteger(L, e->index.i+1); // 1-ix'd
+    lua_pushnumber(L, e->data.f);
+    if( Lua_call_usercode(L, 2, 0) != LUA_OK ){
         lua_pop( L, 1 );
     }
 }

@@ -19,9 +19,12 @@ lua_State*  Lua;
 L_repl_mode repl_mode = REPL_normal;
 char*       new_script;
 uint16_t    new_script_len;
+static bool running_from_mem;
+static char running_script_name[64];
 
 // prototypes
 static bool REPL_new_script_buffer( uint32_t len );
+static bool REPL_run_script( USERSCRIPT_t mode, char* buf, uint32_t len );
 static void REPL_receive_script( char* buf, uint32_t len, ErrorHandler_t errfn );
 static char* REPL_script_name_from_mem( char* dest, char* src, int max_len );
 
@@ -29,25 +32,26 @@ static char* REPL_script_name_from_mem( char* dest, char* src, int max_len );
 void REPL_init( lua_State* lua )
 {
     Lua = lua;
+    running_from_mem = false;
 
     switch( Flash_which_user_script() ){
         case USERSCRIPT_Default:
-            Lua_load_default_script();
+            REPL_run_script( USERSCRIPT_Default, NULL, 0 );
             break;
         case USERSCRIPT_User:
-            REPL_new_script_buffer( Flash_read_user_scriptlen() );
+        {
+            uint16_t flash_len = Flash_read_user_scriptlen();
+            REPL_new_script_buffer( flash_len );
             if( Flash_read_user_script( new_script )
-             || Lua_eval( Lua, new_script
-                             , Flash_read_user_scriptlen() // must call to flash lib!
-                             , Caw_send_luaerror
-                             ) ){
+             || !REPL_run_script( USERSCRIPT_User, new_script, flash_len ) ){
                 printf("failed to load user script\n");
                 Caw_send_luachunk("failed to load user script");
             }
             free(new_script);
             break;
+        }
         case USERSCRIPT_Clear:
-            // Do nothing!
+            REPL_run_script( USERSCRIPT_Clear, NULL, 0 );
             break;
     }
 }
@@ -67,10 +71,9 @@ void REPL_upload( int flash )
     if( repl_mode == REPL_discard ){
         Caw_send_luachunk("upload failed, returning to normal mode");
     } else {
-        if( !Lua_eval( Lua, new_script
-                          , new_script_len
-                          , Caw_send_luaerror
-                          ) ){ // successful load
+        if( REPL_run_script( USERSCRIPT_User
+                           , new_script
+                           , new_script_len ) ){ // successful load
             if( flash ){
                 // TODO if we're setting init() should check it doesn't crash
                 if( Flash_write_user_script( new_script
@@ -81,11 +84,13 @@ void REPL_upload( int flash )
                 } else {
                     printf("script saved, len: %i\n", new_script_len);
                     Caw_send_luachunk("User script updated.");
-                    REPL_print_script_name(NULL);
+                    running_from_mem = false;
+                    REPL_print_script_name();
                     Lua_crowbegin();
                 }
             } else {
-                REPL_print_script_name(new_script);
+                running_from_mem = true;
+                REPL_print_script_name();
                 Lua_crowbegin();
             }
         } else {
@@ -100,8 +105,10 @@ void REPL_clear_script( void )
 {
     REPL_reset();
     Flash_clear_user_script();
+    running_from_mem = false;
+    REPL_run_script( USERSCRIPT_Clear, NULL, 0 );
     Caw_send_luachunk("User script cleared.");
-    REPL_print_script_name(NULL);
+    REPL_print_script_name();
     Lua_crowbegin();
 }
 
@@ -109,9 +116,10 @@ void REPL_default_script( void )
 {
     REPL_reset();
     Flash_default_user_script();
+    running_from_mem = false;
+    REPL_run_script( USERSCRIPT_Default, NULL, 0 );
     Caw_send_luachunk("Using default script.");
-    REPL_print_script_name(NULL);
-    Lua_load_default_script();
+    REPL_print_script_name();
     Lua_crowbegin();
 }
 
@@ -120,12 +128,34 @@ void REPL_reset( void )
     Lua = Lua_Reset();
 }
 
+bool REPL_run_script( USERSCRIPT_t mode, char* buf, uint32_t len )
+{
+    switch (mode)
+    {
+        case USERSCRIPT_Default:
+            Lua_load_default_script();
+            strcpy( running_script_name, "Running: First.lua" );
+            break;
+        case USERSCRIPT_User:
+            if ( Lua_eval( Lua, buf, len, "=userscript" ) ){
+                return false;
+            }
+            strcpy( running_script_name, "Running: " );
+            REPL_script_name_from_mem( &running_script_name[9], buf, 64-10);
+            break;
+        case USERSCRIPT_Clear:
+            strcpy( running_script_name, "No user script." );
+            break;
+    }
+    return true;
+}
+
 void REPL_eval( char* buf, uint32_t len, ErrorHandler_t errfn )
 {
     if( repl_mode == REPL_normal ){
         if(Lua_eval( Lua, buf
-                     , len
-                     , errfn
+                   , len
+                   , "=repl"
                    )){
             printf("!eval\n");
         }
@@ -136,7 +166,7 @@ void REPL_eval( char* buf, uint32_t len, ErrorHandler_t errfn )
 
 void REPL_print_script( void )
 {
-    if( Flash_which_user_script() == USERSCRIPT_User ){
+    if( !running_from_mem && Flash_which_user_script() == USERSCRIPT_User ){
         uint16_t length = Flash_read_user_scriptlen();
         char* addr = Flash_read_user_scriptaddr();
         const int chunk = 0x200;
@@ -148,32 +178,13 @@ void REPL_print_script( void )
         }
         Caw_send_raw( (uint8_t*)addr, length );
     } else {
-        REPL_print_script_name(NULL);
+        REPL_print_script_name();
     }
 }
 
-void REPL_print_script_name( char* buffer )
+void REPL_print_script_name( void )
 {
-    switch( Flash_which_user_script() ){
-        case USERSCRIPT_Default:
-            Caw_send_luachunk("Running: First.lua");
-            break;
-        case USERSCRIPT_User: {
-            char script[64];
-            memset( script, '\0', 64 );
-            strcpy( script, "Running: " );
-            REPL_script_name_from_mem( &script[9]
-                                     , buffer ? buffer
-                                              : (char*)(USER_SCRIPT_LOCATION+4 )
-                                     , 64-10
-                                     );
-            Caw_send_luachunk(script);
-            break;
-            }
-        case USERSCRIPT_Clear:
-            Caw_send_luachunk("No user script.");
-            break;
-    }
+    Caw_send_luachunk( running_script_name );
 }
 
 // private funcs
@@ -207,12 +218,9 @@ static char* REPL_script_name_from_mem( char* dest, char* src, int max_len )
     while( *src == '-' ){ src++; } // skip commments
     while( *src == ' ' ){ src++; } // skip spaces
     char* linebreak = strchr( src, '\n' );
-    if( linebreak ){ // print until newline
-        int len = (int)(linebreak - src);
-        if( len > max_len ){ len = max_len; }
-        strncpy( dest, src, len );
-    } else { // can't find a new line, so just fill the buffer
-        strncpy( dest, src, max_len );
-    }
+    int len = linebreak ? (int)(linebreak - src) : max_len;
+    if( len >= max_len ){ len = max_len - 1; }
+    strncpy( dest, src, len );
+    dest[len] = '\0';
     return dest;
 }

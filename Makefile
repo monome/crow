@@ -112,8 +112,10 @@ SRC = main.c \
 	$(WRLIB)/str_buffer.c \
 	$(WRLIB)/wrConvert.c \
 	$(WRLIB)/wrMath.c \
+	$(WRLIB)/wrMeters.c \
 	$(WRLIB)/wrQueue.c \
 	$(WRDSP)/wrBlocks.c \
+	$(WRDSP)/wrFilter.c \
 
 
 # lua tests
@@ -274,6 +276,7 @@ zip: $(BIN)
 	@$(FENNEL) --compile $< > $@
 
 %.lua.h: %.lua util/l2h.lua
+	@luac -p $<
 	@echo l2h $< "->" $@
 	@lua util/l2h.lua $<
 
@@ -291,6 +294,10 @@ fsk-wav: $(BIN)
 
 erase:
 	st-flash erase
+
+norns:
+	lua util/ii_norns_actions.lua lua/ii/ $(NORNS_DIR)/lua/core/crow/ii_actions.lua
+	lua util/ii_norns_events.lua lua/ii/ $(NORNS_DIR)/lua/core/crow/ii_events.lua
 
 .PHONY: clean
 clean:
