@@ -46,14 +46,6 @@ STM32_INCLUDES = \
 
 OPTIMIZE       = -O2
 
-# without:  315620
-# with: 315836
-# with data: 315996
-
-# with LTO: 267040
-# with LTO & sections: 261104
-# with LTO & sections & -Os: 244884 (versus -O2)
-
 CFLAGS += -std=c99
 CFLAGS += -Wall
 CFLAGS += -Wno-unused-function
@@ -81,8 +73,8 @@ endif
 
 
 LDFLAGS = -Wl,-T,stm32_flash.ld,-flto,-gc-sections
-#LDFLAGS += ,-flto
-#LDFLAGS += ,-gc-sections
+LDFLAGS += ,-flto
+LDFLAGS += ,-gc-sections
 LIBS = -lm -lc -lnosys
 
 SRC = main.c \
