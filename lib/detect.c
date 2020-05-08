@@ -12,6 +12,7 @@ Detect_t*  selves = NULL;
 // signal processor declarations
 
 static void d_none( Detect_t* self, float level );
+static void d_stream( Detect_t* self, float level );
 static void d_change( Detect_t* self, float level );
 static void d_window( Detect_t* self, float level );
 static void d_scale( Detect_t* self, float level );
@@ -65,6 +66,19 @@ int8_t Detect_str_to_dir( const char* str )
 void Detect_none( Detect_t* self )
 {
     self->modefn = d_none;
+}
+
+void Detect_stream( Detect_t*         self
+                  , Detect_callback_t cb
+                  , float             interval
+                  )
+{
+    self->modefn         = d_stream;
+    self->action         = cb;
+    // SAMPLE_RATE * i / BLOCK_SIZE
+    self->stream.blocks  = (int)((48000.0 * interval) / 32.0);
+    if( self->stream.blocks <= 0 ){ self->stream.blocks = 1; }
+    self->stream.countdown = self->stream.blocks;
 }
 
 void Detect_change( Detect_t*         self
@@ -127,7 +141,6 @@ void Detect_window( Detect_t*         self
     }
 }
 
-// this is the same as Stream
 void Detect_volume( Detect_t*         self
                   , Detect_callback_t cb
                   , float             interval
@@ -145,6 +158,16 @@ void Detect_volume( Detect_t*         self
 //////////////////////////////////////////////
 // signal processors
 static void d_none( Detect_t* self, float level ){ return; }
+
+static void d_stream( Detect_t* self, float level )
+{
+    if( --self->stream.countdown <= 0 ){
+        self->stream.countdown = self->stream.blocks; // reset counter
+        (*self->action)( self->channel
+                       , level
+                       ); // callback!
+    }
+}
 
 static void d_change( Detect_t* self, float level )
 {

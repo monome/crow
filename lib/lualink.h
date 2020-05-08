@@ -25,7 +25,7 @@ void Lua_load_default_script( void );
 // Event enqueue wrappers
 extern void L_queue_toward( int id );
 extern void L_queue_metro( int id, int state );
-extern void L_queue_in_stream( int id );
+extern void L_queue_stream( int id, float state );
 extern void L_queue_change( int id, float state );
 extern void L_queue_midi( uint8_t* data );
 extern void L_queue_window( int id, float window );
