@@ -88,10 +88,8 @@ void Metro_set_time( int ix, float sec )
 
 static void Metro_bang( int ix )
 {
-    // TODO confirm lua(1) makes a single tick
     L_queue_metro( ix, metros[ix].stage );
     metros[ix].stage++;
-    //FIXME next line causes system not to load?
     if( metros[ix].stage == 0x7FFFFFFF ){ metros[ix].stage = 0x7FFFFFFE; } // overflow
     if( metros[ix].count >= 0 ){ // negative values are infinite
         if( metros[ix].stage > metros[ix].count ){

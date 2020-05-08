@@ -122,7 +122,6 @@ void DAC_PickleBlock( uint32_t* dac_pickle_ptr
     for( uint8_t j=0; j<4; j++ ){
         mul_vf_f( &(unpickled_data[j*bsize])
                 , dac_calibrated_scalar[j] // scale volts up to u16
-                , &(unpickled_data[j*bsize])
                 , bsize
                 );
     }
