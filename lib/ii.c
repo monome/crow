@@ -18,6 +18,8 @@
 #define II_MAX_RECEIVE_LEN 10
 #define II_QUEUE_LENGTH 16
 #define II_GET 128  // cmd >= are getter requests
+#define II_TT_VOLT  ((float)1638.3)
+#define II_TT_iVOLT ((float)1.0/II_TT_VOLT)
 
 
 ///////////////////////////
@@ -297,7 +299,7 @@ static float decode( uint8_t* data, ii_Type_t type )
         case ii_s16V:
             u16  = ((uint16_t)*data++)<<8;
             u16 |= *data++;
-            val = ((float)*(int16_t*)&u16)/1638.4; // Scale Teletype down to float
+            val = ((float)*(int16_t*)&u16)*II_TT_iVOLT; // Scale Teletype down to float
             break;
         case ii_float:
             val = *(float*)data;
@@ -325,7 +327,7 @@ static uint8_t encode( uint8_t* dest, ii_Type_t type, float data )
             d[len++] = (uint8_t)(u16 & 0x00FF);    // Low byte
             break;
         case ii_s16V:
-            data *= 1638.4; // Scale float up to Teletype
+            data *= II_TT_VOLT; // Scale float up to Teletype
             // FLOWS THROUGH
         case ii_s16:
             s16 = (int16_t)lim_f(data, -32768.0, 32767.0);
