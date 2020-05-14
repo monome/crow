@@ -158,12 +158,10 @@ function delay(action, time, repeats)
     local r = repeats or 1
     local d = {}
     function devent(c)
-        if c > 1 then
-            action(c-1) -- make the action aware of current iteration
-            if c > r then
-                metro.free(d.id)
-                d = nil
-            end
+        action(c) -- make the action aware of current iteration
+        if c > r then
+            metro.free(d.id)
+            d = nil
         end
     end
     d = metro.init(devent, time)
