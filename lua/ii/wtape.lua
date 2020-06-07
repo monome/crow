@@ -65,21 +65,25 @@ do return
     , cmd  = 11
     , docs = 'Set the current time as the loop end, and jump to start'
     }
-  , { name = 'loop_cancel'
+  , { name = 'loop_active'
     , cmd  = 12
-    , docs = 'Cancel the current loop'
+    , args = { 'state', s8 }
+    , docs = 'Set the state of looping'
     }
-  , { name = 'loop_reset'
+  , { name = 'loop_scale'
     , cmd  = 13
-    , docs = 'Jump playback to the start of the loop'
+    , get  = true
+    , args = { 'scale', s8 }
+    , docs = 'Mul(Positive) or Div(Negative) loop brace by arg. Zero resets to original window'
     }
   , { name = 'loop_next'
     , cmd  = 14
-    , docs = 'Move loop brace forward/backward by length of loop'
+    , docs = 'Move loop brace forward/backward by length of loop. Zero jumps to loop start'
     , args = { 'direction', s8 }
     }
-  , { name = 'go'
+  , { name = 'timestamp'
     , cmd  = 15
+    , get  = true
     , docs = 'Move playhead to an arbitrary location on tape'
     , args = { 'seconds', s32T }
     }
@@ -88,6 +92,29 @@ do return
     , docs = 'Move playhead relative to current position'
     , args = { 'seconds', s32T }
     }
+  }
+, getters =
+  { { name   = 'speed'
+    , cmd    = 4 + get_offset
+    , docs   = 'Query the current tape speed'
+    , retval = { 'rate', s16V }
+    }
+  , { name   = 'loop_start'
+    , cmd    = 10 + get_offset
+    , docs   = 'Query the timestamp of loop start point'
+    , retval = { 'timestamp', s32T }
+    }
+  , { name   = 'loop_end'
+    , cmd    = 11 + get_offset
+    , docs   = 'Query the timestamp of loop end point'
+    , retval = { 'timestamp', s32T }
+    }
+--- TT specific getters for reference only
+--  , { name   = 'timestampS'
+--    , cmd    = 17 + get_offset
+--    , docs   = 'Query the current timestamp. returning only whole seconds'
+--    , args = { 'seconds', s16 }
+--    }
   }
 }
 end
