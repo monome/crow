@@ -19,6 +19,8 @@
 #define II_QUEUE_LENGTH 16
 #define II_GET 128  // cmd >= are getter requests
 
+#define TT_VOLT ((float)1638.3)
+#define TT_iVOLT ((float)1.0/TT_VOLT)
 
 ///////////////////////////
 // type declarations
@@ -269,6 +271,8 @@ static uint8_t type_size( ii_Type_t t )
                case ii_s16:   return 2;
                case ii_s16V:  return 2;
                case ii_float: return 4;
+               case ii_s32T:  return 4;
+               default:       return 0;
     }
     return 0;
 }
@@ -297,10 +301,21 @@ static float decode( uint8_t* data, ii_Type_t type )
         case ii_s16V:
             u16  = ((uint16_t)*data++)<<8;
             u16 |= *data++;
-            val = ((float)*(int16_t*)&u16)/1638.4; // Scale Teletype down to float
+            val = ((float)*(int16_t*)&u16)*TT_iVOLT;
             break;
         case ii_float:
             val = *(float*)data;
+            break;
+        case ii_s32T:
+            // seconds: signed 16
+            u16  = ((uint16_t)*data++)<<8;
+            u16 |= *data++;
+            val = (float)*(int16_t*)&u16;
+            // subsecond: signed 16 V
+            u16  = ((uint16_t)*data++)<<8;
+            u16 |= *data++;
+            // combine
+            val += ((float)*(int16_t*)&u16)*TT_iVOLT;
             break;
         default: printf("ii_decode unmatched\n"); break;
     }
@@ -325,7 +340,7 @@ static uint8_t encode( uint8_t* dest, ii_Type_t type, float data )
             d[len++] = (uint8_t)(u16 & 0x00FF);    // Low byte
             break;
         case ii_s16V:
-            data *= 1638.4; // Scale float up to Teletype
+            data *= TT_VOLT; // Scale float up to Teletype
             // FLOWS THROUGH
         case ii_s16:
             s16 = (int16_t)lim_f(data, -32768.0, 32767.0);
@@ -337,6 +352,26 @@ static uint8_t encode( uint8_t* dest, ii_Type_t type, float data )
             memcpy( &(d[len]), &data, 4 );
             len += 4;
             break;
+        case ii_s32T:{
+            int iTime = (int)data;
+            float subTime = data - (float)iTime;
+            if( iTime < -32768 ){
+                iTime = -32768; subTime = 0.0;
+            } else if( iTime > 32767 ){
+                iTime = 32767; subTime = 0.0;
+            }
+            // signed 16
+            s16 = (int16_t)iTime;
+            u16 = *(uint16_t*)&s16;
+            d[len++] = (uint8_t)(u16>>8);          // High byte first
+            d[len++] = (uint8_t)(u16 & 0x00FF);    // Low byte
+            // signed 16 V
+            subTime *= TT_VOLT; // Scale float up to Teletype
+            s16 = (int16_t)subTime;
+            u16 = *(uint16_t*)&s16;
+            d[len++] = (uint8_t)(u16>>8);          // High byte first
+            d[len++] = (uint8_t)(u16 & 0x00FF);    // Low byte
+            break;}
         default: printf("no retval found\n"); return 0;
             // FIXME: should this really print directly? or pass to caller?
     }
