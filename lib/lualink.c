@@ -750,13 +750,14 @@ void L_handle_change( event_t* e )
     }
 }
 
-void L_queue_ii_leadRx( uint8_t address, uint8_t cmd, float data )
+void L_queue_ii_leadRx( uint8_t address, uint8_t cmd, float data, uint8_t arg )
 {
     event_t e = { .handler = L_handle_ii_leadRx
                 , .data.f  = data
                 };
     e.index.u8s[0] = address;
     e.index.u8s[1] = cmd;
+    e.index.u8s[2] = arg;
     event_post(&e);
 }
 void L_handle_ii_leadRx( event_t* e )
@@ -764,8 +765,9 @@ void L_handle_ii_leadRx( event_t* e )
     lua_getglobal(L, "ii_LeadRx_handler");
     lua_pushinteger(L, e->index.u8s[0]); // address
     lua_pushinteger(L, e->index.u8s[1]); // command
+    lua_pushinteger(L, e->index.u8s[2]); // arg
     lua_pushnumber(L, e->data.f);
-    if( Lua_call_usercode(L, 3, 0) != LUA_OK ){
+    if( Lua_call_usercode(L, 4, 0) != LUA_OK ){
         lua_pop( L, 1 );
     }
 }

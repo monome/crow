@@ -28,6 +28,7 @@ typedef struct{
     uint8_t length;
     uint8_t query_length; // 0 for broadcast, >0 is return type byte size
     uint8_t data[II_MAX_BROADCAST_LEN];
+    uint8_t arg; // just carrying this through for the follower response
 } ii_q_t;
 
 
@@ -52,6 +53,7 @@ queue_t* l_qix;
 queue_t* f_qix;
 ii_q_t   l_iq[II_QUEUE_LENGTH];
 uint8_t  f_iq[II_QUEUE_LENGTH][II_MAX_RECEIVE_LEN];
+uint8_t  rx_arg = 0; // FIXME is there a better solution?
 
 
 ////////////////////////
@@ -126,6 +128,7 @@ uint8_t ii_leader_enqueue( uint8_t address
     q->address = address;
     const ii_Cmd_t* c = ii_find_command(address, cmd);
     q->query_length = type_size( c->return_type );
+    q->arg = data[0]; // save a copy of the first argument
     q->length = encode_packet( q->data
                              , c
                              , cmd
@@ -144,6 +147,7 @@ void ii_leader_process( void )
 
     int error = 0;
     if( q->query_length ){
+        rx_arg = q->arg;
         if( (error = I2C_LeadRx( q->address
                       , q->data
                       , q->length
@@ -203,6 +207,7 @@ static void lead_callback( uint8_t address, uint8_t command, uint8_t* rx_data )
                      , decode( rx_data
                              , ii_find_command(address, command)->return_type
                              )
+                     , rx_arg
                      );
 }
 
