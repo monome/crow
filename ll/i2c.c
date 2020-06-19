@@ -228,6 +228,7 @@ int I2C_LeadRx( uint8_t  address
             if( HAL_I2C_DisableListen_IT( &i2c_handle ) != HAL_OK ){
                 error |= 0x1;
             } else if( __HAL_I2C_GET_FLAG( &i2c_handle, I2C_FLAG_BUSY ) ){
+                // NB: Explicitly check BUSY flag as Sequential_Transmit doesn't
                 error |= 0x2;
                 HAL_I2C_ListenCpltCallback( &i2c_handle ); // re-enable listen
             } else if( HAL_I2C_Master_Sequential_Transmit_IT( &i2c_handle
