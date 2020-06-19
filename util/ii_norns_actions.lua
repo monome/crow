@@ -26,6 +26,15 @@ end
 function make_ii(files)
     local c = header
 
+    c = c .. 'actions.init = function()\n'
+    for _,f in ipairs(files) do
+        if need_events(f) then
+            c = c .. '  actions.' .. f.lua_name .. '.event = function(t,v) print("'
+                  .. f.lua_name
+                  .. ' ii: name="..t.name..", device="..t.device..", arg="..t.arg..", value="..v) end\n'
+        end
+    end
+
     local function make_helpers(f)
 
         function make_cmd_alias( device, name, args )
@@ -62,19 +71,12 @@ function make_ii(files)
         return h
     end
 
-    c = c .. 'actions.init = function()\n'
-    for _,f in ipairs(files) do
-        if need_events(f) then
-            c = c .. '  actions.' .. f.lua_name .. '.event = function(i,v) print("'
-                  .. f.lua_name
-                  .. ' ii: "..i.." "..v) end\n'
-        end
-    end
     c = c .. 'end\n\n'
     for _,f in ipairs(files) do
         c = c .. 'actions.' .. f.lua_name .. ' = {}\n'
               .. make_helpers(f) .. '\n'
     end
+
     return c .. footer
 end
 
