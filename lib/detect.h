@@ -57,17 +57,15 @@ typedef struct detect{
     void (*modefn)(struct detect* self, float level);
     Detect_callback_t action;
 
-// state memory
-    float      last;
-    uint8_t    state; // for change/peak hysteresis
-
 // mode specifics
     D_stream_t stream;
     D_change_t change;
+    float      last;
+    uint8_t    state;
     D_window_t win;
     D_scale_t  scale;
 
-    VU_meter_t* vu; // vu metering for amplitude dtection
+    VU_meter_t* vu; // vu metering shared by volume & peak
     D_volume_t  volume;
     D_peak_t    peak;
 } Detect_t;

@@ -1,28 +1,8 @@
 #include "stm32f7xx_it.h"
 
-#include <stdio.h> // printf
-
 #include "stm32f7xx_hal.h" // HAL_IncTick
 
-#include "ll/debug_usart.h" // U_PrintNow
-
 volatile int CPU_count = 0;
-
-static void error( char* msg ){
-    //__disable_irq();
-
-    printf("%s\n", msg);
-    U_PrintNow();
-    while(1);
-}
-void NMI_Handler(void){ error("!NMI"); }
-//void HardFault_Handler(void){ error("!HardFault"); }
-void MemManage_Handler(void){ HardFault_Handler(); error("!MemManage"); }
-void BusFault_Handler(void){ error("!BusFault"); }
-void UsageFault_Handler(void){ error("!UsageFault"); }
-void SVC_Handler(void){ error("!SVC"); }
-void DebugMon_Handler(void){ error("!DebugMon"); }
-void PendSV_Handler(void){ error("!PendSV"); }
 
 int counts[8] = {0,0,0,0,0,0,0,0};
 int pCount = 0;
@@ -43,9 +23,30 @@ int CPU_GetCount( void )
     return c;
 }
 
+// In RELEASE mode, all Fault Handlers are ignored and we hope for the best
 
-///* The fault handler implementation calls a function called
-//prvGetRegistersFromStack(). */
+#ifndef RELEASE // DEBUG mode
+
+#include <stdio.h> // printf
+#include "ll/debug_usart.h" // U_PrintNow
+
+static void error( char* msg ){
+    printf("%s\n", msg);
+    U_PrintNow();
+    while(1);
+}
+void NMI_Handler(void){ error("!NMI"); }
+void MemManage_Handler(void){ HardFault_Handler(); error("!MemManage"); }
+void BusFault_Handler(void){ error("!BusFault"); }
+void UsageFault_Handler(void){ error("!UsageFault"); }
+void SVC_Handler(void){ error("!SVC"); }
+void DebugMon_Handler(void){ error("!DebugMon"); }
+void PendSV_Handler(void){ error("!PendSV"); }
+
+
+// NB: the below breaks with -flto CFLAG
+// The fault handler implementation calls a function called
+//   prvGetRegistersFromStack().
 void HardFault_Handler(void)
 {
     __asm volatile
@@ -97,3 +98,4 @@ void prvGetRegistersFromStack( uint32_t *pulFaultStackAddress )
     /* When the following line is hit, the variables contain the register values. */
     error("HardFault");
 }
+#endif // DEBUG
