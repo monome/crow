@@ -4,9 +4,8 @@
 #include <stdlib.h>
 
 #include "interrupts.h"
-#include "../usbd/usbd_cdc_interface.h" // USB_TIM_PeriodElapsedCallback()
 
-#define MAX_LL_TIMERS 10 // tell caller how many timers can be allocated
+#define MAX_LL_TIMERS 11 // tell caller how many timers can be allocated
 
 typedef void (*TIM_CLK_ENABLE_t)();
 
@@ -20,7 +19,7 @@ typedef struct{
 // TODO add TIM1 & TIM8. use different HAL functions
 //static void TIM1_CLK_EN(){  __HAL_RCC_TIM1_CLK_ENABLE  }
 //static void TIM2_CLK_EN(){  __HAL_RCC_TIM2_CLK_ENABLE();  } // ADS
-//static void TIM3_CLK_EN(){  __HAL_RCC_TIM3_CLK_ENABLE();  } // USBD
+static void TIM3_CLK_EN(){  __HAL_RCC_TIM3_CLK_ENABLE();  }
 static void TIM4_CLK_EN(){  __HAL_RCC_TIM4_CLK_ENABLE();  }
 static void TIM5_CLK_EN(){  __HAL_RCC_TIM5_CLK_ENABLE();  }
 static void TIM6_CLK_EN(){  __HAL_RCC_TIM6_CLK_ENABLE();  }
@@ -36,8 +35,8 @@ static void TIM14_CLK_EN(){ __HAL_RCC_TIM14_CLK_ENABLE(); }
 const Timer_setup_t _timer[]=
     { //{ TIM1  , TIM1_IRQn               , TIM1_CLK_EN  }
     //, { TIM2  , TIM2_IRQn               , TIM2_CLK_EN  }
-    //, { TIM3  , TIM3_IRQn               , TIM3_CLK_EN  }
-      { TIM4  , TIM4_IRQn               , TIM4_CLK_EN  }
+      { TIM3  , TIM3_IRQn               , TIM3_CLK_EN  }
+    , { TIM4  , TIM4_IRQn               , TIM4_CLK_EN  }
     , { TIM5  , TIM5_IRQn               , TIM5_CLK_EN  }
     , { TIM6  , TIM6_DAC_IRQn           , TIM6_CLK_EN  }
     , { TIM7  , TIM7_IRQn               , TIM7_CLK_EN  } // seems to work 0x37/d55
@@ -54,20 +53,17 @@ TIM_HandleTypeDef TimHandle[MAX_LL_TIMERS];
 Timer_Callback_t callback[MAX_LL_TIMERS];
 
 // FIXME have to manually index the following
-//void TIM1_IRQHandler( void ){  HAL_TIM_IRQHandler( &(TimHandle[0]) ); }
-//void TIM2_IRQHandler( void ){  HAL_TIM_IRQHandler( &(TimHandle[0]) ); }
-//void TIM3_IRQHandler( void ){  HAL_TIM_IRQHandler( &(TimHandle[0]) ); }
-void TIM4_IRQHandler(               void ){ HAL_TIM_IRQHandler( &(TimHandle[0]) ); }
-void TIM5_IRQHandler(               void ){ HAL_TIM_IRQHandler( &(TimHandle[1]) ); }
-void TIM6_DAC_IRQHandler(           void ){ HAL_TIM_IRQHandler( &(TimHandle[2]) ); }
-void TIM7_IRQHandler(               void ){ HAL_TIM_IRQHandler( &(TimHandle[3]) ); }
-//void TIM8_IRQHandler( void ){  HAL_TIM_IRQHandler( &(TimHandle[0]) ); }
-void TIM1_BRK_TIM9_IRQHandler(      void ){ HAL_TIM_IRQHandler( &(TimHandle[4]) ); }
-void TIM1_UP_TIM10_IRQHandler(      void ){ HAL_TIM_IRQHandler( &(TimHandle[5]) ); }
-void TIM1_TRG_COM_TIM11_IRQHandler( void ){ HAL_TIM_IRQHandler( &(TimHandle[6]) ); }
-void TIM8_BRK_TIM12_IRQHandler(     void ){ HAL_TIM_IRQHandler( &(TimHandle[7]) ); }
-void TIM8_UP_TIM13_IRQHandler(      void ){ HAL_TIM_IRQHandler( &(TimHandle[8]) ); }
-void TIM8_TRG_COM_TIM14_IRQHandler( void ){ HAL_TIM_IRQHandler( &(TimHandle[9]) ); }
+void TIM3_IRQHandler(               void ){ HAL_TIM_IRQHandler( &(TimHandle[0]) ); }
+void TIM4_IRQHandler(               void ){ HAL_TIM_IRQHandler( &(TimHandle[1]) ); }
+void TIM5_IRQHandler(               void ){ HAL_TIM_IRQHandler( &(TimHandle[2]) ); }
+void TIM6_DAC_IRQHandler(           void ){ HAL_TIM_IRQHandler( &(TimHandle[3]) ); }
+void TIM7_IRQHandler(               void ){ HAL_TIM_IRQHandler( &(TimHandle[4]) ); }
+void TIM1_BRK_TIM9_IRQHandler(      void ){ HAL_TIM_IRQHandler( &(TimHandle[5]) ); }
+void TIM1_UP_TIM10_IRQHandler(      void ){ HAL_TIM_IRQHandler( &(TimHandle[6]) ); }
+void TIM1_TRG_COM_TIM11_IRQHandler( void ){ HAL_TIM_IRQHandler( &(TimHandle[7]) ); }
+void TIM8_BRK_TIM12_IRQHandler(     void ){ HAL_TIM_IRQHandler( &(TimHandle[8]) ); }
+void TIM8_UP_TIM13_IRQHandler(      void ){ HAL_TIM_IRQHandler( &(TimHandle[9]) ); }
+void TIM8_TRG_COM_TIM14_IRQHandler( void ){ HAL_TIM_IRQHandler( &(TimHandle[10]) ); }
 
 int Timer_Init(void)
 {
@@ -76,6 +72,7 @@ int Timer_Init(void)
 
         // static setup
         TimHandle[i].Init.ClockDivision     = TIM_CLOCKDIVISION_DIV4;
+
         TimHandle[i].Init.CounterMode       = TIM_COUNTERMODE_UP;
         TimHandle[i].Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
 
@@ -100,13 +97,11 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef *htim)
 
 void HAL_TIM_PeriodElapsedCallback( TIM_HandleTypeDef *htim )
 {
-    // only iterate if it *doesn't* match the USB handle
-    if( !USB_TIM_PeriodElapsedCallback(htim) ){
-        for( int i=0; i<MAX_LL_TIMERS; i++ ){
-            if( htim == &(TimHandle[i]) ){
-                (*callback[i])(i); // raise callback
-                return;
-            }
+    // counting down to prioritize statically allocated timers (eg usb)
+    for( int i=(MAX_LL_TIMERS-1); i>=0; i-- ){
+        if( htim == &(TimHandle[i]) ){
+            (*callback[i])(i);
+            return;
         }
     }
 }
@@ -162,3 +157,14 @@ void Timer_Stop( int ix )
         printf("Timer_Stop(%i)\n", ix);
     }
 }
+
+void Timer_Priority( int ix, int priority_level )
+{
+    HAL_NVIC_DisableIRQ( _timer[ix].IRQn );
+    HAL_NVIC_SetPriority( _timer[ix].IRQn
+                        , priority_level
+                        , 0
+                        );
+    HAL_NVIC_EnableIRQ( _timer[ix].IRQn );
+}
+
