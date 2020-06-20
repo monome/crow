@@ -109,11 +109,17 @@ void Detect_scale( Detect_t*         self
     self->modefn        = d_scale;
     self->action        = cb;
     self->scale.sLen    = (sLen > SCALE_MAX_COUNT) ? SCALE_MAX_COUNT : sLen;
+    self->scale.offset  = 0.5 * scaling / divs; // use raw val for chromatic
+    // hysteresis window
+    self->scale.hwin    = self->scale.offset * 1.1; // 10% overlap
+    if( self->scale.hwin < 0.0666 ){ // minimum 67mV which is ~noisefloor
+        self->scale.hwin = 0.0666;
+    }
     if( sLen == 0 ){ // assume chromatic
-        self->scale.sLen = 1;
+        self->scale.sLen     = 1;
         self->scale.scale[0] = 0.0;
-        self->scale.scaling = scaling / divs; // scale to n-TET
-        self->scale.divs    = 1.0; // force 1 div
+        self->scale.scaling  = scaling / divs; // scale to n-TET
+        self->scale.divs     = 1.0; // force 1 div
     } else {
         for( int i=0; i<self->scale.sLen; i++ ){
             self->scale.scale[i] = *scale++;
@@ -121,7 +127,6 @@ void Detect_scale( Detect_t*         self
         self->scale.divs    = divs;
         self->scale.scaling = scaling;
     }
-    self->scale.offset = 0.5 * self->scale.scaling / self->scale.divs;
     self->scale.lastNote = -100.0; // out of range, to force a new match
 }
 
@@ -233,32 +238,27 @@ static void d_window( Detect_t* self, float level )
 
 static void d_scale( Detect_t* self, float level )
 {
-    float win = self->scale.offset * 0.53;
-    if( level > (self->scale.lastVolts + win)
-     || level < (self->scale.lastVolts - win) ){
+    if( level > (self->scale.lastVolts + self->scale.hwin)
+     || level < (self->scale.lastVolts - self->scale.hwin) ){
+
         level += self->scale.offset;                 // centre each window
         float n_level = level / self->scale.scaling; // normalize scaling
         int octaves = (int)floorf(n_level);          // # of folds around scaling
         float phase = n_level - (float)octaves;      // position in win [0,1.0)
         float fix = phase * self->scale.sLen;        // map phase to #scale
         int ix = (int)fix;                           // truncate to nearest
+        float note = self->scale.scale[ix]; // apply LUT within octave
+        float noteOct = note + (float)octaves*self->scale.divs;
+        float volts = (note / self->scale.divs + (float)octaves)
+                       * self->scale.scaling;
 
-        printf("new note\n");
-        // with outer hysteresis, this is likely unnecessary?
-        if( ix      != self->scale.lastIndex
-         || octaves != self->scale.lastOct
-          ){ // new note detected
-            printf(" newnew note\n");
-            float note = self->scale.scale[ix]; // apply LUT within octave
-            float noteOct = note + (float)octaves*self->scale.divs;
-            float volts = (note / self->scale.divs + (float)octaves)
-                           * self->scale.scaling;
-            self->scale.lastIndex = ix;
-            self->scale.lastOct   = octaves;
-            self->scale.lastNote  = noteOct;
-            self->scale.lastVolts = volts;
-            (*self->action)( self->channel, 0.0 ); // callback! 0.0 is ignored
-        }
+        // save values for event callback
+        self->scale.lastIndex = ix;
+        self->scale.lastOct   = octaves;
+        self->scale.lastNote  = noteOct;
+        self->scale.lastVolts = volts;
+
+        (*self->action)( self->channel, 0.0 ); // callback! 0.0 is ignored
     }
 }
 
