@@ -4,6 +4,7 @@
 
 #include "../ll/adda.h"        // _Init(), _Start(), _GetADCValue(), IO_block_t
 #include "slopes.h"            // S_init(), S_step_v()
+#include "ashapes.h"           // AShaper_init(), AShaper_v()
 #include "detect.h"            // Detect_init(), Detect(), Detect_ix_to_p()
 #include "metro.h"
 
@@ -19,6 +20,7 @@ void IO_Init( int adc_timer_ix )
     // dsp objects
     Detect_init( IN_CHANNELS );
     S_init( SLOPE_CHANNELS );
+    AShaper_init( SLOPE_CHANNELS );
 }
 
 void IO_Start( void )
@@ -30,15 +32,20 @@ void IO_Start( void )
 IO_block_t* IO_BlockProcess( IO_block_t* b )
 {
     for( int j=0; j<IN_CHANNELS; j++ ){
-        Detect( Detect_ix_to_p( j )
-              , b->in[j][b->size-1]
-              );
+        Detect_t* d = Detect_ix_to_p(j);
+        (*d->modefn)( d, b->in[j][b->size-1] );
     }
     for( int j=0; j<SLOPE_CHANNELS; j++ ){
         S_step_v( j
                 , b->out[j]
                 , b->size
                 );
+    }
+    for( int j=0; j<SLOPE_CHANNELS; j++ ){
+        AShaper_v( j
+                 , b->out[j]
+                 , b->size
+                 );
     }
     return b;
 }

@@ -40,7 +40,11 @@ function lua_getters(f)
     end
     if f.getters ~= nil then
         for _,v in ipairs( f.getters ) do
-            g = g .. '\t[\'' .. v.name .. '\']=' .. v.cmd .. ',\n'
+            if type(v.name) == 'number' then
+                g = g .. '\t[' .. v.name .. ']=' .. v.cmd .. ',\n'
+            else
+                g = g .. '\t[\'' .. v.name .. '\']=' .. v.cmd .. ',\n'
+            end
         end
     end
     g = g .. '}\n'
@@ -61,16 +65,16 @@ function lua_events(f)
     end
     if f.getters ~= nil then
         for _,v in ipairs( f.getters ) do
-            e = e .. '\t[' .. v.cmd .. ']=\'' .. v.name .. '\',\n'
+            if type(v.name) == 'number' then
+                e = e .. '\t[' .. v.cmd .. ']=' .. v.name .. ',\n'
+            else
+                e = e .. '\t[' .. v.cmd .. ']=\'' .. v.name .. '\',\n'
+            end
         end
     end
     e = e .. '}\n'
           .. 'function ' .. f.lua_name
-    if type(f.i2c_address) == 'table' then
-        e = e .. '.event(e,data,ix)ii.e(\'' .. f.lua_name .. '\',e,data,ix)end\n\n'
-    else
-        e = e .. '.event(e,data)ii.e(\'' .. f.lua_name .. '\',e,data)end\n\n'
-    end
+    e = e .. '.event(e,data)ii.e(\'' .. f.lua_name .. '\',e,data)end\n\n'
     return e
 end
 

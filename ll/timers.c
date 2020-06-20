@@ -127,6 +127,8 @@ void Timer_Set_Params( int ix, float seconds )
     uint8_t err;
     BLOCK_IRQS(
         err = HAL_TIM_Base_Init( &(TimHandle[ix]) );
+        // Clear the update flag to avoid an instant callback
+        __HAL_TIM_CLEAR_FLAG( &(TimHandle[ix]), TIM_FLAG_UPDATE );
     );
     if( err != HAL_OK ){
         printf("Timer_Set_Params(%i) failed\n", ix);

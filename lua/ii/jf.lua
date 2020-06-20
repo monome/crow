@@ -41,23 +41,23 @@ do return
   , { name = 'tick'
     , cmd  = 7
     , docs = 'Set geode tempo to *bpm*, or accept *clock* for geode'
-    , args = { 'clock-or-bpm', s8 }
+    , args = { 'clock_or_bpm', s8 }
     }
   , { name = 'play_voice'
     , cmd  = 8
     , docs = 'Synthesis: Set *channel* to *pitch* at *level*\n\r' ..
         'Geode: At *channel* make *repeats* envs with *divs* time'
     , args = { { 'channel', s8 }
-             , { 'pitch/divs', s16V }
-             , { 'level/repeats', s16V }
+             , { 'pitch_divs', s16V }
+             , { 'level_repeats', s16V }
              }
     }
   , { name = 'play_note'
     , cmd  = 9
     , docs = 'Synthesis: Assign a note with *pitch* at *level*\n\r' ..
         'Geode: Create *repeats* envelopes with *divs* timing'
-    , args = { { 'pitch/divs', s16V }
-             , { 'level/repeats', s16V }
+    , args = { { 'pitch_divs', s16V }
+             , { 'level_repeats', s16V }
              }
     }
   , { name = 'god_mode'

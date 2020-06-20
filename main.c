@@ -14,6 +14,8 @@
 #include "usbd/usbd_cdc_interface.h" // CDC_main_init()
 #include "lib/bootloader.h" // bootloader_enter(), bootloader_restart()
 #include "lib/flash.h" // Flash_clear_user_script()
+#include "stm32f7xx_it.h" // CPU_count;
+
 
 int main(void)
 {
@@ -38,10 +40,11 @@ int main(void)
 
     REPL_init( Lua_Init() );
 
-    REPL_print_script_name(NULL);
+    REPL_print_script_name();
     Lua_crowbegin();
 
     while(1){
+        CPU_count++;
         U_PrintNow();
         switch( Caw_try_receive() ){ // true on pressing 'enter'
             case C_repl:        REPL_eval( Caw_get_read()
@@ -62,11 +65,7 @@ int main(void)
             default: break; // 'C_none' does nothing
         }
         Random_Update();
-        // check/execute single event
-        event_t e;
-        if( event_next(&e) ){
-            (*app_event_handlers[e.type])(&e);
-        }
+        event_next(); // check/execute single event
         ii_leader_process();
     }
 }
