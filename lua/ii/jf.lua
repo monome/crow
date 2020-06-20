@@ -95,50 +95,46 @@ do return
     }
   , { name = 'address'
     , cmd  = 14
+    , get  = true
     , docs = 'Set i2c address to *index* (default)1 or 2'
     , args = { 'index', s8 }
     }
   }
 , getters =
   { { name = 'speed'
-    , cmd  = 14 + get_offset
+    , cmd  = 15 + get_offset
     , docs = 'Speed switch setting: 0 for shape and 1 for sound'
     , retval = { 'is_sound', s8 }
     }
   , { name = 'tsc'
-    , cmd  = 15 + get_offset
+    , cmd  = 16 + get_offset
     , docs = 'MODE switch setting: 0/1/2 for transient/sustain/cycle'
     , retval = { 'transient_sustain_cycle', s8 }
     }
   , { name = 'ramp'
-    , cmd  = 16 + get_offset
+    , cmd  = 17 + get_offset
     , docs = 'knob + cv for RAMP parameter'
     , retval = { 'volts', s16V }
     }
   , { name = 'curve'
-    , cmd  = 17 + get_offset
+    , cmd  = 18 + get_offset
     , docs = 'knob + cv for CURVE parameter'
     , retval = { 'volts', s16V }
     }
   , { name = 'fm'
-    , cmd  = 18 + get_offset
+    , cmd  = 19 + get_offset
     , docs = 'value of FM knob'
     , retval = { 'volts', s16V }
     }
   , { name = 'time'
-    , cmd  = 19 + get_offset
+    , cmd  = 20 + get_offset
     , docs = 'knob + cv for TIME parameter'
     , retval = { 'volts', s16V }
     }
   , { name = 'intone'
-    , cmd  = 20 + get_offset
+    , cmd  = 21 + get_offset
     , docs = 'knob + cv for INTONE parameter'
     , retval = { 'volts', s16V }
-    }
-  , { name = 'address'
-    , cmd  = 21 + get_offset
-    , docs = 'i2c address 1 or 2'
-    , retval = { 'index', s8 }
     }
   }
 }
