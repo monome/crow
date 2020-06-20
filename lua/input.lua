@@ -22,8 +22,15 @@ function Input.new( chan )
               , change     = function(state) _c.tell('change',chan,state and 1 or 0) end
               , midi       = function(data) _c.tell('midi',table.unpack(data)) end
               , window     = function(win, dir) _c.tell('window',chan,win,dir and 1 or 0) end
-              , scale      = function(s) _c.tell('scale',chan,s.note) end
+              , scale      = function(s)
+                                local str = '{index=' .. s.index
+                                         .. ',octave=' .. s.octave
+                                         .. ',note=' .. s.note
+                                         .. ',volts=' .. s.volts .. '}'
+                                _c.tell('scale',chan,str)
+                             end
               , volume     = function(level) _c.tell('volume',chan,level) end
+              , peak       = function() _c.tell('peak',chan) end
               }
     setmetatable( i, Input )
     Input.inputs[chan] = i -- save reference for callback engine
@@ -67,6 +74,13 @@ function Input:set_mode( mode, ... )
     elseif mode == 'volume' then
         self.time = args[1] or self.time
         set_input_volume( self.channel, self.time )
+    elseif mode == 'peak' then
+        self.threshold  = args[1] or self.threshold
+        self.hysteresis = args[2] or self.hysteresis
+        set_input_peak( self.channel
+                      , self.threshold
+                      , self.hysteresis
+                      )
     else
         set_input_none( self.channel )
     end
@@ -120,5 +134,6 @@ function scale_handler(chan,i,o,n,v)
     Input.inputs[chan].scale(s)
 end
 function volume_handler( chan, val ) Input.inputs[chan].volume( val ) end
+function peak_handler( chan ) Input.inputs[chan].peak() end
 
 return Input

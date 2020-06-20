@@ -17,6 +17,7 @@ static void d_change( Detect_t* self, float level );
 static void d_window( Detect_t* self, float level );
 static void d_scale( Detect_t* self, float level );
 static void d_volume( Detect_t* self, float level );
+static void d_peak( Detect_t* self, float level );
 
 
 ///////////////////////////////////////////
@@ -33,7 +34,7 @@ void Detect_init( int channels )
         selves[j].state   = 0;
         Detect_none( &(selves[j]) );
         selves[j].win.lastWin = 0;
-        selves[j].volume.vu = VU_init();
+        selves[j].vu = VU_init();
     }
 }
 
@@ -111,7 +112,7 @@ void Detect_scale( Detect_t*         self
     if( sLen == 0 ){ // assume chromatic
         self->scale.sLen = 1;
         self->scale.scale[0] = 0.0;
-        self->scale.scaling = scaling / self->scale.divs; // scale to n-TET
+        self->scale.scaling = scaling / divs; // scale to n-TET
         self->scale.divs    = 1.0; // force 1 div
     } else {
         for( int i=0; i<self->scale.sLen; i++ ){
@@ -148,10 +149,29 @@ void Detect_volume( Detect_t*         self
 {
     self->modefn         = d_volume;
     self->action         = cb;
+
+    VU_time( self->vu, 0.018 );
     // SAMPLE_RATE * i / BLOCK_SIZE
     self->volume.blocks  = (int)((48000.0 * interval) / 32.0);
     if( self->volume.blocks <= 0 ){ self->volume.blocks = 1; }
     self->volume.countdown = self->volume.blocks;
+}
+
+void Detect_peak( Detect_t*         self
+                , Detect_callback_t cb
+                , float             threshold
+                , float             hysteresis
+                )
+{
+    self->modefn            = d_peak;
+    self->action            = cb;
+    // TODO perhaps a abs->2lpf (no RMS averaging) is better?
+    // set 30ms settling time for peak envelope behaviour
+    VU_time( self->vu, 0.18 );
+    self->peak.threshold  = threshold;
+    self->peak.hysteresis = hysteresis;
+    self->peak.release    = 0.01; // TODO tune this
+    self->peak.envelope   = 0.0;
 }
 
 
@@ -244,11 +264,31 @@ static void d_scale( Detect_t* self, float level )
 
 static void d_volume( Detect_t* self, float level )
 {
-    float v = VU_step( self->volume.vu, level );
+    level = VU_step( self->vu, level );
     if( --self->volume.countdown <= 0 ){
         self->volume.countdown = self->volume.blocks; // reset counter
-        (*self->action)( self->channel
-                       , v
-                       ); // callback!
+        (*self->action)( self->channel, level ); // callback!
+    }
+}
+
+static void d_peak( Detect_t* self, float level )
+{
+    level = VU_step( self->vu, level );
+    if( level > self->last ){ // instant attack
+        self->peak.envelope = level;
+    } else { // release as 1lpf slew
+        self->peak.envelope = level + self->peak.release
+                                      * (self->peak.envelope - level);
+    }
+
+    if( self->state ){ // high to low
+        if( self->peak.envelope < (self->peak.threshold - self->peak.hysteresis) ){
+            self->state = 0;
+        }
+    } else { // low to high
+        if( self->peak.envelope > (self->peak.threshold + self->peak.hysteresis) ){
+            self->state = 1;
+            (*self->action)( self->channel, 0.0 ); // callback! 0.0 is ignored
+        }
     }
 }

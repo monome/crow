@@ -8,13 +8,15 @@
 static char reader[USB_RX_BUFFER];
 static int16_t pReader = 0;
 
-uint8_t Caw_Init( void ) //TODO fnptr of callback )
+void Caw_Init( int timer_index )
 {
     for( int i=0; i<USB_RX_BUFFER; i++ ){ reader[i] = 0; }
-    USB_CDC_Init();
-    // TODO set static void(*) which Caw_receive_callback() forward all info to
-    // alt, we could just send a *buffer that we copy data into & check in scheduler
-    return 0;
+    USB_CDC_Init( timer_index );
+}
+
+void Caw_DeInit( void )
+{
+    USB_CDC_DeInit();
 }
 
 void Caw_send_raw( uint8_t* buf, uint32_t len )

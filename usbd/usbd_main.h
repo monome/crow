@@ -8,7 +8,8 @@
 
 #define USE_USB_FS
 
-void USB_CDC_Init(void);
+void USB_CDC_Init(int timer_index);
+void USB_CDC_DeInit(void);
 
 #ifdef USE_USB_FS
 void OTG_FS_IRQHandler(void);

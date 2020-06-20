@@ -44,6 +44,7 @@
 // fnptr typedefs for low-level
 typedef void (*I2C_lead_callback_t)( uint8_t address, uint8_t command, uint8_t* rx_data );
 typedef int (*I2C_follow_callback_t)( uint8_t* pdata );
+typedef void (*I2C_error_callback_t)( int error_code );
 
 
 /////////////////
@@ -51,12 +52,14 @@ typedef int (*I2C_follow_callback_t)( uint8_t* pdata );
 uint8_t I2C_Init( uint8_t               address
                 , I2C_lead_callback_t   lead_callback
                 , I2C_follow_callback_t follow_action_callback
-                , I2C_follow_callback_t follow_request_callback );
+                , I2C_follow_callback_t follow_request_callback
+                , I2C_error_callback_t  error_callback );
 void I2C_DeInit( void );
 
 uint8_t I2C_is_boot( void );
 
 void I2C_SetPullups( uint8_t state );
+uint8_t I2C_GetPullups( void );
 
 uint8_t I2C_GetAddress( void );
 void I2C_SetAddress( uint8_t address );
