@@ -17,6 +17,7 @@ typedef enum{ OP_NULL
             , OP_FOLLOW_TX
             , OP_FOLLOW_TX_READY
             , OP_FOLLOW_RX
+            , OP_ABORT
 } I2C_OP_t;
 
 typedef struct{
@@ -184,7 +185,31 @@ void I2C_SetAddress( uint8_t address )
 ////////////////////////////
 // leader set/get
 
-int I2C_is_ready( void ){ return (buf.operation == OP_LISTEN); }
+#define I2C_READY_TIMEOUT 20000
+int timeout = I2C_READY_TIMEOUT;
+
+int I2C_is_ready( void )
+{
+    switch( buf.operation ){
+        case OP_LISTEN:
+            timeout = I2C_READY_TIMEOUT;
+            break;
+
+        case OP_ABORT:
+        case OP_NULL:
+            // waiting
+            break;
+
+        default: // all others
+            if( --timeout <= 0 ){
+                printf("timeout\n");
+                buf.operation = OP_ABORT;
+                HAL_I2C_Master_Abort_IT( &i2c_handle, buf.address );
+            }
+            break;
+    }
+    return (buf.operation == OP_LISTEN);
+}
 
 int I2C_LeadTx( uint8_t  address
               , uint8_t* data
@@ -194,6 +219,7 @@ int I2C_LeadTx( uint8_t  address
     address <<= 1;
     int error = 0;
     if( buf.operation == OP_LISTEN ){
+        buf.address = address; // save in case of abort
         BLOCK_IRQS(
             if( HAL_I2C_DisableListen_IT( &i2c_handle ) != HAL_OK ){ error |= 1; }
             if( HAL_I2C_Master_Transmit_IT( &i2c_handle
@@ -397,4 +423,11 @@ void HAL_I2C_ErrorCallback( I2C_HandleTypeDef* h )
         }
     }
     HAL_I2C_ListenCpltCallback( &i2c_handle ); // Re-enable Listen
+}
+
+void HAL_I2C_AbortCpltCallback( I2C_HandleTypeDef* h )
+{
+    printf("aborted\n");
+    timeout = I2C_READY_TIMEOUT;
+    HAL_I2C_ListenCpltCallback( &i2c_handle );
 }
