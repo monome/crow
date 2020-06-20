@@ -77,7 +77,6 @@ int Timer_Init(void)
         // static setup
         TimHandle[i].Init.ClockDivision     = TIM_CLOCKDIVISION_DIV4;
         TimHandle[i].Init.CounterMode       = TIM_COUNTERMODE_UP;
-        TimHandle[i].Init.RepetitionCounter = 0;
         TimHandle[i].Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
 
         Timer_Set_Params( i, 1.0 );
@@ -133,6 +132,8 @@ void Timer_Set_Params( int ix, float seconds )
     uint8_t err;
     BLOCK_IRQS(
         err = HAL_TIM_Base_Init( &(TimHandle[ix]) );
+        // Clear the update flag to avoid an instant callback
+        __HAL_TIM_CLEAR_FLAG( &(TimHandle[ix]), TIM_FLAG_UPDATE );
     );
     if( err != HAL_OK ){
         printf("Timer_Set_Params(%i) failed\n", ix);
