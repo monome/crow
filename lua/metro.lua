@@ -7,8 +7,8 @@
 local Metro = {}
 Metro.__index = Metro
 
-Metro.num_metros = 7
-Metro.num_script_metros = 7
+Metro.num_metros = 8
+Metro.num_script_metros = 8
 
 Metro.metros = {}
 Metro.available = {}

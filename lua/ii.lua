@@ -40,13 +40,22 @@ function ii.get( address, cmd, ... )
     else ii_lead( address, cmd, ... ) end
 end
 
-function ii_LeadRx_handler( addr, cmd, data )
-    local name, ix = ii.is.lookup(addr) -- optionally returns a device index
-    ii[name].event(ii[name].e[cmd], data, ix)
+function ii_LeadRx_handler( addr, cmd, _arg, data )
+    local name, ix = ii.is.lookup(addr)
+    local rx_event = { name   = ii[name].e[cmd]
+                     , device = ix or 1
+                     , arg    = _arg
+                     }
+    ii[name].event(rx_event, data)
 end
 
--- NOTE: weird double-escaped quotes down here for the c compiler
-function ii.e( name, event, ... ) crow.tell('ii.'..name,'\\''..tostring(event)..'\\'',...) end
+function ii.e( name, event, ... )
+    local e_string = '{name=[['..event.name..']]'
+                  .. ',device='..event.device
+                  .. ',arg='..event.arg
+                  .. '}'
+    crow.tell('ii.'..name,e_string,...)
+end
 
 ii.self =
     { cmds = { [1]='output'
