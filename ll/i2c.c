@@ -202,7 +202,6 @@ int I2C_is_ready( void )
 
         default: // all others
             if( --timeout <= 0 ){
-                printf("timeout\n");
                 buf.operation = OP_ABORT;
                 HAL_I2C_Master_Abort_IT( &i2c_handle, buf.address );
             }
@@ -427,7 +426,6 @@ void HAL_I2C_ErrorCallback( I2C_HandleTypeDef* h )
 
 void HAL_I2C_AbortCpltCallback( I2C_HandleTypeDef* h )
 {
-    printf("aborted\n");
     timeout = I2C_READY_TIMEOUT;
     HAL_I2C_ListenCpltCallback( &i2c_handle );
 }
