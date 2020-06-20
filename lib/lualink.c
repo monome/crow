@@ -9,6 +9,7 @@
 
 // Hardware IO
 #include "lib/slopes.h"     // S_toward
+#include "lib/ashapes.h"    // AShaper_unset_scale(), AShaper_set_scale()
 #include "lib/detect.h"     // Detect*
 #include "lib/caw.h"        // Caw_send_*()
 #include "lib/ii.h"         // ii_*()
@@ -77,6 +78,7 @@ void L_handle_midi( event_t* e );
 void L_handle_window( event_t* e );
 void L_handle_in_scale( event_t* e );
 void L_handle_volume( event_t* e );
+void L_handle_peak( event_t* e );
 
 void _printf(char* error_message)
 {
@@ -268,6 +270,62 @@ static int _get_state( lua_State *L )
     lua_pushnumber( L, s );
     return 1;
 }
+static int _set_scale( lua_State *L )
+{
+    int nargs = lua_gettop(L);
+    // first arg is index!
+
+    // special cases:
+    if( nargs == 1 ){ // no user arguments
+        float divs[1] = {0.0};
+        AShaper_set_scale( luaL_checknumber( L, 1 )-1 // index is 1-based in lua
+                         , divs
+                         , 1
+                         , 1
+                         , 1.0/12.0 // hack it not to need the array
+                         );
+        lua_pop( L, 1 ); // pop index
+        return 0;
+    } else if( lua_isstring( L, 2 ) ){ // if arg1 == 'none' -> disable scaling
+        AShaper_unset_scale( luaL_checknumber( L, 1 )-1 ); // lua is 1-based
+        lua_pop( L, 2 );
+        return 0;
+    }
+
+    // arg1 is a list:
+        // empty list == chromatic
+        // 12TET semitones based at 0
+        // just ratios relative to 1/1 in the [1,2) range
+    int tlen = lua_rawlen( L, 2 ); // length of the table
+    float divs[tlen];
+    for( int i=0; i<tlen; i++ ){             // iterate table to get pitch list
+        lua_pushnumber( L, i+1 );            // lua is 1-based!
+        lua_gettable( L, 2 );                // table is still in index 2
+        divs[i] = luaL_checknumber( L, -1 ); // value is now on top of the stack
+        lua_pop( L, 1 );                     // remove our introspected value
+    }
+
+    float mod = 12.0; // default to 12TET
+    if( nargs >= 3 ){
+        // TODO allow string = 'just' to select JI mode for note list
+        mod = luaL_checknumber( L, 3 );
+    }
+
+    float scaling = 1.0; // default to v/8
+    if( nargs >= 4 ){
+        scaling = luaL_checknumber( L, 4 );
+    }
+
+    AShaper_set_scale( luaL_checknumber( L, 1 )-1 // index is 1-based in lua
+                     , divs
+                     , tlen
+                     , mod
+                     , scaling
+                     );
+
+    lua_pop( L, nargs );
+    return 0;
+}
 static int _io_get_input( lua_State *L )
 {
     float adc = IO_GetADC( luaL_checkinteger(L, 1)-1 );
@@ -395,6 +453,22 @@ static int _set_input_volume( lua_State *L )
         if( ix == 0 ){ MIDI_Active( 0 ); } // deactivate MIDI if first chan
     }
     lua_pop( L, 2 );
+    lua_settop(L, 0);
+    return 0;
+}
+static int _set_input_peak( lua_State *L )
+{
+    uint8_t ix = luaL_checkinteger(L, 1)-1;
+    Detect_t* d = Detect_ix_to_p( ix ); // Lua is 1-based
+    if(d){ // valid index
+        Detect_peak( d
+                   , L_queue_peak
+                   , luaL_checknumber(L, 2)
+                   , luaL_checknumber(L, 3)
+                   );
+        if( ix == 0 ){ MIDI_Active( 0 ); } // deactivate MIDI if first chan
+    }
+    lua_pop( L, 3 );
     lua_settop(L, 0);
     return 0;
 }
@@ -544,6 +618,7 @@ static const struct luaL_Reg libCrow[]=
         // io
     , { "go_toward"        , _go_toward        }
     , { "get_state"        , _get_state        }
+    , { "set_output_scale" , _set_scale        }
     , { "io_get_input"     , _io_get_input     }
     , { "set_input_none"   , _set_input_none   }
     , { "set_input_stream" , _set_input_stream }
@@ -552,6 +627,7 @@ static const struct luaL_Reg libCrow[]=
     , { "set_input_scale"  , _set_input_scale  }
     , { "set_input_window" , _set_input_window }
     , { "set_input_volume" , _set_input_volume }
+    , { "set_input_peak"   , _set_input_peak   }
         // usb
     , { "send_usb"         , _send_usb         }
         // i2c
@@ -894,6 +970,22 @@ void L_handle_volume( event_t* e )
     lua_pushinteger(L, e->index.i+1); // 1-ix'd
     lua_pushnumber(L, e->data.f);
     if( Lua_call_usercode(L, 2, 0) != LUA_OK ){
+        lua_pop( L, 1 );
+    }
+}
+
+void L_queue_peak( int id, float ignore )
+{
+    event_t e = { .handler = L_handle_peak
+                , .index.i = id
+                };
+    event_post(&e);
+}
+void L_handle_peak( event_t* e )
+{
+    lua_getglobal(L, "peak_handler");
+    lua_pushinteger(L, e->index.i +1); // 1-ix'd
+    if( Lua_call_usercode(L, 1, 0) != LUA_OK ){
         lua_pop( L, 1 );
     }
 }
