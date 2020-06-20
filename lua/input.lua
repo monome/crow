@@ -22,7 +22,13 @@ function Input.new( chan )
               , change     = function(state) _c.tell('change',chan,state and 1 or 0) end
               , midi       = function(data) _c.tell('midi',table.unpack(data)) end
               , window     = function(win, dir) _c.tell('window',chan,win,dir and 1 or 0) end
-              , scale      = function(s) _c.tell('scale',chan,s.note) end
+              , scale      = function(s)
+                                local str = '{index=' .. s.index
+                                         .. ',octave=' .. s.octave
+                                         .. ',note=' .. s.note
+                                         .. ',volts=' .. s.volts .. '}'
+                                _c.tell('scale',chan,str)
+                             end
               , volume     = function(level) _c.tell('volume',chan,level) end
               , peak       = function() _c.tell('peak',chan) end
               }

@@ -12,10 +12,10 @@
 
 #define IN_CHANNELS ADDA_ADC_CHAN_COUNT
 
-void IO_Init( void )
+void IO_Init( int adc_timer_ix )
 {
     // hardware layer
-    ADDA_Init();
+    ADDA_Init(adc_timer_ix);
 
     // dsp objects
     Detect_init( IN_CHANNELS );
