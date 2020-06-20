@@ -112,7 +112,7 @@ void Detect_scale( Detect_t*         self
     if( sLen == 0 ){ // assume chromatic
         self->scale.sLen = 1;
         self->scale.scale[0] = 0.0;
-        self->scale.scaling = scaling / self->scale.divs; // scale to n-TET
+        self->scale.scaling = scaling / divs; // scale to n-TET
         self->scale.divs    = 1.0; // force 1 div
     } else {
         for( int i=0; i<self->scale.sLen; i++ ){
