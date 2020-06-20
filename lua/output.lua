@@ -6,6 +6,7 @@ function Output.new( chan )
               , rate    = 1/chan
               , shape   = 'linear'
               , slew    = 0.0
+              , _scale   = 'none'
               , asl     = asl.new( chan )
 --              , trig    = { asl      = asl.new(k)
 --                          , polarity = 1
@@ -40,6 +41,8 @@ Output.__index = function(self, ix)
     if     ix == 'action'  then return self.asl.action
     elseif ix == 'volts'   then return LL_get_state(self.channel)
     elseif ix == 'running' then return self.asl.running
+    elseif ix == 'scale'   then return
+        function(...) set_output_scale(self.channel, ...) end
     end
 end
 
