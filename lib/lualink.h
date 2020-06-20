@@ -30,8 +30,9 @@ extern void L_queue_change( int id, float state );
 extern void L_queue_midi( uint8_t* data );
 extern void L_queue_window( int id, float window );
 extern void L_queue_volume( int id, float level );
+extern void L_queue_peak( int id, float ignore );
 extern void L_queue_in_scale( int id, float note );
-extern void L_queue_ii_leadRx( uint8_t address, uint8_t cmd, float data );
+extern void L_queue_ii_leadRx( uint8_t address, uint8_t cmd, float data, uint8_t arg );
 extern void L_queue_ii_followRx( void );
 
 // Callback declarations

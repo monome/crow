@@ -2,6 +2,7 @@
 
 #include <stm32f7xx_hal.h>
 
+#include "timers.h"
 #include "debug_pin.h"
 
 #define ADC_FRAMES     3 // status word, plus 2 channels
@@ -26,6 +27,8 @@ uint32_t adc_samp_count = 64;
 float adc_calibrated_scalar[ADC_COUNTT];
 float adc_calibrated_shift[ADC_COUNTT];
 
+int timer_index_ads;
+
 void ADS_Init_Sequence(void);
 void ADS_Reset_Device(void);
 uint8_t ADS_IsReady( void );
@@ -36,9 +39,12 @@ void ADC_Rx( uint16_t* aRxBuffer, uint32_t size );
 uint8_t _ADC_CheckErrors( uint16_t error_mask );
 //uint8_t _ADC_CheckErrors( uint16_t expect, uint16_t error );
 
+// background wait for NSS delay
+static void ADC_UnpickleBlock_Cont( int unused );
+
 #define ADC_U16_TO_V        ((float)(15.0 / 65535.0))
 
-void ADC_Init( uint16_t bsize, uint8_t chan_count )
+void ADC_Init( uint16_t bsize, uint8_t chan_count, int timer_ix )
 {
     adc_count  = chan_count;
     adc_samp_count = bsize * chan_count;
@@ -89,6 +95,14 @@ void ADC_Init( uint16_t bsize, uint8_t chan_count )
         adc_calibrated_scalar[i] = ADC_U16_TO_V;
         adc_calibrated_shift[i] = 2.5;
     }
+
+    // This timer is used to wait for the ADC to collect data in the background
+    // 320uS was found experimentally to be the shortest delay that would
+    // reliably have valid ADC data in the ADS131's internal buffer.
+    timer_index_ads = timer_ix;
+    Timer_Set_Params( timer_index_ads, 0.00032 ); // 320uS
+    Timer_Priority( timer_index_ads, ADC_IRQPriority );
+
     ADS_Init_Sequence();
 }
 
@@ -175,7 +189,7 @@ uint16_t ADS_Cmd( uint16_t command )
     aTxBuffer[0] = command;
     aRxBuffer[0] = 0;
     ADC_TxRx( aTxBuffer, aRxBuffer, 1);
-    
+
     return aRxBuffer[0];
 }
 
@@ -199,23 +213,30 @@ void ADC_UnpickleBlock( float*   unpickled
     }
 
 
-    // Request next buffer (if driver is free)
+    // Request next buffer
     if (HAL_SPI_GetState(&adc_spi) == HAL_SPI_STATE_READY){
         HAL_GPIO_WritePin( SPIa_NSS_GPIO_PORT, SPIa_NSS_PIN, 0 );
-//TODO: set a timer and wait in the background
-        DELAY_usec(8000); // can't seem to go lower
-        uint32_t* tx = (uint32_t*)aTxBuffer;
-        *tx = 0; // NULL command
-        BLOCK_IRQS(
-            if(HAL_SPI_TransmitReceive_DMA( &adc_spi
-                                          , (uint8_t*)aTxBuffer
-                                          , (uint8_t*)aRxBuffer
-                                          , ADC_BUF_SIZE
-                                          ) != HAL_OK ){
-                printf("spi_txrx_fail\n");
-            }
-        );
+        // Use the timer to delay continuation while ADC collects data
+        Timer_Start( timer_index_ads, &ADC_UnpickleBlock_Cont );
+    } else {
+        printf("!ADC driver busy\n");
     }
+}
+
+static void ADC_UnpickleBlock_Cont( int unused )
+{
+    uint32_t* tx = (uint32_t*)aTxBuffer;
+    *tx = 0; // NULL command
+    BLOCK_IRQS(
+        if(HAL_SPI_TransmitReceive_DMA( &adc_spi
+                                      , (uint8_t*)aTxBuffer
+                                      , (uint8_t*)aRxBuffer
+                                      , ADC_BUF_SIZE
+                                      ) != HAL_OK ){
+            printf("spi_txrx_fail\n");
+        }
+    );
+    Timer_Stop( timer_index_ads );
 }
 
 void ADC_CalibrateScalar( uint8_t channel, float scale )
