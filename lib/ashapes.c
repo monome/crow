@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
 
 int ashaper_count = 0;
 AShape_t* ashapers = NULL;
@@ -81,7 +82,7 @@ float* AShaper_v( int     index
 
         float n_samp = samp/self->scaling; // samp normalized to [0,1.0)
 
-        float divs = (float)(int)n_samp;
+        float divs = floorf(n_samp);
         float phase = n_samp - divs; // [0,1.0)
 
         int note = (int)(phase * self->dlLen); // map phase to num of note choices
