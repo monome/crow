@@ -238,6 +238,10 @@ static void d_window( Detect_t* self, float level )
 
 static void d_scale( Detect_t* self, float level )
 {
+    // FIXME there is something wrong with this logic
+    // This initial window casing should make the inner ix & octaves check redundant
+    // Currently the outer case gets into a state where it is true, but the inner
+    // state is false. Results in rapid callbacks with the same value
     if( level > (self->scale.lastVolts + self->scale.hwin)
      || level < (self->scale.lastVolts - self->scale.hwin) ){
 
@@ -247,18 +251,23 @@ static void d_scale( Detect_t* self, float level )
         float phase = n_level - (float)octaves;      // position in win [0,1.0)
         float fix = phase * self->scale.sLen;        // map phase to #scale
         int ix = (int)fix;                           // truncate to nearest
-        float note = self->scale.scale[ix]; // apply LUT within octave
-        float noteOct = note + (float)octaves*self->scale.divs;
-        float volts = (note / self->scale.divs + (float)octaves)
-                       * self->scale.scaling;
 
-        // save values for event callback
-        self->scale.lastIndex = ix;
-        self->scale.lastOct   = octaves;
-        self->scale.lastNote  = noteOct;
-        self->scale.lastVolts = volts;
+        if( ix      != self->scale.lastIndex
+         || octaves != self->scale.lastOct
+          ){ // new note detected
+            float note = self->scale.scale[ix]; // apply LUT within octave
+            float noteOct = note + (float)octaves*self->scale.divs;
+            float volts = (note / self->scale.divs + (float)octaves)
+                           * self->scale.scaling;
 
-        (*self->action)( self->channel, 0.0 ); // callback! 0.0 is ignored
+            // save values for event callback
+            self->scale.lastIndex = ix;
+            self->scale.lastOct   = octaves;
+            self->scale.lastNote  = noteOct;
+            self->scale.lastVolts = volts;
+
+            (*self->action)( self->channel, 0.0 ); // callback! 0.0 is ignored
+        }
     }
 }
 
