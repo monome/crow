@@ -4,6 +4,7 @@
 
 #include "../ll/adda.h"        // _Init(), _Start(), _GetADCValue(), IO_block_t
 #include "slopes.h"            // S_init(), S_step_v()
+#include "ashapes.h"           // AShaper_init(), AShaper_v()
 #include "detect.h"            // Detect_init(), Detect(), Detect_ix_to_p()
 #include "metro.h"
 
@@ -11,14 +12,15 @@
 
 #define IN_CHANNELS ADDA_ADC_CHAN_COUNT
 
-void IO_Init( void )
+void IO_Init( int adc_timer_ix )
 {
     // hardware layer
-    ADDA_Init();
+    ADDA_Init(adc_timer_ix);
 
     // dsp objects
     Detect_init( IN_CHANNELS );
     S_init( SLOPE_CHANNELS );
+    AShaper_init( SLOPE_CHANNELS );
 }
 
 void IO_Start( void )
@@ -38,6 +40,12 @@ IO_block_t* IO_BlockProcess( IO_block_t* b )
                 , b->out[j]
                 , b->size
                 );
+    }
+    for( int j=0; j<SLOPE_CHANNELS; j++ ){
+        AShaper_v( j
+                 , b->out[j]
+                 , b->size
+                 );
     }
     return b;
 }

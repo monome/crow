@@ -17,6 +17,7 @@ static void d_change( Detect_t* self, float level );
 static void d_window( Detect_t* self, float level );
 static void d_scale( Detect_t* self, float level );
 static void d_volume( Detect_t* self, float level );
+static void d_peak( Detect_t* self, float level );
 
 
 ///////////////////////////////////////////
@@ -33,7 +34,7 @@ void Detect_init( int channels )
         selves[j].state   = 0;
         Detect_none( &(selves[j]) );
         selves[j].win.lastWin = 0;
-        selves[j].volume.vu = VU_init();
+        selves[j].vu = VU_init();
     }
 }
 
@@ -108,11 +109,17 @@ void Detect_scale( Detect_t*         self
     self->modefn        = d_scale;
     self->action        = cb;
     self->scale.sLen    = (sLen > SCALE_MAX_COUNT) ? SCALE_MAX_COUNT : sLen;
+    self->scale.offset  = 0.5 * scaling / divs; // use raw val for chromatic
+    // hysteresis window
+    self->scale.hwin    = self->scale.offset * 1.1; // 10% overlap
+    if( self->scale.hwin < 0.0666 ){ // minimum 67mV which is ~noisefloor
+        self->scale.hwin = 0.0666;
+    }
     if( sLen == 0 ){ // assume chromatic
-        self->scale.sLen = 1;
+        self->scale.sLen     = 1;
         self->scale.scale[0] = 0.0;
-        self->scale.scaling = scaling / self->scale.divs; // scale to n-TET
-        self->scale.divs    = 1.0; // force 1 div
+        self->scale.scaling  = scaling / divs; // scale to n-TET
+        self->scale.divs     = 1.0; // force 1 div
     } else {
         for( int i=0; i<self->scale.sLen; i++ ){
             self->scale.scale[i] = *scale++;
@@ -120,7 +127,6 @@ void Detect_scale( Detect_t*         self
         self->scale.divs    = divs;
         self->scale.scaling = scaling;
     }
-    self->scale.offset = 0.5 * self->scale.scaling / self->scale.divs;
     self->scale.lastNote = -100.0; // out of range, to force a new match
 }
 
@@ -148,10 +154,29 @@ void Detect_volume( Detect_t*         self
 {
     self->modefn         = d_volume;
     self->action         = cb;
+
+    VU_time( self->vu, 0.018 );
     // SAMPLE_RATE * i / BLOCK_SIZE
     self->volume.blocks  = (int)((48000.0 * interval) / 32.0);
     if( self->volume.blocks <= 0 ){ self->volume.blocks = 1; }
     self->volume.countdown = self->volume.blocks;
+}
+
+void Detect_peak( Detect_t*         self
+                , Detect_callback_t cb
+                , float             threshold
+                , float             hysteresis
+                )
+{
+    self->modefn            = d_peak;
+    self->action            = cb;
+    // TODO perhaps a abs->2lpf (no RMS averaging) is better?
+    // set 30ms settling time for peak envelope behaviour
+    VU_time( self->vu, 0.18 );
+    self->peak.threshold  = threshold;
+    self->peak.hysteresis = hysteresis;
+    self->peak.release    = 0.01; // TODO tune this
+    self->peak.envelope   = 0.0;
 }
 
 
@@ -213,36 +238,66 @@ static void d_window( Detect_t* self, float level )
 
 static void d_scale( Detect_t* self, float level )
 {
-    // TODO add hysteresis to avoid jittering
-    level += self->scale.offset;
-    float n_level = level / self->scale.scaling;
-    int octaves = (int)floorf(n_level);
-    float phase = n_level - (float)octaves; // [0,1.0)
-    float fix = phase * self->scale.sLen;
-    int ix = (int)fix; // map phase to #scale
+    // FIXME there is something wrong with this logic
+    // This initial window casing should make the inner ix & octaves check redundant
+    // Currently the outer case gets into a state where it is true, but the inner
+    // state is false. Results in rapid callbacks with the same value
+    if( level > (self->scale.lastVolts + self->scale.hwin)
+     || level < (self->scale.lastVolts - self->scale.hwin) ){
 
-    if( ix      != self->scale.lastIndex
-     || octaves != self->scale.lastOct
-      ){ // new note detected
-        float note = self->scale.scale[ix]; // apply LUT within octave
-        float noteOct = note + (float)octaves*self->scale.divs;
-        float volts = (note / self->scale.divs + (float)octaves)
-                       * self->scale.scaling;
-        self->scale.lastIndex = ix;
-        self->scale.lastOct   = octaves;
-        self->scale.lastNote  = noteOct;
-        self->scale.lastVolts = volts;
-        (*self->action)( self->channel, 0.0 ); // callback! 0.0 is ignored
+        level += self->scale.offset;                 // centre each window
+        float n_level = level / self->scale.scaling; // normalize scaling
+        int octaves = (int)floorf(n_level);          // # of folds around scaling
+        float phase = n_level - (float)octaves;      // position in win [0,1.0)
+        float fix = phase * self->scale.sLen;        // map phase to #scale
+        int ix = (int)fix;                           // truncate to nearest
+
+        if( ix      != self->scale.lastIndex
+         || octaves != self->scale.lastOct
+          ){ // new note detected
+            float note = self->scale.scale[ix]; // apply LUT within octave
+            float noteOct = note + (float)octaves*self->scale.divs;
+            float volts = (note / self->scale.divs + (float)octaves)
+                           * self->scale.scaling;
+
+            // save values for event callback
+            self->scale.lastIndex = ix;
+            self->scale.lastOct   = octaves;
+            self->scale.lastNote  = noteOct;
+            self->scale.lastVolts = volts;
+
+            (*self->action)( self->channel, 0.0 ); // callback! 0.0 is ignored
+        }
     }
 }
 
 static void d_volume( Detect_t* self, float level )
 {
-    float v = VU_step( self->volume.vu, level );
+    level = VU_step( self->vu, level );
     if( --self->volume.countdown <= 0 ){
         self->volume.countdown = self->volume.blocks; // reset counter
-        (*self->action)( self->channel
-                       , v
-                       ); // callback!
+        (*self->action)( self->channel, level ); // callback!
+    }
+}
+
+static void d_peak( Detect_t* self, float level )
+{
+    level = VU_step( self->vu, level );
+    if( level > self->last ){ // instant attack
+        self->peak.envelope = level;
+    } else { // release as 1lpf slew
+        self->peak.envelope = level + self->peak.release
+                                      * (self->peak.envelope - level);
+    }
+
+    if( self->state ){ // high to low
+        if( self->peak.envelope < (self->peak.threshold - self->peak.hysteresis) ){
+            self->state = 0;
+        }
+    } else { // low to high
+        if( self->peak.envelope > (self->peak.threshold + self->peak.hysteresis) ){
+            self->state = 1;
+            (*self->action)( self->channel, 0.0 ); // callback! 0.0 is ignored
+        }
     }
 }

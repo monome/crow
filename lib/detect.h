@@ -27,6 +27,7 @@ typedef struct{
     float scaling;
     // state / pre-computation
     float offset;
+    float hwin;
     int   lastIndex;
     int   lastOct;
     float lastNote;
@@ -41,15 +42,20 @@ typedef struct{
 } D_window_t;
 
 typedef struct{
-    VU_meter_t* vu;
-    int         blocks;
-    int         countdown;
+    int blocks;
+    int countdown;
 } D_volume_t;
+
+typedef struct{
+    float threshold;
+    float hysteresis;
+    float release;
+    float envelope;
+} D_peak_t;
 
 typedef struct detect{
     uint8_t channel;
     void (*modefn)(struct detect* self, float level);
-
     Detect_callback_t action;
 
 // mode specifics
@@ -59,7 +65,10 @@ typedef struct detect{
     uint8_t    state;
     D_window_t win;
     D_scale_t  scale;
-    D_volume_t volume;
+
+    VU_meter_t* vu; // vu metering shared by volume & peak
+    D_volume_t  volume;
+    D_peak_t    peak;
 } Detect_t;
 
 typedef void (*Detect_mode_fn_t)(Detect_t* self, float level);
@@ -110,3 +119,8 @@ void Detect_volume( Detect_t*         self
                   , Detect_callback_t cb
                   , float             interval
                   );
+void Detect_peak( Detect_t*         self
+                , Detect_callback_t cb
+                , float             threshold
+                , float             hysteresis
+                );

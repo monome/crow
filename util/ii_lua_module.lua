@@ -74,11 +74,7 @@ function lua_events(f)
     end
     e = e .. '}\n'
           .. 'function ' .. f.lua_name
-    if type(f.i2c_address) == 'table' then
-        e = e .. '.event(e,data,ix)ii.e(\'' .. f.lua_name .. '\',e,data,ix)end\n\n'
-    else
-        e = e .. '.event(e,data)ii.e(\'' .. f.lua_name .. '\',e,data)end\n\n'
-    end
+    e = e .. '.event(e,data)ii.e(\'' .. f.lua_name .. '\',e,data)end\n\n'
     return e
 end
 

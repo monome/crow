@@ -272,9 +272,7 @@ function generate_events( d )
         return false
     end
 
-    local events = '"ii.' .. d.lua_name .. '.event = function( e, data'
-    if type(d.i2c_address) == 'table' then events = events .. ', id' end
-    events = events .. ' )\\n\\r"\n'
+    local events = '"ii.' .. d.lua_name .. '.event = function( e, value )\\n\\r"\n'
 
     local overloaded = has_get_cmd(d)
     if overloaded then
@@ -283,26 +281,30 @@ function generate_events( d )
             if v.get == true then
                 local vn = type(v.name) == 'number' and v.name or '\'' .. v.name .. '\''
                 if heading then
-                    events = events .. '"\tif e == ' .. vn .. ' then\\n\\r"\n'
+                    events = events .. '"\tif e.name == ' .. vn .. ' then\\n\\r"\n'
                            .. '"\t\t-- handle ' .. v.name .. ' response\\n\\r"\n'
+                           .. '"\t\t\t-- e.arg: first argument, ie channel\\n\\r"\n'
+                           .. '"\t\t\t-- e.device: index of device\\n\\r"\n'
                     heading = false
                 else
-                    events = events .. '"\telseif e == ' .. vn .. ' then\\n\\r"\n'
+                    events = events .. '"\telseif e.name == ' .. vn .. ' then\\n\\r"\n'
                 end
             end
         end
     else
         local gn = type(d.getters[1].name) == 'number' and d.getters[1].name
                                                        or '\'' .. d.getters[1].name .. '\''
-        events = events .. '"\tif e == ' .. gn .. ' then\\n\\r"\n'
+        events = events .. '"\tif e.name == ' .. gn .. ' then\\n\\r"\n'
                .. '"\t\t-- handle ' .. d.getters[1].name .. ' response\\n\\r"\n'
+               .. '"\t\t\t-- e.arg: first argument, ie channel\\n\\r"\n'
+               .. '"\t\t\t-- e.device: index of device\\n\\r"\n'
     end
 
     if d.getters ~= nil then
         for i=(overloaded and 1 or 2),#(d.getters) do
             local gn = type(d.getters[i].name) == 'number' and d.getters[i].name
                                                            or '\'' .. d.getters[i].name .. '\''
-            events = events .. '"\telseif e == ' .. gn .. ' then\\n\\r"\n'
+            events = events .. '"\telseif e.name == ' .. gn .. ' then\\n\\r"\n'
         end
     end
     events = events .. '"\tend\\n\\r"\n'

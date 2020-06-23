@@ -26,6 +26,16 @@ end
 function make_ii(files)
     local c = header
 
+    c = c .. 'actions.init = function()\n'
+    for _,f in ipairs(files) do
+        if need_events(f) then
+            c = c .. '  actions.' .. f.lua_name .. '.event = function(t,v) print("'
+                  .. f.lua_name
+                  .. ' ii: name=\'"..t.name.."\', device="..t.device..", arg="..t.arg..", value="..v) end\n'
+        end
+    end
+    c = c .. 'end\n\n'
+
     local function make_helpers(f)
 
         function make_cmd_alias( device, name, args )
@@ -52,6 +62,7 @@ function make_ii(files)
             return cmd
         end
 
+        -- add .help command
         local h = make_cmd_alias( f.lua_name, 'help' )
         if f.commands then
             for _,v in ipairs( f.commands ) do
@@ -62,19 +73,25 @@ function make_ii(files)
         return h
     end
 
-    c = c .. 'actions.init = function()\n'
-    for _,f in ipairs(files) do
+    local function make_getter(f)
+        local c = ''
         if need_events(f) then
-            c = c .. '  actions.' .. f.lua_name .. '.event = function(i,v) print("'
-                  .. f.lua_name
-                  .. ' ii: "..i.." "..v) end\n'
+            c = 'actions.' .. f.lua_name .. '.get = function(cmd,...)\n'
+             .. '\tlocal t = {...}\n'
+             .. '\tlocal s = string.format("ii.' .. f.lua_name .. '.get(%q",cmd)\n'
+             .. '\tfor i=1,#t do s = s .. "," .. t[i] end\n'
+             .. '\tcrow.send(s .. ")")\n'
+             .. 'end\n'
         end
+        return c
     end
-    c = c .. 'end\n\n'
+
     for _,f in ipairs(files) do
         c = c .. 'actions.' .. f.lua_name .. ' = {}\n'
-              .. make_helpers(f) .. '\n'
+              .. make_helpers(f)
+              .. make_getter(f) .. '\n'
     end
+
     return c .. footer
 end
 

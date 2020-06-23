@@ -98,7 +98,7 @@
 
 #define ADS_DATAWORDSIZE 0x4 // 32bit, pin M1 pulled high to IOVDD
 
-void ADC_Init( uint16_t bsize, uint8_t chan_count );
+void ADC_Init( uint16_t bsize, uint8_t chan_count, int timer_ix );
 
 //int32_t
 uint16_t ADC_GetU16( uint8_t channel );

@@ -10,12 +10,14 @@
 
 // can probably replace with HAL state machine?
 typedef enum{ OP_NULL
+            , OP_ERROR
             , OP_LISTEN
             , OP_LEAD_TX
             , OP_LEAD_RX
             , OP_FOLLOW_TX
             , OP_FOLLOW_TX_READY
             , OP_FOLLOW_RX
+            , OP_ABORT
 } I2C_OP_t;
 
 typedef struct{
@@ -35,8 +37,10 @@ I2C_HandleTypeDef i2c_handle;
 I2C_lead_callback_t   lead_response;
 I2C_follow_callback_t follow_action;
 I2C_follow_callback_t follow_request;
+I2C_error_callback_t  error_action;
 
 I2C_State_t buf;
+uint8_t pullup_state = 0;
 
 
 //////////////////////////////
@@ -46,6 +50,7 @@ uint8_t I2C_Init( uint8_t               address
                 , I2C_lead_callback_t   lead_callback
                 , I2C_follow_callback_t follow_action_callback
                 , I2C_follow_callback_t follow_request_callback
+                , I2C_error_callback_t  error_callback
                 )
 {
     uint8_t error = 0;
@@ -53,6 +58,7 @@ uint8_t I2C_Init( uint8_t               address
     lead_response  = lead_callback;
     follow_action  = follow_action_callback;
     follow_request = follow_request_callback;
+    error_action   = error_callback;
 
     i2c_handle.Instance              = I2Cx;
     i2c_handle.Init.Timing           = I2C_TIMING;
@@ -145,6 +151,8 @@ void HAL_I2C_MspDeInit( I2C_HandleTypeDef* h )
 
 void I2C_SetPullups( uint8_t state )
 {
+    pullup_state = state;
+
     GPIO_InitTypeDef gpio;
     gpio.Pin       = I2Cx_SCL_PIN
                    | I2Cx_SDA_PIN;
@@ -156,6 +164,11 @@ void I2C_SetPullups( uint8_t state )
     HAL_GPIO_DeInit( I2Cx_SCL_GPIO_PORT, I2Cx_SCL_PIN );
     HAL_GPIO_DeInit( I2Cx_SDA_GPIO_PORT, I2Cx_SDA_PIN );
     HAL_GPIO_Init( I2Cx_SCL_GPIO_PORT, &gpio );
+}
+
+uint8_t I2C_GetPullups( void )
+{
+    return pullup_state;
 }
 
 uint8_t I2C_GetAddress( void )
@@ -172,7 +185,30 @@ void I2C_SetAddress( uint8_t address )
 ////////////////////////////
 // leader set/get
 
-int I2C_is_ready( void ){ return (buf.operation == OP_LISTEN); }
+#define I2C_READY_TIMEOUT 20000
+int timeout = I2C_READY_TIMEOUT;
+
+int I2C_is_ready( void )
+{
+    switch( buf.operation ){
+        case OP_LISTEN:
+            timeout = I2C_READY_TIMEOUT;
+            break;
+
+        case OP_ABORT:
+        case OP_NULL:
+            // waiting
+            break;
+
+        default: // all others
+            if( --timeout <= 0 ){
+                buf.operation = OP_ABORT;
+                HAL_I2C_Master_Abort_IT( &i2c_handle, buf.address );
+            }
+            break;
+    }
+    return (buf.operation == OP_LISTEN);
+}
 
 int I2C_LeadTx( uint8_t  address
               , uint8_t* data
@@ -182,6 +218,7 @@ int I2C_LeadTx( uint8_t  address
     address <<= 1;
     int error = 0;
     if( buf.operation == OP_LISTEN ){
+        buf.address = address; // save in case of abort
         BLOCK_IRQS(
             if( HAL_I2C_DisableListen_IT( &i2c_handle ) != HAL_OK ){ error |= 1; }
             if( HAL_I2C_Master_Transmit_IT( &i2c_handle
@@ -190,6 +227,7 @@ int I2C_LeadTx( uint8_t  address
                     , size
                     ) != HAL_OK ){
                 error |= 2;
+                HAL_I2C_ListenCpltCallback( &i2c_handle ); // re-enable listen
             } else { buf.operation = OP_LEAD_TX; }
         );
     } else {
@@ -212,19 +250,25 @@ int I2C_LeadRx( uint8_t  address
         buf.size    = rx_size;
         buf.command = data[0];
         BLOCK_IRQS(
-            if( HAL_I2C_DisableListen_IT( &i2c_handle ) != HAL_OK ){ error |= 1; }
-            if( HAL_I2C_Master_Sequential_Transmit_IT( &i2c_handle
-                    , address
-                    , data
-                    , size
-                    , I2C_FIRST_FRAME
-                    ) != HAL_OK ){
-                error |= 2;
+            if( HAL_I2C_DisableListen_IT( &i2c_handle ) != HAL_OK ){
+                error |= 0x1;
+            } else if( __HAL_I2C_GET_FLAG( &i2c_handle, I2C_FLAG_BUSY ) ){
+                // NB: Explicitly check BUSY flag as Sequential_Transmit doesn't
+                error |= 0x2;
+                HAL_I2C_ListenCpltCallback( &i2c_handle ); // re-enable listen
+            } else if( HAL_I2C_Master_Sequential_Transmit_IT( &i2c_handle
+                            , address
+                            , data
+                            , size
+                            , I2C_FIRST_FRAME
+                            ) != HAL_OK ){
+                error |= 0x4;
+                HAL_I2C_ListenCpltCallback( &i2c_handle ); // re-enable listen
             } else { buf.operation = OP_LEAD_RX; }
         );
     } else {
         printf("can't leadRx because operation=%i\n",buf.operation);
-        error = 1;
+        error = 8;
     }
     return error;
 }
@@ -362,43 +406,26 @@ void HAL_I2C_ListenCpltCallback( I2C_HandleTypeDef* hi2c )
 
 void I2Cx_ER_IRQHandler( void )
 {
-    printf("I2C Error: %i\n", (int)HAL_I2C_GetError( &i2c_handle ));
-    buf.operation = OP_NULL;
+    buf.operation = OP_ERROR;
     HAL_I2C_ER_IRQHandler( &i2c_handle );
 }
 
 void HAL_I2C_ErrorCallback( I2C_HandleTypeDef* h )
 {
     if( h->ErrorCode == HAL_I2C_ERROR_AF ){
-        printf("I2C_ERROR_AF\n"); // means can't find device
-
-        // Seems to lock up i2c bus until whole driver is reset
-        // Software reset
-/* A software reset can be performed by clearing the PE bit in the I2C_CR1 register. In that
-case I2C lines SCL and SDA are released. Internal states machines are reset and
-communication control bits, as well as status bits come back to their reset value. The
-configuration registers are not impacted.
-Here is the list of impacted register bits:
-1.
- I2C_CR2 register: START, STOP, NACK
-2.
- I2C_ISR register: BUSY, TXE, TXIS, RXNE, ADDR, NACKF, TCR, TC, STOPF, BERR,
-ARLO, OVR
-and in addition when the SMBus feature is supported:
-1.
- I2C_CR2 register: PECBYTE
-2.
- I2C_ISR register: PECERR, TIMEOUT, ALERT
-PE must be kept low during at least 3 APB clock cycles in order to perform the software
-reset. This is ensured by writing the following software sequence: - Write PE=0 - Check
-PE=0 - Write PE=1.
-*/
+        (*error_action)( 0 );
     } else {
         if( h->ErrorCode == 2 ){
-            Caw_send_luachunk("ii: lines are low. try ii.pullup(true)");
+            (*error_action)( 1 );
         } else{
-            printf("I2C_ERROR %i\n", (int)h->ErrorCode);
+            (*error_action)( (int)h->ErrorCode );
         }
     }
+    HAL_I2C_ListenCpltCallback( &i2c_handle ); // Re-enable Listen
+}
+
+void HAL_I2C_AbortCpltCallback( I2C_HandleTypeDef* h )
+{
+    timeout = I2C_READY_TIMEOUT;
     HAL_I2C_ListenCpltCallback( &i2c_handle );
 }
