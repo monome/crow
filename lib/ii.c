@@ -341,7 +341,7 @@ static float decode( uint8_t* data, ii_Type_t type )
             u16  = ((uint16_t)*data++)<<8;
             u16 |= *data++;
             // combine
-            val += ((float)*(int16_t*)&u16)*TT_iVOLT;
+            val += ((float)*(int16_t*)&u16)*II_TT_iVOLT;
             break;
         default: printf("ii_decode unmatched\n"); break;
     }
@@ -392,7 +392,7 @@ static uint8_t encode( uint8_t* dest, ii_Type_t type, float data )
             d[len++] = (uint8_t)(u16>>8);          // High byte first
             d[len++] = (uint8_t)(u16 & 0x00FF);    // Low byte
             // signed 16 V
-            subTime *= TT_VOLT; // Scale float up to Teletype
+            subTime *= II_TT_VOLT; // Scale float up to Teletype
             s16 = (int16_t)subTime;
             u16 = *(uint16_t*)&s16;
             d[len++] = (uint8_t)(u16>>8);          // High byte first
