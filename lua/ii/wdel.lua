@@ -76,7 +76,6 @@ do return
   , { name = 'clock'
     , cmd  = 13
     , docs = 'receive clock pulse for synchronization'
---    , args = { 'symmetry', s16V }
     }
   , { name = 'clock_ratio'
     , cmd  = 14
@@ -84,6 +83,23 @@ do return
     , args = { { 'mul', s8 }
              , { 'div', s8 }
              }
+    }
+  , { name = 'pluck'
+    , cmd  = 15
+    , docs = 'pluck the delay line with noise at volume'
+    , args = { 'volume', s16V }
+    }
+  , { name = 'mod_rate'
+    , cmd  = 16
+    , get  = true
+    , docs = 'set the multiplier for the modulation rate'
+    , args = { 'rate', s16V }
+    }
+  , { name = 'mod_amount'
+    , cmd  = 17
+    , get  = true
+    , docs = 'set the amount of delay line modulation to be applied'
+    , args = { 'amount', s16V }
     }
   }
 }
