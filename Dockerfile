@@ -12,6 +12,7 @@ RUN apt-get update && \
     git \
     libreadline-dev \
     unzip \
+    zip \
     wget && \
     rm -rf /var/lib/apt/lists/*
 
