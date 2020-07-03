@@ -26,7 +26,6 @@ RUN tar -xzf lua.tar.gz && \
     cd luarocks-3.0.4 && \
     ./configure && make bootstrap && \
     cd ..
-RUN luarocks install fennel
 
 WORKDIR /target
-ENTRYPOINT ["make"]
+ENTRYPOINT ["make", "-j", "R=1", "zip"]
