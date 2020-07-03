@@ -20,7 +20,7 @@ RUN tar -xzf lua.tar.gz && \
     cd lua-5.3.4 && \
     make linux test && \
     make install && \
-    cd .. && \
+    cd ..
 
 WORKDIR /target
 ENTRYPOINT ["make", "-j", "R=1", "zip"]
