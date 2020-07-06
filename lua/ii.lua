@@ -70,20 +70,22 @@ ii.self =
              , [7+128]='query2'
              , [8+128]='query3'
              }
-    , output = function(chan,val) print('output '..chan..' to '..val)end
-    , slew = function(chan,slew) print('slew '..chan..' at '..slew)end
-    , call1 = function(arg) print('call1('..arg..')')end
-    , call2 = function(a,a2) print('call2('..a..','..a2..')')end
-    , call3 = function(a,a2,a3) print('call3('..a..','..a2..','..a3..')')end
-    , call4 = function(a,a2,a3,a4) print('call4('..a..','..a2..','..a3..','..a4..')')end
-
-    , query0 = function() print('query0()'); return 5 end
-    , query1 = function(a) print('query1('..a..')'); return 6 end
-    , query2 = function(a,a2) print('query2('..a..','..a2..')'); return 7 end
-    , query3 = function(a,a2,a3) print('query3('..a..','..a2..','..a3..')')
+    }
+function ii.reset_events()
+    ii.self.output = function(chan,val) print('output '..chan..' to '..val)end
+    ii.self.slew   = function(chan,slew) print('slew '..chan..' at '..slew)end
+    ii.self.call1  = function(arg) print('call1('..arg..')')end
+    ii.self.call2  = function(a,a2) print('call2('..a..','..a2..')')end
+    ii.self.call3  = function(a,a2,a3) print('call3('..a..','..a2..','..a3..')')end
+    ii.self.call4  = function(a,a2,a3,a4) print('call4('..a..','..a2..','..a3..','..a4..')')end
+    ii.self.query0 = function() print('query0()'); return 5 end
+    ii.self.query1 = function(a) print('query1('..a..')'); return 6 end
+    ii.self.query2 = function(a,a2) print('query2('..a..','..a2..')'); return 7 end
+    ii.self.query3 = function(a,a2,a3) print('query3('..a..','..a2..','..a3..')')
         return 8
     end
-}
+end
+ii.reset_events()
 
 function ii_followRx_handler( cmd, ... )
     local name = ii.self.cmds[cmd]

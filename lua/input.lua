@@ -17,24 +17,27 @@ function Input.new( chan )
               , notes      = {}
               , temp       = 12
               , scaling    = 1.0
-        -- user-customizable events
-              , stream     = function(value) _c.tell('stream',chan,value) end
-              , change     = function(state) _c.tell('change',chan,state and 1 or 0) end
-              , midi       = function(data) _c.tell('midi',table.unpack(data)) end
-              , window     = function(win, dir) _c.tell('window',chan,win,dir and 1 or 0) end
-              , scale      = function(s)
-                                local str = '{index=' .. s.index
-                                         .. ',octave=' .. s.octave
-                                         .. ',note=' .. s.note
-                                         .. ',volts=' .. s.volts .. '}'
-                                _c.tell('scale',chan,str)
-                             end
-              , volume     = function(level) _c.tell('volume',chan,level) end
-              , peak       = function() _c.tell('peak',chan) end
               }
     setmetatable( i, Input )
+    i:reset_events()
     Input.inputs[chan] = i -- save reference for callback engine
     return i
+end
+
+function Input:reset_events()
+    self.stream = function(value) _c.tell('stream',chan,value) end
+    self.change = function(state) _c.tell('change',chan,state and 1 or 0) end
+    self.midi   = function(data) _c.tell('midi',table.unpack(data)) end
+    self.window = function(win, dir) _c.tell('window',chan,win,dir and 1 or 0) end
+    self.scale  = function(s)
+                     local str = '{index=' .. s.index
+                              .. ',octave=' .. s.octave
+                              .. ',note=' .. s.note
+                              .. ',volts=' .. s.volts .. '}'
+                     _c.tell('scale',chan,str)
+                  end
+    self.volume = function(level) _c.tell('volume',chan,level) end
+    self.peak   = function() _c.tell('peak',chan) end
 end
 
 function Input:get_value()
@@ -102,6 +105,8 @@ Input.__index = function(self, ix)
         return function() _c.tell('stream',self.channel,Input.get_value(self)) end
     elseif ix == 'mode'  then
         return function(...) Input.set_mode( self, ...) end
+    elseif ix == 'reset_events' then
+        return function() Input.reset_events(self) end
     end
 end
 

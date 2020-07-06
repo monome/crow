@@ -42,11 +42,15 @@ end
 _crow.libs()
 
 function _crow.reset()
-    for n=1,2 do input[n].mode = 'none' end
+    for n=1,2 do
+        input[n].mode = 'none'
+        input[n]:reset_events()
+    end
     for n=1,4 do
         output[n].slew = 0
         output[n].volts = 0
     end
+    ii.reset_events(ii.self)
     metro.free_all()
 end
 
