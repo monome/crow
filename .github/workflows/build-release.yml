@@ -19,4 +19,4 @@ jobs:
       uses: actions/upload-artifact@master
       with:
         name: crow-${{ github.sha }}.zip
-        path: crow.zip
+        path: crow-*/
