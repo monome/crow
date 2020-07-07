@@ -35,7 +35,7 @@ do return
     }
   , { name = 'ar_mode'
     , cmd  = 7
-    , docs = 'in attack-release mode, all notes are "plucked" and no "release" is requied'
+    , docs = 'in attack-release mode, all notes are "plucked" and no "release" is required'
     , get  = true
     , args = { 'is_ar', s8 }
     }
@@ -47,25 +47,25 @@ do return
     }
   , { name = 'ramp'
     , cmd  = 9
-    , docs = 'waveform symmetry: -5=ramp, 0=triangle, 5=sawtooth (NB: affects FM tone)'
+    , docs = 'waveform symmetry: -5=rampwave, 0=triangle, 5=sawtooth (NB: affects FM tone)'
     , get  = true
     , args = { 'ramp', s16V }
     }
   , { name = 'fm_index'
     , cmd  = 10
-    , docs = 'amount of FM modulation. 0=minimum, 5=maximum'
+    , docs = 'amount of FM modulation. -5=negative, 0=minimum, 5=maximum'
     , get  = true
     , args = { 'index', s16V }
     }
   , { name = 'fm_env'
     , cmd  = 16
-    , docs = 'amount of vactrol envelope applied to fm index'
+    , docs = 'amount of vactrol envelope applied to fm index, -5 to +5'
     , get  = true
     , args = { 'amount', s16V }
     }
   , { name = 'fm_ratio'
     , cmd  = 11
-    , docs = 'ratio of the FM modulator to carrier as a ratio. floating point values up to +/-20 supported'
+    , docs = 'ratio of the FM modulator to carrier as a ratio. floating point values up to 20.0 supported'
     , args = { { 'numerator', s16V }
              , { 'denomenator', s16V }
              }

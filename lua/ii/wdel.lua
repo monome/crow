@@ -55,12 +55,12 @@ do return
              , { 'divisions', u8 }
              }
     }
-  , { name = 'freq_range'
-    , cmd  = 10
-    , docs = 'TBD'
-    , get  = true
-    , args = { 'range', s8 }
-    }
+--  , { name = 'freq_range'
+--    , cmd  = 10
+--    , docs = 'TBD'
+--    , get  = true
+--    , args = { 'range', s8 }
+--    }
   , { name = 'rate'
     , cmd  = 11
     , get  = true
