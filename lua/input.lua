@@ -25,19 +25,19 @@ function Input.new( chan )
 end
 
 function Input:reset_events()
-    self.stream = function(value) _c.tell('stream',chan,value) end
-    self.change = function(state) _c.tell('change',chan,state and 1 or 0) end
+    self.stream = function(value) _c.tell('stream',self.channel,value) end
+    self.change = function(state) _c.tell('change',self.channel,state and 1 or 0) end
     self.midi   = function(data) _c.tell('midi',table.unpack(data)) end
-    self.window = function(win, dir) _c.tell('window',chan,win,dir and 1 or 0) end
+    self.window = function(win, dir) _c.tell('window',self.channel,win,dir and 1 or 0) end
     self.scale  = function(s)
                      local str = '{index=' .. s.index
                               .. ',octave=' .. s.octave
                               .. ',note=' .. s.note
                               .. ',volts=' .. s.volts .. '}'
-                     _c.tell('scale',chan,str)
+                     _c.tell('scale',self.channel,str)
                   end
-    self.volume = function(level) _c.tell('volume',chan,level) end
-    self.peak   = function() _c.tell('peak',chan) end
+    self.volume = function(level) _c.tell('volume',self.channel,level) end
+    self.peak   = function() _c.tell('peak',self.channel) end
 end
 
 function Input:get_value()
@@ -95,6 +95,8 @@ Input.__newindex = function(self, ix, val)
     if ix == 'mode' then
         self._mode = val
         Input.set_mode(self, self._mode)
+    else
+        return rawset(self,ix,val)
     end
 end
 
