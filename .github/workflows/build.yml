@@ -14,5 +14,5 @@ jobs:
     - name: Upload artifact
       uses: actions/upload-artifact@master
       with:
-        name: crow-${{ github.sha }}.bin
-        path: crow.bin
+        name: crow-${{ github.sha }}.zip
+        path: crow.zip
