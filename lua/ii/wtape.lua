@@ -51,11 +51,11 @@ do return
     , docs = 'Level of input material recorded to tape'
     , args = { 'gain', s16V }
     }
-  , { name = 'head_order'
+  , { name = 'echo_mode'
     , cmd  = 9
     , get  = true
-    , docs = 'Set to 1 for playback before erasing. For destructive looping'
-    , args = { 'previous', s8 }
+    , docs = 'Set to 1 to playback before erase. 0 (default) erases first'
+    , args = { 'is_echo', s8 }
     }
   , { name = 'loop_start'
     , cmd  = 10
