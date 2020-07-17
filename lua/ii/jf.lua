@@ -95,7 +95,6 @@ do return
     }
   , { name = 'address'
     , cmd  = 14
-    , get  = true
     , docs = 'Set i2c address to *index* (default)1 or 2'
     , args = { 'index', s8 }
     }
