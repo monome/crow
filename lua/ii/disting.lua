@@ -50,7 +50,31 @@ do return
   , { name = 'al_clock'
     , cmd = 0x4E
     }
-  -- TODO: MIDI / select bus ++ voice control
+  -- TODO: MIDI / select bus
+  , { name = 'midi'
+    , cmd = 0x4F
+    , args = { { 'status', u8 }
+             , { 'b1', u8 }
+	     , { 'b2', u8 }
+	     }
+    }
+  -- voice control
+  , { name = 'voice_pitch'
+    , cmd = 0x51
+    , args = { { 'voice', u8 }
+             , { 'pitch', s16 }
+	     }
+    }
+  , { name = 'note_on'
+    , cmd = 0x52
+    , args = { { 'voice', u8 }
+             , { 'velocity', s16 }
+             }
+    }
+  , { name = 'note_off'
+    , cmd = 0x53
+    , args = { 'voice', u8 }
+    }
   }
 , getters =
   { { name = 'get_preset'
