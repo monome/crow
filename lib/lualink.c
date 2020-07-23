@@ -616,6 +616,11 @@ static int _clock_cancel( lua_State* L )
     lua_pop(L, 1);
     return 0;
 }
+static int _clock_cancel_all( lua_State* L )
+{
+    clock_cancel_all();
+    return 0;
+}
 static int _clock_schedule_sleep( lua_State* L )
 {
     int coro_id = (int)luaL_checkinteger(L, 1);
@@ -720,6 +725,7 @@ static const struct luaL_Reg libCrow[]=
     , { "calibrate_print"  , _calibrate_print  }
         // clock
     , { "clock_cancel"             , _clock_cancel             }
+    , { "clock_cancel_all"         , _clock_cancel_all         }
     , { "clock_schedule_sleep"     , _clock_schedule_sleep     }
     , { "clock_schedule_sync"      , _clock_schedule_sync      }
     , { "clock_get_time_beats"     , _clock_get_time_beats     }

@@ -53,6 +53,7 @@ function _crow.reset()
     end
     ii.reset_events(ii.self)
     metro.free_all()
+    clock.cancel_all()
 end
 
 --- Communication functions

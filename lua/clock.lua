@@ -39,6 +39,8 @@ clock.cancel = function(coro_id)
   clock.threads[coro_id] = nil
 end
 
+clock.cancel_all = function() clock_cancel_all() end
+
 local SLEEP = 0
 local SYNC = 1
 local SUSPEND = 2

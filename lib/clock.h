@@ -20,14 +20,13 @@ void clock_update_reference_from( double beats, double beat_duration, clock_sour
 void clock_start_from( clock_source_t source );
 void clock_stop_from( clock_source_t source );
 void clock_set_source( clock_source_t source );
-//void clock_cancel_all(); // TODO
 
 float clock_get_time_beats(void);
 double clock_get_time_seconds(void);
 float clock_get_tempo(void);
 
 void clock_cancel_coro( int coro_id );
-
+void clock_cancel_all();
 
 
 ///////////////////////////////////

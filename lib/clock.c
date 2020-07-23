@@ -219,9 +219,6 @@ static int find_idle(void)
 
 static void clock_cancel( int index )
 {
-// TODO
-    // pthread_cancel(clock_thread_pool[index].thread);
-    // pthread_join(clock_thread_pool[index].thread, NULL);
     clock_pool[index].running = false;
     clock_pool[index].coro_id = -1;
 }
@@ -232,9 +229,6 @@ static void clock_cancel_all(void)
         clock_cancel(i);
     }
 }
-
-
-
 
 
 /////////////////////////////////////////////////
