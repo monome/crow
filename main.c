@@ -6,6 +6,7 @@
 #include "lib/events.h"
 #include "ll/timers.h"
 #include "lib/metro.h"
+#include "lib/clock.h"
 #include "lib/caw.h"
 #include "lib/ii.h"
 #include "ll/random.h"
@@ -33,6 +34,7 @@ int main(void)
     IO_Start(); // must start IO before running lua init() script
     events_init();
     Metro_Init( max_timers-2 ); // reserve 2 timers for USB & ADC
+    clock_init( 100 ); // TODO how to pass it the timer?
     Caw_Init( max_timers-1 ); // use last timer
     CDC_clear_buffers();
     ii_init( II_CROW );
@@ -67,5 +69,6 @@ int main(void)
         Random_Update();
         event_next(); // check/execute single event
         ii_leader_process();
+        clock_update();
     }
 }

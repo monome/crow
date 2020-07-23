@@ -27,11 +27,12 @@ function _crow.libs( lib )
         asl    = dofile('lua/asl.lua')
         asllib = dofile('lua/asllib.lua')
         metro  = dofile('lua/metro.lua')
+        clock  = dofile('lua/clock.lua')
         ii     = dofile('lua/ii.lua')
         cal    = dofile('lua/calibrate.lua')
         --midi   = dofile('lua/midi.lua')
     elseif type(lib) == 'table' then
-        -- load the list 
+        -- load the list
     else
         if lib == 'close' then closelibs() end
         -- assume string & load single library

@@ -15,6 +15,7 @@
 #include "lib/ii.h"         // ii_*()
 #include "lib/bootloader.h" // bootloader_enter()
 #include "lib/metro.h"      // metro_start() metro_stop() metro_set_time()
+#include "lib/clock.h"      // clock_*()
 #include "lib/io.h"         // IO_GetADC()
 #include "../ll/random.h"   // Random_Get()
 #include "../ll/adda.h"     // CAL_Recalibrate() CAL_PrintCalibration()
@@ -29,6 +30,7 @@
 #include "lua/crowlib.lua.h"
 #include "lua/asl.lua.h"
 #include "lua/asllib.lua.h"
+#include "lua/clock.lua.h"
 #include "lua/metro.lua.h"
 #include "lua/input.lua.h"
 #include "lua/output.lua.h"
@@ -46,6 +48,7 @@ const struct lua_lib_locator Lua_libs[] =
     { { "lua_crowlib"   , lua_crowlib   }
     , { "lua_asl"       , lua_asl       }
     , { "lua_asllib"    , lua_asllib    }
+    , { "lua_clock"     , lua_clock     }
     , { "lua_metro"     , lua_metro     }
     , { "lua_input"     , lua_input     }
     , { "lua_output"    , lua_output    }
@@ -79,6 +82,9 @@ void L_handle_window( event_t* e );
 void L_handle_in_scale( event_t* e );
 void L_handle_volume( event_t* e );
 void L_handle_peak( event_t* e );
+void L_handle_clock_resume( event_t* e );
+void L_handle_clock_start( event_t* e );
+void L_handle_clock_stop( event_t* e );
 
 void _printf(char* error_message)
 {
@@ -602,6 +608,71 @@ static int _calibrate_print( lua_State* L )
     return 0;
 }
 
+// clock
+static int _clock_cancel( lua_State* L )
+{
+    int coro_id = (int)luaL_checkinteger(L, 1);
+    clock_cancel_coro(coro_id);
+    lua_pop(L, 1);
+    return 0;
+}
+static int _clock_schedule_sleep( lua_State* L )
+{
+    int coro_id = (int)luaL_checkinteger(L, 1);
+    float seconds = luaL_checknumber(L, 2);
+
+    if( seconds <= 0 ){
+        L_queue_clock_resume(coro_id); // immediate callback
+    } else {
+        clock_schedule_resume_sleep(coro_id, seconds);
+    }
+    lua_pop(L, 2);
+    return 0;
+}
+static int _clock_schedule_sync( lua_State* L )
+{
+    int coro_id = (int)luaL_checkinteger(L, 1);
+    float beats = luaL_checknumber(L, 2);
+
+    if (beats <= 0) {
+        L_queue_clock_resume(coro_id); // immediate callback
+    } else {
+        clock_schedule_resume_sync(coro_id, beats);
+    }
+    lua_pop(L, 2);
+    return 0;
+}
+static int _clock_get_time_beats( lua_State* L )
+{
+    lua_pushnumber(L, clock_get_time_beats());
+    return 1;
+}
+static int _clock_get_tempo( lua_State* L )
+{
+    lua_pushnumber(L, clock_get_tempo());
+    return 1;
+}
+static int _clock_internal_set_tempo( lua_State* L )
+{
+    float bpm = luaL_checknumber(L, 1);
+    clock_internal_set_tempo(bpm);
+    lua_pop(L, 1);
+    return 0;
+}
+static int _clock_internal_start( lua_State* L )
+{
+    float new_beat = luaL_checknumber(L, 1);
+    clock_internal_start(new_beat, true);
+    lua_pop(L, 1);
+    return 0;
+}
+static int _clock_internal_stop( lua_State* L )
+{
+    clock_internal_stop();
+    return 0;
+}
+
+
 // array of all the available functions
 static const struct luaL_Reg libCrow[]=
         // bootstrap
@@ -647,6 +718,15 @@ static const struct luaL_Reg libCrow[]=
         // calibration
     , { "calibrate_now"    , _calibrate_now    }
     , { "calibrate_print"  , _calibrate_print  }
+        // clock
+    , { "clock_cancel"             , _clock_cancel             }
+    , { "clock_schedule_sleep"     , _clock_schedule_sleep     }
+    , { "clock_schedule_sync"      , _clock_schedule_sync      }
+    , { "clock_get_time_beats"     , _clock_get_time_beats     }
+    , { "clock_get_tempo"          , _clock_get_tempo          }
+    , { "clock_internal_set_tempo" , _clock_internal_set_tempo }
+    , { "clock_internal_start"     , _clock_internal_start     }
+    , { "clock_internal_stop"      , _clock_internal_stop      }
 
     , { NULL               , NULL              }
     };
@@ -986,6 +1066,48 @@ void L_handle_peak( event_t* e )
     lua_getglobal(L, "peak_handler");
     lua_pushinteger(L, e->index.i +1); // 1-ix'd
     if( Lua_call_usercode(L, 1, 0) != LUA_OK ){
+        lua_pop( L, 1 );
+    }
+}
+
+void L_queue_clock_resume( int coro_id )
+{
+    event_t e = { .handler = L_handle_clock_resume
+                , .index.i = coro_id
+                };
+    event_post(&e);
+}
+void L_handle_clock_resume( event_t* e )
+{
+    lua_getglobal(L, "clock_resume_handler");
+    lua_pushinteger(L, e->index.i);
+    if( Lua_call_usercode(L, 1, 0) != LUA_OK ){
+        lua_pop( L, 1 );
+    }
+}
+
+void L_queue_clock_start( void )
+{
+    event_t e = { .handler = L_handle_clock_start };
+    event_post(&e);
+}
+void L_handle_clock_start( event_t* e )
+{
+    lua_getglobal(L, "clock_start_handler");
+    if( Lua_call_usercode(L, 0, 0) != LUA_OK ){
+        lua_pop( L, 1 );
+    }
+}
+
+void L_queue_clock_stop( void )
+{
+    event_t e = { .handler = L_handle_clock_stop };
+    event_post(&e);
+}
+void L_handle_clock_stop( event_t* e )
+{
+    lua_getglobal(L, "clock_stop_handler");
+    if( Lua_call_usercode(L, 0, 0) != LUA_OK ){
         lua_pop( L, 1 );
     }
 }
