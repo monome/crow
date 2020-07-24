@@ -6,6 +6,7 @@ typedef enum{ CLOCK_SOURCE_INTERNAL = 0
             , CLOCK_SOURCE_MIDI     = 1
             , CLOCK_SOURCE_LINK     = 2
             , CLOCK_SOURCE_CROW     = 3
+            , CLOCK_SOURCE_LIST_LENGTH
 } clock_source_t;
 
 void clock_init( int max_clocks );
@@ -26,12 +27,22 @@ double clock_get_time_seconds(void);
 float clock_get_tempo(void);
 
 void clock_cancel_coro( int coro_id );
-void clock_cancel_all();
+void clock_cancel_all(void);
 
 
 ///////////////////////////////////
-// INTERNAL
+// internal
+
 void clock_internal_init(void);
 void clock_internal_set_tempo( float bpm );
 void clock_internal_start( float new_beat, bool transport_start );
 void clock_internal_stop(void);
+
+
+///////////////////////////////////
+// input
+
+// TODO add arg to choose input channel
+void clock_crow_init(void);
+void clock_crow_handle_clock(void); // TODO hook up to input driver
+void clock_crow_in_div( int div );

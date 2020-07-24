@@ -657,6 +657,12 @@ static int _clock_get_tempo( lua_State* L )
     lua_pushnumber(L, clock_get_tempo());
     return 1;
 }
+static int _clock_set_source( lua_State* L )
+{
+    clock_set_source( (int)luaL_checkinteger(L, 1)-1 ); // lua is 1-based
+    lua_pop(L, 1);
+    return 0;
+}
 static int _clock_internal_set_tempo( lua_State* L )
 {
     float bpm = luaL_checknumber(L, 1);
@@ -674,6 +680,12 @@ static int _clock_internal_start( lua_State* L )
 static int _clock_internal_stop( lua_State* L )
 {
     clock_internal_stop();
+    return 0;
+}
+static int _clock_crow_in_div( lua_State* L )
+{
+    clock_crow_in_div( luaL_checkinteger(L, 1) );
+    lua_pop(L, 1);
     return 0;
 }
 
@@ -730,9 +742,11 @@ static const struct luaL_Reg libCrow[]=
     , { "clock_schedule_sync"      , _clock_schedule_sync      }
     , { "clock_get_time_beats"     , _clock_get_time_beats     }
     , { "clock_get_tempo"          , _clock_get_tempo          }
+    , { "clock_set_source"         , _clock_set_source         }
     , { "clock_internal_set_tempo" , _clock_internal_set_tempo }
     , { "clock_internal_start"     , _clock_internal_start     }
     , { "clock_internal_stop"      , _clock_internal_stop      }
+    , { "clock_crow_in_div"        , _clock_crow_in_div        }
 
     , { NULL               , NULL              }
     };

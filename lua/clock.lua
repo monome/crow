@@ -109,21 +109,22 @@ clock.cleanup = function()
 end
 
 --- select the sync source
--- @tparam string source : "internal", "midi", or "link"
---clock.set_source = function(source)
---  if type(source) == "number" then
---    _norns.clock_set_source(util.clamp(source-1,0,3)) -- lua list is 1-indexed
---  elseif source == "internal" then
---    _norns.clock_set_source(0)
---  elseif source == "midi" then
---    _norns.clock_set_source(1)
---  elseif source == "link" then
---    _norns.clock_set_source(2)
---  else
---    print("unknown clock source: "..source)
---  end
---end
-
+-- @tparam string source : 'internal', 'midi', 'link' or 'crow'
+clock.set_source = function(source)
+  if type(source) == 'number' then
+    clock_set_source(source)
+  elseif source == 'internal' then
+    clock_set_source(1)
+  elseif source == 'midi' then
+    clock_set_source(2)
+  elseif source == 'link' then
+    clock_set_source(3)
+  elseif source == 'crow' then
+    clock_set_source(4)
+  else
+    print('unknown clock source: '..source)
+  end
+end
 
 clock.get_beats = function()
   return clock_get_time_beats()
