@@ -168,7 +168,9 @@ void clock_stop_from( clock_source_t source )
 
 void clock_set_source( clock_source_t source )
 {
-    clock_source = source;
+    if( source >= 0 && source < CLOCK_SOURCE_LIST_LENGTH ){
+        clock_source = source;
+    }
 }
 
 float clock_get_time_beats(void)

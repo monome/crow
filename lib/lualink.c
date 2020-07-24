@@ -743,9 +743,11 @@ static const struct luaL_Reg libCrow[]=
     , { "clock_get_time_beats"     , _clock_get_time_beats     }
     , { "clock_get_tempo"          , _clock_get_tempo          }
     , { "clock_set_source"         , _clock_set_source         }
+        // clock.internal
     , { "clock_internal_set_tempo" , _clock_internal_set_tempo }
     , { "clock_internal_start"     , _clock_internal_start     }
     , { "clock_internal_stop"      , _clock_internal_stop      }
+        // clock.crow
     , { "clock_crow_in_div"        , _clock_crow_in_div        }
 
     , { NULL               , NULL              }
