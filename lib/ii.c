@@ -296,6 +296,7 @@ static uint8_t type_size( ii_Type_t t )
                case ii_u16:   return 2;
                case ii_s16:   return 2;
                case ii_s16V:  return 2;
+               case ii_s16ms: return 2;
                case ii_float: return 4;
                case ii_s32T:  return 4;
                default:       return 0;
@@ -328,6 +329,11 @@ static float decode( uint8_t* data, ii_Type_t type )
             u16  = ((uint16_t)*data++)<<8;
             u16 |= *data++;
             val = ((float)*(int16_t*)&u16)*II_TT_iVOLT; // Scale Teletype down to float
+            break;
+        case ii_s16ms:
+            u16  = ((uint16_t)*data++)<<8;
+            u16 |= *data++;
+            val = (float)*(int16_t*)&u16/1000.0;
             break;
         case ii_float:
             val = *(float*)data;
@@ -369,6 +375,14 @@ static uint8_t encode( uint8_t* dest, ii_Type_t type, float data )
             data *= II_TT_VOLT; // Scale float up to Teletype
             // FLOWS THROUGH
         case ii_s16:
+            s16 = (int16_t)lim_f(data, -32768.0, 32767.0);
+            u16 = *(uint16_t*)&s16;
+            d[len++] = (uint8_t)(u16>>8);          // High byte first
+            d[len++] = (uint8_t)(u16 & 0x00FF);    // Low byte
+            break;
+        case ii_s16ms:
+            data *= 1000.0;
+            // as ii_s16
             s16 = (int16_t)lim_f(data, -32768.0, 32767.0);
             u16 = *(uint16_t*)&s16;
             d[len++] = (uint8_t)(u16>>8);          // High byte first

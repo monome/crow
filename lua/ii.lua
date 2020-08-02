@@ -58,12 +58,16 @@ function ii.e( name, event, ... )
 end
 
 ii.self =
-    { cmds = { [1]='output'
+    { cmds = { [1]='volts'
              , [2]='slew'
              , [4]='call1'
              , [5]='call2'
              , [6]='call3'
              , [7]='call4'
+             , [8]='reset'
+             , [9]='pulse'
+             , [10]='ar'
+             , [11]='lfo'
              -- input & output queries in C only
              , [5+128]='query0'
              , [6+128]='query1'
@@ -72,7 +76,7 @@ ii.self =
              }
     }
 function ii.reset_events()
-    ii.self.output = function(chan,val) print('output '..chan..' to '..val)end
+    ii.self.volts  = function(chan,val) print('volts '..chan..' to '..val)end
     ii.self.slew   = function(chan,slew) print('slew '..chan..' at '..slew)end
     ii.self.call1  = function(arg) print('call1('..arg..')')end
     ii.self.call2  = function(a,a2) print('call2('..a..','..a2..')')end

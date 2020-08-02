@@ -111,14 +111,32 @@ end
 -- pullups on by default
 ii.pullup(true)
 
+
 --- follower default actions
-ii.self.output = function(chan,val)
+ii.self.volts = function(chan,val)
     output[chan].volts = val
 end
 
 ii.self.slew = function(chan,slew)
-    output[chan].slew = slew/1000 -- ms
+    output[chan].slew = slew
 end
+
+ii.self.reset = function() _crow.reset() end
+
+ii.self.pulse = function(chan,ms,volts,pol)
+    output[chan](pulse(ms,volts,pol))
+end
+
+ii.self.ar = function(chan,atk,rel,volts)
+    output[chan](ar(atk,rel,volts))
+end
+
+ii.self.lfo = function(chan,freq,level,skew)
+    -- convert freq to seconds where freq==0 is 1Hz
+    output[chan](ramp(math.exp(2,-freq),level,skew))
+end
+
+
 
 
 --- True Random Number Generator
