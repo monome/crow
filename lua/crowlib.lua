@@ -51,6 +51,7 @@ function _crow.reset()
         output[n].volts = 0
     end
     ii.reset_events(ii.self)
+    ii_follow_reset() -- resets forwarding to output libs
     metro.free_all()
 end
 
@@ -113,30 +114,16 @@ ii.pullup(true)
 
 
 --- follower default actions
-ii.self.volts = function(chan,val)
-    output[chan].volts = val
-end
-
-ii.self.slew = function(chan,slew)
-    output[chan].slew = slew
-end
-
-ii.self.reset = function() _crow.reset() end
-
-ii.self.pulse = function(chan,ms,volts,pol)
-    output[chan](pulse(ms,volts,pol))
-end
-
-ii.self.ar = function(chan,atk,rel,volts)
-    output[chan](ar(atk,rel,volts))
-end
-
-ii.self.lfo = function(chan,freq,level,skew)
+function ii_follow_reset()
+    ii.self.volts = function(chan,val) output[chan].volts = val end
+    ii.self.slew = function(chan,slew) output[chan].slew = slew end
+    ii.self.reset = function() _crow.reset() end
+    ii.self.pulse = function(chan,ms,volts,pol) output[chan](pulse(ms,volts,pol)) end
+    ii.self.ar = function(chan,atk,rel,volts) output[chan](ar(atk,rel,volts)) end
     -- convert freq to seconds where freq==0 is 1Hz
-    output[chan](ramp(math.exp(2,-freq),level,skew))
+    ii.self.lfo = function(chan,freq,level,skew) output[chan](ramp(math.exp(2,-freq),level,skew)) end
 end
-
-
+ii_follow_reset()
 
 
 --- True Random Number Generator
