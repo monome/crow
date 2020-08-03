@@ -28,8 +28,8 @@ function make_ii(files)
 
     for _,f in ipairs(files) do
         if need_events(f) then
-            c = c .. 'events.' .. f.lua_name .. ' = function(i,v) crow.ii.'
-                  .. f.lua_name .. 'event(i,v) end\n'
+            c = c .. 'events.' .. f.lua_name .. ' = function(t,v) crow.ii.'
+                  .. f.lua_name .. '.event(t,v) end\n'
         end
     end
 

@@ -27,6 +27,7 @@ typedef struct{
     float scaling;
     // state / pre-computation
     float offset;
+    float hwin;
     int   lastIndex;
     int   lastOct;
     float lastNote;

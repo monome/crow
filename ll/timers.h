@@ -45,3 +45,4 @@ int Timer_Init(void);
 void Timer_Start( int ix, Timer_Callback_t cb );
 void Timer_Stop( int ix );
 void Timer_Set_Params( int ix, float seconds );
+void Timer_Priority( int ix, int priority_level );

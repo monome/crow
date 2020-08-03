@@ -91,10 +91,11 @@ void CAL_WriteFlash( void )
     }
 }
 
-uint16_t ADDA_Init( void )
+uint16_t ADDA_Init( int adc_timer_ix )
 {
     ADC_Init( ADDA_BLOCK_SIZE
             , ADDA_ADC_CHAN_COUNT
+            , adc_timer_ix
             );
     DAC_Init( ADDA_BLOCK_SIZE
             , ADDA_DAC_CHAN_COUNT
@@ -151,18 +152,18 @@ int CAL_ValidateData( void )
 {
     int errorcode = 0;
     for( int j=0; j<2; j++ ){
-        if( cal.adc[j].shift < -0.1
-         || cal.adc[j].shift > 0.1
-         || cal.adc[j].scale < 0.9
-         || cal.adc[j].scale > 1.1 ){
+        if( cal.adc[j].shift < -0.2
+         || cal.adc[j].shift > 0.2
+         || cal.adc[j].scale < 0.8
+         || cal.adc[j].scale > 1.2 ){
             errorcode |= 1 << j;
         }
     }
     for( int j=0; j<4; j++ ){
-        if( cal.dac[j].shift < -0.1
-         || cal.dac[j].shift > 0.1
-         || cal.dac[j].scale < 0.9
-         || cal.dac[j].scale > 1.1 ){
+        if( cal.dac[j].shift < -0.2
+         || cal.dac[j].shift > 0.2
+         || cal.dac[j].scale < 0.8
+         || cal.dac[j].scale > 1.2 ){
             errorcode |= 1 << (2+j);
         }
     }

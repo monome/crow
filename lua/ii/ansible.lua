@@ -1,7 +1,7 @@
 do return
 { module_name  = 'ansible'
 , manufacturer = 'monome'
-, i2c_address  = 0x20
+, i2c_address  = { 0x20, 0x21, 0x22, 0x23 }
 , lua_name     = 'ansible'
 , commands     =
   { { name = 'trigger'
@@ -10,7 +10,7 @@ do return
     , docs = 'set trigger state'
     , args = { { 'channel', u8 }
              , { 'state', u8 }
-           }
+             }
     }
   , { name = 'trigger_toggle'
     , cmd  = 2
@@ -75,13 +75,21 @@ do return
   -- no setter for CMD 10 input
   }
 , getters =
-  { name = 'input'
-  , cmd  = 10 + get_offset
-  , args = { '', u8 }
-  --, docs = 'get input state'
-  , retval = { 'state', u8 }
+  { { name = 'input'
+    , cmd  = 10 + get_offset
+    , args = { 'channel', u8 }
+    , docs = 'get input state'
+    , retval = { 'state', u8 }
+    }
   }
 --void pickle( uint8_t* address, uint8_t* data, uint8_t* byte_count );
-, pickle = 'data[1] -= 1;  // zero-index the channel'
+, pickle =
+[[
+
+uint8_t ch = data[1] - 1; // zero-index the channel
+data[1]   = ch % 4;       // wrap command per device
+*address += ch / 4;       // increment address for subsequent devices
+
+]]
 }
 end

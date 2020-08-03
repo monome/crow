@@ -42,11 +42,15 @@ end
 _crow.libs()
 
 function _crow.reset()
-    for n=1,2 do input[n].mode = 'none' end
+    for n=1,2 do
+        input[n].mode = 'none'
+        input[n]:reset_events()
+    end
     for n=1,4 do
         output[n].slew = 0
         output[n].volts = 0
     end
+    ii.reset_events(ii.self)
     metro.free_all()
 end
 
@@ -158,12 +162,10 @@ function delay(action, time, repeats)
     local r = repeats or 1
     local d = {}
     function devent(c)
-        if c > 1 then
-            action(c-1) -- make the action aware of current iteration
-            if c > r then
-                metro.free(d.id)
-                d = nil
-            end
+        action(c) -- make the action aware of current iteration
+        if c > r then
+            metro.free(d.id)
+            d = nil
         end
     end
     d = metro.init(devent, time)

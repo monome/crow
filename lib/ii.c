@@ -18,7 +18,8 @@
 #define II_MAX_RECEIVE_LEN 10
 #define II_QUEUE_LENGTH 16
 #define II_GET 128  // cmd >= are getter requests
-
+#define II_TT_VOLT  ((float)1638.3)
+#define II_TT_iVOLT ((float)1.0/II_TT_VOLT)
 
 ///////////////////////////
 // type declarations
@@ -28,6 +29,7 @@ typedef struct{
     uint8_t length;
     uint8_t query_length; // 0 for broadcast, >0 is return type byte size
     uint8_t data[II_MAX_BROADCAST_LEN];
+    uint8_t arg; // just carrying this through for the follower response
 } ii_q_t;
 
 
@@ -37,6 +39,7 @@ typedef struct{
 static void lead_callback( uint8_t address, uint8_t command, uint8_t* rx_data );
 static int follow_request( uint8_t* pdata );
 static int follow_action( uint8_t* pdata );
+static void error_action( int error_code );
 
 static uint8_t type_size( ii_Type_t t );
 static float decode( uint8_t* data, ii_Type_t type );
@@ -52,6 +55,7 @@ queue_t* l_qix;
 queue_t* f_qix;
 ii_q_t   l_iq[II_QUEUE_LENGTH];
 uint8_t  f_iq[II_QUEUE_LENGTH][II_MAX_RECEIVE_LEN];
+uint8_t  rx_arg = 0; // FIXME is there a better solution?
 
 
 ////////////////////////
@@ -68,6 +72,7 @@ uint8_t ii_init( uint8_t address )
                 , &lead_callback
                 , &follow_action
                 , &follow_request
+                , &error_action
                 ) ){ printf("I2C Failed to Init\n"); }
 
     l_qix = queue_init( II_QUEUE_LENGTH );
@@ -126,6 +131,7 @@ uint8_t ii_leader_enqueue( uint8_t address
     q->address = address;
     const ii_Cmd_t* c = ii_find_command(address, cmd);
     q->query_length = type_size( c->return_type );
+    q->arg = data[0]; // save a copy of the first argument
     q->length = encode_packet( q->data
                              , c
                              , cmd
@@ -144,14 +150,13 @@ void ii_leader_process( void )
 
     int error = 0;
     if( q->query_length ){
+        rx_arg = q->arg;
         if( (error = I2C_LeadRx( q->address
                       , q->data
                       , q->length
                       , q->query_length
                       )) ){
-            if( error == 2 ){
-                Caw_send_luachunk("ii: lines are low. try ii.pullup(true)");
-            }
+            if( error & 0x6 ){ error_action( 1 ); }
             printf("leadRx failed %i\n",error);
         }
     } else {
@@ -159,9 +164,7 @@ void ii_leader_process( void )
                       , q->data
                       , q->length
                       )) ){
-            if( error == 2 ){
-                Caw_send_luachunk("ii: lines are low. try ii.pullup(true)");
-            }
+            if( error & 2 ){ error_action( 1 ); }
             printf("leadTx failed %i\n",error);
         }
     }
@@ -203,6 +206,7 @@ static void lead_callback( uint8_t address, uint8_t command, uint8_t* rx_data )
                      , decode( rx_data
                              , ii_find_command(address, command)->return_type
                              )
+                     , rx_arg
                      );
 }
 
@@ -256,6 +260,30 @@ void ii_process_dequeue_decode( void )
                              );
 }
 
+static void error_action( int error_code )
+{
+    switch( error_code ){
+        case 0: // Ack Failed
+            printf("I2C_ERROR_AF\n"); // means can't find device
+            // TODO make this a global variable which can be checked by user
+            // becomes a basic way to ask "was the message received"
+            break;
+        case 1: // Bus is busy. Could this also be ARLO?
+            if( I2C_GetPullups() ){
+                Caw_send_luachunk("ii: lines are low.");
+                Caw_send_luachunk("  check ii devices are connected correctly.");
+                Caw_send_luachunk("  check no ii devices are frozen.");
+            } else {
+                Caw_send_luachunk("ii: lines are low. try ii.pullup(true)");
+            }
+            break;
+        default: // Unknown (ARLO?)
+            Caw_send_luachunk("ii: unknown error.");
+            printf("I2C_ERROR %i\n", error_code);
+            break;
+    }
+}
+
 
 /////////////////////////////////////
 // ii Type Encode/Decode
@@ -269,6 +297,8 @@ static uint8_t type_size( ii_Type_t t )
                case ii_s16:   return 2;
                case ii_s16V:  return 2;
                case ii_float: return 4;
+               case ii_s32T:  return 4;
+               default:       return 0;
     }
     return 0;
 }
@@ -297,10 +327,21 @@ static float decode( uint8_t* data, ii_Type_t type )
         case ii_s16V:
             u16  = ((uint16_t)*data++)<<8;
             u16 |= *data++;
-            val = ((float)*(int16_t*)&u16)/1638.4; // Scale Teletype down to float
+            val = ((float)*(int16_t*)&u16)*II_TT_iVOLT; // Scale Teletype down to float
             break;
         case ii_float:
             val = *(float*)data;
+            break;
+        case ii_s32T:
+            // seconds: signed 16
+            u16  = ((uint16_t)*data++)<<8;
+            u16 |= *data++;
+            val = (float)*(int16_t*)&u16;
+            // subsecond: signed 16 V
+            u16  = ((uint16_t)*data++)<<8;
+            u16 |= *data++;
+            // combine
+            val += ((float)*(int16_t*)&u16)*II_TT_iVOLT;
             break;
         default: printf("ii_decode unmatched\n"); break;
     }
@@ -325,7 +366,7 @@ static uint8_t encode( uint8_t* dest, ii_Type_t type, float data )
             d[len++] = (uint8_t)(u16 & 0x00FF);    // Low byte
             break;
         case ii_s16V:
-            data *= 1638.4; // Scale float up to Teletype
+            data *= II_TT_VOLT; // Scale float up to Teletype
             // FLOWS THROUGH
         case ii_s16:
             s16 = (int16_t)lim_f(data, -32768.0, 32767.0);
@@ -337,6 +378,26 @@ static uint8_t encode( uint8_t* dest, ii_Type_t type, float data )
             memcpy( &(d[len]), &data, 4 );
             len += 4;
             break;
+        case ii_s32T:{
+            int iTime = (int)data;
+            float subTime = data - (float)iTime;
+            if( iTime < -32768 ){
+                iTime = -32768; subTime = 0.0;
+            } else if( iTime > 32767 ){
+                iTime = 32767; subTime = 0.0;
+            }
+            // signed 16
+            s16 = (int16_t)iTime;
+            u16 = *(uint16_t*)&s16;
+            d[len++] = (uint8_t)(u16>>8);          // High byte first
+            d[len++] = (uint8_t)(u16 & 0x00FF);    // Low byte
+            // signed 16 V
+            subTime *= II_TT_VOLT; // Scale float up to Teletype
+            s16 = (int16_t)subTime;
+            u16 = *(uint16_t*)&s16;
+            d[len++] = (uint8_t)(u16>>8);          // High byte first
+            d[len++] = (uint8_t)(u16 & 0x00FF);    // Low byte
+            break;}
         default: printf("no retval found\n"); return 0;
             // FIXME: should this really print directly? or pass to caller?
     }

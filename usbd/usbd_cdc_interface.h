@@ -56,20 +56,12 @@
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/
 
-// Definition for TIMx clock resources
-#define TIMu                             TIM3
-#define TIMu_CLK_ENABLE                  __HAL_RCC_TIM3_CLK_ENABLE
-
-// Definition for TIMx's NVIC
-#define TIMu_IRQn                        TIM3_IRQn
-#define TIMu_IRQHandler                  TIM3_IRQHandler
-#define TIMu_IRQPriority                 USB_IRQPriority
-
 /* Periodically, the state of the buffer "UserTxBuffer" is checked.
    The period depends on CDC_POLLING_INTERVAL */
-#define CDC_POLLING_INTERVAL             2 /* in ms. The max is 65 and the min is 1 */
+#define CDC_POLLING_INTERVAL (float)2.0 /* in ms. The max is 65 and the min is 1 */
 
 extern USBD_CDC_ItfTypeDef  USBD_CDC_fops;
+extern int timer_index;
 
 void CDC_clear_buffers();
 
@@ -77,9 +69,6 @@ void USB_tx_enqueue( uint8_t* buf, uint32_t len );
 uint8_t USB_rx_dequeue_LOCK( uint8_t** buf, uint32_t* len );
 void USB_rx_dequeue_UNLOCK( void );
 
-
-// called from timer library
-uint8_t USB_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim);
 
 /* Exported macro ------------------------------------------------------------*/
 /* Exported functions ------------------------------------------------------- */
