@@ -6,15 +6,11 @@ do return
 , commands     =
   { { name = 'load_preset'
     , cmd = 0x40
-    , args = { { 'msb', u8 }
-             , { 'lsb', u8 }
-             }
+    , args = { 'value', u16 }
     }
   , { name = 'save_preset'
     , cmd = 0x41
-    , args = { { 'msb', u8 }
-             , { 'lsb', u8 }
-             }
+    , args = { 'value', u16 }
     }
   , { name = 'reset_preset'
     , cmd = 0x42
@@ -25,7 +21,7 @@ do return
     }
   , { name = 'set_controller'
     , cmd = 0x11
-    , args = { { 'controller', u16 }
+    , args = { { 'controller', u8 }
              , { 'value', u16 }
              }
     }
@@ -77,24 +73,24 @@ do return
     }
   }
 , getters =
-  { { name = 'get_preset'
+  { { name = 'preset'
     , cmd = 0x43
     , retval = { 'preset', u16 }
     }
-  , { name = 'get_algorithm'
+  , { name = 'algorithm'
     , cmd = 0x45
     , retval = { 'algorithm', u8 }
     }
-  , { name = 'get_parameter'
+  , { name = 'parameter'
     , cmd = 0x48
     , retval = { 'value', u16 }
     }
-  , { name = 'get_parameter_min'
+  , { name = 'parameter_min'
     , cmd = 0x49
     , args = { 'parameter', u16 }
     , retval = { 'value', u16 }
     }
-  , { name = 'get_parameter_max'
+  , { name = 'parameter_max'
     , cmd = 0x4A
     , args = { 'parameter', u16 }
     , retval = { 'value', u16 }
