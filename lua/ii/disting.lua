@@ -26,13 +26,13 @@ do return
     , cmd = 0x11
     , docs = 'sets parameters via mappings'
     , args = { { 'controller', u8 }
-             , { 'value', u16 }
+             , { 'value', s16 }
              }
     }
   , { name = 'set_parameter'
     , cmd = 0x46
     , args = { { 'parameter', u8 }
-             , { 'value', u16 }
+             , { 'value', s16 }
              }
     }
   , { name = 'set_scale_parameter'
@@ -130,17 +130,23 @@ do return
     }
   , { name = 'parameter'
     , cmd = 0x48
-    , retval = { 'value', u16 }
+    , args = { 'parameter', u8 }
+    , retval = { 'value', s16 }
     }
   , { name = 'parameter_min'
     , cmd = 0x49
-    , args = { 'parameter', u16 }
-    , retval = { 'value', u16 }
+    , args = { 'parameter', u8 }
+    , retval = { 'value', s16 }
     }
   , { name = 'parameter_max'
     , cmd = 0x4A
-    , args = { 'parameter', u16 }
-    , retval = { 'value', u16 }
+    , args = { 'parameter', u8 }
+    , retval = { 'value', s16 }
+    }
+  , { name = 'al_state'
+    , cmd = 0x59
+    , retval = { 'state', u8 }
+    , docs = '0-based loop index'
     }
   }
 }
