@@ -614,6 +614,25 @@ static int _test_is_power( lua_State* L )
     lua_pushinteger(L, Test_is_power() );
     return 1;
 }
+static int _test_amps( lua_State* L )
+{
+    Test_amps( luaL_checkinteger(L, 1) );
+    lua_pop(L, 1);
+    return 0;
+}
+static int _test_source( lua_State* L )
+{
+    Test_source( luaL_checkinteger(L, 1) );
+    lua_pop(L, 1);
+    return 0;
+}
+static int _test_dest( lua_State* L )
+{
+    Test_dest( luaL_checkinteger(L, 1) );
+    lua_pop(L, 1);
+    return 0;
+}
+
 
 // array of all the available functions
 static const struct luaL_Reg libCrow[]=
@@ -663,6 +682,9 @@ static const struct luaL_Reg libCrow[]=
         // testing
     , { "test_power"       , _test_power       }
     , { "test_is_power"    , _test_is_power    }
+    , { "test_amps"        , _test_amps        }
+    , { "test_source"      , _test_source      }
+    , { "test_dest"        , _test_dest        }
 
     , { NULL               , NULL              }
     };

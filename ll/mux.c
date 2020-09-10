@@ -31,5 +31,5 @@ void mux_select( Mux* m, int channel )
 
 void mux_active( Mux* m, bool is_active )
 {
-    dout_set( m->en, !is_active ); // hw is active=LOW
+    dout_set( m->en, is_active ); // hw is active=HIGH
 }

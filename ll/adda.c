@@ -100,10 +100,14 @@ uint16_t ADDA_Init( int adc_timer_ix )
     DAC_Init( ADDA_BLOCK_SIZE
             , ADDA_DAC_CHAN_COUNT
             );
+
+// TODO add option for manually calibrating
+    /*
     CAL_LL_Init();
     cal.stage = CAL_none;
     if( !Flash_is_calibrated() ){ CAL_Recalibrate(0); }
     else{                         CAL_ReadFlash(); }
+    */
     return ADDA_BLOCK_SIZE;
 }
 
