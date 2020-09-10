@@ -16,6 +16,9 @@
 #include "lib/flash.h" // Flash_clear_user_script()
 #include "stm32f7xx_it.h" // CPU_count;
 
+// Test platform
+#include "lib/test.h"
+
 
 int main(void)
 {
@@ -26,6 +29,8 @@ int main(void)
     Debug_USART_Init(); // ignored in TRACE mode
 
     printf("\n\nhi from crow!\n");
+
+    Test_init();
 
     // Drivers
     int max_timers = Timer_Init();

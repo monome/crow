@@ -23,6 +23,7 @@
 #include "lib/midi.h"       // MIDI_Active()
 #include "stm32f7xx_hal.h"  // HAL_GetTick()
 #include "stm32f7xx_it.h"   // CPU_GetCount()
+#include "lib/test.h"       // Test_*()
 
 // Lua libs wrapped in C-headers: Note the extra '.h'
 #include "lua/bootstrap.lua.h" // MUST LOAD THIS MANUALLY FIRST
@@ -602,6 +603,18 @@ static int _calibrate_print( lua_State* L )
     return 0;
 }
 
+static int _test_power( lua_State* L )
+{
+    Test_power( luaL_checkinteger(L, 1) );
+    lua_pop(L, 1);
+    return 0;
+}
+static int _test_is_power( lua_State* L )
+{
+    lua_pushinteger(L, Test_is_power() );
+    return 1;
+}
+
 // array of all the available functions
 static const struct luaL_Reg libCrow[]=
         // bootstrap
@@ -647,6 +660,9 @@ static const struct luaL_Reg libCrow[]=
         // calibration
     , { "calibrate_now"    , _calibrate_now    }
     , { "calibrate_print"  , _calibrate_print  }
+        // testing
+    , { "test_power"       , _test_power       }
+    , { "test_is_power"    , _test_is_power    }
 
     , { NULL               , NULL              }
     };
