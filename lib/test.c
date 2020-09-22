@@ -33,7 +33,8 @@ void Test_init( void )
     Test_power( false );
 
     // monitor power rail consumption
-    amperes = mux_init( 'c',3,'c',3,'c',3,'a',0 );
+    // B1 & B10 are unused so assign to unused GPIO
+    amperes = mux_init( 'c',3,'b',1,'b',10,'a',0 );
     mux_active( amperes, false );
 
     // adc mux
@@ -41,7 +42,7 @@ void Test_init( void )
     Test_source(0); // disable DUT source
 
     // dac mux
-    dacmux = mux_init( 'a',8,'b',11,'b',2,'a',8);
+    dacmux = mux_init( 'a',8,'b',11,'b',2,'c',6); // C6 is unused
     // enable pin should not be used!
 }
 

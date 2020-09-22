@@ -98,6 +98,11 @@ do return
     , docs = 'Set i2c address to *index* (default)1 or 2'
     , args = { 'index', s8 }
     }
+  , { name = 'test'
+    , cmd  = 22
+    , docs = 'set a test mode'
+    , args = { 'state', s8 }
+    }
   }
 , getters =
   { { name = 'speed'
@@ -134,6 +139,12 @@ do return
     , cmd  = 21 + get_offset
     , docs = 'knob + cv for INTONE parameter'
     , retval = { 'volts', s16V }
+    }
+  , { name = 'test'
+    , cmd  = 22 + get_offset
+    , docs = 'query a test value from jf'
+    , args = { 'element', s8 }
+    , retval = { 'value', u16 }
     }
   }
 }
