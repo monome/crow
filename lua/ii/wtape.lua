@@ -33,11 +33,11 @@ do return
     , docs = 'Set speed as a frequency style value. Maintains reverse state'
     , args = { 'frequency', s16V }
     }
-  , { name = 'pre_level'
+  , { name = 'erase_level'
     , cmd  = 6
     , get  = true
-    , docs = 'Level of old recording left after a recording. aka feedback'
-    , args = { 'gain', s16V }
+    , docs = 'Strength of erase head when recording. 0 is overdub, 1 is overwrite. Opposite of feedback'
+    , args = { 'level', s16V }
     }
   , { name = 'monitor_level'
     , cmd  = 7
