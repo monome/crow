@@ -33,7 +33,7 @@ do return
     , docs = 'Set speed as a frequency style value. Maintains reverse state'
     , args = { 'frequency', s16V }
     }
-  , { name = 'erase_level'
+  , { name = 'erase_strength'
     , cmd  = 6
     , get  = true
     , docs = 'Strength of erase head when recording. 0 is overdub, 1 is overwrite. Opposite of feedback'
