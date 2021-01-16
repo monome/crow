@@ -92,6 +92,10 @@ do return
     , docs = 'Move playhead relative to current position'
     , args = { 'seconds', s32T }
     }
+  , { name = 'WARNING_clear_tape'
+    , cmd  = 18
+    , docs = 'WARNING: Clears all audio on the tape! Unrecoverable!'
+    }
   }
 , getters =
   { { name   = 'speed'
