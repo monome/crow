@@ -33,11 +33,11 @@ do return
     , docs = 'Set speed as a frequency style value. Maintains reverse state'
     , args = { 'frequency', s16V }
     }
-  , { name = 'pre_level'
+  , { name = 'erase_strength'
     , cmd  = 6
     , get  = true
-    , docs = 'Level of old recording left after a recording. aka feedback'
-    , args = { 'gain', s16V }
+    , docs = 'Strength of erase head when recording. 0 is overdub, 1 is overwrite. Opposite of feedback'
+    , args = { 'level', s16V }
     }
   , { name = 'monitor_level'
     , cmd  = 7
@@ -51,11 +51,11 @@ do return
     , docs = 'Level of input material recorded to tape'
     , args = { 'gain', s16V }
     }
-  , { name = 'head_order'
+  , { name = 'echo_mode'
     , cmd  = 9
     , get  = true
-    , docs = 'Set to 1 for playback before erasing. For destructive looping'
-    , args = { 'previous', s8 }
+    , docs = 'Set to 1 to playback before erase. 0 (default) erases first'
+    , args = { 'is_echo', s8 }
     }
   , { name = 'loop_start'
     , cmd  = 10
@@ -91,6 +91,10 @@ do return
     , cmd  = 16
     , docs = 'Move playhead relative to current position'
     , args = { 'seconds', s32T }
+    }
+  , { name = 'WARNING_clear_tape'
+    , cmd  = 18
+    , docs = 'WARNING: Clears all audio on the tape! Unrecoverable!'
     }
   }
 , getters =
