@@ -49,6 +49,7 @@ function _crow.reset()
     for n=1,4 do
         output[n].slew = 0
         output[n].volts = 0
+        output[n].scale('none')
     end
     ii.reset_events(ii.self)
     metro.free_all()
