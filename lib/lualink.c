@@ -339,7 +339,6 @@ static int _set_input_none( lua_State *L )
     Detect_t* d = Detect_ix_to_p( ix ); // Lua is 1-based
     if(d){ // valid index
         Detect_none( d );
-        if( ix == 0 ){ MIDI_Active( 0 ); } // deactivate MIDI if first chan
     }
     lua_pop( L, 1 );
     lua_settop(L, 0);
@@ -354,7 +353,6 @@ static int _set_input_stream( lua_State *L )
                      , L_queue_stream
                      , luaL_checknumber(L, 2)
                      );
-        if( ix == 0 ){ MIDI_Active( 0 ); } // deactivate MIDI if first chan
     }
     lua_pop( L, 2 );
     lua_settop(L, 0);
@@ -371,7 +369,6 @@ static int _set_input_change( lua_State *L )
                      , luaL_checknumber(L, 3)
                      , Detect_str_to_dir( luaL_checkstring(L, 4) )
                      );
-        if( ix == 0 ){ MIDI_Active( 0 ); } // deactivate MIDI if first chan
     }
     lua_pop( L, 4 );
     lua_settop(L, 0);
@@ -380,12 +377,9 @@ static int _set_input_change( lua_State *L )
 static int _set_input_midi( lua_State *L )
 {
     uint8_t ix = luaL_checkinteger(L, 1)-1;
-    if( ix == 0 ){ // only first channel supports midi
-        Detect_t* d = Detect_ix_to_p( ix ); // Lua is 1-based
-        if(d){ // valid index
-            Detect_none( d );
-            MIDI_Active( 1 );
-        }
+    Detect_t* d = Detect_ix_to_p( ix ); // Lua is 1-based
+    if(d){ // valid index
+        Detect_midi( d, L_queue_midi );
     }
     lua_pop( L, 1 );
     lua_settop(L, 0);
@@ -411,7 +405,6 @@ static int _set_input_window( lua_State *L )
                      , wLen
                      , luaL_checknumber(L, 3) // hysteresis
                      );
-        if( ix == 0 ){ MIDI_Active( 0 ); } // deactivate MIDI if first chan
     }
     lua_pop( L, 3 );
     return 0;
@@ -436,7 +429,6 @@ static int _set_input_scale( lua_State *L )
                     , luaL_checknumber(L, 3) // divs-per-octave
                     , luaL_checknumber(L, 4) // volts-per-octave
                     );
-        if( ix == 0 ){ MIDI_Active( 0 ); } // deactivate MIDI if first chan
     }
     lua_pop( L, 4 );
     return 0;
@@ -450,7 +442,6 @@ static int _set_input_volume( lua_State *L )
                      , L_queue_volume
                      , luaL_checknumber(L, 2)
                      );
-        if( ix == 0 ){ MIDI_Active( 0 ); } // deactivate MIDI if first chan
     }
     lua_pop( L, 2 );
     lua_settop(L, 0);
@@ -466,7 +457,6 @@ static int _set_input_peak( lua_State *L )
                    , luaL_checknumber(L, 2)
                    , luaL_checknumber(L, 3)
                    );
-        if( ix == 0 ){ MIDI_Active( 0 ); } // deactivate MIDI if first chan
     }
     lua_pop( L, 3 );
     lua_settop(L, 0);
@@ -537,19 +527,25 @@ static int _ii_get_address( lua_State *L )
 }
 static int _metro_start( lua_State* L )
 {
-    static int idx = 0;
+    static int ix = 0;
     float seconds = -1.0; // metro will re-use previous value
     int count = -1; // default: infinite
     int stage = 0;
 
     int nargs = lua_gettop(L);
-    if (nargs > 0) { idx = (int) luaL_checkinteger(L, 1) - 1; } // 1-ix'd
-    if (nargs > 1) { seconds = (float)luaL_checknumber(L, 2); }
-    if (nargs > 2) { count = (int)luaL_checkinteger(L, 3); }
-    if (nargs > 3) { stage = (int)luaL_checkinteger(L, 4) - 1; } // 1-ix'd
+    if( nargs > 0 ){ ix = (int) luaL_checkinteger(L, 1) - 1; } // 1-ix'd
+    if( nargs > 1 ){ seconds = (float)luaL_checknumber(L, 2); }
+    if( nargs > 2 ){ count = (int)luaL_checkinteger(L, 3); }
+    if( nargs > 3 ){ stage = (int)luaL_checkinteger(L, 4) - 1; } // 1-ix'd
     lua_pop( L, 4 );
 
-    Metro_start( idx, seconds, count, stage );
+    if( seconds >= 0.0 ){ // if negative, leave previous time
+        // limit to 500uS to avoid crash
+        Metro_set_time( ix, (seconds < 0.0005) ? 0.0005 : seconds );
+    }
+    Metro_set_count( ix, count );
+    Metro_set_stage( ix, stage );
+    Metro_start( ix );
     lua_settop(L, 0);
     return 0;
 }
@@ -557,9 +553,9 @@ static int _metro_stop( lua_State* L )
 {
     if( lua_gettop(L) != 1 ){ return luaL_error(L, "wrong number of arguments"); }
 
-    int idx = (int)luaL_checkinteger(L, 1) - 1; // 1-ix'd
+    int ix = (int)luaL_checkinteger(L, 1) - 1; // 1-ix'd
     lua_pop( L, 1 );
-    Metro_stop(idx);
+    Metro_stop(ix);
     lua_settop(L, 0);
     return 0;
 }
@@ -567,10 +563,15 @@ static int _metro_set_time( lua_State* L )
 {
     if( lua_gettop(L) != 2 ){ return luaL_error(L, "wrong number of arguments"); }
 
-    int idx = (int)luaL_checkinteger(L, 1) - 1; // 1-ix'd
-    float sec = (float) luaL_checknumber(L, 2);
+    int ix = (int)luaL_checkinteger(L, 1) - 1; // 1-ix'd
+    float seconds = (float)luaL_checknumber(L, 2);
     lua_pop( L, 2 );
-    Metro_set_time(idx, sec);
+
+    if( seconds >= 0.0 ){ // if negative, leave previous time
+        // limit to 500uS to avoid crash
+        Metro_set_time( ix, (seconds < 0.0005) ? 0.0005 : seconds );
+    }
+
     lua_settop(L, 0);
     return 0;
 }

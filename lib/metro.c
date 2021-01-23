@@ -39,25 +39,16 @@ void Metro_Init( int num_metros )
     }
 }
 
-void Metro_start( int   ix
-                , float seconds
-                , int   count
-                , int   stage
-                )
+void Metro_start( int ix )
 {
     if( ix < 0
      || ix >= max_num_metros ){ printf("metro_start: bad index\n"); return; }
 
     Metro_t* t = &(metros[ix]);
     t->status = METRO_STATUS_RUNNING;
-    t->count  = count;
-    t->stage  = stage;
-
-    Timer_Set_Params( ix, seconds );
     Timer_Start( ix, Metro_bang );
 }
 
-// cancel all scheduled iterations
 void Metro_stop( int ix )
 {
     if( ix < 0
@@ -77,13 +68,30 @@ void Metro_stop_all( void )
     }
 }
 
-// set period of metro
 void Metro_set_time( int ix, float sec )
 {
     if( ix < 0
      || ix >= max_num_metros ){ printf("metro_set_time: bad index\n"); return; }
 
     Timer_Set_Params( ix, sec ); // only using struct accessor
+}
+
+void Metro_set_count( int ix, int count )
+{
+    if( ix < 0
+     || ix >= max_num_metros ){ printf("metro_set_count: bad index\n"); return; }
+
+    Metro_t* t = &(metros[ix]);
+    t->count = count;
+}
+
+void Metro_set_stage( int ix, int stage )
+{
+    if( ix < 0
+     || ix >= max_num_metros ){ printf("metro_set_stage: bad index\n"); return; }
+
+    Metro_t* t = &(metros[ix]);
+    t->stage = stage;
 }
 
 static void Metro_bang( int ix )

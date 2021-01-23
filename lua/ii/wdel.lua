@@ -16,9 +16,9 @@ do return
     , get  = true
     , args = { 'fade', s16V }
     }
-  , { name = 'lowpass'
+  , { name = 'filter'
     , cmd  = 4
-    , docs = 'centre frequency of lowpass filter in feedback loop'
+    , docs = 'centre frequency of filter in feedback loop'
     , get  = true
     , args = { 'cutoff', s16V }
     }

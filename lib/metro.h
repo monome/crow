@@ -4,19 +4,12 @@ extern const int MAX_NUM_METROS;
 
 void Metro_Init( int num_metros );
 
-// create a metro at the specified index
-// seconds < 0 == use previous period
-void Metro_start( int   idx
-                , float seconds
-                , int   count
-                , int   stage
-                );
-
-// cancel all scheduled iterations
-void Metro_stop( int idx );
+// control
+void Metro_start( int ix );
+void Metro_stop( int ix );
 void Metro_stop_all( void );
 
-// set period of metro
-// NB: if the metro is running, its hard to say if new value will take effect
-// on current period or next period
-void Metro_set_time( int idx, float sec );
+// params
+void Metro_set_time( int ix, float sec );
+void Metro_set_count( int ix, int count );
+void Metro_set_stage( int ix, int stage );

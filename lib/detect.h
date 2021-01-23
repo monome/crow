@@ -3,10 +3,12 @@
 #include <stm32f7xx.h>
 
 #include "wrMeters.h"
+#include "midi.h" // MIDI_Active
 
 #define SCALE_MAX_COUNT 16
 #define WINDOW_MAX_COUNT 16
 
+typedef void (*Detect_void_callback_t)(uint8_t* data);
 typedef void (*Detect_callback_t)(int channel, float value);
 
 typedef struct{
@@ -123,4 +125,7 @@ void Detect_peak( Detect_t*         self
                 , Detect_callback_t cb
                 , float             threshold
                 , float             hysteresis
+                );
+void Detect_midi( Detect_t*              self
+                , Detect_void_callback_t cb
                 );
