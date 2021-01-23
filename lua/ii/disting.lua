@@ -81,7 +81,7 @@ do return
     , cmd = 0x51
     , docs = 'Set voice pitch for the specified voice'
     , args = { { 'voice', u8 }
-             , { 'pitch', s16v }
+             , { 'pitch', s16V }
              }
     }
   , { name = 'voice_on'
