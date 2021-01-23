@@ -81,7 +81,7 @@ do return
     , cmd = 0x51
     , docs = 'Set voice pitch for the specified voice'
     , args = { { 'voice', u8 }
-             , { 'pitch', s16 }
+             , { 'pitch', s16v }
              }
     }
   , { name = 'voice_on'
@@ -100,14 +100,14 @@ do return
     , cmd = 0x54
     , docs = 'set voice pitch for note id'
     , args = { { 'note_id', u8 }
-             , { 'pitch', s16 }
+             , { 'pitch', s16V }
              }
     }
-  , { name = 'note_pitch'
+  , { name = 'note_velocity'
     , cmd = 0x55
     , docs = 'set voice velocity for note id'
     , args = { { 'note_id', u8 }
-             ,  { 'velocity', s16 }
+             ,  { 'velocity', s16V }
              }
     }
   , { name = 'note_off'
