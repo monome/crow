@@ -122,7 +122,7 @@ function ii_follow_reset()
     ii.self.pulse = function(chan,ms,volts,pol) output[chan](pulse(ms,volts,pol)) end
     ii.self.ar = function(chan,atk,rel,volts) output[chan](ar(atk,rel,volts)) end
     -- convert freq to seconds where freq==0 is 1Hz
-    ii.self.lfo = function(chan,freq,level,skew) output[chan](ramp(math.exp(2,-freq),level,skew)) end
+    ii.self.lfo = function(chan,freq,level,skew) output[chan](ramp(math.pow(2,-freq),skew,level)) end
 end
 ii_follow_reset()
 
