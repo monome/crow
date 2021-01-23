@@ -66,6 +66,7 @@ int8_t Detect_str_to_dir( const char* str )
 
 void Detect_none( Detect_t* self )
 {
+    if( self->channel == 0 ){ MIDI_Active(0, NULL); }
     self->modefn = d_none;
 }
 
@@ -74,6 +75,7 @@ void Detect_stream( Detect_t*         self
                   , float             interval
                   )
 {
+    if( self->channel == 0 ){ MIDI_Active(0, NULL); }
     self->modefn         = d_stream;
     self->action         = cb;
     // SAMPLE_RATE * i / BLOCK_SIZE
@@ -89,6 +91,7 @@ void Detect_change( Detect_t*         self
                   , int8_t            direction
                   )
 {
+    if( self->channel == 0 ){ MIDI_Active(0, NULL); }
     self->modefn            = d_change;
     self->action            = cb;
     self->change.threshold  = threshold;
@@ -106,6 +109,7 @@ void Detect_scale( Detect_t*         self
                  , float             scaling
                  )
 {
+    if( self->channel == 0 ){ MIDI_Active(0, NULL); }
     self->modefn        = d_scale;
     self->action        = cb;
     self->scale.sLen    = (sLen > SCALE_MAX_COUNT) ? SCALE_MAX_COUNT : sLen;
@@ -137,6 +141,7 @@ void Detect_window( Detect_t*         self
                   , float             hysteresis
                   )
 {
+    if( self->channel == 0 ){ MIDI_Active(0, NULL); }
     printf("TODO need to sort the windows!\n");
     self->modefn         = d_window;
     self->action         = cb;
@@ -152,6 +157,7 @@ void Detect_volume( Detect_t*         self
                   , float             interval
                   )
 {
+    if( self->channel == 0 ){ MIDI_Active(0, NULL); }
     self->modefn         = d_volume;
     self->action         = cb;
 
@@ -168,6 +174,7 @@ void Detect_peak( Detect_t*         self
                 , float             hysteresis
                 )
 {
+    if( self->channel == 0 ){ MIDI_Active(0, NULL); }
     self->modefn            = d_peak;
     self->action            = cb;
     // TODO perhaps a abs->2lpf (no RMS averaging) is better?
@@ -179,6 +186,16 @@ void Detect_peak( Detect_t*         self
     self->peak.envelope   = 0.0;
 }
 
+void Detect_midi( Detect_t*              self
+                , Detect_void_callback_t cb
+                )
+{
+    // only first chan support MIDI. otherwise ignore
+    if( self->channel == 0 ){
+        self->modefn = d_none; // block processor does nothing
+        MIDI_Active(1, cb);
+    }
+}
 
 //////////////////////////////////////////////
 // signal processors
