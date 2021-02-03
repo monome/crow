@@ -204,7 +204,7 @@ function generate_prototypes( d )
     for _,v in ipairs( d.commands ) do
         local s = '"' .. proto_prefix .. v.name .. '( '
         if not v.args then -- no args
-            s = s .. void
+            -- do nothing
         elseif type(v.args[1]) == 'table' then -- more than 1 arg
             local arg_count = #(v.args)
             for i=1,arg_count do
