@@ -202,14 +202,13 @@ static void REPL_receive_script( char* buf, uint32_t len, ErrorHandler_t errfn )
 
 static bool REPL_new_script_buffer( uint32_t len )
 {
-    new_script = malloc(len);
+    new_script = calloc( sizeof(char), len);
     if( new_script == NULL ){
         printf("malloc failed. REPL\n");
         Caw_send_luachunk("!ERROR! Out of memory.");
         return false;
     }
-    memset(new_script, 0, len);
-    new_script_len = 0;
+    new_script_len = 0; // reset counter as the buffer is empty
     return true;
 }
 
