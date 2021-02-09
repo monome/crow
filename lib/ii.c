@@ -141,6 +141,25 @@ uint8_t ii_leader_enqueue( uint8_t address
     return 0;
 }
 
+uint8_t ii_leader_enqueue_bytes( uint8_t  address
+                               , uint8_t* data
+                               , uint8_t  tx_len
+                               , uint8_t  rx_len
+                               )
+{
+    int ix = queue_enqueue( l_qix );
+    if( ix < 0 ){ printf("queue full\n"); return 1; }
+
+    ii_q_t* q = &l_iq[ix];
+
+    q->address = address;
+    q->query_length = rx_len;
+    q->length = tx_len;
+    memcpy( q->data, data, tx_len );
+    ii_pickle( &q->address, q->data, &q->length );
+    return 0;
+}
+
 void ii_leader_process( void )
 {
     if( !I2C_is_ready() ){ return; } // I2C lib is busy
@@ -201,11 +220,14 @@ uint8_t* ii_processLeadRx( void )
 static void lead_callback( uint8_t address, uint8_t command, uint8_t* rx_data )
 {
     ii_unpickle( &address, &command, rx_data );
+    ii_Type_t return_type = ii_s32T;
+    const ii_Cmd_t* cmd = ii_find_command(address, command);
+    if( cmd != NULL ){
+        return_type = cmd->return_type;
+    }
     L_queue_ii_leadRx( address
                      , command
-                     , decode( rx_data
-                             , ii_find_command(address, command)->return_type
-                             )
+                     , decode( rx_data, return_type )
                      , rx_arg
                      );
 }
