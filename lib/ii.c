@@ -152,6 +152,9 @@ uint8_t ii_leader_enqueue_bytes( uint8_t  address
 
     ii_q_t* q = &l_iq[ix];
 
+    if( tx_len > II_MAX_BROADCAST_LEN ){ tx_len = II_MAX_BROADCAST_LEN; }
+    if( rx_len > II_MAX_RECEIVE_LEN ){ rx_len = II_MAX_RECEIVE_LEN; }
+
     q->address = address;
     q->query_length = rx_len;
     q->length = tx_len;
