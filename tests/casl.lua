@@ -1,4 +1,4 @@
-casl = dofile("../lua/casl.lua")
+casl = dofile("lua/casl.lua")
 
 -- helper functions for debugging
 tab={}
@@ -6,23 +6,37 @@ tab.print = function(t)
   for k,v in pairs(t) do print(k .. '\t' .. tostring(v)) end
 end
 
-tab.dump = function(t,indent)
+tab.dump = function(t,indent,name)
     indent = indent or 0
     local si = string.rep(' ',indent*2)
-    local s = si .. '{'
+    local s = si
+    if type(name)=='string' then s = s .. name..'=' end
+    s = s .. '{ '
     for k,v in pairs(t) do
         if( type(v) == 'table') then
-            s = s .. '\n' .. tab.dump(v,indent+1) .. '\n' .. si .. '}'
+            s = s .. '\n' .. tab.dump(v,indent+1,k) .. '\n' .. si
         else
-            s = s .. k .. '=' .. tostring(v) .. '}'
+            if type(k) == 'string' then
+                s = s .. k .. '='
+            end
+            s = s .. tostring(v) .. ', '
         end
     end
-    return s
+    return s .. '}'
+end
+
+function casl_describe(id, d)
+    print('describe['..id..']='..tostring(d))
+    print(tab.dump(d))
 end
 
 a = casl.new()
-a:compile( dyn{level=3.0} )
-print(tab.dump(a.AST))
+-- a:describe( dyn{level=3.0} )
+-- a:describe( cto(3.0,4.2) )
+a:describe( cto(3.0,4.2) )
+-- a:describe( to(dyn{le=3.0},4.2) )
+
+
 
 
 

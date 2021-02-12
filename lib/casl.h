@@ -2,4 +2,4 @@
 
 // C-ASL
 
-void casl_describe( char* description );
+void casl_describe( int index, char* description );

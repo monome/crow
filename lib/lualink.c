@@ -469,12 +469,46 @@ static int _set_input_peak( lua_State *L )
 }
 
 // CASL
+#include <stdio.h>
 static int _casl_describe( lua_State *L )
 {
-    const char* description = luaL_checkstring(L, 1);
+        // arg1 is a list:
+
+    printf("_casl_describe\n");
+    lua_pushnil(L); // force starting at 'first' key
+    while( lua_next(L, -2) ){ // table to iterate is 2nd item on stack
+        printf("%s - %s\n", lua_typename(L, lua_type(L, -2))   // key
+                          , lua_typename(L, lua_type(L, -1))); // value
+       lua_pop(L, 1); // remove value, but keep key for next iteration
+     }
+     printf("_post\n");
+
+
+
+
+    // int tlen = lua_rawlen( L, 2 ); // length of the table
+    // float divs[tlen];
+    // for( int i=0; i<tlen; i++ ){             // iterate table to get pitch list
+    //     lua_pushnumber( L, i+1 );            // lua is 1-based!
+    //     lua_gettable( L, 2 );                // table is still in index 2
+    //     divs[i] = luaL_checknumber( L, -1 ); // value is now on top of the stack
+    //     lua_pop( L, 1 );                     // remove our introspected value
+    // }
+
+
+
+
+
+
+
+
+    // casl_describe( luaL_checkinteger(L, 1)-1 // C is zero-based
+    //              , luaL_checkstring(L, 2)
+    //              );
+    // const char* description = luaL_checkstring(L, 2);
     // uint32_t len = strlen(msg);
     // Caw_send_raw( (uint8_t*) msg, len );
-    printf("_casl_describe %s\n", description);
+    lua_pop( L, 2 );
     lua_settop(L, 0);
     // S_toward( luaL_checkinteger(L, 1)-1 // C is zero-based
     //         , luaL_checknumber(L, 2)
@@ -482,7 +516,6 @@ static int _casl_describe( lua_State *L )
     //         , S_str_to_shape( luaL_checkstring(L, 4) )
     //         , L_queue_toward
     //         );
-    // lua_pop( L, 4 );
     // lua_settop(L, 0);
     return 0;
 }
