@@ -24,6 +24,8 @@ function _crow.libs( lib )
         -- load all
         Input  = dofile('lua/input.lua')
         Output = dofile('lua/output.lua')
+        casl   = dofile('lua/casl.lua')
+        casllib= dofile('lua/casllib.lua')
         asl    = dofile('lua/asl.lua')
         asllib = dofile('lua/asllib.lua')
         metro  = dofile('lua/metro.lua')
@@ -107,6 +109,10 @@ end
 function LL_get_state( id )
     return get_state(id)
 end
+
+
+--- casl
+cc = casl.new()
 
 
 --- ii

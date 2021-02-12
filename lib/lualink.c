@@ -9,6 +9,7 @@
 
 // Hardware IO
 #include "lib/slopes.h"     // S_toward
+#include "lib/casl.h"       // C-ASL
 #include "lib/ashapes.h"    // AShaper_unset_scale(), AShaper_set_scale()
 #include "lib/detect.h"     // Detect*
 #include "lib/caw.h"        // Caw_send_*()
@@ -27,6 +28,8 @@
 // Lua libs wrapped in C-headers: Note the extra '.h'
 #include "lua/bootstrap.lua.h" // MUST LOAD THIS MANUALLY FIRST
 #include "lua/crowlib.lua.h"
+#include "lua/casl.lua.h"
+#include "lua/casllib.lua.h"
 #include "lua/asl.lua.h"
 #include "lua/asllib.lua.h"
 #include "lua/metro.lua.h"
@@ -44,6 +47,8 @@
 
 const struct lua_lib_locator Lua_libs[] =
     { { "lua_crowlib"   , lua_crowlib   }
+    , { "lua_casl"      , lua_casl      }
+    , { "lua_casllib"   , lua_casllib   }
     , { "lua_asl"       , lua_asl       }
     , { "lua_asllib"    , lua_asllib    }
     , { "lua_metro"     , lua_metro     }
@@ -463,6 +468,24 @@ static int _set_input_peak( lua_State *L )
     return 0;
 }
 
+// CASL
+static int _casl_describe( lua_State *L )
+{
+    const char* description = luaL_checkstring(L, 1);
+    // uint32_t len = strlen(msg);
+    // Caw_send_raw( (uint8_t*) msg, len );
+    printf("_casl_describe %s\n", description);
+    lua_settop(L, 0);
+    // S_toward( luaL_checkinteger(L, 1)-1 // C is zero-based
+    //         , luaL_checknumber(L, 2)
+    //         , luaL_checknumber(L, 3) * 1000.0
+    //         , S_str_to_shape( luaL_checkstring(L, 4) )
+    //         , L_queue_toward
+    //         );
+    // lua_pop( L, 4 );
+    // lua_settop(L, 0);
+    return 0;
+}
 
 static int _send_usb( lua_State *L )
 {
@@ -629,6 +652,8 @@ static const struct luaL_Reg libCrow[]=
     , { "set_input_window" , _set_input_window }
     , { "set_input_volume" , _set_input_volume }
     , { "set_input_peak"   , _set_input_peak   }
+        // casl
+    , { "casl_describe"    , _casl_describe    }
         // usb
     , { "send_usb"         , _send_usb         }
         // i2c
