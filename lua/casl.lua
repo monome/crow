@@ -33,12 +33,9 @@ function Casl:compile(d)
     local function _compile(self,d)
         for k,v in ipairs(d) do
             if type(v) == 'table' then
-                print("hi",table.getn(v),tablen(v))
-                print"FHFHFHF"
-
-                table.insert( self.AST, "enter" )
+                table.insert( self.AST, 'enter' )
                 _compile(self,v) -- recursively handle nested tables
-                table.insert( self.AST, "exit" )
+                table.insert( self.AST, 'exit' )
             else -- assume type(v)=='function'
                 table.insert( self.AST
                             , v(self, d[2]) ) -- compile into self
