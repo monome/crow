@@ -476,10 +476,11 @@ static int _casl_describe( lua_State *L )
 
     printf("_casl_describe\n");
     lua_pushnil(L); // force starting at 'first' key
-    while( lua_next(L, -2) ){ // table to iterate is 2nd item on stack
+    while( lua_next(L, -2) ){
         printf("%s - %s\n", lua_typename(L, lua_type(L, -2))   // key
                           , lua_typename(L, lua_type(L, -1))); // value
-       lua_pop(L, 1); // remove value, but keep key for next iteration
+        // if type(key) == 'number', this is a sequential list
+        lua_pop(L, 1); // remove value, but keep key for next iteration
      }
      printf("_post\n");
 
