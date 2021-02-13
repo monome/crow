@@ -7,3 +7,5 @@
 
 void casl_describe( int index, lua_State* L );
 void casl_action( int index, int action );
+int casl_defdynamic( int index );
+void casl_setdynamic( int index, int dynamic_ix, float val );

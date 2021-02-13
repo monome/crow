@@ -488,6 +488,22 @@ static int _casl_action( lua_State *L )
     lua_settop(L, 0);
     return 0;
 }
+static int _casl_defdynamic( lua_State *L )
+{
+    int c_ix = luaL_checkinteger(L, 1)-1; // lua is 1-based
+    lua_pop(L, 1);
+    lua_pushinteger( L, casl_defdynamic( c_ix ) );
+    return 1;
+}
+static int _casl_setdynamic( lua_State *L )
+{
+    casl_setdynamic( luaL_checkinteger(L, 1)
+                   , luaL_checkinteger(L, 2)
+                   , luaL_checknumber(L, 3)
+                   );
+    lua_pop(L, 3);
+    return 0;
+}
 
 static int _send_usb( lua_State *L )
 {
@@ -512,12 +528,14 @@ static int _ii_list_commands( lua_State *L )
     uint8_t address = luaL_checkinteger(L, 1);
     printf("i2c help %i\n", address);
     Caw_send_luachunk( (char*)ii_list_cmds(address) );
+    lua_pop(L, 1);
     return 0;
 }
 
 static int _ii_pullup( lua_State *L )
 {
     ii_set_pullups( luaL_checkinteger(L, 1) );
+    lua_pop(L, 1);
     return 0;
 }
 
@@ -657,6 +675,8 @@ static const struct luaL_Reg libCrow[]=
         // casl
     , { "casl_describe"    , _casl_describe    }
     , { "casl_action"      , _casl_action      }
+    , { "casl_defdynamic"  , _casl_defdynamic  }
+    , { "casl_setdynamic"  , _casl_setdynamic  }
         // usb
     , { "send_usb"         , _send_usb         }
         // i2c

@@ -30,12 +30,31 @@ function casl_describe(id, d)
     print(tab.dump(d))
 end
 
+dyns = {}
+dyn_ix = 0
+function casl_defdynamic(id)
+    local d = dyn_ix
+    print('defdynamic['..id..']='..d)
+    dyn_ix = dyn_ix + 1
+    return d
+end
+
+function casl_setdynamic(id, ix, val)
+    print('set['..ix..']='..val)
+    dyns[ix] = val
+end
+
+
 a = casl.new()
 -- a:describe( dyn{level=3.0} )
 -- a:describe( cto(3.0,4.2) )
 -- a:describe( cto(3.0,4.2,'linear') )
 -- a:describe{ cto(-3,3,'linear'), cto(3,3,'linear') }
-a:describe(cloop{ cto(-3,3,'linear') })
+-- a:describe(cloop{ cto(-3,3,'linear') })
+-- a:describe(cloop{ cto(cdyn{volts=2.1},3,'linear') })
+a:describe(cloop{ cto(cdyn{volts=2.1},cdyn{tim=3},'linear') })
+casl.dyn.volts(3)
+casl.dyn.tim(0.1)
 -- a:describe( to(dyn{le=3.0},4.2) )
 
 
