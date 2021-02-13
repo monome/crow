@@ -112,7 +112,7 @@ end
 
 
 --- casl
-cc = casl.new()
+cc = casl.new(1) -- channel 1
 
 
 --- ii

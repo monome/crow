@@ -470,54 +470,24 @@ static int _set_input_peak( lua_State *L )
 
 // CASL
 #include <stdio.h>
+// {"TO", volts, time, shape}
 static int _casl_describe( lua_State *L )
 {
-        // arg1 is a list:
-
     printf("_casl_describe\n");
-    lua_pushnil(L); // force starting at 'first' key
-    while( lua_next(L, -2) ){
-        printf("%s - %s\n", lua_typename(L, lua_type(L, -2))   // key
-                          , lua_typename(L, lua_type(L, -1))); // value
-        // if type(key) == 'number', this is a sequential list
-        lua_pop(L, 1); // remove value, but keep key for next iteration
-     }
-     printf("_post\n");
-
-
-
-
-    // int tlen = lua_rawlen( L, 2 ); // length of the table
-    // float divs[tlen];
-    // for( int i=0; i<tlen; i++ ){             // iterate table to get pitch list
-    //     lua_pushnumber( L, i+1 );            // lua is 1-based!
-    //     lua_gettable( L, 2 );                // table is still in index 2
-    //     divs[i] = luaL_checknumber( L, -1 ); // value is now on top of the stack
-    //     lua_pop( L, 1 );                     // remove our introspected value
-    // }
-
-
-
-
-
-
-
-
-    // casl_describe( luaL_checkinteger(L, 1)-1 // C is zero-based
-    //              , luaL_checkstring(L, 2)
-    //              );
-    // const char* description = luaL_checkstring(L, 2);
-    // uint32_t len = strlen(msg);
-    // Caw_send_raw( (uint8_t*) msg, len );
+    casl_describe( luaL_checkinteger(L, 1)-1 // C is zero-based
+                 , L // descriptor is on top of the stack
+                 );
+    printf("end casl_describe\n");
     lua_pop( L, 2 );
     lua_settop(L, 0);
-    // S_toward( luaL_checkinteger(L, 1)-1 // C is zero-based
-    //         , luaL_checknumber(L, 2)
-    //         , luaL_checknumber(L, 3) * 1000.0
-    //         , S_str_to_shape( luaL_checkstring(L, 4) )
-    //         , L_queue_toward
-    //         );
-    // lua_settop(L, 0);
+    return 0;
+}
+static int _casl_action( lua_State *L )
+{
+    casl_action( luaL_checkinteger(L, 1)-1 // C is zero-based
+               , 0 );
+    lua_pop(L, 1);
+    lua_settop(L, 0);
     return 0;
 }
 
@@ -688,6 +658,7 @@ static const struct luaL_Reg libCrow[]=
     , { "set_input_peak"   , _set_input_peak   }
         // casl
     , { "casl_describe"    , _casl_describe    }
+    , { "casl_action"      , _casl_action      }
         // usb
     , { "send_usb"         , _send_usb         }
         // i2c

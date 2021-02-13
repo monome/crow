@@ -113,6 +113,7 @@ void S_toward( int        index
             self->here += overflow * self->delta;
             self->countdown -= overflow;
             if( self->countdown <= 0.0 ){ // guard against overflow hitting callback
+                printf("FIXME near immediate callback\n");
                 self->countdown = 0.00001; // force callback on next sample
                 self->here = 1.0; // set to destination
             }
@@ -173,7 +174,7 @@ static float* motion_v( Slope_t* self, float* out, int size )
         for( int i=0; i<size; i++ ){
             *out2++ = self->here;
         }
-    } else {
+    } else { // WARN: requires size >= 1
         *out2++ = self->here + self->delta;
         for( int i=1; i<size; i++ ){
             *out2++ = *out3++ + self->delta;
@@ -200,12 +201,16 @@ static float* breakpoint_v( Slope_t* self, float* out, int size )
             // side-affects: self->{dest, shape, action, countdown, delta, (here)}
         }
         if( self->action != NULL ){ // instant callback
-            printf("FIXME: shouldn't happen on crow\n");
+            COUNTER = 4;
             *out++ = shaper( self, self->here );
             // 1. unwind self->countdown (ADD it to countdown)
             // 2. recalc current sample with new slope
             // 3. below call should be on out[0] and size
-            return step_v( self, out, size-1 );
+            if(size > 1){
+                return step_v( self, out, size-1 );
+            } else { // handle breakpoint on last sample of frame
+                return out;
+            }
         } else { // slope complete, or queued response
             self->here  = 1.0;
             self->delta = 0.0;
