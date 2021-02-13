@@ -473,11 +473,9 @@ static int _set_input_peak( lua_State *L )
 // {"TO", volts, time, shape}
 static int _casl_describe( lua_State *L )
 {
-    printf("_casl_describe\n");
     casl_describe( luaL_checkinteger(L, 1)-1 // C is zero-based
                  , L // descriptor is on top of the stack
                  );
-    printf("end casl_describe\n");
     lua_pop( L, 2 );
     lua_settop(L, 0);
     return 0;

@@ -33,8 +33,9 @@ end
 a = casl.new()
 -- a:describe( dyn{level=3.0} )
 -- a:describe( cto(3.0,4.2) )
-a:describe( cto(3.0,4.2,'linear') )
-a:describe{ cto(-3,3,'linear'), cto(3,3,'linear') }
+-- a:describe( cto(3.0,4.2,'linear') )
+-- a:describe{ cto(-3,3,'linear'), cto(3,3,'linear') }
+a:describe(cloop{ cto(-3,3,'linear') })
 -- a:describe( to(dyn{le=3.0},4.2) )
 
 

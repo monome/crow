@@ -201,7 +201,6 @@ static float* breakpoint_v( Slope_t* self, float* out, int size )
             // side-affects: self->{dest, shape, action, countdown, delta, (here)}
         }
         if( self->action != NULL ){ // instant callback
-            COUNTER = 4;
             *out++ = shaper( self, self->here );
             // 1. unwind self->countdown (ADD it to countdown)
             // 2. recalc current sample with new slope

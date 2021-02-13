@@ -9,10 +9,15 @@
 #define SEQ_COUNT  8
 #define SEQ_LENGTH 8
 
+typedef enum{ ControlNone
+            , ControlRecur
+} ControlFlow;
+
 typedef struct{
     float volts;
     float time;
     int shape;
+    ControlFlow ctrl;
 } To;
 
 typedef struct{
@@ -32,7 +37,7 @@ typedef struct{
 // Tree      tree;
 
 
-static To tos[2];
+static To tos[32];
 static int to_ix = 0; // just counts up allocated To slots
 static Sequence seq;
 
@@ -71,19 +76,36 @@ static void parse_table( lua_State* L )
     lua_pushnumber(L, 1); // query first table elem
     lua_gettable(L, -2);  // get above key from table on stack
     int car_type = lua_type(L, -1); // types from lua.h
-    lua_pop(L, 1); // pop type
 
     switch( car_type ){ // types from lua.h
-        case LUA_TSTRING: {// assume TO. In future, parse on first char
-            printf("read_to\n");
-            // TODO parse function based on first char
 
-            To* t = &tos[to_ix]; to_ix++; // allocate a To*
-            read_to(t, L); // read it from Lua
-            seq.stage[seq.length] = t; seq.length++; // store To* into the Sequence
+        case LUA_TSTRING: {
+            const char s = luaL_checkstring(L, -1)[0]; // grab first char
+            printf("string: %c\n",s);
+            lua_pop(L, 1); // pop type
+            switch(s){
+                case 'T':{ // TO
+                    printf("T\n");
+                    To* t = &tos[to_ix]; to_ix++; // allocate a To*
+                    read_to(t, L); // read it from Lua
+                    seq.stage[seq.length] = t; seq.length++; // store To* into the Sequence
+                    break;}
 
+                case 'R': // RECUR
+                    printf("R\n");
+                    To* t = &tos[to_ix]; to_ix++; // allocate a To*
+                    t->ctrl = ControlRecur;
+                    seq.stage[seq.length] = t; seq.length++; // store To* into the Sequence
+                    break;
+
+                default:
+                    printf("default\n");
+                    break;
+            }
             break;}
+
         case LUA_TTABLE:{ // NEST
+            lua_pop(L, 1); // pop type
             // TODO allocate a new Sequence*
             int seq_len = lua_rawlen(L, -1);
             printf("seq_len %i\n",seq_len);
@@ -94,9 +116,12 @@ static void parse_table( lua_State* L )
                 parse_table(L); // RECUR
                 lua_pop(L, 1); // pops inner-table
             }
-
             break;}
-        default: break;
+
+        default:
+            printf("default, type was %i\n",car_type);
+            lua_pop(L, 1); // pop type
+            break;
     }
 }
 
@@ -116,6 +141,8 @@ static void read_to( To* t, lua_State* L )
     lua_gettable( L, -2 );
     t->shape = S_str_to_shape( luaL_checkstring(L, -1) );
     lua_pop( L, 1 );
+
+    t->ctrl = ControlNone;
 }
 
 static void next_action( int index );
@@ -129,12 +156,22 @@ static void next_action( int index )
 {
     if( seq.pc < seq.length ){
         To* t = seq.stage[seq.pc]; seq.pc++;
-        S_toward( index
-                , t->volts
-                , t->time * 1000.0
-                , t->shape
-                , &next_action // recur upon breakpoint
-                );
+        switch(t->ctrl){
+            case ControlNone:
+                S_toward( index
+                        , t->volts
+                        , t->time * 1000.0
+                        , t->shape
+                        , &next_action // recur upon breakpoint
+                        );
+                break;
+
+            case ControlRecur:{
+                printf("rec\n");
+                seq.pc = 0;
+                next_action(index);
+                return;}
+        }
     }
 }
 
