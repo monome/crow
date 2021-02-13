@@ -226,7 +226,7 @@ uint8_t* ii_processLeadRx( void )
 
 static void lead_callback( uint8_t address, uint8_t command, uint8_t* rx_data )
 {
-    if (!rx_is_raw) ii_unpickle( &address, &command, rx_data );
+    if( !rx_is_raw ){ ii_unpickle( &address, &command, rx_data ); }
     ii_Type_t return_type = ii_s32T;
     const ii_Cmd_t* cmd = ii_find_command(address, command);
     if( cmd != NULL ){

@@ -48,11 +48,11 @@ function ii_LeadRx_handler( addr, cmd, _arg, data )
     if ii.event_raw(addr, cmd, data, arg) then return end
     local name, ix = ii.is.lookup(addr)
     if name ~= nil then
-      local rx_event = { name   = ii[name].e[cmd]
-                       , device = ix or 1
-                       , arg    = _arg
-                       }
-      ii[name].event(rx_event, data)
+        local rx_event = { name   = ii[name].e[cmd]
+                         , device = ix or 1
+                         , arg    = _arg
+                         }
+        ii[name].event(rx_event, data)
     end
 end
 
