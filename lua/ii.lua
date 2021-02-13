@@ -45,13 +45,15 @@ function ii.get( address, cmd, ... )
 end
 
 function ii_LeadRx_handler( addr, cmd, _arg, data )
-    if ii.event_raw(addr, cmd, data) then return end
+    if ii.event_raw(addr, cmd, data, arg) then return end
     local name, ix = ii.is.lookup(addr)
-    local rx_event = { name   = ii[name].e[cmd]
-                     , device = ix or 1
-                     , arg    = _arg
-                     }
-    ii[name].event(rx_event, data)
+    if name ~= nil then
+      local rx_event = { name   = ii[name].e[cmd]
+                       , device = ix or 1
+                       , arg    = _arg
+                       }
+      ii[name].event(rx_event, data)
+    end
 end
 
 function ii.e( name, event, ... )
@@ -94,7 +96,7 @@ function ii.reset_events()
     ii.self.call = function(args) print('call'..#args) end
     ii.self.query = function(args) print('query'..#args); return 0 end
 
-    ii.event_raw = function(addr, cmd, data) end
+    ii.event_raw = function(addr, cmd, data, arg) end
 end
 ii.reset_events()
 
