@@ -159,7 +159,7 @@ uint8_t ii_leader_enqueue_bytes( uint8_t  address
 
     q->is_raw = true;
     q->address = address;
-    q->arg = tx_len > 1 ? data[1] : data[0];
+    q->arg = tx_len > 1 ? data[1] : 0;
     q->query_length = rx_len;
     q->length = tx_len;
     memcpy( q->data, data, tx_len );
