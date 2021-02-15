@@ -4,6 +4,7 @@
 #include "slopes.h" // S_toward
 
 #include <stdio.h>
+#include <stdbool.h>
 
 #define TO_COUNT   8
 #define SEQ_COUNT  8
@@ -12,11 +13,14 @@
 
 typedef enum{ ToLiteral
             , ToRecur
+            , ToIf
+            , ToEnter
 } ToControl;
 
 typedef union{
     float   f;
     int     dyn;
+    int     seq;
     Shape_t shape;
 } ElemO;
 
@@ -31,9 +35,9 @@ typedef struct{
 } Elem;
 
 typedef struct{
-    Elem volts;
-    Elem time;
-    Elem shape;
+    Elem a;
+    Elem b;
+    Elem c;
     ToControl ctrl;
 } To;
 
@@ -41,22 +45,16 @@ typedef struct{
     To* stage[SEQ_LENGTH];
     int length;
     int pc;
+    int parent; // seq_ix, like a tree 'parent' link
 } Sequence;
-
-// typedef struct{
-//     // TODO
-//     Sequence* retstk[SEQ_COUNT];
-// } Tree;
-
-
-// To*       tos[TO_COUNT];
-// Sequence* seqs[SEQ_COUNT];
-// Tree      tree;
-
 
 static To tos[TO_COUNT];
 static int to_ix = 0; // just counts up allocated To slots
-static Sequence seq;
+
+static Sequence* seq_current;
+static Sequence seqs[SEQ_COUNT];
+static int seq_ix  = 0;  // counts up allocation of Sequence slots
+static int seq_select = -1; // current 'parent'
 
 static Elem dynamics[DYN_COUNT];
 static int dyn_ix = 0;
@@ -70,21 +68,49 @@ void casl_init( void )
 
 
 
+static void seq_enter( void )
+{
+    Sequence* s = &seqs[seq_ix];
+    seq_current = s; // save as 'active' Sequence
+
+    s->length = 0;
+    s->pc     = 0;
+    s->parent = seq_select;
+
+    seq_select = seq_ix; // select the new Sequence
+    printf("enter: %i\n",seq_select);
+    seq_ix++; // marks the sequence as allocated
+}
+
+static void seq_exit( void )
+{
+    seq_select = seq_current->parent; // move up tree
+    printf("exit: %i\n",seq_select);
+    seq_current = &seqs[seq_select]; // save the new node
+}
+
+
+static void seq_append( To* t )
+{
+    Sequence* s = seq_current;
+    s->stage[s->length] = t; // append To* to end of Sequence
+    s->length++;
+}
 
 static void parse_table( lua_State* L );
 void casl_describe( int index, lua_State* L )
 {
-    // reset description
+    // deallocate everything
+    to_ix  = 0;
+    dyn_ix = 0;
+    seq_ix = 0;
 
-    to_ix  = 0; // clear to's
-    dyn_ix = 0; // clear dynamics
-
-    // reset sequence
-    seq.length = 0;
-    seq.pc     = 0;
+    // enter first sequence
+    seq_enter();
 
     printf("casl_describe\n");
     parse_table(L);
+    // seq_exit()? // i think we want to start inside the first Seq anyway
 }
 
 // suite of functions for unwrapping elements of Lua tables
@@ -121,23 +147,39 @@ static int ix_int( lua_State* L, int ix )
     return ix_int;
 }
 
+static To* to_alloc( void )
+{
+    To* t = &tos[to_ix]; // get next To
+    to_ix++; // mark as allocated
+    return t;
+}
+
 static void read_to( To* t, lua_State* L );
+static void capture_elem( Elem* e, lua_State* L, int ix );
 static void parse_table( lua_State* L )
 {
     switch( ix_type(L, 1) ){ // types from lua.h
 
         case LUA_TSTRING: { // TO, RECUR
-            To* t = &tos[to_ix]; to_ix++; // allocate a To*
-            seq.stage[seq.length] = t; seq.length++; // store To* into the Sequence
+            To* t = to_alloc();
+            seq_append(t);
             switch( ix_char(L, 1) ){
                 case 'T': read_to(t, L); break; // standard To
                 case 'R':{ t->ctrl = ToRecur; break; } // Recur ctrlflow
+                case 'I':{ // If ctrlflow
+                    capture_elem(&(t->a), L, 2); // capture predicate from ix[2] to t->a
+                    t->ctrl = ToIf;
+                    break; }
                 default: printf("ERROR char not found\n"); break;
             }
             break;}
 
         case LUA_TTABLE:{ // NEST
-            // TODO allocate a new Sequence*
+            To* t = to_alloc();
+            seq_append(t);
+            t->ctrl = ToEnter; // mark as entering a sub-Seq
+            seq_enter();
+            t->a.obj.seq = seq_select; // pass this To* to seq_enter, and do this line in there
             int seq_len = lua_rawlen(L, -1);
             printf("seq_len %i\n",seq_len);
             for( int i=1; i<=seq_len; i++ ){ // Lua is 1-based
@@ -146,25 +188,18 @@ static void parse_table( lua_State* L )
                 parse_table(L); // RECUR
                 lua_pop(L, 1); // pops inner-table
             }
+            seq_exit();
             break;}
 
         default: printf("ERROR unhandled parse type\n"); break;
     }
 }
 
-static void capture_elem( Elem* e, lua_State* L, int ix );
 static void read_to( To* t, lua_State* L )
 {
-    capture_elem(&(t->volts), L, 2);
-    capture_elem(&(t->time), L, 3);
-
-    // TODO capture
-    lua_pushnumber( L, 4 ); // shape
-    lua_gettable( L, -2 );
-    t->shape.obj.shape = S_str_to_shape( luaL_checkstring(L, -1) );
-    t->shape.type = ElemT_Shape;
-    lua_pop( L, 1 );
-
+    capture_elem(&(t->a), L, 2);
+    capture_elem(&(t->b), L, 3);
+    capture_elem(&(t->c), L, 4);
     t->ctrl = ToLiteral;
 }
 
@@ -176,6 +211,12 @@ static void capture_elem( Elem* e, lua_State* L, int ix )
         case LUA_TNUMBER:{
             e->obj.f = ix_num(L, ix);
             e->type = ElemT_Float;
+            break;}
+
+        case LUA_TSTRING:{
+            char c = ix_char(L, ix);
+            e->obj.shape = S_str_to_shape( &c );
+            e->type = ElemT_Shape;
             break;}
 
         case LUA_TTABLE: // handle behavioural-types
@@ -199,37 +240,82 @@ static void capture_elem( Elem* e, lua_State* L, int ix )
 ///////////////////////////////
 // Runtime
 
+static To* seq_advance( void )
+{
+    Sequence* s = seq_current;
+    To* t = NULL;
+    if( s->pc < s->length ){ // stages remain
+        t = s->stage[s->pc]; // get next stage
+        s->pc++; // select following stage
+    }
+    return t;
+}
+
+// return true if there is an upval
+static bool seq_up( void )
+{
+    if( seq_current->parent < 0 ){ return false; } // nothing left to do
+
+    seq_current->pc = 0; // RESET PC so it runs more than once
+    // TODO this will prob change when it comes to nesting conditionals?
+    // TODO or at least when it comes to behavioural data
+
+    seq_select = seq_current->parent;
+    seq_current = &seqs[seq_select];
+    return true;
+}
+
+static void seq_down( int s_ix )
+{
+    seq_select = s_ix;
+    seq_current = &seqs[seq_select];
+}
+
 static void next_action( int index );
 static ElemO resolve( Elem* e );
 
 void casl_action( int index, int action )
 {
-    seq.pc = 0; // start at the beginning
+    seq_current = &seqs[0]; // first sequence
+    seq_current->pc = 0;   // first step
     next_action( index );
 }
 
 static void next_action( int index )
 {
-    if( seq.pc < seq.length ){
-        To* t = seq.stage[seq.pc]; seq.pc++;
+    To* t = seq_advance();
+    if(t){ // To is valid
         switch(t->ctrl){
             case ToLiteral:
                 S_toward( index
-                        , resolve(&t->volts).f
-                        , resolve(&t->time).f * 1000.0
-                        , resolve(&t->shape).shape
+                        , resolve(&t->a).f
+                        , resolve(&t->b).f * 1000.0
+                        , resolve(&t->c).shape
                         , &next_action // recur upon breakpoint
                         );
                 break;
 
             case ToRecur:{
-                // printf("rec\n");
-                seq.pc = 0;
+                seq_current->pc = 0;
                 next_action(index);
                 return;}
+
+            case ToIf:{
+                if( resolve(&t->a).f ){ // TODO make equality a type-reflective fn
+                    next_action(index);
+                } else {
+                    // step up one level
+                }
+                break;}
+
+            case ToEnter:{
+                seq_down(t->a.obj.seq);
+                next_action(index);
+                break;}
         }
-    } else { // sequence over
-        // TODO check if the retstk has data so we can jump up
+    } else if( seq_up() ){ // To invalid. Jump up the retstk
+        // TODO refactor to use a retstk, rather than parent per-Sequence
+        next_action(index); // recur
     }
 }
 

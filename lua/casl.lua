@@ -33,6 +33,11 @@ function cloop(t)
     return t
 end
 
+function cif(pred, tab)
+    table.insert(tab,1,{'IF',pred})
+    return tab
+end
+
 -- register named dynamic for updating
 -- each name is given an index which maps directly to a C datastructure
 -- creates an update-function in the self.dyn namespace
