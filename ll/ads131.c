@@ -64,11 +64,20 @@ void ADC_Init( uint16_t bsize, uint8_t chan_count, int timer_ix )
     adc_spi.Init.CRCPolynomial     = 7;
     if(HAL_SPI_Init(&adc_spi) != HAL_OK){ printf("spi_init\n"); }
 
+
+// 216/27 = 8MHz. then /2 and /2 in the ads clocks so 2MHz fMOD
+    // thus 500nS per clock
+// then we average OSR to 512 samples
+    // so 256uS per clock
+    // then we give ~600uS to reset & resettle
+    
+
     //uint32_t prescaler = (uint32_t)((SystemCoreClock / 10000)-1);
-    uint32_t period_value = 0x06; // ~8.3MHz
+    uint32_t period_value = 27-1; // 8MHz
     adc_tim.Instance = TIMa;
     adc_tim.Init.Period = period_value;
-    adc_tim.Init.Prescaler = 1; //prescaler;
+    // adc_tim.Init.Prescaler = 3; //prescaler;
+    adc_tim.Init.Prescaler = 0; //prescaler;
     adc_tim.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
     adc_tim.Init.CounterMode = TIM_COUNTERMODE_UP;
     if(HAL_TIM_PWM_Init(&adc_tim) != HAL_OK){ printf("tim_init\n"); }
@@ -96,11 +105,16 @@ void ADC_Init( uint16_t bsize, uint8_t chan_count, int timer_ix )
         adc_calibrated_shift[i] = 2.5;
     }
 
-    // This timer is used to wait for the ADC to collect data in the background
-    // 320uS was found experimentally to be the shortest delay that would
-    // reliably have valid ADC data in the ADS131's internal buffer.
+    // basically the ADC has a *resync* event every time bc the MCLK is not in phase with SPI
+    // i tried for ages to get them aligned, but i think it requires 1) hardware change (to use I2S) or
+    // 2) big architectural changes in the dsp block processing.
+
+    // instead we have *increased* this delay
+    // after NSS goes low, the *resync* error occurs, and the sinc3 filter is reset.
+    // it continues sampling while it awaits the SPI transmission.
+    // so we increase the delay time to the max, to be able to use the highest OSR ratio
     timer_index_ads = timer_ix;
-    Timer_Set_Params( timer_index_ads, 0.00032 ); // 320uS
+    Timer_Set_Params( timer_index_ads, 0.00063 ); // 630uS (block is 666uS)
     Timer_Priority( timer_index_ads, ADC_IRQPriority );
 
     ADS_Init_Sequence();
@@ -114,25 +128,23 @@ void ADS_Init_Sequence(void)
     if( ADS_Cmd(ADS_NULL) != ADS_UNLOCK ){ printf("Can't Unlock\n"); }
 
     // CONFIGURE REGS HERE
-    ADS_Reg(ADS_WRITE_REG | ADS_CLK1, 0x01 << 1); // MCLK/8 // 0x02 before
+    ADS_Reg(ADS_WRITE_REG | ADS_CLK1, 0x02); // fICLK = MCLK/2
     //printf( "%i\n",ADS_Cmd(ADS_NULL) ); // assert ADS_CLK1
         // 0x02 is /2 which is least divisions (fastest internal)
-        // meaning slowest clkout from uc and least noise?
-        // CLKIN divider. see p63 of ads131 datasheet
-    //  clk2 sets ADC read rate?
-    ADS_Reg(ADS_WRITE_REG | ADS_CLK2, 0x2a); // MCLK/8
-    // this was arrived at experimentally
+        // meaning slowest clkout from uc and least noise.
+    // ADS_Reg(ADS_WRITE_REG | ADS_CLK2, 0x25); // fMOD = fICLK/2, OSR = 512
+    // ADS_Reg(ADS_WRITE_REG | ADS_CLK2, 0x27); // fMOD = fICLK/2, OSR = 384
+
+// weirdly, we choose the OSR value by increasing the multiplier until the DRDY error flag is set
+    // we actualy *want* this error flag set, bc it infers the filter has settled
+    ADS_Reg(ADS_WRITE_REG | ADS_CLK2, 0x28); // fMOD = fICLK/2, OSR = 256
+    // ADS_Reg(ADS_WRITE_REG | ADS_CLK2, 0x2a); // fMOD = fICLK/2, OSR = 192
     // 0x2* sets clockdiv to /2 (the least divisions, for slowest MCLK)
     // 0x*b was lowest (ie most oversampling) where -5v actually reached 0x8000
     // using 0x*c for safety
-    // fMOD = fICLK / 8, and OSR=400 (default 0x86)
-        // see p64 & Table30(p65) for OSR settings
-        // Table30 shows effective sampling rates w/ diff MCLKs
-        // start at 1kHz, then work up depending on quality/cpu
-    // fMOD = fICLK / 2  fICLK = fCLKIN / 2048 ** now is 500hz ** 0x21
-    ADS_Reg(ADS_WRITE_REG | ADS_ADC_ENA, 0x03); // this contradicts datasheet
-        // DS suggests 0 or 0xF, but we use 0x03 for only 2 channels
-        // this is based on making certain the ADS_Reg response is correct
+    ADS_Reg(ADS_WRITE_REG | ADS_ADC_ENA, 0x03); // contrasts with datasheet
+        // 0x03 is a bitwise mask of enabled channels
+        // confirmed that ADS_Reg response agrees
     ADS_Cmd(ADS_WAKEUP);
 
     ADS_Cmd(ADS_LOCK);
@@ -166,8 +178,8 @@ uint16_t ADS_Reg( uint8_t reg_mask, uint8_t val )
                           | val
                           );
         if( status != expect ){
-            printf("!WREG expect: %i\n", expect);
-            printf("received: %i\n", status);
+            printf("!WREG expect: %x\n", expect);
+            printf("received: %x\n", status);
         }
     }
     return retval;
@@ -225,13 +237,12 @@ void ADC_UnpickleBlock( float*   unpickled
 
 static void ADC_UnpickleBlock_Cont( int unused )
 {
-    uint32_t* tx = (uint32_t*)aTxBuffer;
-    *tx = 0; // NULL command
+    *aTxBuffer = 0x0000; // NULL command
     BLOCK_IRQS(
         if(HAL_SPI_TransmitReceive_DMA( &adc_spi
                                       , (uint8_t*)aTxBuffer
                                       , (uint8_t*)aRxBuffer
-                                      , ADC_BUF_SIZE
+                                      , ADC_FRAMES
                                       ) != HAL_OK ){
             printf("spi_txrx_fail\n");
         }
@@ -320,7 +331,6 @@ void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi)
 {
     printf("ads spi_error\n");
     // pull NSS high to cancel any ongoing transmission
-    //DELAY_usec(NSS_DELAY);
     HAL_GPIO_WritePin( SPIa_NSS_GPIO_PORT, SPIa_NSS_PIN, 1 );
 }
 
@@ -328,7 +338,6 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 {
     //printf("txrx-cb\n");
     // signal end of transmission by pulling NSS high
-    //DELAY_usec(NSS_DELAY);
     HAL_GPIO_WritePin( SPIa_NSS_GPIO_PORT, SPIa_NSS_PIN, 1 );
 }
 
@@ -337,7 +346,6 @@ void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
     //printf("rx-cb\n");
     // signal end of transmission by pulling NSS high
     //_ADC_CheckErrors( aRxBuffer[0] );
-    //DELAY_usec(NSS_DELAY);
     HAL_GPIO_WritePin( SPIa_NSS_GPIO_PORT, SPIa_NSS_PIN, 1 );
 }
 
