@@ -33,6 +33,8 @@ Output.__newindex = function(self, ix, val)
         self.asl:action()
     elseif ix == 'done' then
         self.asl.done = val
+    elseif ix == 'scale' then
+        set_output_scale(self.channel, val)
     end
 end
 
