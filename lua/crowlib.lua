@@ -182,6 +182,8 @@ function delay(action, time, repeats)
     return d
 end
 
+function quotes(s) return string.format('%q',s) end
+
 -- empty init function in case userscript doesn't define it
 function init() end
 
