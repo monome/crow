@@ -118,20 +118,21 @@ end
 
 --- class custom .__index;
 -- [] accessor returns one of the static metro objects
+Metro.metaix = { start = Metro.start
+               , stop  = Metro.stop
+               , init  = Metro.init
+               , id    = self.props.id
+               , count = self.props.count
+               , time  = self.props.time
+               , init_stage = self.props.init_stage
+               }
 Metro.__index = function(self, idx)
     if type(idx) == 'number' then
         return Metro.metros[idx]
-    elseif idx == 'start' then return Metro.start
-    elseif idx == 'stop' then return Metro.stop
-    elseif idx == 'init' then return Metro.init
-    elseif idx == 'id' then return self.props.id
-    elseif idx == 'count' then return self.props.count
-    elseif idx == 'time' then return self.props.time
-    elseif idx == 'init_stage' then return self.props.init_stage
-    elseif self.props.idx then
-        return self.props.idx
     else
-        return rawget(self, idx)
+        local fn = Metro.metaix[idx]
+        if fn then return fn
+        else return rawget(self, idx)
     end
 end
 
