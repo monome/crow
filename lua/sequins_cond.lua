@@ -10,7 +10,7 @@ function S.new(t)
     local s = { data   = t
               , length = #t -- memoize table length for speed
               , ix     = #t
-              , n      = 1 -- can be a sequin or a function
+              , n      = 1 -- can be a sequin
               }
     s.action = {up = s}
     setmetatable(s, S)
@@ -28,14 +28,14 @@ function S.setdata(self, t)
     self.ix = wrap_index(self, self.ix)
 end
 
+function S.is_sequins(t) return getmetatable(t) == S end
 
-
-------------------------------
---- behaviours
-
-local function resolve(t)
-    -- this is the link between nested sequins
-    if getmetatable(t) == S then return S.next(t) end
+local function turtle(t, fn)
+    -- apply fn to all nested sequins. default to 'next'
+    if S.is_sequins(t) then
+        if fn then return fn(t)
+        else return S.next(t) end
+    end
     return t
 end
 
@@ -47,14 +47,12 @@ function S.next(self)
     local act = self.action
     if not act.action then -- base case. apply STEP
         local s = act.up
-
         local newix = s.ix
-        local n = resolve(s.n)
+        local n = turtle(s.n)
         newix = newix + n
         newix = wrap_index(s, newix)
-        -- print('new',newix)
 
-        local retval, exec = resolve(s.data[newix])
+        local retval, exec = turtle(s.data[newix])
         -- THIS IS 'STEP'
         if exec ~= 'again' then s.ix = newix end
         -- FIXME add protection for list of dead sequins. for now we just recur, hoping for a live sequin in nest
@@ -69,6 +67,17 @@ function S.next(self)
 end
 
 function S.step(self, s) self.n = s; return self end
+
+function S.reset(self)
+    self.ix = self.length
+    for _,v in ipairs(self.data) do turtle(v, S.reset) end
+    local a = self.action
+    while a.ix do
+        a.ix = 0
+        turtle(a.n, S.reset)
+        a = a.action
+    end
+end
 
 
 ------------------------------
@@ -101,17 +110,17 @@ function S.extend(self, t)
 end
 
 function S._every(self)
-    local n = resolve(self.n)
+    local n = turtle(self.n)
     return (self.ix % n) == 0
 end
 
 function S._times(self)
-    local n = resolve(self.n)
+    local n = turtle(self.n)
     return self.ix <= n
 end
 
 function S._count(self)
-    local n = resolve(self.n)
+    local n = turtle(self.n)
     if self.ix < n then return true
     else self.ix = 0 end -- reset
 end
@@ -146,6 +155,7 @@ S.metaix = { settable = S.setdata
            , count    = S.count
            , all      = S.all
            , once     = S.once
+           , reset    = S.reset
            }
 S.__index = function(self, ix)
     -- runtime calls to step() and select() should return values, not functions

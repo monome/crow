@@ -48,6 +48,8 @@ sASL = loop{ to(1), once{ to(3) } }
 T(sASL, 1)
 T(sASL, 3)
 T(sASL, 1)
+print(sASL())
+print(sASL())
 T(sASL, 1)
 
 -- times construct
