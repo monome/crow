@@ -89,22 +89,19 @@ Asl.__newindex = function(self, ix, val)
     if ix == 'action' then set_action( self, val) end
 end
 
-Asl.__index = function(self, ix)
-    if ix == 'action' then
-        return function(self,a) do_action(self,a) end
-    elseif ix == 'step' then return Asl.step
-    elseif ix == 'init' then return Asl.init
-    -- private fns below (called from step)
-    elseif ix == 'nek' then return Asl.nek
-    elseif ix == 'enter' then return Asl.enter
-    elseif ix == 'exit' then return Asl.exit
-    elseif ix == 'recur' then return Asl.recur
-    elseif ix == 'release' then return Asl.release
-    elseif ix == 'restart' then return Asl.restart
-    elseif ix == 'cleanup' then return Asl.cleanup
-    elseif ix == 'isOver' then return Asl.cleanup
-    end
-end
+Asl.metafn = { action  = do_action
+             , step    = Asl.step
+             , init    = Asl.init
+             , nek     = Asl.nek
+             , enter   = Asl.enter
+             , exit    = Asl.exit
+             , recur   = Asl.recur
+             , release = Asl.release
+             , restart = Asl.restart
+             , cleanup = Asl.cleanup
+             , isover  = Asl.isOver
+             }
+Asl.__index = function(self, ix) return Asl.metafn[ix] end
 
 
 --------------------------------------------
