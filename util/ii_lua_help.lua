@@ -39,6 +39,7 @@ function Is.openlib( self )
     local n = self.name
     ii[n] = dofile(string.format('build/ii_%s.lua',n))
     ii[n].help = self.help
+    self = ii[n] -- redirect the whole table (to handle extant aliases)
     return ii[n]
 end
 
