@@ -30,12 +30,10 @@ function Input:reset_events()
     self.midi   = function(data) _c.tell('midi',table.unpack(data)) end
     self.window = function(win, dir) _c.tell('window',self.channel,win,dir and 1 or 0) end
     self.scale  = function(s)
-                     local str = '{index=' .. s.index
-                              .. ',octave=' .. s.octave
-                              .. ',note=' .. s.note
-                              .. ',volts=' .. s.volts .. '}'
-                     _c.tell('scale',self.channel,str)
-                  end
+        _c.tell('scale',self.channel
+               ,string.format('{index=%g,octave=%g,note=%g,volts=%g}'
+                             , s.index, s.octave, s.note, s.volts))
+    end
     self.volume = function(level) _c.tell('volume',self.channel,level) end
     self.peak   = function() _c.tell('peak',self.channel) end
 end
