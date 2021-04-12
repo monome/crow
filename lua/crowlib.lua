@@ -139,6 +139,7 @@ end
 
 --- Syntax extensions
 function closure_if_table( f )
+    -- deprecated. prefer explicit anonymous function
     local _f = f
     return function( ... )
             if ... == nil then
