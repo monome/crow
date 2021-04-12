@@ -14,14 +14,9 @@ collectgarbage('setstepmul', 260) --default 200
 
 print = function(...)
     local args = {...}
-    local arg_len = #args
-    local printResult = args[1]
-    if arg_len > 1 then
-        for i=2,arg_len do
-            printResult = printResult .. '\t' .. tostring(args[i])
-        end
-    end
-    print_serial(tostring(printResult))
+    local sargs = {}
+    for i=1,#args do sargs[i] = tostring(args[i]) end
+    print_serial(table.concat(sargs, '\t'))
 end
 
 -- nb: this is basically the inverse of l2h.lua (but we don't want that at RT)
