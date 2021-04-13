@@ -244,8 +244,13 @@ debug:
 dfu: $(BIN)
 	sudo dfu-util -a 0 -s 0x08020000 -R -D $(BIN) -d ,0483:df11
 
+dfureset:
+	@stty -F /dev/ttyACM0 raw speed 115200
+	@echo '^^b' > /dev/ttyACM0
+	@sleep 1
+
 pydfu: $(TARGET).dfu $(BIN)
-	python3 util/pydfu.py --vid 0x0483 --pid 0xDF11 -u $<
+	@python3 util/pydfu.py --vid 0x0483 --pid 0xDF11 -u $<
 
 $(TARGET).dfu: $(BIN)
 	python3 util/dfu.py -D 0x0483:0xDF11 -b 0x08020000:$^ $@
