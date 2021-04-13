@@ -250,7 +250,8 @@ dfureset:
 	@sleep 1
 
 pydfu: $(TARGET).dfu $(BIN)
-	@python3 util/pydfu.py --vid 0x0483 --pid 0xDF11 -u $<
+	@python3 util/pydfu.py -u $<
+# 	@python3 util/pydfu.py --vid 0x0483 --pid 0xDF11 -u $<
 
 $(TARGET).dfu: $(BIN)
 	python3 util/dfu.py -D 0x0483:0xDF11 -b 0x08020000:$^ $@
