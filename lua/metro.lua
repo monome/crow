@@ -132,7 +132,7 @@ Metro.__index = function(self, idx)
     else
         local fn = Metro.metaix[idx]
         if fn then return fn
-        else return rawget(self, idx)
+        else return rawget(self, idx) end
     end
 end
 
