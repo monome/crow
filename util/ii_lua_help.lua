@@ -37,9 +37,10 @@ end
 
 function Is.openlib( self )
     local n = self.name
-    ii[n] = dofile(string.format('build/ii_%s.lua',n))
-    ii[n].help = self.help
-    self = ii[n] -- redirect the whole table (to handle extant aliases)
+    if not rawget(ii, n) then -- confirm it hasnn't been loaded (handles pre-openlib aliases)
+        ii[n] = dofile(string.format('build/ii_%s.lua',n))
+        ii[n].help = self.help
+    end
     return ii[n]
 end
 
