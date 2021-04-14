@@ -179,6 +179,30 @@ function delay(action, time, repeats)
     return d
 end
 
+--- Just Intonation helpers
+-- convert a single fraction, or table of fractions to just intonation
+-- optional 'offset' is itself a just ratio
+-- justvolts converts to volts-per-octave
+-- just12 converts to 12TET representation (for *.scale libs)
+-- just12 will convert a fraction or table of fractions into 12tet 'semitones'
+local JIVOLT = 1 / math.log(2)
+local JI12TET = 12 * JIVOLT
+local function _jiv(f) return math.log(f) * JIVOLT end
+local function _ji12(f) return math.log(f) * JI12TET end
+function justvolts(f, off) return _justint(_jiv, f, off) end
+function just12(f, off) return _justint(_ji12, f, off) end
+local function _justint(fn, f, off)
+    off = off and fn(off) or 0 -- optional offset is a just ratio
+    if type(f) == 'table' then
+        for k,v in ipairs(f) do
+            f[k] = fn(v) + off
+        end
+        return f
+    else -- assume number
+        return fn(f) + off
+    end
+end
+
 -- empty init function in case userscript doesn't define it
 function init() end
 
