@@ -45,14 +45,14 @@ Output.__index = function(self, ix)
     elseif ix == 'volts'   then return LL_get_state(self.channel)
     elseif ix == 'running' then return self.asl.running
     elseif ix == 'scale'   then return
-        function(ns,t,s)
-            local temp = t
-            if type(t) == 'string' then
+        function(...)
+            local args = {...}
+            if type(args[2]) == 'string' then
                 self.ji = true
-                temp = 12 -- fake 12TET with floating point just notes
-                ns = just12(ns)
+                args[2] = 12 -- fake 12TET with floating point just notes
+                args[1] = just12(args[1])
             else self.ji = false end
-            set_output_scale(self.channel, ns, temp, s) -- we close over .channel
+            set_output_scale(self.channel, table.unpack(args)) -- close over .channel
         end
     end
 end
