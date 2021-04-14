@@ -265,7 +265,7 @@ static int _go_toward( lua_State *L )
 }
 static int _get_state( lua_State *L )
 {
-    float s = S_get_state( luaL_checkinteger(L, 1)-1 );
+    float s = AShaper_get_state( luaL_checkinteger(L, 1)-1 );
     lua_pop( L, 1 );
     lua_pushnumber( L, s );
     return 1;
