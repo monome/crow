@@ -6,6 +6,7 @@ s8 = 'ii_s8'
 u8 = 'ii_u8'
 s16 = 'ii_s16'
 s16V = 'ii_s16V'
+s16ms = 'ii_s16ms'
 u16 = 'ii_u16'
 float = 'ii_float'
 s32T = 'ii_s32T'
@@ -25,6 +26,7 @@ typedef enum{ ii_void
             , ii_u16
             , ii_s16
             , ii_s16V
+            , ii_s16ms
             , ii_float   // 32bit (for crow to crow comm'n)
             , ii_s32T
 } ii_Type_t;
@@ -202,7 +204,7 @@ function generate_prototypes( d )
     for _,v in ipairs( d.commands ) do
         local s = '"' .. proto_prefix .. v.name .. '( '
         if not v.args then -- no args
-            s = s .. void
+            -- do nothing
         elseif type(v.args[1]) == 'table' then -- more than 1 arg
             local arg_count = #(v.args)
             for i=1,arg_count do

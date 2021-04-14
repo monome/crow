@@ -30,6 +30,7 @@ typedef struct{
     uint8_t query_length; // 0 for broadcast, >0 is return type byte size
     uint8_t data[II_MAX_BROADCAST_LEN];
     uint8_t arg; // just carrying this through for the follower response
+    bool is_raw;
 } ii_q_t;
 
 
@@ -56,6 +57,7 @@ queue_t* f_qix;
 ii_q_t   l_iq[II_QUEUE_LENGTH];
 uint8_t  f_iq[II_QUEUE_LENGTH][II_MAX_RECEIVE_LEN];
 uint8_t  rx_arg = 0; // FIXME is there a better solution?
+bool     rx_is_raw = false;
 
 
 ////////////////////////
@@ -141,6 +143,29 @@ uint8_t ii_leader_enqueue( uint8_t address
     return 0;
 }
 
+uint8_t ii_leader_enqueue_bytes( uint8_t  address
+                               , uint8_t* data
+                               , uint8_t  tx_len
+                               , uint8_t  rx_len
+                               )
+{
+    int ix = queue_enqueue( l_qix );
+    if( ix < 0 ){ printf("queue full\n"); return 1; }
+
+    ii_q_t* q = &l_iq[ix];
+
+    if( tx_len > II_MAX_BROADCAST_LEN ){ tx_len = II_MAX_BROADCAST_LEN; }
+    if( rx_len > II_MAX_RECEIVE_LEN ){ rx_len = II_MAX_RECEIVE_LEN; }
+
+    q->is_raw = true;
+    q->address = address;
+    q->arg = tx_len > 1 ? data[1] : 0;
+    q->query_length = rx_len;
+    q->length = tx_len;
+    memcpy( q->data, data, tx_len );
+    return 0;
+}
+
 void ii_leader_process( void )
 {
     if( !I2C_is_ready() ){ return; } // I2C lib is busy
@@ -151,6 +176,7 @@ void ii_leader_process( void )
     int error = 0;
     if( q->query_length ){
         rx_arg = q->arg;
+        rx_is_raw = q->is_raw;
         if( (error = I2C_LeadRx( q->address
                       , q->data
                       , q->length
@@ -200,12 +226,15 @@ uint8_t* ii_processLeadRx( void )
 
 static void lead_callback( uint8_t address, uint8_t command, uint8_t* rx_data )
 {
-    ii_unpickle( &address, &command, rx_data );
+    if( !rx_is_raw ){ ii_unpickle( &address, &command, rx_data ); }
+    ii_Type_t return_type = ii_s32T;
+    const ii_Cmd_t* cmd = ii_find_command(address, command);
+    if( cmd != NULL ){
+        return_type = cmd->return_type;
+    }
     L_queue_ii_leadRx( address
                      , command
-                     , decode( rx_data
-                             , ii_find_command(address, command)->return_type
-                             )
+                     , decode( rx_data, return_type )
                      , rx_arg
                      );
 }
@@ -296,6 +325,7 @@ static uint8_t type_size( ii_Type_t t )
                case ii_u16:   return 2;
                case ii_s16:   return 2;
                case ii_s16V:  return 2;
+               case ii_s16ms: return 2;
                case ii_float: return 4;
                case ii_s32T:  return 4;
                default:       return 0;
@@ -328,6 +358,11 @@ static float decode( uint8_t* data, ii_Type_t type )
             u16  = ((uint16_t)*data++)<<8;
             u16 |= *data++;
             val = ((float)*(int16_t*)&u16)*II_TT_iVOLT; // Scale Teletype down to float
+            break;
+        case ii_s16ms:
+            u16  = ((uint16_t)*data++)<<8;
+            u16 |= *data++;
+            val = (float)*(int16_t*)&u16/1000.0;
             break;
         case ii_float:
             val = *(float*)data;
@@ -369,6 +404,14 @@ static uint8_t encode( uint8_t* dest, ii_Type_t type, float data )
             data *= II_TT_VOLT; // Scale float up to Teletype
             // FLOWS THROUGH
         case ii_s16:
+            s16 = (int16_t)lim_f(data, -32768.0, 32767.0);
+            u16 = *(uint16_t*)&s16;
+            d[len++] = (uint8_t)(u16>>8);          // High byte first
+            d[len++] = (uint8_t)(u16 & 0x00FF);    // Low byte
+            break;
+        case ii_s16ms:
+            data *= 1000.0;
+            // as ii_s16
             s16 = (int16_t)lim_f(data, -32768.0, 32767.0);
             u16 = *(uint16_t*)&s16;
             d[len++] = (uint8_t)(u16>>8);          // High byte first

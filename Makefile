@@ -68,7 +68,7 @@ endif
 R ?= 0
 ifeq ($(R), 1)
 	CFLAGS += -DRELEASE
-	CFLAGS += -flto # broken in debug mode. provides a small LTO binary size reduction
+	#CFLAGS += -flto # broken in debug mode. provides a small LTO binary size reduction
 endif
 
 LDFLAGS = -Wl,-T,stm32_flash.ld,-flto,-gc-sections

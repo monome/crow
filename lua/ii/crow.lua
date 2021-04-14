@@ -4,7 +4,7 @@ do return
 , i2c_address  = 0x01
 , lua_name     = 'crow'
 , commands     =
-  { { name = 'output'
+  { { name = 'volts'
     , cmd  = 1
     , args = { {'channel', s8, }
              , {'level', s16V }
@@ -13,7 +13,7 @@ do return
   , { name = 'slew'
     , cmd  = 2
     , args = { {'channel', s8, }
-             , {'time', s16 }
+             , {'time', s16ms }
              }
     }
   , { name = 'call1'
@@ -39,6 +39,33 @@ do return
              , { 'arg2', s16 }
              , { 'arg3', s16 }
              , { 'arg4', s16 }
+             }
+    }
+  , { name = 'reset'
+    , cmd  = 8
+    }
+  , { name = 'pulse'
+    , cmd  = 9
+    , args = { { 'chan', s8 }
+             , { 'time', s16ms }
+             , { 'level', s16V }
+             , { 'polarity', s8 }
+             }
+    }
+  , { name = 'ar'
+    , cmd  = 10
+    , args = { { 'chan', s8 }
+             , { 'attack', s16ms }
+             , { 'release', s16ms }
+             , { 'level', s16V }
+             }
+    }
+  , { name = 'lfo'
+    , cmd  = 11
+    , args = { { 'chan', s8 }
+             , { 'freq', s16V } -- 0 == 1Hz
+             , { 'level', s16V }
+             , { 'skew', s16V }
              }
     }
   }

@@ -109,9 +109,10 @@ void HAL_TIM_PeriodElapsedCallback( TIM_HandleTypeDef *htim )
 void Timer_Set_Params( int ix, float seconds )
 {
     //FIXME limited to max~20s (p=0xFFFF & ps=0xFFFF)
-    const float SECOND_SCALER = (float)((double)216000000.0 / (double)0x10000)-1.0;
+    const double SECOND_SCALER = ((double)216000000.0 / (double)0x10000)-(double)1.0;
 
-    float pf = seconds * SECOND_SCALER; // exact when ps == 0xFFFF
+// do this multiplication in *double* precision bc seconds could be very small (uS), and SCALER is very big (3500)
+    float pf = (double)seconds * SECOND_SCALER; // exact when ps == 0xFFFF
     uint16_t ps = 0xFFFF; // longest possible
     while( pf < (float)(0x7FFF) ){ // decrement prescaler to maximize accuracy
         ps >>= 1; // half the prescaler

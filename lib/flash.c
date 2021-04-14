@@ -96,7 +96,7 @@ uint8_t Flash_write_user_script( char* script, uint32_t length )
 
 uint16_t Flash_read_user_scriptlen( void )
 {
-    return (*((__IO uint16_t*)USER_SCRIPT_LOCATION + 1));
+    return (*((__IO uint16_t*)(USER_SCRIPT_LOCATION + 2)));
 }
 
 char* Flash_read_user_scriptaddr( void )
@@ -107,17 +107,27 @@ char* Flash_read_user_scriptaddr( void )
 uint8_t Flash_read_user_script( char* buffer )
 {
     if( Flash_which_user_script() != USERSCRIPT_User ){ return 1; } // no script
-    // FIXME: need to add 1 to length for null char?
 
-    uint16_t word_length = ((*(__IO uint32_t*)USER_SCRIPT_LOCATION) >> 16) >> 2;
-    word_length++;
+    uint16_t byte_length = Flash_read_user_scriptlen();
+    uint16_t word_length = byte_length >> 2; // drops 0-3 chars
+    uint16_t trailing_bytes = byte_length & 0x3; // handle last 0-3 chars
 
     uint32_t sd_addr = USER_SCRIPT_LOCATION + 4;
+
+    // write whole words
     uint32_t* word_buffer = (uint32_t*)buffer;
     while( word_length-- ){
         *word_buffer++ = (*(__IO uint32_t*)sd_addr);
         sd_addr += 4;
     }
+
+    // write final 0-3 bytes
+    uint32_t last_word = (*(__IO uint32_t*)sd_addr); // incomplete word
+    char* char_buffer = (char*)word_buffer; // continue where word_buffer left off
+    for( int i=0; i<trailing_bytes; i++ ){ // write final chars individually
+        char_buffer[i] = (last_word >> (i*8)) & 0xFF; // LSB first
+    }
+
     return 0;
 }
 
