@@ -3,7 +3,8 @@
 #include <stm32f7xx.h>
 
 #include "wrMeters.h"
-#include "midi.h" // MIDI_Active
+#include "midi.h"
+#include "ftrack.h"
 
 #define SCALE_MAX_COUNT 16
 #define WINDOW_MAX_COUNT 16
@@ -130,4 +131,8 @@ void Detect_peak( Detect_t*         self
                 );
 void Detect_midi( Detect_t*              self
                 , Detect_void_callback_t cb
+                );
+void Detect_freq( Detect_t*         self
+                , Detect_callback_t cb
+                , float             interval
                 );

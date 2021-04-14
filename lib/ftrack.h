@@ -20,7 +20,7 @@ void FTrack_deinit( void );
 void FTrack_start( void );
 void FTrack_stop( void );
 
-float FTrack_get( float frequency );
+float FTrack_get( void );
 
 // Interrupt handler for HAL
 void FTRACK_IRQHandler(void);

@@ -79,6 +79,7 @@ void L_handle_window( event_t* e );
 void L_handle_in_scale( event_t* e );
 void L_handle_volume( event_t* e );
 void L_handle_peak( event_t* e );
+void L_handle_freq( event_t* e );
 
 void _printf(char* error_message)
 {
@@ -467,7 +468,20 @@ static int _set_input_peak( lua_State *L )
     lua_settop(L, 0);
     return 0;
 }
-
+static int _set_input_freq( lua_State *L )
+{
+    uint8_t ix = luaL_checkinteger(L, 1)-1;
+    Detect_t* d = Detect_ix_to_p( ix ); // Lua is 1-based
+    if(d){ // valid index
+        Detect_freq( d
+                   , L_queue_freq
+                   , luaL_checknumber(L, 2)
+                   );
+    }
+    lua_pop( L, 2 );
+    lua_settop(L, 0);
+    return 0;
+}
 
 static int _send_usb( lua_State *L )
 {
@@ -651,6 +665,7 @@ static const struct luaL_Reg libCrow[]=
     , { "set_input_window" , _set_input_window }
     , { "set_input_volume" , _set_input_volume }
     , { "set_input_peak"   , _set_input_peak   }
+    , { "set_input_freq"   , _set_input_freq   }
         // usb
     , { "send_usb"         , _send_usb         }
         // i2c
@@ -1010,6 +1025,24 @@ void L_handle_peak( event_t* e )
     lua_getglobal(L, "peak_handler");
     lua_pushinteger(L, e->index.i +1); // 1-ix'd
     if( Lua_call_usercode(L, 1, 0) != LUA_OK ){
+        lua_pop( L, 1 );
+    }
+}
+
+void L_queue_freq( int id, float freq )
+{
+    event_t e = { .handler = L_handle_freq
+                , .index.i = id
+                , .data.f  = freq
+                };
+    event_post(&e);
+}
+void L_handle_freq( event_t* e )
+{
+    lua_getglobal(L, "freq_handler");
+    lua_pushinteger(L, e->index.i +1); // 1-ix'd
+    lua_pushnumber(L, e->data.f);
+    if( Lua_call_usercode(L, 2, 0) != LUA_OK ){
         lua_pop( L, 1 );
     }
 }

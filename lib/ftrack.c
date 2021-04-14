@@ -1,13 +1,18 @@
 #include "ftrack.h"
 
+#include "ll/adda.h" // ADDA_BLOCK_SIZE
+
 // time constant
 #define FTRACK_SMOOTHING 0.1 // ~60 samples of settling time (freq dependent)
 //#define FTRACK_SLEW      0.013 // 500 blocks == 333ms
 #define FTRACK_SLEW      0.013 // 500 blocks == 333ms
     // reducing this value does not increase accuracy substantially 
+// crow is fixed at 48kHz sample rate
+#define FTRACK_SAMPLERATE (48000/ADDA_BLOCK_SIZE)
 
 // globals
-static int blocks, zc;
+static int blocks;
+static int zc;
 static float last;
 static float z;
 static float zz;
@@ -57,12 +62,12 @@ void FTrack_stop( void )
     HAL_NVIC_DisableIRQ( FTRACK_IRQn );
 }
 
-float FTrack_get( float frequency )
+float FTrack_get( void )
 {
     blocks++;
     if( zc > 0 ){ // new zero-crossings this frame
         // apply LP1 relative to input freq rate
-        float dest = frequency * (float)zc / (float)blocks;
+        float dest = FTRACK_SAMPLERATE * (float)zc / (float)blocks;
         last = last + FTRACK_SMOOTHING * (dest-last);
 
         // reset counters
