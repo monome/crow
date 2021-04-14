@@ -188,10 +188,11 @@ end
 function _justint(fn, f, off)
     off = off and fn(off) or 0 -- optional offset is a just ratio
     if type(f) == 'table' then
+        local t = {}
         for k,v in ipairs(f) do
-            f[k] = fn(v) + off
+            t[k] = fn(v) + off
         end
-        return f
+        return t
     else -- assume number
         return fn(f) + off
     end
