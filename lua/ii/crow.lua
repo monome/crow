@@ -1,7 +1,7 @@
 do return
 { module_name  = 'crow'
 , manufacturer = 'monome & whimsical raps'
-, i2c_address  = 0x01
+, i2c_address  = {0x01, 0x02, 0x03, 0x04}
 , lua_name     = 'crow'
 , commands     =
   { { name = 'volts'
