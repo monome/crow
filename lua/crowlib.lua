@@ -204,6 +204,10 @@ function _ji12(f) return math.log(f) * JI12TET end
 -- public functions
 function justvolts(f, off) return _justint(_jiv, f, off) end
 function just12(f, off) return _justint(_ji12, f, off) end
+function hztovolts(hz, ref)
+    ref = ref or 261.63 -- optional. defaults to middle-C
+    return justvolts(hz/ref)
+end
 
 -- empty init function in case userscript doesn't define it
 function init() end
