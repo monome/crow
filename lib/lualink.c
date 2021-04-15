@@ -265,13 +265,20 @@ static int _go_toward( lua_State *L )
 }
 static int _get_state( lua_State *L )
 {
-    float s = S_get_state( luaL_checkinteger(L, 1)-1 );
+    float s = AShaper_get_state( luaL_checkinteger(L, 1)-1 );
     lua_pop( L, 1 );
     lua_pushnumber( L, s );
     return 1;
 }
 static int _set_scale( lua_State *L )
 {
+    // statically save the mod & scaling options
+    // if omitting mod & scaling, they use the most recent value of mod/scaling
+    // if no value ever provided, the initial values act as defaults
+    // NB: shared between outputs. if you need separate mod/scale, must be explicit
+    static float mod = 12.0; // default to 12TET
+    static float scaling = 1.0; // default to v/8
+
     int nargs = lua_gettop(L);
     // first arg is index!
 
@@ -305,13 +312,11 @@ static int _set_scale( lua_State *L )
         lua_pop( L, 1 );                     // remove our introspected value
     }
 
-    float mod = 12.0; // default to 12TET
     if( nargs >= 3 ){
         // TODO allow string = 'just' to select JI mode for note list
         mod = luaL_checknumber( L, 3 );
     }
 
-    float scaling = 1.0; // default to v/8
     if( nargs >= 4 ){
         scaling = luaL_checknumber( L, 4 );
     }

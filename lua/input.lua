@@ -66,12 +66,18 @@ function Input:set_mode( mode, ... )
         self.hysteresis = args[2] or self.hysteresis
         set_input_window( self.channel, self.windows, self.hysteresis )
     elseif mode == 'scale' then
-        self.notes   = args[1] or self.notes
-        self.temp    = args[2] or self.temp
+        self.temp = args[2] or self.temp
+        local temp = self.temp
+        if type(self.temp) == 'string' then -- assume just intonation
+            self.notes = just12(args[1]) -- assume args[1] is valid
+            temp = 12
+        else
+            self.notes = args[1] or self.notes
+        end
         self.scaling = args[3] or self.scaling
         set_input_scale( self.channel
                        , self.notes
-                       , self.temp
+                       , temp -- use local as may be coerced to 12 by ji
                        , self.scaling
                        )
     elseif mode == 'volume' then
