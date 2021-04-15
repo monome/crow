@@ -38,6 +38,7 @@ function Input:reset_events()
                   end
     self.volume = function(level) _c.tell('volume',self.channel,level) end
     self.peak   = function() _c.tell('peak',self.channel) end
+    self.freq   = function(freq) _c.tell('freq',self.channel,freq) end
 end
 
 function Input:get_value()
@@ -90,6 +91,9 @@ function Input:set_mode( mode, ... )
                       , self.threshold
                       , self.hysteresis
                       )
+    elseif mode == 'freq' then
+        self.time = args[1] or self.time
+        set_input_freq( self.channel, self.time )
     else
         set_input_none( self.channel )
     end
@@ -148,5 +152,6 @@ function scale_handler(chan,i,o,n,v)
 end
 function volume_handler( chan, val ) Input.inputs[chan].volume( val ) end
 function peak_handler( chan ) Input.inputs[chan].peak() end
+function freq_handler( chan, val ) Input.inputs[chan].freq( val ) end
 
 return Input
