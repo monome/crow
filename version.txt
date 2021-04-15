@@ -1,1 +1,1 @@
-2.1.2 https://github.com/monome/crow/releases/download/v2.1.2/crow.bin
+2.1.2 https://github.com/monome/crow/releases/download/v2.1.2/crow.dfu
