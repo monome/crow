@@ -17,7 +17,8 @@
 #include "lib/metro.h"      // metro_start() metro_stop() metro_set_time()
 #include "lib/io.h"         // IO_GetADC()
 #include "../ll/random.h"   // Random_Get()
-#include "../ll/adda.h"     // CAL_Recalibrate() CAL_PrintCalibration()
+#include "../ll/adda.h"     // CAL_*()
+#include "../ll/cal_ll.h"   // CAL_LL_ActiveChannel()
 #include "../ll/system.h"   // getUID_Word()
 #include "lib/events.h"     // event_t event_post()
 #include "lib/midi.h"       // MIDI_Active()
@@ -627,15 +628,34 @@ static int _random_int( lua_State* L )
     return 1;
 }
 
-static int _calibrate_now( lua_State* L )
+static int _calibrate_source( lua_State* L )
 {
-    CAL_Recalibrate( (lua_gettop(L)) ); // if arg present, use defaults
+    CAL_LL_ActiveChannel( luaL_checkinteger(L, 1) ); // if arg present, use defaults
+    lua_pop(L, 1);
     lua_settop(L, 0);
     return 0;
 }
-static int _calibrate_print( lua_State* L )
+static int _calibrate_get( lua_State* L )
 {
-    CAL_PrintCalibration();
+    int chan = luaL_checkinteger(L, 1);
+    const char* msg = luaL_checkstring(L, 2);
+    float r = CAL_Get(chan, (msg[0]=='o') ? CAL_Offset : CAL_Scale);
+    lua_pop(L, 2);
+    lua_pushinteger(L, r);
+    return 1;
+}
+static int _calibrate_set( lua_State* L )
+{
+    int chan = luaL_checkinteger(L, 1);
+    const char* msg = luaL_checkstring(L, 2);
+    float val = luaL_checknumber(L, 3);
+    CAL_Set(chan, (msg[0]=='o') ? CAL_Offset : CAL_Scale, val);
+    lua_pop(L, 3);
+    return 0;
+}
+static int _calibrate_save( lua_State* L )
+{
+    CAL_WriteFlash();
     return 0;
 }
 
@@ -684,8 +704,10 @@ static const struct luaL_Reg libCrow[]=
     , { "random_float"     , _random_float     }
     , { "random_int"       , _random_int       }
         // calibration
-    , { "calibrate_now"    , _calibrate_now    }
-    , { "calibrate_print"  , _calibrate_print  }
+    , { "calibrate_source" , _calibrate_source }
+    , { "calibrate_get"    , _calibrate_get    }
+    , { "calibrate_set"    , _calibrate_set    }
+    , { "calibrate_save"   , _calibrate_save   }
 
     , { NULL               , NULL              }
     };
