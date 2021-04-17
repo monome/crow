@@ -28,8 +28,6 @@
 // Lua libs wrapped in C-headers: Note the extra '.h'
 #include "lua/bootstrap.lua.h" // MUST LOAD THIS MANUALLY FIRST
 #include "lua/crowlib.lua.h"
-#include "lua/casl.lua.h"
-#include "lua/casllib.lua.h"
 #include "lua/asl.lua.h"
 #include "lua/asllib.lua.h"
 #include "lua/metro.lua.h"
@@ -47,8 +45,6 @@
 
 const struct lua_lib_locator Lua_libs[] =
     { { "lua_crowlib"   , lua_crowlib   }
-    , { "lua_casl"      , lua_casl      }
-    , { "lua_casllib"   , lua_casllib   }
     , { "lua_asl"       , lua_asl       }
     , { "lua_asllib"    , lua_asllib    }
     , { "lua_metro"     , lua_metro     }

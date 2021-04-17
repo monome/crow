@@ -15,9 +15,9 @@ function Output.new( chan )
 --                          , level    = 5
 --                          }
               }
-    o.asl.action = lfo( function() return o.rate  end
-                      , function() return o.level end
-                      )
+    -- o.asl.describe = lfo( function() return o.rate  end
+    --                   , function() return o.level end
+    --                   )
 
     setmetatable( o, Output )
 
@@ -28,14 +28,17 @@ end
 -- setters
 Output.__newindex = function(self, ix, val)
     if ix == 'action' then
-        self.asl.action = val
+        self.asl:describe(val)
     elseif ix == 'volts' then
-        self.asl.action = to(val, self.slew, self.shape)
+        self.asl:describe(to(val, self.slew, self.shape))
+        -- self.asl.action = to(val, self.slew, self.shape)
         self.asl:action()
     elseif ix == 'done' then
         self.asl.done = val
     elseif ix == 'scale' then
         set_output_scale(self.channel, self.ji and just12(val) or val)
+    elseif ix == 'dyn' then
+        self.asl.dyn = val
     end
 end
 
@@ -54,11 +57,13 @@ Output.__index = function(self, ix)
             else self.ji = false end
             set_output_scale(self.channel, table.unpack(args)) -- close over .channel
         end
+    elseif ix == 'dyn' then return self.asl.dyn
     end
 end
 
 Output.__call = function(self, ...)
-    self.asl:action(...)
+    self.asl:describe(...)
+    self.asl:action()
 end
 
 

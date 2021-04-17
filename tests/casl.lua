@@ -1,4 +1,4 @@
-casl = dofile("lua/casl.lua")
+asl = dofile("lua/asl.lua")
 
 -- helper functions for debugging
 tab={}
@@ -44,20 +44,29 @@ function casl_setdynamic(id, ix, val)
     dyns[ix] = val
 end
 
+function casl_getdynamic(id, ix)
+    print('get['..ix..']')
+    return dyns[ix]
+end
 
-a = casl.new()
+
+a = asl.new()
 -- a:describe( dyn{level=3.0} )
--- a:describe( cto(3.0,4.2) )
--- a:describe( cto(3.0,4.2,'linear') )
--- a:describe{ cto(-3,3,'linear'), cto(3,3,'linear') }
--- a:describe(cloop{ cto(-3,3,'linear') })
--- a:describe(cloop{ cto(cdyn{volts=2.1},3,'linear') })
-a:describe(cloop{ cto(cdyn{volts=2.1},cdyn{tim=3},'linear') })
-casl.dyn.volts(3)
-casl.dyn.tim(0.1)
--- a:describe( to(dyn{le=3.0},4.2) )
+-- a:describe( to(3.0,4.2) )
+-- a:describe( to(3.0,4.2,'linear') )
+-- a:describe{ to(-3,3,'linear'), to(3,3,'linear') }
+-- a:describe( loop{ to(-3,3,'linear') })
+-- a:describe( loop{ to(cdyn{volts=2.1},3,'linear') })
+
+-- a:describe(loop{ to(dyn{volts=2.1},dyn{tim=3},'linear') })
+-- a.dyn.volts = 3
+-- a.dyn.tim = 0.1
+
+a:describe( to(dyn{le=3.0},4.2) )
 
 
+-- cc = asl.new(1)
+-- cc:describe(loop{to(5,0.1),to(0,0)})
 
 
 
@@ -90,20 +99,20 @@ casl.dyn.tim(0.1)
 
 --- usage
 -- literal
--- cc = casl.new()
--- cc.action = lfo_literal()   -- assign the casl action
+-- cc = asl.new()
+-- cc.action = lfo_literal()   -- assign the asl action
 -- cc.action()                 -- tell the asl to start running
 -- cc.dyn.level(2.0)           -- ERROR. there is no dynamic in lfo_literal()
 
 -- -- dynamic
--- ccc = casl.new()
--- ccc.action = lfo_dynamic()   -- assign the casl action
+-- ccc = asl.new()
+-- ccc.action = lfo_dynamic()   -- assign the asl action
 -- ccc.action()                 -- tell the asl to start running
 -- ccc.dyn.level(2.0)           -- updates 'level' dynamic to new value
 
 
 -- --- because we're in Lua, and really just passing around functions & tables, we can abstract the core to() calls from dyn{}
--- d = casl.new()
+-- d = asl.new()
 -- d.action = lfo_literal( dyn{time=1.0}
 --                       , dyn{volume=5.0} -- note we can use whatever name we want
 --                       , dyn{shape='sine'}
@@ -111,3 +120,35 @@ casl.dyn.tim(0.1)
 -- d.action()
 -- d.dyn.volume(3.3) -- works even though it's the 'literal' form of lfo
 
+
+-- output[1]( lfo( dyn{time=1.0}, dyn{volume=4.0}))
+-- output[1]() -- reset to start
+-- output[1].dyn.time = 2.0
+
+
+
+--- AST conversion
+-- demonstrates how the 'functional' style of asl description converts into table literal
+
+-- user-facing description
+_ = loop{ asl._if( true
+                 , { to(1.0, 3.3, 'linear') }
+                 )
+        , to(0.0, dyn{key=val})
+        }
+
+-- pre-linkage table description
+_ = { { {'IF', true}
+      , {'TO', 1.0, 3.3, 'linear'}
+      }
+    , {'TO', 0.0, {asl.dyn_compiler, {key=val}}}
+    , 'RECUR'
+    }
+
+-- linked table description (this is what we actually parse in C-land)
+_ = { { {'IF', true}
+      , {'TO', 1.0, 3.3, 'linear'}
+      }
+    , {'TO', 0.0, {'DYN', DYN_IX}} -- DYN_IX calculated at link time
+    , 'RECUR'
+    }

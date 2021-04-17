@@ -334,6 +334,7 @@ static ElemO resolve( Elem* e )
 
 ////////////////////////////////////
 // Dynamic Variables
+// allows concurrent access of registered vars from C and Lua
 
 int casl_defdynamic( int index )
 {
@@ -345,6 +346,15 @@ void casl_setdynamic( int index, int dynamic_ix, float val )
 {
     dynamics[dynamic_ix].obj.f = val;
     dynamics[dynamic_ix].type  = ElemT_Float; // FIXME support other types
+}
+
+float casl_getdynamic( int index, int dynamic_ix )
+{
+    switch(dynamics[dynamic_ix].type){
+        case ElemT_Float:
+            return dynamics[dynamic_ix].obj.f;
+        default: printf("getdynamic! wrong type\n"); return 0.0;
+    }
 }
 
 
