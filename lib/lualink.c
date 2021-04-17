@@ -470,8 +470,6 @@ static int _set_input_peak( lua_State *L )
 }
 
 // CASL
-#include <stdio.h>
-// {"TO", volts, time, shape}
 static int _casl_describe( lua_State *L )
 {
     casl_describe( luaL_checkinteger(L, 1)-1 // C is zero-based
@@ -504,6 +502,15 @@ static int _casl_setdynamic( lua_State *L )
                    );
     lua_pop(L, 3);
     return 0;
+}
+static int _casl_getdynamic( lua_State *L )
+{
+    float d = casl_getdynamic( luaL_checkinteger(L, 1)
+                             , luaL_checkinteger(L, 2)
+                             );
+    lua_pop(L, 2);
+    lua_pushnumber(L, d);
+    return 1;
 }
 
 static int _send_usb( lua_State *L )
@@ -695,6 +702,7 @@ static const struct luaL_Reg libCrow[]=
     , { "casl_action"      , _casl_action      }
     , { "casl_defdynamic"  , _casl_defdynamic  }
     , { "casl_setdynamic"  , _casl_setdynamic  }
+    , { "casl_getdynamic"  , _casl_getdynamic  }
         // usb
     , { "send_usb"         , _send_usb         }
         // i2c
