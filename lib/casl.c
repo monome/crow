@@ -286,14 +286,16 @@ static void next_action( int index )
     To* t = seq_advance();
     if(t){ // To is valid
         switch(t->ctrl){
-            case ToLiteral:
+            case ToLiteral:{
+                float ms = resolve(&t->b).f * 1000.0;
                 S_toward( index
                         , resolve(&t->a).f
-                        , resolve(&t->b).f * 1000.0
+                        , ms
                         , resolve(&t->c).shape
                         , &next_action // recur upon breakpoint
                         );
-                break;
+                if(ms <= 0.0){ next_action(index); } // RECUR because the action was instant
+                break;}
 
             case ToRecur:{
                 seq_current->pc = 0;
