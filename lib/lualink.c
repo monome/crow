@@ -270,13 +270,20 @@ static int _go_toward( lua_State *L )
 }
 static int _get_state( lua_State *L )
 {
-    float s = S_get_state( luaL_checkinteger(L, 1)-1 );
+    float s = AShaper_get_state( luaL_checkinteger(L, 1)-1 );
     lua_pop( L, 1 );
     lua_pushnumber( L, s );
     return 1;
 }
 static int _set_scale( lua_State *L )
 {
+    // statically save the mod & scaling options
+    // if omitting mod & scaling, they use the most recent value of mod/scaling
+    // if no value ever provided, the initial values act as defaults
+    // NB: shared between outputs. if you need separate mod/scale, must be explicit
+    static float mod = 12.0; // default to 12TET
+    static float scaling = 1.0; // default to v/8
+
     int nargs = lua_gettop(L);
     // first arg is index!
 
@@ -310,13 +317,11 @@ static int _set_scale( lua_State *L )
         lua_pop( L, 1 );                     // remove our introspected value
     }
 
-    float mod = 12.0; // default to 12TET
     if( nargs >= 3 ){
         // TODO allow string = 'just' to select JI mode for note list
         mod = luaL_checknumber( L, 3 );
     }
 
-    float scaling = 1.0; // default to v/8
     if( nargs >= 4 ){
         scaling = luaL_checknumber( L, 4 );
     }
@@ -556,6 +561,23 @@ static int _ii_lead( lua_State *L )
     lua_settop(L, 0);
     return 0;
 }
+static int _ii_lead_bytes( lua_State *L )
+{
+    int nargs = lua_gettop(L);
+    if( nargs != 3 ) return 0;
+    uint8_t address = luaL_checkinteger(L, 1);
+    size_t len;
+    uint8_t *data = (uint8_t *)luaL_checklstring(L, 2, &len);
+    uint8_t rx_len = (uint8_t)luaL_checkinteger(L, 3);
+    if( ii_leader_enqueue_bytes( address
+                               , data
+                               , (uint8_t)len
+                               , rx_len
+                               ) ){ printf("ii_lead_bytes failed\n"); }
+    lua_settop(L, 0);
+    return 0;
+}
+
 static int _ii_address( lua_State *L )
 {
     ii_set_address( luaL_checkinteger(L, 1) );
@@ -684,6 +706,7 @@ static const struct luaL_Reg libCrow[]=
     , { "ii_list_commands" , _ii_list_commands }
     , { "ii_pullup"        , _ii_pullup        }
     , { "ii_lead"          , _ii_lead          }
+    , { "ii_lead_bytes"    , _ii_lead_bytes    }
     , { "ii_set_add"       , _ii_address       }
     , { "ii_get_add"       , _ii_get_address   }
         // metro
