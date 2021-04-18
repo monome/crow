@@ -61,9 +61,11 @@ Output.__index = function(self, ix)
     end
 end
 
-Output.__call = function(self, ...)
-    self.asl:describe(...)
-    self.asl:action()
+Output.__call = function(self, arg)
+    if type(arg) == 'table' then -- being passed a literal asl to interpret & begin
+        self.asl:describe(arg)
+        self.asl:action()
+    else self.asl:action(arg) end -- args are forwarded as an action
 end
 
 

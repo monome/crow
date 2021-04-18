@@ -62,7 +62,11 @@ a = asl.new()
 -- a.dyn.volts = 3
 -- a.dyn.tim = 0.1
 
-a:describe( to(dyn{le=3.0},4.2) )
+-- a:describe( to(dyn{le=3.0},4.2) )
+
+a:describe{ held{ to(5,1) }
+          , to(0,0)
+      }
 
 
 -- cc = asl.new(1)

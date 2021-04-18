@@ -26,12 +26,26 @@ function Asl.link(self, tab)
 end
 
 function Asl:describe(d)
-    Asl.link(self, d) -- resolve any links in description to self
-    casl_describe(self.id, d)
+    casl_describe(self.id, Asl.link(self, d))
 end
 
+function Asl.set_held(self, b)
+    if self.dyn._held then
+        self.dyn._held = b
+        return true -- ie. success in setting
+    end
+end
+
+-- direc(tive) can take 0/1 of false/true. ONLY has effect if there is a held{} construct
+-- truthy always restarts 
+-- falsey means 'release'
 function Asl:action(direc)
-    casl_action(self.id)
+    if not direc then -- no arg is always 'restart'
+        casl_action(self.id, 1)
+    else -- set `held` dyn if it exists. call action unless no `held` and direc is falsey
+        local s = (direc == true or direc == 1) and 1 or 0
+        if Asl.set_held(self, s) or s==1 then casl_action(self.id, s) end
+    end
 end
 
 function Asl._if(pred, tab)
@@ -76,6 +90,11 @@ end
 function dyn(d)
     return {Asl.dyn_compiler, d} -- defer to allow dyn to be captured per instance
 end
+
+function held(t)
+    return Asl._if( dyn{_held=0}, t)
+end
+
 
 
 return Asl

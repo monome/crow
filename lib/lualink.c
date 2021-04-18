@@ -482,8 +482,8 @@ static int _casl_describe( lua_State *L )
 static int _casl_action( lua_State *L )
 {
     casl_action( luaL_checkinteger(L, 1)-1 // C is zero-based
-               , 0 );
-    lua_pop(L, 1);
+               , luaL_checkinteger(L, 2) );
+    lua_pop(L, 2);
     lua_settop(L, 0);
     return 0;
 }
