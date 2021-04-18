@@ -316,11 +316,8 @@ static void next_action( int index )
                 return;}
 
             case ToIf:{
-                if( resolve(&t->a).f != 0.0 ){ // TODO make equality a type-reflective fn
-                    next_action(index);
-                } else {
-                    // step up one level
-                }
+                if( resolve(&t->a).f != 0.0 ){ next_action(index); } // pred is true
+                else if( seq_up() ){ next_action(index); } // step up one level
                 break;}
 
             case ToEnter:{
