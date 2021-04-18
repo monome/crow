@@ -138,6 +138,14 @@ static float ix_num( lua_State* L, int ix )
     lua_pop(L, 1);
     return ix_num;
 }
+static float ix_bool( lua_State* L, int ix )
+{
+    lua_pushnumber(L, ix); // query first table elem
+    lua_gettable(L, -2);  // get above key from table on stack
+    float ix_num = lua_toboolean(L, -1) ? 1.0 : 0.0;
+    lua_pop(L, 1);
+    return ix_num;
+}
 static int ix_int( lua_State* L, int ix )
 {
     lua_pushnumber(L, ix); // query first table elem
@@ -210,6 +218,11 @@ static void capture_elem( Elem* e, lua_State* L, int ix )
     switch( ix_type(L, ix) ){ // type of table elem
         case LUA_TNUMBER:{
             e->obj.f = ix_num(L, ix);
+            e->type = ElemT_Float;
+            break;}
+
+        case LUA_TBOOLEAN:{
+            e->obj.f = ix_bool(L, ix);
             e->type = ElemT_Float;
             break;}
 
@@ -303,7 +316,7 @@ static void next_action( int index )
                 return;}
 
             case ToIf:{
-                if( resolve(&t->a).f ){ // TODO make equality a type-reflective fn
+                if( resolve(&t->a).f != 0.0 ){ // TODO make equality a type-reflective fn
                     next_action(index);
                 } else {
                     // step up one level
