@@ -306,7 +306,9 @@ void casl_action( int index, int action )
         if( find_control(ToUnheld, false) ){
             holding = false;
         } else {
-            printf("couldn't find ToWait?\n");
+            printf("couldn't find ToWait. restarting\n");
+            casl_action(index, 1);
+            return;
         }
     } else {
         printf("do nothing\n");
