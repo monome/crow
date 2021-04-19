@@ -42,6 +42,7 @@ end
 function Asl:action(direc)
     if not direc then -- no arg is always 'restart'
         casl_action(self.id, 1)
+    elseif direc == 'unlock' then casl_action(self.id, 2) -- release lock construct
     else -- set `held` dyn if it exists. call action unless no `held` and direc is falsey
         local s = (direc == true or direc == 1) and 1 or 0
         if Asl.set_held(self, s) or s==1 then casl_action(self.id, s) end
@@ -96,6 +97,17 @@ function held(t)
     table.insert(t,{'WAIT'})
     table.insert(t,{'UNHELD'})
     return Asl._if( dyn{_held=0}, t)
+end
+
+function lock(t)
+    table.insert(t,1,{'LOCK'})
+    table.insert(t,{'OPEN'})
+    return t
+end
+
+function Asl._while(pred, t)
+    t = Asl._if(pred, t)
+    return loop(t)
 end
 
 

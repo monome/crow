@@ -18,6 +18,8 @@ typedef enum{ ToLiteral
             , ToHeld
             , ToWait
             , ToUnheld
+            , ToLock
+            , ToOpen
 } ToControl;
 
 typedef union{
@@ -63,6 +65,7 @@ static Elem dynamics[DYN_COUNT];
 static int dyn_ix = 0;
 
 static bool holding = false;
+static bool locked = false;
 
 // update to use self instead of an index lookup
 
@@ -186,6 +189,8 @@ static void parse_table( lua_State* L )
                 case 'H':{ t->ctrl = ToHeld; break; }
                 case 'W':{ t->ctrl = ToWait; break; }
                 case 'U':{ t->ctrl = ToUnheld; break; }
+                case 'L':{ t->ctrl = ToLock; break; }
+                case 'O':{ t->ctrl = ToOpen; break; }
                 default: printf("ERROR char not found\n"); break;
             }
             break;}
@@ -298,10 +303,15 @@ static ElemO resolve( Elem* e );
 
 void casl_action( int index, int action )
 {
+    if( locked ){ // can't apply action until unlocked
+        if( action == 2 ){ locked = false; } // 'unlock' message received
+        return; // doesn't trigger action
+    }
     if( action == 1){ // restart sequence
         seq_current = &seqs[0]; // first sequence
         seq_current->pc = 0;   // first step
         holding = false;
+        locked = false;
     } else if( action == 0 && holding ){ // goto release if held
         if( find_control(ToUnheld, false) ){
             holding = false;
@@ -348,9 +358,7 @@ static void next_action( int index )
                 next_action(index);
                 break;}
 
-            case ToHeld:{
-                holding = true; // mark that we're inside the held{}
-                break;}
+            case ToHeld:{ holding = true; break;}
 
             case ToWait: break; // do nothing. awaits next_action
 
@@ -358,6 +366,9 @@ static void next_action( int index )
                 printf("Unheld. i don't think this executes.\n");
                 holding = false; // unmark held
                 break;}
+
+            case ToLock:{ locked = true; break;}
+            case ToOpen:{ locked = false; break;}
         }
     } else if( seq_up() ){ // To invalid. Jump up the retstk
         next_action(index); // recur
