@@ -68,6 +68,14 @@ function Asl.dyn_compiler(self, d)
     return {'DYN', ref}
 end
 
+function Asl.iter_compiler(self, n)
+    if type(n) == 'table' then
+        print 'named iterable'
+        -- TODO named counter: use a dynamic to allow updating
+    end
+    return {'ITER', n}
+end
+
 
 -- metatables
 Asl.__index = function(self, ix)
@@ -108,6 +116,14 @@ end
 function Asl._while(pred, t)
     t = Asl._if(pred, t)
     return loop(t)
+end
+
+function iterable(n)
+    return {Asl.iter_compiler, n}
+end
+
+function times(n, t)
+    return Asl._while( iterable(n), t)
 end
 
 

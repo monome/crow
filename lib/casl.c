@@ -10,6 +10,7 @@
 #define SEQ_COUNT  8
 #define SEQ_LENGTH 8
 #define DYN_COUNT  8
+#define ITER_COUNT 8
 
 typedef enum{ ToLiteral
             , ToRecur
@@ -26,12 +27,14 @@ typedef union{
     float   f;
     int     dyn;
     int     seq;
+    int     iter;
     Shape_t shape;
 } ElemO;
 
 typedef enum{ ElemT_Float
             , ElemT_Shape
             , ElemT_Dynamic
+            , ElemT_Iterable
 } ElemT;
 
 typedef struct{
@@ -63,6 +66,9 @@ static int seq_select = -1; // current 'parent'
 
 static Elem dynamics[DYN_COUNT];
 static int dyn_ix = 0;
+
+static To iterables[ITER_COUNT];
+static int iter_ix = 0;
 
 static bool holding = false;
 static bool locked = false;
@@ -349,7 +355,7 @@ static void next_action( int index )
                 return;}
 
             case ToIf:{
-                if( resolve(&t->a).f != 0.0 ){ next_action(index); } // pred is true
+                if( resolve(&t->a).f > 0.0 ){ next_action(index); } // pred is true
                 else if( seq_up() ){ next_action(index); } // step up one level
                 break;}
 
@@ -396,13 +402,26 @@ static bool find_control( ToControl ctrl, bool full_search )
     return false;
 }
 
+static Elem* iter_apply( ElemO o )
+{
+    To* i = &iterables[o.iter];
+    i->a.obj.f -= i->b.obj.f;
+    return &i->a;
+}
+
+static void iter_reset( ElemO o )
+{
+    To* i = &iterables[o.iter];
+    i->a.obj.f = i->c.obj.f;
+}
+
 // resolves behavioural types to a literal value
 static ElemO resolve( Elem* e )
 {
-    // TODO add other cases for different behavioural types
     switch( e->type ){
         case ElemT_Dynamic: return resolve( &dynamics[e->obj.dyn] );
-        default:            return e->obj;
+        case ElemT_Iterable: return resolve( iter_apply( e->obj ));
+        default: return e->obj;
     }
 }
 
@@ -442,10 +461,12 @@ float casl_getdynamic( int index, int dynamic_ix )
         (mod a b)
 
     ctrl: loop held lock times (if while)
-        (do ...)        ;; just sequences args once
+        (do ...)        ;; sequences args once
         (loop ...)      ;; repeats args indefinitely
         (if p ...)      ;; executes args if predicate is true (checks at each step)
-        (lock ...)      ;; sets the lock bit (against directives) then executes args
+        (while p ...)   ;; repeats until predicate is false
+        (held ...)      ;; like (if) but with 'attack' / 'release' directive support
+        (lock ...)      ;; disables directives while executing args. can release with `unlock` directive
         (times n ...)   ;; executes all args n times (so (do) == (times 1))
 
     data: literal dynamic (can both be 'number' or 'shape')
@@ -455,11 +476,6 @@ float casl_getdynamic( int index, int dynamic_ix )
         &3   ;; dynamic index
 
     seqn: (table of data with behaviour)
-
-    special ops:
-        (in n)  ;; value of input[n]
-        (rand)  ;; random value (use args?)
-
 */
 
 /* data-types
@@ -478,6 +494,6 @@ nb: both sequin & iterable are dynamic in nature, and can be updated if named
 */
 
 /* directives
-    ctrl: next restart release pause
+    ctrl: restart release
     data: kset aset (update 'dynamic', k: at next breakpoint, a: immediate)
 */
