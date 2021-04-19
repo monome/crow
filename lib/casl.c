@@ -353,39 +353,25 @@ static void next_action( int index )
                         , resolve(&t->c).shape
                         , &next_action // recur upon breakpoint
                         );
-                if(ms <= 0.0){ next_action(index); } // RECUR because the action was instant
+                if(ms > 0.0){ return; } // wait for DSP callback before proceeding
                 break;}
-
-            case ToRecur:{
-                seq_current->pc = 0;
-                next_action(index);
-                return;}
 
             case ToIf:{
-                if( resolve(&t->a).f > 0.0 ){ next_action(index); } // pred is true
-                else if( seq_up() ){ next_action(index); } // step up one level
+                if( resolve(&t->a).f <= 0.0 ){ // pred is false
+                    if( !seq_up() ){ return; } // step up & return if nothing to do
+                }
                 break;}
 
-            case ToEnter:{
-                seq_down(t->a.obj.seq);
-                next_action(index);
-                break;}
-
-            case ToHeld:{ holding = true; break;}
-
-            case ToWait: break; // do nothing. awaits next_action
-
-            case ToUnheld:{
-                printf("Unheld. i don't think this executes.\n");
-                holding = false; // unmark held
-                break;}
-
-            case ToLock:{ locked = true; break;}
-            case ToOpen:{ locked = false; break;}
+            case ToRecur:{  seq_current->pc = 0;    break;}
+            case ToEnter:   seq_down(t->a.obj.seq); break;
+            case ToHeld:{   holding = true;         break;}
+            case ToWait:    /* halt execution */    return;
+            case ToUnheld:{ holding = false;        break;} // this is never executed, but here for reference
+            case ToLock:{   locked = true;          break;}
+            case ToOpen:{   locked = false;         break;}
         }
-    } else if( seq_up() ){ // To invalid. Jump up the retstk
-        next_action(index); // recur
-    }
+    } else if( !seq_up() ){ return; } // To invalid. Jump up. return if nothing left to do
+    next_action(index); // tail call recur as we haven't halted yet
 }
 
 static bool find_control( ToControl ctrl, bool full_search )
