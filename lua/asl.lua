@@ -83,7 +83,7 @@ function to(volts, time, shape)
 end
 
 function loop(t)
-    table.insert(t,{'RECUR'})
+    table.insert(t,{'RECUR'}) -- TODO does this need to be wrapped in a table?
     return t
 end
 
@@ -92,6 +92,9 @@ function dyn(d)
 end
 
 function held(t)
+    table.insert(t,1,{'HELD'})
+    table.insert(t,{'WAIT'})
+    table.insert(t,{'UNHELD'})
     return Asl._if( dyn{_held=0}, t)
 end
 

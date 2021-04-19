@@ -15,6 +15,9 @@ typedef enum{ ToLiteral
             , ToRecur
             , ToIf
             , ToEnter
+            , ToHeld
+            , ToWait
+            , ToUnheld
 } ToControl;
 
 typedef union{
@@ -58,6 +61,8 @@ static int seq_select = -1; // current 'parent'
 
 static Elem dynamics[DYN_COUNT];
 static int dyn_ix = 0;
+
+static bool holding = false;
 
 // update to use self instead of an index lookup
 
@@ -178,6 +183,9 @@ static void parse_table( lua_State* L )
                     capture_elem(&(t->a), L, 2); // capture predicate from ix[2] to t->a
                     t->ctrl = ToIf;
                     break; }
+                case 'H':{ t->ctrl = ToHeld; break; }
+                case 'W':{ t->ctrl = ToWait; break; }
+                case 'U':{ t->ctrl = ToUnheld; break; }
                 default: printf("ERROR char not found\n"); break;
             }
             break;}
@@ -285,12 +293,25 @@ static void seq_down( int s_ix )
 }
 
 static void next_action( int index );
+static bool find_control( ToControl ctrl, bool full_search );
 static ElemO resolve( Elem* e );
 
 void casl_action( int index, int action )
 {
-    seq_current = &seqs[0]; // first sequence
-    seq_current->pc = 0;   // first step
+    if( action == 1){ // restart sequence
+        seq_current = &seqs[0]; // first sequence
+        seq_current->pc = 0;   // first step
+        holding = false;
+    } else if( action == 0 && holding ){ // goto release if held
+        if( find_control(ToUnheld, false) ){
+            holding = false;
+        } else {
+            printf("couldn't find ToWait?\n");
+        }
+    } else {
+        printf("do nothing\n");
+        return;
+    }
     next_action( index );
 }
 
@@ -324,11 +345,42 @@ static void next_action( int index )
                 seq_down(t->a.obj.seq);
                 next_action(index);
                 break;}
+
+            case ToHeld:{
+                holding = true; // mark that we're inside the held{}
+                break;}
+
+            case ToWait: break; // do nothing. awaits next_action
+
+            case ToUnheld:{
+                printf("Unheld. i don't think this executes.\n");
+                holding = false; // unmark held
+                break;}
         }
     } else if( seq_up() ){ // To invalid. Jump up the retstk
-        // TODO refactor to use a retstk, rather than parent per-Sequence
         next_action(index); // recur
     }
+}
+
+static bool find_control( ToControl ctrl, bool full_search )
+{
+    To* t = seq_advance();
+    if(t){ // To is valid
+        if(t->ctrl == ctrl){ return true; } // FOUND IT
+        switch(t->ctrl){ // else handle navigation
+            case ToEnter:
+                if(full_search){ seq_down(t->a.obj.seq); }
+                return find_control(ctrl, full_search);
+            case ToIf:
+                if( !full_search ){ seq_up(); } // skip If contents
+                // FALLS THROUGH
+            default:
+                return find_control(ctrl, full_search);
+        }
+    } else if( seq_up() ){ // end of list. Jump up the retstk
+        return find_control(ctrl, full_search); // recur
+    }
+    return false;
 }
 
 // resolves behavioural types to a literal value
