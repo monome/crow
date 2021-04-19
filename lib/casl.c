@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-#define TO_COUNT   8
+#define TO_COUNT   16 // 
 #define SEQ_COUNT  8
 #define SEQ_LENGTH 8
 #define DYN_COUNT  8
@@ -40,14 +40,14 @@ typedef enum{ ElemT_Float
 typedef struct{
     ElemO obj;
     ElemT type;
-} Elem;
+} Elem; // 8bytes
 
 typedef struct{
     Elem a;
     Elem b;
     Elem c;
     ToControl ctrl;
-} To;
+} To; // 28bytes
 
 typedef struct{
     To* stage[SEQ_LENGTH];
@@ -84,6 +84,7 @@ void casl_init( void )
 
 static void seq_enter( void )
 {
+    if(seq_ix >= SEQ_COUNT){ printf("ERROR: no sequences left!\n"); return; }
     Sequence* s = &seqs[seq_ix];
     seq_current = s; // save as 'active' Sequence
 
@@ -107,6 +108,7 @@ static void seq_exit( void )
 static void seq_append( To* t )
 {
     Sequence* s = seq_current;
+    if(s->length >= SEQ_LENGTH){ printf("ERROR: no stages left!\n"); }
     s->stage[s->length] = t; // append To* to end of Sequence
     s->length++;
 }
@@ -171,6 +173,7 @@ static int ix_int( lua_State* L, int ix )
 
 static To* to_alloc( void )
 {
+    if(to_ix >= TO_COUNT){ return NULL; }
     To* t = &tos[to_ix]; // get next To
     to_ix++; // mark as allocated
     return t;
@@ -184,6 +187,7 @@ static void parse_table( lua_State* L )
 
         case LUA_TSTRING: { // TO, RECUR
             To* t = to_alloc();
+            if(t == NULL){ printf("ERROR: not enough To slots left\n"); return; }
             seq_append(t);
             switch( ix_char(L, 1) ){
                 case 'T': read_to(t, L); break; // standard To
@@ -432,6 +436,7 @@ static ElemO resolve( Elem* e )
 
 int casl_defdynamic( int index )
 {
+    if(dyn_ix >= DYN_COUNT){ printf("ERROR: nno dynamic slots remain\n"); return -1; }
     int ix = dyn_ix; dyn_ix++;
     return ix;
 }
