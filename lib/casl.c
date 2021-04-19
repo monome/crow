@@ -314,16 +314,19 @@ static ElemO resolve( Elem* e );
 void casl_action( int index, int action )
 {
     if( locked ){ // can't apply action until unlocked
+        printf("locked!\n");
         if( action == 2 ){ locked = false; } // 'unlock' message received
         return; // doesn't trigger action
     }
     if( action == 1){ // restart sequence
+        printf("restarting\n");
         seq_current = &seqs[0]; // first sequence
-        seq_current->pc = 0;   // first step
+        for(int i=0; i<SEQ_COUNT; i++){ seqs[i].pc = 0; } // reset all program counters
         holding = false;
         locked = false;
     } else if( action == 0 && holding ){ // goto release if held
         if( find_control(ToUnheld, false) ){
+            printf("releasing\n");
             holding = false;
         } else {
             printf("couldn't find ToWait. restarting\n");
