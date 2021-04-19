@@ -50,8 +50,10 @@ function _crow.reset()
     for n=1,4 do
         output[n].slew = 0
         output[n].volts = 0
+        output[n].scale('none')
     end
     ii.reset_events(ii.self)
+    ii_follow_reset() -- resets forwarding to output libs
     metro.free_all()
     clock.cancel_all()
 end
@@ -113,14 +115,18 @@ end
 -- pullups on by default
 ii.pullup(true)
 
---- follower default actions
-ii.self.output = function(chan,val)
-    output[chan].volts = val
-end
 
-ii.self.slew = function(chan,slew)
-    output[chan].slew = slew/1000 -- ms
+--- follower default actions
+function ii_follow_reset()
+    ii.self.volts = function(chan,val) output[chan].volts = val end
+    ii.self.slew = function(chan,slew) output[chan].slew = slew end
+    ii.self.reset = function() _crow.reset() end
+    ii.self.pulse = function(chan,ms,volts,pol) output[chan](pulse(ms,volts,pol)) end
+    ii.self.ar = function(chan,atk,rel,volts) output[chan](ar(atk,rel,volts)) end
+    -- convert freq to seconds where freq==0 is 1Hz
+    ii.self.lfo = function(chan,freq,level,skew) output[chan](ramp(math.pow(2,-freq),skew,level)) end
 end
+ii_follow_reset()
 
 
 --- True Random Number Generator
@@ -161,7 +167,7 @@ end
 --- Delay execution of a function
 -- dynamically assigns metros (clashes with indexed metro syntax)
 function delay(action, time, repeats)
-    local r = repeats or 1
+    local r = repeats or 0
     local d = {}
     function devent(c)
         action(c) -- make the action aware of current iteration
@@ -173,6 +179,36 @@ function delay(action, time, repeats)
     d = metro.init(devent, time)
     if d then d:start() end
     return d
+end
+
+--- Just Intonation helpers
+-- convert a single fraction, or table of fractions to just intonation
+-- optional 'offset' is itself a just ratio
+-- justvolts converts to volts-per-octave
+-- just12 converts to 12TET representation (for *.scale libs)
+-- just12 will convert a fraction or table of fractions into 12tet 'semitones'
+function _justint(fn, f, off)
+    off = off and fn(off) or 0 -- optional offset is a just ratio
+    if type(f) == 'table' then
+        local t = {}
+        for k,v in ipairs(f) do
+            t[k] = fn(v) + off
+        end
+        return t
+    else -- assume number
+        return fn(f) + off
+    end
+end
+JIVOLT = 1 / math.log(2)
+JI12TET = 12 * JIVOLT
+function _jiv(f) return math.log(f) * JIVOLT end
+function _ji12(f) return math.log(f) * JI12TET end
+-- public functions
+function justvolts(f, off) return _justint(_jiv, f, off) end
+function just12(f, off) return _justint(_ji12, f, off) end
+function hztovolts(hz, ref)
+    ref = ref or 261.63 -- optional. defaults to middle-C
+    return justvolts(hz/ref)
 end
 
 -- empty init function in case userscript doesn't define it

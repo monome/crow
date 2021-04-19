@@ -21,6 +21,7 @@ void AShaper_init( int channels )
         ashapers[j].modulo  = 12.0;
         ashapers[j].scaling = 1.0;
         ashapers[j].active  = false;
+        ashapers[j].state   = 0.0;
     }
 }
 
@@ -65,6 +66,14 @@ void AShaper_set_scale( int    index
     self->offset = 0.5 * self->scaling / self->modulo;
 }
 
+float AShaper_get_state( int index )
+{
+    if( index < 0 || index >= ASHAPER_CHANNELS ){ return 0.0; }
+    AShape_t* self = &ashapers[index]; // safe pointer
+
+    return self->state;
+}
+
 // TODO optimization
 float* AShaper_v( int     index
                 , float*  out
@@ -74,7 +83,10 @@ float* AShaper_v( int     index
     if( index < 0 || index >= ASHAPER_CHANNELS ){ return out; }
     AShape_t* self = &ashapers[index]; // safe pointer
 
-    if( !self->active ){ return out; } // shaper inactive so just return
+    if( !self->active ){ // shaper inactive so just return
+        self->state = out[size-1]; // save latest value
+        return out;
+    }
 
     float* out2 = out;
     for( int i=0; i<size; i++ ){
@@ -91,5 +103,6 @@ float* AShaper_v( int     index
 
         *out2++ = self->scaling * (divs + note_map);
     }
+    self->state = out[size-1]; // save last value
     return out;
 }

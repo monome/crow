@@ -96,7 +96,7 @@
 #define ADS_CLK2      0x0E
 #define ADS_ADC_ENA   0x0F
 
-#define ADS_DATAWORDSIZE 0x4 // 32bit, pin M1 pulled high to IOVDD
+#define ADS_DATAWORDSIZE 0x2 // 16bit, pin M1 floats
 
 void ADC_Init( uint16_t bsize, uint8_t chan_count, int timer_ix );
 

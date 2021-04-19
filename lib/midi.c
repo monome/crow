@@ -35,10 +35,12 @@ static uint8_t MIDI_rx_data( uint8_t count );
 static void event_complete( uint8_t* d );
 void MIDI_Handle_Error( void );
 
+static void (*midi_event)(uint8_t* data);
 
 // public defns
-void MIDI_Active( int state )
+void MIDI_Active( int state, void(*midi_e)(uint8_t*) )
 {
+    midi_event = midi_e;
     static int is_active = 0;
     if( state && !is_active ){
         MIDI_ll_Init( &MIDI_Handle_LL
@@ -54,7 +56,7 @@ void MIDI_Active( int state )
     } // else ignore
 }
 
-uint8_t receiving_packet = 0;
+static uint8_t receiving_packet = 0;
 static uint8_t MIDI_rx_cmd( void )
 {
     receiving_packet = 0;
@@ -118,6 +120,6 @@ int MIDI_byte_count( uint8_t cmd_byte )
 
 static void event_complete( uint8_t* d )
 {
-    L_queue_midi(d);
+    midi_event(d);
     if( MIDI_rx_cmd() ){ printf("midi3\n"); }
 }
