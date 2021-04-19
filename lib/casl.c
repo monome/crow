@@ -93,14 +93,14 @@ static void seq_enter( void )
     s->parent = seq_select;
 
     seq_select = seq_ix; // select the new Sequence
-    printf("enter: %i\n",seq_select);
+    // printf("enter: %i\n",seq_select);
     seq_ix++; // marks the sequence as allocated
 }
 
 static void seq_exit( void )
 {
     seq_select = seq_current->parent; // move up tree
-    printf("exit: %i\n",seq_select);
+    // printf("exit: %i\n",seq_select);
     seq_current = &seqs[seq_select]; // save the new node
 }
 
@@ -124,7 +124,7 @@ void casl_describe( int index, lua_State* L )
     // enter first sequence
     seq_enter();
 
-    printf("casl_describe\n");
+    // printf("casl_describe\n");
     parse_table(L);
     // seq_exit()? // i think we want to start inside the first Seq anyway
 }
@@ -212,7 +212,7 @@ static void parse_table( lua_State* L )
             seq_enter();
             t->a.obj.seq = seq_select; // pass this To* to seq_enter, and do this line in there
             int seq_len = lua_rawlen(L, -1);
-            printf("seq_len %i\n",seq_len);
+            // printf("seq_len %i\n",seq_len);
             for( int i=1; i<=seq_len; i++ ){ // Lua is 1-based
                 lua_pushnumber(L, i); // grab the next elem
                 lua_gettable(L, -2); // push that inner-table to the stack
@@ -314,19 +314,16 @@ static ElemO resolve( Elem* e );
 void casl_action( int index, int action )
 {
     if( locked ){ // can't apply action until unlocked
-        printf("locked!\n");
         if( action == 2 ){ locked = false; } // 'unlock' message received
         return; // doesn't trigger action
     }
     if( action == 1){ // restart sequence
-        printf("restarting\n");
         seq_current = &seqs[0]; // first sequence
         for(int i=0; i<SEQ_COUNT; i++){ seqs[i].pc = 0; } // reset all program counters
         holding = false;
         locked = false;
     } else if( action == 0 && holding ){ // goto release if held
         if( find_control(ToUnheld, false) ){
-            printf("releasing\n");
             holding = false;
         } else {
             printf("couldn't find ToWait. restarting\n");
@@ -425,7 +422,7 @@ static ElemO resolve( Elem* e )
 
 int casl_defdynamic( int index )
 {
-    if(dyn_ix >= DYN_COUNT){ printf("ERROR: nno dynamic slots remain\n"); return -1; }
+    if(dyn_ix >= DYN_COUNT){ printf("ERROR: no dynamic slots remain\n"); return -1; }
     int ix = dyn_ix; dyn_ix++;
     return ix;
 }
