@@ -9,7 +9,8 @@ function S.new(t)
     -- wrap a table in a sequins with defaults
     local s = { data   = t
               , length = #t -- memoize table length for speed
-              , ix     = #t
+              , set_ix = 1 -- force first stage to start at elem 1
+              , ix     = 1 -- current val
               , n      = 1 -- can be a sequin
               }
     s.action = {up = s}
@@ -17,9 +18,7 @@ function S.new(t)
     return s
 end
 
-local function wrap_index(s, ix)
-    return ((ix - 1) % s.length) + 1
-end
+local function wrap_index(s, ix) return ((ix - 1) % s.length) + 1 end
 
 -- can this be generalized to cover every/count/times etc
 function S.setdata(self, t)
@@ -33,7 +32,8 @@ function S.is_sequins(t) return getmetatable(t) == S end
 local function turtle(t, fn)
     -- apply fn to all nested sequins. default to 'next'
     if S.is_sequins(t) then
-        if fn then return fn(t)
+        if fn then
+            return fn(t)
         else return S.next(t) end
     end
     return t
@@ -45,45 +45,29 @@ end
 
 function S.next(self)
     local act = self.action
-    if not act.action then -- base case. apply STEP
-        local s = act.up
-        local newix = s.ix
-        local n = turtle(s.n)
-        newix = newix + n
-        newix = wrap_index(s, newix)
-
-        local retval, exec = turtle(s.data[newix])
-        -- THIS IS 'STEP'
-        if exec ~= 'again' then s.ix = newix end
-        -- FIXME add protection for list of dead sequins. for now we just recur, hoping for a live sequin in nest
-        -- if exec == 'dead' then return S.next(s) end
-        if exec == 'skip' then
-            return S.next(s)
-        end
-        return retval, exec
-    else
-        return S._generic(act)
-    end
+    if act.action then
+        return S.do_ctrl(act)
+    else return S.do_step(act) end
 end
 
-function S.step(self, s) self.n = s; return self end
+function S.select(self, ix) rawset(self, set_ix, ix) end
 
-function S.reset(self)
-    self.ix = self.length
-    for _,v in ipairs(self.data) do turtle(v, S.reset) end
-    local a = self.action
-    while a.ix do
-        a.ix = 0
-        turtle(a.n, S.reset)
-        a = a.action
-    end
+function S.do_step(act)
+    local s = act.up
+    -- if .set_ix is set, it will be used, rather than incrementing by s.n
+    local newix = wrap_index(s, s.set_ix or s.ix + turtle(s.n))
+    local retval, exec = turtle(s.data[newix])
+    if exec ~= 'again' then s.ix = newix; s.set_ix = nil end
+    -- FIXME add protection for list of dead sequins. for now we just recur, hoping for a live sequin in nest
+    if exec == 'skip' then return S.next(s) end
+    return retval, exec
 end
 
 
 ------------------------------
 --- control flow manipulation
 
-function S._generic(act)
+function S.do_ctrl(act)
     act.ix = act.ix + 1
     if not act.cond or act.cond(act) then
         retval, exec = S.next(act)
@@ -100,6 +84,21 @@ function S._generic(act)
     return retval, exec
 end
 
+function S.reset(self)
+    self.ix = self.length
+    for _,v in ipairs(self.data) do turtle(v, S.reset) end
+    local a = self.action
+    while a.ix do
+        a.ix = 0
+        turtle(a.n, S.reset)
+        a = a.action
+    end
+end
+
+--- behaviour modifiers
+function S.step(self, s) self.n = s; return self end
+
+
 function S.extend(self, t)
     self.action = { up     = self -- containing sequins
                   , action = self.action -- wrap nested actions
@@ -110,18 +109,15 @@ function S.extend(self, t)
 end
 
 function S._every(self)
-    local n = turtle(self.n)
-    return (self.ix % n) == 0
+    return (self.ix % turtle(self.n)) == 0
 end
 
 function S._times(self)
-    local n = turtle(self.n)
-    return self.ix <= n
+    return self.ix <= turtle(self.n)
 end
 
 function S._count(self)
-    local n = turtle(self.n)
-    if self.ix < n then return true
+    if self.ix < turtle(self.n) then return true
     else self.ix = 0 end -- reset
 end
 
@@ -139,11 +135,7 @@ function S.once(self) return self:times(1) end
 --- metamethods
 
 S.__call = function(self, ...)
-    if self == S then -- calling the library itself
-        return S.new(...)
-    else -- calling default behaviour of an instance
-        return S.next(self)
-    end
+    return (self == S) and S.new(...) or S.next(self)
 end
 
 S.metaix = { settable = S.setdata

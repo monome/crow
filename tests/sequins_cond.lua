@@ -14,10 +14,10 @@ assert(s1() == 0) -- wraps
 -- custom behaviour: steps backward by 1
 -- local s2 = s({0,3,6,9}, s.step(-1))
 local s2 = s.new{0,3,6,9}:step(-1)
-assert(s2() == 6) -- weird starting point (essentially -1 which wraps to .len - 1)
-assert(s2() == 3)
 assert(s2() == 0)
 assert(s2() == 9)
+assert(s2() == 6)
+assert(s2() == 3)
 
 --- default behaviour, demonstrate select for direct setting
 -- local s3 = s{1,2,3,4,5}
@@ -63,8 +63,6 @@ assert(s7() == 4)
 --- behaviours can take sequins as args
 -- this is really weird, but it makes it such that sequins become first class value/object dualities
 local s12 = s{1,2,3}:step(s{1,1,-1}) -- 2 steps forward, 1 step back
-assert(s12() == 1)
-assert(s12() == 2)
 assert(s12() == 1)
 assert(s12() == 2)
 assert(s12() == 3)
@@ -177,7 +175,7 @@ assert(s16() == 2)
 assert(s16() == 2)
 assert(s16() == 1)
 
--- FIXME broken
+-- FIXME broken- current result is (1,2,1,3,1,2,1,3)
 --- reverse nested every/count
 -- local s17 = s{1, s{2,3}:every(2):count(3)}
 -- for i=1,8 do print(); print(s17()) end
@@ -194,6 +192,7 @@ assert(s16() == 1)
 -- --- every+every composition divides timing
 -- FIXME disabled bc i can't tell what the desired behaviour is
 -- local s17 = s{1, s{2,3}:every(2):every(2)}
+-- for i=1,8 do print(); print(s17()) end
 -- assert(s17() == 1)
 -- assert(s17() == 1)
 -- assert(s17() == 1)
