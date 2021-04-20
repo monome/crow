@@ -166,7 +166,7 @@ end
 
 -- allows 'calling' a fn arg, only if the arg is non-nil
 -- just useful to avoid a nil check before calling an optional event handler
-function safe_call(fn,...) if fn then return fn(...) end
+function safe_call(fn,...) if fn then return fn(...) end end
 
 
 --- Delay execution of a function
