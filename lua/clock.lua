@@ -123,21 +123,6 @@ clock.internal.start = function(beat) return clock_internal_start(beat or 0) end
 clock.internal.stop = clock_internal_stop
 
 
--- helper fns
-
--- map clock to output jacks with clock division
-clock.outreg = {} -- maintain register of any clocks assigned to outreg
-function clock.output(chan, div)
-  if clock.outreg[chan] then clock.cancel(clock.outreg[chan]) end
-  clock.outreg[chan] = clock.run(function()
-    while true do
-      clock.sync(1/(div or 1))
-      output[1]()
-    end
-  end)
-end
-
-
 -- event handlers (called from C)
 clock_resume_handler = clock.resume
 function clock_start_handler() safe_call(clock.transport.start) end
