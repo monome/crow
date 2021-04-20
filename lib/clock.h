@@ -27,7 +27,6 @@ double clock_get_time_seconds(void);
 float clock_get_tempo(void);
 
 void clock_cancel_coro( int coro_id );
-void clock_cancel_all(void);
 
 
 ///////////////////////////////////

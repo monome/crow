@@ -201,13 +201,6 @@ void clock_cancel_coro( int coro_id )
     }
 }
 
-void clock_cancel_all(void)
-{
-    for( int i=0; i<clock_count; i++ ){
-        clock_cancel(i);
-    }
-}
-
 
 ////////////////////////////////////////////
 // private defs
