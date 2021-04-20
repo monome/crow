@@ -84,7 +84,7 @@ void clock_update(void)
         // for now we just check every entry!
         for( int i=0; i<clock_count; i++ ){
             if( clock_pool[i].running ){
-                if( clock_pool[i].wakeup <= time_now ){
+                if( clock_pool[i].wakeup < time_now ){
                     // event!
                     // TODO pop from ordered list
                     L_queue_clock_resume( clock_pool[i].coro_id );
