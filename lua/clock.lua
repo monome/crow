@@ -99,7 +99,6 @@ clock.cleanup = function()
   end
   clock.transport.start = nil
   clock.transport.stop = nil
-  clock.outreg = {} -- clear any active clock.outputs
 end
 
 --- select the sync source
