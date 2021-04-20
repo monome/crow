@@ -18,23 +18,28 @@ typedef struct{
 } clock_reference_t;
 
 typedef struct{
-    int  coro_id;
-    bool running;
-    int  wakeup;
+    uint32_t wakeup;
+    int      coro_id;
+    bool     running;
 } clock_thread_t;
 
+typedef struct{
+    double wakeup;
+    int    coro_id;
+    bool   running;
+} clock_thread_HD_t;
 
 ////////////////////////////////////
 // global data
 
 static int clock_count;
 static clock_thread_t* clock_pool;
-static clock_thread_t internal; // for internal clocksource
+static clock_thread_HD_t internal; // for internal clocksource
 static clock_source_t clock_source = CLOCK_SOURCE_INTERNAL;
 
 static clock_reference_t reference;
 
-static int last_tick = 0;
+static uint32_t last_tick = 0;
 
 
 /////////////////////////////////////////////
@@ -43,7 +48,7 @@ static int last_tick = 0;
 static int find_idle(void);
 static void clock_cancel( int index );
 
-void clock_internal_run(void);
+void clock_internal_run(uint32_t ms);
 
 /////////////////////////////////////////////
 // public defs
@@ -69,8 +74,9 @@ void clock_init( int max_clocks )
 // TODO give clock it's own Timer to avoid this check & run in background
 void clock_update(void)
 {
-    int time_now = HAL_GetTick();
+    uint32_t time_now = HAL_GetTick();
     if( last_tick != time_now ){ // next tick
+        uint32_t duration = time_now - last_tick;
         last_tick = time_now;
 
         // TODO check for events
@@ -79,7 +85,7 @@ void clock_update(void)
         // might need 2 separate (1 for sleep, 1 for sync)
 
         // run a separate thread for the internal clock
-        clock_internal_run();
+        clock_internal_run(duration);
 
         // for now we just check every entry!
         for( int i=0; i<clock_count; i++ ){
@@ -106,7 +112,7 @@ bool clock_schedule_resume_sleep( int coro_id, float seconds )
             // which should have a 'length' marker
         clock_pool[i].coro_id  = coro_id;
         clock_pool[i].running  = true;
-        clock_pool[i].wakeup   = HAL_GetTick() + (int)(seconds * 1000.0);
+        clock_pool[i].wakeup   = HAL_GetTick() + (uint32_t)(seconds * 1000.0);
         return true;
     }
     return false;
@@ -265,17 +271,16 @@ void clock_internal_stop(void)
 /////////////////////////////////////
 // private clock_internal
 
-void clock_internal_run(void)
+void clock_internal_run(uint32_t ms)
 {
     if( internal.running ){
-        double time_now = (double)HAL_GetTick();
-        if( internal.wakeup <= (int)time_now ){
-            internal_beat += (double)1.0;
+        double time_now = HAL_GetTick();
+        if( internal.wakeup < time_now ){
+            internal_beat += (double)ms;
             clock_update_reference_from( internal_beat
                                        , internal_interval_seconds
                                        , CLOCK_SOURCE_INTERNAL );
-            int new = (int)(time_now + (internal_interval_seconds * (double)1000.0));
-            internal.wakeup = new;
+            internal.wakeup = time_now + internal_interval_seconds * (double)1000.0;
         }
     }
 }
