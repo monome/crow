@@ -55,7 +55,7 @@ function _crow.reset()
     ii.reset_events(ii.self)
     ii_follow_reset() -- resets forwarding to output libs
     metro.free_all()
-    clock.cancel_all()
+    clock.cleanup()
 end
 
 --- Communication functions

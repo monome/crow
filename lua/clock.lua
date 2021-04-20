@@ -1,25 +1,21 @@
 --- clock coroutines
 -- @module clock
 
-local clock = {}
-
-clock.threads = {}
-
-local clock_id_counter = 1
-local function new_id()
-  local id = clock_id_counter
-  clock_id_counter = clock_id_counter + 1
-  return id
-end
+local clock = { threads = {}
+              , transport = {}
+              , internal = {}
+              , crow = {}
+              , id = 0
+              }
 
 --- create a coroutine to run but do not immediately run it;
 -- @tparam function f
 -- @treturn integer : coroutine ID that can be used to resume/stop it later
 clock.create = function(f)
   local coro = coroutine.create(f)
-  local coro_id = new_id()
-  clock.threads[coro_id] = coro
-  return coro_id
+  clock.id = clock.id + 1 -- create a new id
+  clock.threads[clock.id] = coro
+  return clock.id
 end
 
 --- create a coroutine from the given function and immediately run it;
@@ -39,8 +35,7 @@ clock.cancel = function(coro_id)
   clock.threads[coro_id] = nil
 end
 
-clock.cancel_all = function() clock_cancel_all() end
-
+-- enum for calls to C
 local SLEEP = 0
 local SYNC = 1
 local SUSPEND = 2
@@ -66,12 +61,11 @@ clock.suspend = function()
   return coroutine.yield(SUSPEND)
 end
 
--- todo: use c api instead
 clock.resume = function(coro_id, ...)
   local coro = clock.threads[coro_id]
 
   if coro == nil then
-    print('clock: ignoring resumption of canceled clock (no coroutine)')
+    print('cant resume cancelled clock')
     return
   end
 
@@ -90,7 +84,7 @@ clock.resume = function(coro_id, ...)
         clock_schedule_sleep(coro_id, time)
       elseif mode == SYNC then
         clock_schedule_sync(coro_id, time)
-      elseif mode == SUSPEND then
+      -- elseif mode == SUSPEND then
         -- nothing needed for SUSPEND
       end
     end
@@ -103,22 +97,16 @@ clock.cleanup = function()
       clock.cancel(id)
     end
   end
-
   clock.transport.start = nil
   clock.transport.stop = nil
+  clock.outreg = {} -- clear any active clock.outputs
 end
 
 --- select the sync source
 -- @tparam string source : 'internal', 'midi', 'link' or 'crow'
 clock.set_source = function(source)
-  if type(source) == 'number' then
-    clock_set_source(source)
-  elseif source == 'internal' then
+  if source == 'internal' then
     clock_set_source(1)
-  elseif source == 'midi' then
-    clock_set_source(2)
-  elseif source == 'link' then
-    clock_set_source(3)
   elseif source == 'crow' then
     clock_set_source(4)
   else
@@ -126,174 +114,33 @@ clock.set_source = function(source)
   end
 end
 
-clock.get_beats = function()
-  return clock_get_time_beats()
+clock.get_beats = clock_get_time_beats
+clock.get_tempo = clock_get_tempo
+clock.get_beat_sec = function(x) return (x or 1) * 60.0 / clock.get_tempo() end
+
+clock.internal.set_tempo = function(bpm) return clock_internal_set_tempo(bpm) end
+clock.internal.start = function(beat) return clock_internal_start(beat or 0) end
+clock.internal.stop = clock_internal_stop
+
+
+-- helper fns
+
+-- map clock to output jacks with clock division
+clock.outreg = {} -- maintain register of any clocks assigned to outreg
+function clock.output(chan, div)
+  if clock.outreg[chan] then clock.cancel(clock.outreg[chan]) end
+  clock.outreg[chan] = clock.run(function()
+    while true do
+      clock.sync(1/(div or 1))
+      output[1]()
+    end
+  end)
 end
 
-clock.get_tempo = function()
-  return clock_get_tempo()
-end
 
-clock.get_beat_sec = function(x)
-  x = x or 1
-  return 60.0 / clock.get_tempo() * x
-end
-
-
-clock.transport = {}
-
-clock.transport.start = nil
-clock.transport.stop = nil
-
-
-clock.internal = {}
-
-clock.internal.set_tempo = function(bpm)
-  return clock_internal_set_tempo(bpm)
-end
-
-clock.internal.start = function(beat)
-  beat = beat or 0
-  return clock_internal_start(beat)
-end
-
-clock.internal.stop = function()
-  return clock_internal_stop()
-end
-
---clock.crow = {}
-
---clock.crow.in_div = function(div)
---  _norns.clock_crow_in_div(div)
---end
-
-
---clock.midi = {}
-
-
-
---function clock.add_params()
---  params:add_group("CLOCK",8)
---
---  params:add_option("clock_source", "source", {"internal", "midi", "link", "crow"},
---    norns.state.clock.source)
---  params:set_action("clock_source",
---    function(x)
---      clock.set_source(x)
---      if x==4 then
---        crow.input[1].change = function() end
---        crow.input[1].mode("change",2,0.1,"rising")
---      end
---      norns.state.clock.source = x
---      if x==1 then clock.internal.set_tempo(params:get("clock_tempo"))
---      elseif x==3 then clock.link.set_tempo(params:get("clock_tempo")) end
---    end)
---  params:set_save("clock_source", false)
---  params:add_number("clock_tempo", "tempo", 1, 300, norns.state.clock.tempo)
---  params:set_action("clock_tempo",
---    function(bpm)
---      local source = params:string("clock_source")
---      if source == "internal" then clock.internal.set_tempo(bpm)
---      elseif source == "link" then clock.link.set_tempo(bpm) end
---      norns.state.clock.tempo = bpm
---    end)
---  params:set_save("clock_tempo", false)
---  params:add_trigger("clock_reset", "reset")
---  params:set_action("clock_reset",
---    function()
---      local source = params:string("clock_source")
---      if source == "internal" then clock.internal.start(bpm)
---      elseif source == "link" then print("link reset not supported") end
---    end)
---  params:add_number("link_quantum", "link quantum", 1, 32, norns.state.clock.link_quantum)
---  params:set_action("link_quantum",
---    function(x)
---      clock.link.set_quantum(x)
---      norns.state.clock.link_quantum = x
---    end)
---  params:set_save("link_quantum", false)
---
---  params:add_option("clock_midi_out", "midi out",
---      {"off", "port 1", "port 2", "port 3", "port 4"}, norns.state.clock.midi_out)
---  params:set_action("clock_midi_out", function(x) norns.state.clock.midi_out = x end)
---  params:set_save("clock_midi_out", false)
---  params:add_option("clock_crow_out", "crow out",
---      {"off", "output 1", "output 2", "output 3", "output 4"}, norns.state.clock.crow_out)
---  params:set_action("clock_crow_out", function(x)
---      if x>1 then crow.output[x-1].action = "pulse(0.05,8)" end
---      norns.state.clock.crow_out = x
---    end)
---  params:set_save("clock_crow_out", false)
---  params:add_number("clock_crow_out_div", "crow out div", 1, 32,
---    norns.state.clock.crow_out_div)
---  params:set_action("clock_crow_out_div",
---    function(x) norns.state.clock.crow_out_div = x end)
---  params:set_save("clock_crow_out_div", false)
---  params:add_number("clock_crow_in_div", "crow in div", 1, 32,
---    norns.state.clock.crow_in_div)
---  params:set_action("clock_crow_in_div",
---    function(x)
---      clock.crow.in_div(x)
---      norns.state.clock.crow_in_div = x
---    end)
---  params:set_save("clock_crow_in_div", false)
---  --params:add_trigger("crow_clear", "crow clear")
---  --params:set_action("crow_clear",
---    --function() crow.reset() crow.clear() end)
---
---  params:bang("clock_tempo")
---
---  -- executes crow sync
---  clock.run(function()
---    while true do
---      clock.sync(1/params:get("clock_crow_out_div"))
---      local crow_out = params:get("clock_crow_out")-1
---      if crow_out > 0 then crow.output[crow_out]() end
---    end
---  end)
---
---  -- executes midi out (needs a subtick)
---  -- FIXME: lots of if's every tick blah
---  clock.run(function()
---    while true do
---      clock.sync(1/24)
---      local midi_out = params:get("clock_midi_out")-1
---      if midi_out > 0 then
---        if midi.vports[midi_out].name ~= "none" then
---          midi.vports[midi_out]:clock()
---        end
---      end
---    end
---  end)
---
---  -- update tempo param value
---  clock.run(function()
---    while true do
---      if params:get("clock_source") ~= 1 then
---        local external_tempo = math.floor(clock.get_tempo() + 0.5)
---        params:set("clock_tempo", external_tempo, true)
---      end
---
---      clock.sleep(1)
---    end
---  end)
---
---end
-
-function clock_resume_handler(coro_id)
-  clock.resume(coro_id) -- TODO just call direct from C
-end
-
-function clock_start_handler()
-  if clock.transport.start ~= nil then
-    clock.transport.start()
-  end
-end
-
-function clock_stop_handler()
-  if clock.transport.stop ~= nil then
-    clock.transport.stop()
-  end
-end
+-- event handlers (called from C)
+clock_resume_handler = clock.resume
+function clock_start_handler() safe_call(clock.transport.start) end
+function clock_stop_handler() safe_call(clock.transport.stop) end
 
 return clock
