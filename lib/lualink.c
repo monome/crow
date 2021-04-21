@@ -37,6 +37,7 @@
 #include "build/iihelp.lua.h"    // generated lua stub for loading i2c modules
 #include "lua/calibrate.lua.h"
 #include "lua/midi.lua.h"
+#include "lua/sequins.lua.h"
 
 #include "build/ii_lualink.h" // generated C header for linking to lua
 
@@ -55,6 +56,7 @@ const struct lua_lib_locator Lua_libs[] =
     , { "build_iihelp"  , build_iihelp  }
     , { "lua_calibrate" , lua_calibrate }
     , { "lua_midi"      , lua_midi      }
+    , { "lua_sequins"   , lua_sequins   }
     , { NULL            , NULL          }
     };
 

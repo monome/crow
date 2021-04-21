@@ -31,6 +31,7 @@ function _crow.libs( lib )
         public = dofile('lua/public.lua')
         ii     = dofile('lua/ii.lua')
         cal    = dofile('lua/calibrate.lua')
+        sequins= dofile('lua/sequins.lua')
         --midi   = dofile('lua/midi.lua')
     elseif type(lib) == 'table' then
         -- load the list 
