@@ -50,7 +50,10 @@ function S.next(self)
     else return S.do_step(act) end
 end
 
-function S.select(self, ix) rawset(self, set_ix, ix) end
+function S.select(self, ix)
+    rawset(self, set_ix, ix)
+    return self
+end
 
 function S.do_step(act)
     local s = act.up
