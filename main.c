@@ -67,8 +67,8 @@ int main(void)
             default: break; // 'C_none' does nothing
         }
         Random_Update();
+        clock_update();
         event_next(); // check/execute single event
         ii_leader_process();
-        clock_update();
     }
 }

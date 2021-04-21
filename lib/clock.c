@@ -76,16 +76,14 @@ void clock_update(void)
 {
     uint32_t time_now = HAL_GetTick();
     if( last_tick != time_now ){ // next tick
-        uint32_t duration = time_now - last_tick;
         last_tick = time_now;
+
+        clock_internal_run(time_now);
 
         // TODO check for events
         // re-order the list whenever inserting new events
         // so the check code can just look at the front of the list
         // might need 2 separate (1 for sleep, 1 for sync)
-
-        // run a separate thread for the internal clock
-        clock_internal_run(duration);
 
         // for now we just check every entry!
         for( int i=0; i<clock_count; i++ ){
@@ -274,9 +272,9 @@ void clock_internal_stop(void)
 void clock_internal_run(uint32_t ms)
 {
     if( internal.running ){
-        double time_now = HAL_GetTick();
+        double time_now = ms;
         if( internal.wakeup < time_now ){
-            internal_beat += (double)ms;
+            internal_beat += 1;
             clock_update_reference_from( internal_beat
                                        , internal_interval_seconds
                                        , CLOCK_SOURCE_INTERNAL );
