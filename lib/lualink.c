@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <string.h> // strcmp(), strlen()
+#include <stdlib.h>
 
 // Lua itself
 //#include "../submodules/lua/src/lua.h" // in header
@@ -132,13 +133,66 @@ void Lua_DeInit(void)
 // to avoid shadowing similar-named extern functions in other modules
 // and also to distinguish from extern 'L_' functions.
 
-static int _find_lib( const struct lua_lib_locator* lib, const char* name )
+// this is a somewhat arbitrary size. must be big enough for the biggest library. 8kB was too small
+#define SIZED_STRING_LEN 0x4000 // (16kB)
+struct sized_string{
+    char data[SIZED_STRING_LEN];
+    int  len;
+};
+static int _writer(lua_State *L, const void *p, size_t sz, void *ud)
+{
+    UNUSED(L);
+    struct sized_string* chunkstr = ud; /// need explicit cast?
+    if(chunkstr->len + sz >= SIZED_STRING_LEN){
+        printf("chunkstr too small.\n");
+        return 1;
+    }
+    memcpy(&chunkstr->data[chunkstr->len], p, sz);
+    chunkstr->len += sz;
+    return 0;
+}
+static int _load_chunk(lua_State* L, const char* code, int strip)
+{
+    int retval = 0;
+    struct sized_string chunkstr = {.len = 0};
+    { // scope lua_State to destroy it asap
+        lua_State* LL=luaL_newstate();
+        if( !LL ){ printf("luaL_newstate failed\n"); return 1; }
+        if( luaL_loadstring(LL, code) ){
+            printf("loadstring error\n");
+            retval = 1;
+            goto close_LL;
+        }
+        if( lua_dump(LL, _writer, &chunkstr, strip) ){
+            printf("dump error\n");
+            retval = 1;
+            goto close_LL;
+        }
+close_LL:
+        lua_close(LL);
+    }
+    luaL_loadbuffer(L, chunkstr.data, chunkstr.len, chunkstr.data); // load our compiled chunk
+    return retval;
+}
+
+// STRIPPED removes debug info from crow libs to reduce RAM usage
+// TODO could flag this per file if we need debug info in some files
+#define STRIPPED 1
+static int _open_lib( const struct lua_lib_locator* lib, const char* name )
 {
     uint8_t i = 0;
     while( lib[i].addr_of_luacode != NULL ){
         if( !strcmp( name, lib[i].name ) ){ // if the strings match
-            if( luaL_dostring( L, lib[i].addr_of_luacode ) ){
-                printf("can't load library: %s\n", (char*)lib[i].name );
+            if( _load_chunk(L, lib[i].addr_of_luacode, STRIPPED) ){
+            // if( luaL_loadstring(L, lib[i].addr_of_luacode) ){ // old version. same as STRIPPED == 0
+                 printf("can't load library: %s\n", (char*)lib[i].name );
+                // lua error
+                printf( "%s\n", (char*)lua_tostring( L, -1 ) );
+                lua_pop( L, 1 );
+                return -1; // error
+            }
+            if( lua_pcall(L, 0, LUA_MULTRET, 0) ){
+                printf("can't exec library: %s\n", (char*)lib[i].name );
                 // lua error
                 printf( "%s\n", (char*)lua_tostring( L, -1 ) );
                 lua_pop( L, 1 );
@@ -155,17 +209,17 @@ static int _dofile( lua_State *L )
 {
     const char* l_name = luaL_checkstring(L, 1);
     lua_pop( L, 1 );
-    switch( _find_lib( Lua_libs, l_name ) ){
+    switch( _open_lib( Lua_libs, l_name ) ){
         case -1: goto fail;
         case 1: return 1;
         default: break;
     }
-    switch( _find_lib( Lua_ii_libs, l_name ) ){
+    switch( _open_lib( Lua_ii_libs, l_name ) ){
         case -1: goto fail;
         case 1: return 1;
         default: break;
     }
-    printf("can't find library: %s\n", (char*)l_name);
+    printf("can't open library: %s\n", (char*)l_name);
 fail:
     lua_pushnil(L);
     return 1;
