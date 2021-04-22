@@ -3,8 +3,6 @@
 
 local clock = { threads = {}
               , transport = {}
-              , internal = {}
-              , crow = {}
               , id = 0
               }
 
@@ -35,16 +33,11 @@ clock.cancel = function(coro_id)
   clock.threads[coro_id] = nil
 end
 
--- enum for calls to C
-local SLEEP = 0
-local SYNC = 1
-local SUSPEND = 2
-
 --- yield and schedule waking up the coroutine in s seconds;
 -- must be called from within a coroutine started with clock.run.
 -- @tparam float s : seconds
 clock.sleep = function(...)
-  return coroutine.yield(SLEEP, ...)
+  return coroutine.yield(0, ...)
 end
 
 --- yield and schedule waking up the coroutine at beats beat;
@@ -52,13 +45,13 @@ end
 -- must be called from within a coroutine started with clock.run.
 -- @tparam float beats : next fraction of a beat at which the coroutine will be resumed. may be larger than 1.
 clock.sync = function(...)
-  return coroutine.yield(SYNC, ...)
+  return coroutine.yield(1, ...)
 end
 
 --- yield and do not schedule wake up, clock must be explicitly resumed
 -- must be called from within a coroutine started with clock.run.
 clock.suspend = function()
-  return coroutine.yield(SUSPEND)
+  return coroutine.yield(2)
 end
 
 clock.resume = function(coro_id, ...)
@@ -69,7 +62,7 @@ clock.resume = function(coro_id, ...)
     return
   end
 
-  local result, mode, time = coroutine.resume(clock.threads[coro_id], ...)
+  local result, mode, time = coroutine.resume(coro, ...)
 
   if coroutine.status(coro) == 'dead' then
     if result then
@@ -80,11 +73,11 @@ clock.resume = function(coro_id, ...)
   else
     -- not dead
     if result and mode ~= nil then
-      if mode == SLEEP then
+      if mode == 0 then -- SLEEP
         clock_schedule_sleep(coro_id, time)
-      elseif mode == SYNC then
+      elseif mode == 1 then -- SYNC
         clock_schedule_sync(coro_id, time)
-      -- elseif mode == SUSPEND then
+      -- elseif mode == 2 then -- SUSPEND
         -- nothing needed for SUSPEND
       end
     end
@@ -101,23 +94,11 @@ clock.cleanup = function()
   clock.transport.stop = nil
 end
 
---- select the sync source
--- @tparam string source : 'internal', 'midi', 'link' or 'crow'
-clock.set_source = function(source)
-  if source == 'internal' then
-    clock_set_source(1)
-  elseif source == 'crow' then
-    clock_set_source(4)
-  else
-    print('unknown clock source: '..source)
-  end
-end
-
 clock.get_beats = clock_get_time_beats
 clock.get_beat_sec = function(x) return (x or 1) * 60.0 / clock.tempo end
 
-clock.internal.start = function(beat) return clock_internal_start(beat or 0) end
-clock.internal.stop = clock_internal_stop
+clock.start = function(beat) return clock_internal_start(beat or 0) end
+clock.stop = clock_internal_stop
 
 
 -- event handlers (called from C)

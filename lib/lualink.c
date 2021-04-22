@@ -723,12 +723,14 @@ static int _clock_internal_set_tempo( lua_State* L )
 static int _clock_internal_start( lua_State* L )
 {
     float new_beat = luaL_checknumber(L, 1);
+    clock_set_source(CLOCK_SOURCE_INTERNAL);
     clock_internal_start(new_beat, true);
     lua_pop(L, 1);
     return 0;
 }
 static int _clock_internal_stop( lua_State* L )
 {
+    clock_set_source(CLOCK_SOURCE_INTERNAL);
     clock_internal_stop();
     return 0;
 }
