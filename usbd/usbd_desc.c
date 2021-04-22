@@ -56,7 +56,7 @@
 #define USBD_PID                      0x5740
 #define USBD_LANGID_STRING            0x409
 #define USBD_MANUFACTURER_STRING      "monome & whimsical raps"
-#define USBD_PRODUCT_HS_STRING        "STM32 Virtual ComPort in HS Mode"
+#define USBD_PRODUCT_HS_STRING        "crow: telephone line"
 #define USBD_PRODUCT_FS_STRING        "crow: telephone line"
 #define USBD_CONFIGURATION_HS_STRING  "VCP Config"
 #define USBD_INTERFACE_HS_STRING      "VCP Interface"
@@ -123,7 +123,10 @@ __ALIGN_BEGIN uint8_t USBD_LangIDDesc[USB_LEN_LANGID_STR_DESC] __ALIGN_END = {
   HIBYTE(USBD_LANGID_STRING), 
 };
 
-uint8_t USBD_StringSerial[USB_SIZ_STRING_SERIAL] =
+#if defined ( __ICCARM__ ) /*!< IAR Compiler */
+#pragma data_alignment=4
+#endif
+__ALIGN_BEGIN uint8_t USBD_StringSerial[USB_SIZ_STRING_SERIAL] =
 {
   USB_SIZ_STRING_SERIAL,      
   USB_DESC_TYPE_STRING,    
