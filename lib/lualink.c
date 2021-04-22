@@ -115,6 +115,7 @@ lua_State* Lua_Reset( void )
         S_toward( i, 0.0, 0.0, SHAPE_Linear, NULL );
     }
     events_clear();
+    clock_cancel_coro_all();
     Lua_DeInit();
     return Lua_Init();
 }
