@@ -1,5 +1,7 @@
 #include "midi_ll.h"
 
+#include <stdio.h>
+
 UART_HandleTypeDef midiuart;
 
 void rx_callback_null( uint8_t* buf );

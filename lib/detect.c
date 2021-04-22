@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <math.h>
+#include <stdio.h>
 
 uint8_t channel_count = 0;
 

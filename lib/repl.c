@@ -3,6 +3,7 @@
 #include <stdlib.h> // malloc(), free()
 #include <string.h> // memcpy()
 #include <stdbool.h>
+#include <stdio.h>
 
 #include <stm32f7xx_hal.h> // HAL_Delay()
 #include "lib/flash.h"     // Flash_write_(), Flash_which_userscript(), Flash_read()
