@@ -14,7 +14,6 @@ local function closelibs()
     asl    = nil
     asllib = nil
     metro  = nil
-    public = nil
     ii     = nil
     cal    = nil
     midi   = nil
@@ -28,7 +27,6 @@ function _crow.libs( lib )
         asl    = dofile('lua/asl.lua')
         asllib = dofile('lua/asllib.lua')
         metro  = dofile('lua/metro.lua')
-        public = dofile('lua/public.lua')
         ii     = dofile('lua/ii.lua')
         cal    = dofile('lua/calibrate.lua')
         sequins= dofile('lua/sequins.lua')
@@ -57,7 +55,6 @@ function _crow.reset()
     ii.reset_events(ii.self)
     ii_follow_reset() -- resets forwarding to output libs
     metro.free_all()
-    public.clear()
 end
 
 --- Communication functions
