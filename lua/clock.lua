@@ -48,12 +48,6 @@ clock.sync = function(...)
   return coroutine.yield(1, ...)
 end
 
---- yield and do not schedule wake up, clock must be explicitly resumed
--- must be called from within a coroutine started with clock.run.
-clock.suspend = function()
-  return coroutine.yield(2)
-end
-
 clock.resume = function(coro_id, ...)
   local coro = clock.threads[coro_id]
 
@@ -77,8 +71,6 @@ clock.resume = function(coro_id, ...)
         clock_schedule_sleep(coro_id, time)
       elseif mode == 1 then -- SYNC
         clock_schedule_sync(coro_id, time)
-      -- elseif mode == 2 then -- SUSPEND
-        -- nothing needed for SUSPEND
       end
     end
   end
