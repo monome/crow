@@ -27,7 +27,6 @@ extern void L_queue_toward( int id );
 extern void L_queue_metro( int id, int state );
 extern void L_queue_stream( int id, float state );
 extern void L_queue_change( int id, float state );
-extern void L_queue_midi( uint8_t* data );
 extern void L_queue_window( int id, float window );
 extern void L_queue_volume( int id, float level );
 extern void L_queue_peak( int id, float ignore );

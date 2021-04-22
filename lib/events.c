@@ -1,5 +1,6 @@
 // events.c adapted from github.com/monome/libavr32
 
+#include <stdio.h>
 #include <stm32f7xx.h>
 #include "events.h"
 #include "lualink.h"

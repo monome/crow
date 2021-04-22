@@ -1,5 +1,6 @@
 #include "dac8565.h"
 
+#include <stdio.h>
 #include "stdlib.h" // malloc()
 #include "debug_pin.h"
 

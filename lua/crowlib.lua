@@ -1,47 +1,18 @@
 --- Crow standard library
 
-local _crow = {}
-local _c = _crow -- alias
+local C = {}
+
+--- Load all libraries
+Input  = dofile('lua/input.lua')
+Output = dofile('lua/output.lua')
+asl    = dofile('lua/asl.lua')
+asllib = dofile('lua/asllib.lua')
+metro  = dofile('lua/metro.lua')
+ii     = dofile('lua/ii.lua')
+cal    = dofile('lua/calibrate.lua')
 
 
---- Library loader
---
-local function closelibs()
-    -- set whole list of libs to nil to close them
-    -- TODO does this free the RAM used by 'dofile'?
-    Input  = nil
-    Output = nil
-    asl    = nil
-    asllib = nil
-    metro  = nil
-    ii     = nil
-    cal    = nil
-    midi   = nil
-end
-
-function _crow.libs( lib )
-    if lib == nil then
-        -- load all
-        Input  = dofile('lua/input.lua')
-        Output = dofile('lua/output.lua')
-        asl    = dofile('lua/asl.lua')
-        asllib = dofile('lua/asllib.lua')
-        metro  = dofile('lua/metro.lua')
-        ii     = dofile('lua/ii.lua')
-        cal    = dofile('lua/calibrate.lua')
-        --midi   = dofile('lua/midi.lua')
-    elseif type(lib) == 'table' then
-        -- load the list 
-    else
-        if lib == 'close' then closelibs() end
-        -- assume string & load single library
-    end
-end
-
--- open all libs by default
-_crow.libs()
-
-function _crow.reset()
+function C.reset()
     for n=1,2 do
         input[n].mode = 'none'
         input[n]:reset_events()
@@ -61,16 +32,16 @@ end
 -- they return values wrapped in strings that can be used in Lua directly
 -- via dostring
 
---TODO tell should be in c-fns table, not _crow table?
-function _crow.tell( event_name, ... )
+--TODO tell should be in c-fns table, not C table?
+function C.tell( event_name, ... )
     tell( event_name, ... )
 end
 
 function get_out( channel )
-    _c.tell( 'output', channel, get_state( channel ))
+    C.tell( 'output', channel, get_state( channel ))
 end
 function get_cv( channel )
-    _c.tell( 'stream', channel, io_get_input( channel ))
+    C.tell( 'stream', channel, io_get_input( channel ))
 end
 
 
@@ -89,12 +60,8 @@ end
 
 
 --- asl
-function toward_handler( id ) end -- do nothing if asl not active
--- if defined, make sure active before setting up actions and banging
-if asl then
-    toward_handler = function( id )
-        output[id].asl:step()
-    end
+toward_handler = function(id)
+    output[id].asl:step()
 end
 -- special wrapper should really be in the ASL lib itself?
 function LL_toward( id, d, t, s )
@@ -118,7 +85,7 @@ ii.pullup(true)
 function ii_follow_reset()
     ii.self.volts = function(chan,val) output[chan].volts = val end
     ii.self.slew = function(chan,slew) output[chan].slew = slew end
-    ii.self.reset = function() _crow.reset() end
+    ii.self.reset = function() C.reset() end
     ii.self.pulse = function(chan,ms,volts,pol) output[chan](pulse(ms,volts,pol)) end
     ii.self.ar = function(chan,atk,rel,volts) output[chan](ar(atk,rel,volts)) end
     -- convert freq to seconds where freq==0 is 1Hz
@@ -217,4 +184,4 @@ function init() end
 collectgarbage()
 collectgarbage()
 
-return _crow
+return C
