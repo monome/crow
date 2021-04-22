@@ -114,17 +114,24 @@ clock.set_source = function(source)
 end
 
 clock.get_beats = clock_get_time_beats
-clock.get_tempo = clock_get_tempo
-clock.get_beat_sec = function(x) return (x or 1) * 60.0 / clock.get_tempo() end
+clock.get_beat_sec = function(x) return (x or 1) * 60.0 / clock.tempo end
 
-clock.internal.set_tempo = function(bpm) return clock_internal_set_tempo(bpm) end
 clock.internal.start = function(beat) return clock_internal_start(beat or 0) end
 clock.internal.stop = clock_internal_stop
 
 
 -- event handlers (called from C)
 clock_resume_handler = clock.resume
-function clock_start_handler() safe_call(clock.transport.start) end
-function clock_stop_handler() safe_call(clock.transport.stop) end
+function clock_start_handler() if clock.transport.start then clock.transport.start() end end
+function clock_stop_handler()  if clock.transport.stop then clock.transport.stop() end end
+
+clock.__newindex = function(self, ix, val)
+    if ix == 'tempo' then clock_internal_set_tempo(val) end
+end
+clock.__index = function(self, ix)
+    if ix == 'tempo' then return clock_get_tempo() end
+end
+
+setmetatable(clock, clock)
 
 return clock
