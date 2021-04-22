@@ -9,6 +9,7 @@ function Output.new( chan )
               , _scale  = 'none'
               , ji      = false -- mark if .scale is in just intonation mode
               , asl     = asl.new( chan )
+              , clock_div = 1
 --              , trig    = { asl      = asl.new(k)
 --                          , polarity = 1
 --                          , time     = 1
@@ -22,6 +23,22 @@ function Output.new( chan )
     setmetatable( o, Output )
 
     return o
+end
+
+function Output.clock(self, div)
+    if type(div) == 'string' then -- 'off' or 'none' will cancel a running output clock
+        if self._clock then clock.cancel(self._clock) end
+        return
+    end
+    self.clock_div = div or self.clock_div
+    self.asl.action = pulse()
+    if self._clock then clock.cancel(self._clock) end -- replace the existing coro
+    self._clock = clock.run(function()
+            while true do
+                clock.sync(self.clock_div)
+                self.asl:action()
+            end
+        end)
 end
 
 --- METAMETHODS
@@ -44,6 +61,7 @@ Output.__index = function(self, ix)
     if     ix == 'action'  then return self.asl.action
     elseif ix == 'volts'   then return LL_get_state(self.channel)
     elseif ix == 'running' then return self.asl.running
+    elseif ix == 'clock'   then return Output.clock
     elseif ix == 'scale'   then return
         function(...)
             local args = {...}
