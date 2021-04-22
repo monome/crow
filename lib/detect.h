@@ -3,7 +3,7 @@
 #include <stm32f7xx.h>
 
 #include "wrMeters.h"
-#include "midi.h" // MIDI_Active
+#include "ftrack.h"
 
 #define SCALE_MAX_COUNT 16
 #define WINDOW_MAX_COUNT 16
@@ -60,15 +60,17 @@ typedef struct detect{
     void (*modefn)(struct detect* self, float level);
     Detect_callback_t action;
 
+// state memory
+    float      last;
+    uint8_t    state; // for change/peak hysteresis
+
 // mode specifics
     D_stream_t stream;
     D_change_t change;
-    float      last;
-    uint8_t    state;
     D_window_t win;
     D_scale_t  scale;
 
-    VU_meter_t* vu; // vu metering shared by volume & peak
+    VU_meter_t* vu; // vu metering for amplitude dtection
     D_volume_t  volume;
     D_peak_t    peak;
 } Detect_t;
@@ -126,6 +128,7 @@ void Detect_peak( Detect_t*         self
                 , float             threshold
                 , float             hysteresis
                 );
-void Detect_midi( Detect_t*              self
-                , Detect_void_callback_t cb
+void Detect_freq( Detect_t*         self
+                , Detect_callback_t cb
+                , float             interval
                 );

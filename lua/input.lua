@@ -27,7 +27,6 @@ end
 function Input:reset_events()
     self.stream = function(value) _c.tell('stream',self.channel,value) end
     self.change = function(state) _c.tell('change',self.channel,state and 1 or 0) end
-    self.midi   = function(data) _c.tell('midi',table.unpack(data)) end
     self.window = function(win, dir) _c.tell('window',self.channel,win,dir and 1 or 0) end
     self.scale  = function(s)
         _c.tell('scale',self.channel
@@ -36,6 +35,7 @@ function Input:reset_events()
     end
     self.volume = function(level) _c.tell('volume',self.channel,level) end
     self.peak   = function() _c.tell('peak',self.channel) end
+    self.freq   = function(freq) _c.tell('freq',self.channel,freq) end
 end
 
 function Input:get_value()
@@ -57,19 +57,23 @@ function Input:set_mode( mode, ... )
                         , self.hysteresis
                         , self.direction
                         )
-    elseif mode == 'midi' then
-        set_input_midi( self.channel )
     elseif mode == 'window' then
         self.windows    = args[1] or self.windows
         self.hysteresis = args[2] or self.hysteresis
         set_input_window( self.channel, self.windows, self.hysteresis )
     elseif mode == 'scale' then
-        self.notes   = args[1] or self.notes
-        self.temp    = args[2] or self.temp
+        self.temp = args[2] or self.temp
+        local temp = self.temp
+        if type(self.temp) == 'string' then -- assume just intonation
+            self.notes = just12(args[1]) -- assume args[1] is valid
+            temp = 12
+        else
+            self.notes = args[1] or self.notes
+        end
         self.scaling = args[3] or self.scaling
         set_input_scale( self.channel
                        , self.notes
-                       , self.temp
+                       , temp -- use local as may be coerced to 12 by ji
                        , self.scaling
                        )
     elseif mode == 'volume' then
@@ -82,6 +86,9 @@ function Input:set_mode( mode, ... )
                       , self.threshold
                       , self.hysteresis
                       )
+    elseif mode == 'freq' then
+        self.time = args[1] or self.time
+        set_input_freq( self.channel, self.time )
     else
         set_input_none( self.channel )
     end
@@ -131,7 +138,6 @@ setmetatable(Input, Input) -- capture the metamethods
 -- callback
 function stream_handler( chan, val ) Input.inputs[chan].stream( val ) end
 function change_handler( chan, val ) Input.inputs[chan].change( val ~= 0 ) end
-function midi_handler( ... ) d = {...}; Input.inputs[1].midi(d) end
 function window_handler( chan, win, dir ) Input.inputs[chan].window( win, dir ~= 0 ) end
 function scale_handler(chan,i,o,n,v)
     --TODO build this table in C as it'll be faster?
@@ -140,5 +146,6 @@ function scale_handler(chan,i,o,n,v)
 end
 function volume_handler( chan, val ) Input.inputs[chan].volume( val ) end
 function peak_handler( chan ) Input.inputs[chan].peak() end
+function freq_handler( chan, val ) Input.inputs[chan].freq( val ) end
 
 return Input

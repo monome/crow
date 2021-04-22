@@ -1,5 +1,6 @@
 #include "lib/lualink.h"
 
+#include <stdio.h>
 #include <string.h> // strcmp(), strlen()
 
 // Lua itself
@@ -20,7 +21,6 @@
 #include "../ll/adda.h"     // CAL_Recalibrate() CAL_PrintCalibration()
 #include "../ll/system.h"   // getUID_Word()
 #include "lib/events.h"     // event_t event_post()
-#include "lib/midi.h"       // MIDI_Active()
 #include "stm32f7xx_hal.h"  // HAL_GetTick()
 #include "stm32f7xx_it.h"   // CPU_GetCount()
 
@@ -35,7 +35,6 @@
 #include "lua/ii.lua.h"
 #include "build/iihelp.lua.h"    // generated lua stub for loading i2c modules
 #include "lua/calibrate.lua.h"
-#include "lua/midi.lua.h"
 
 #include "build/ii_lualink.h" // generated C header for linking to lua
 
@@ -52,7 +51,6 @@ const struct lua_lib_locator Lua_libs[] =
     , { "lua_ii"        , lua_ii        }
     , { "build_iihelp"  , build_iihelp  }
     , { "lua_calibrate" , lua_calibrate }
-    , { "lua_midi"      , lua_midi      }
     , { NULL            , NULL          }
     };
 
@@ -74,11 +72,11 @@ void L_handle_change( event_t* e );
 void L_handle_ii_leadRx( event_t* e );;
 void L_handle_ii_followRx( event_t* e );
 void L_handle_ii_followRx_cont( uint8_t cmd, int args, float* data );
-void L_handle_midi( event_t* e );
 void L_handle_window( event_t* e );
 void L_handle_in_scale( event_t* e );
 void L_handle_volume( event_t* e );
 void L_handle_peak( event_t* e );
+void L_handle_freq( event_t* e );
 
 void _printf(char* error_message)
 {
@@ -265,13 +263,20 @@ static int _go_toward( lua_State *L )
 }
 static int _get_state( lua_State *L )
 {
-    float s = S_get_state( luaL_checkinteger(L, 1)-1 );
+    float s = AShaper_get_state( luaL_checkinteger(L, 1)-1 );
     lua_pop( L, 1 );
     lua_pushnumber( L, s );
     return 1;
 }
 static int _set_scale( lua_State *L )
 {
+    // statically save the mod & scaling options
+    // if omitting mod & scaling, they use the most recent value of mod/scaling
+    // if no value ever provided, the initial values act as defaults
+    // NB: shared between outputs. if you need separate mod/scale, must be explicit
+    static float mod = 12.0; // default to 12TET
+    static float scaling = 1.0; // default to v/8
+
     int nargs = lua_gettop(L);
     // first arg is index!
 
@@ -305,13 +310,11 @@ static int _set_scale( lua_State *L )
         lua_pop( L, 1 );                     // remove our introspected value
     }
 
-    float mod = 12.0; // default to 12TET
     if( nargs >= 3 ){
         // TODO allow string = 'just' to select JI mode for note list
         mod = luaL_checknumber( L, 3 );
     }
 
-    float scaling = 1.0; // default to v/8
     if( nargs >= 4 ){
         scaling = luaL_checknumber( L, 4 );
     }
@@ -371,17 +374,6 @@ static int _set_input_change( lua_State *L )
                      );
     }
     lua_pop( L, 4 );
-    lua_settop(L, 0);
-    return 0;
-}
-static int _set_input_midi( lua_State *L )
-{
-    uint8_t ix = luaL_checkinteger(L, 1)-1;
-    Detect_t* d = Detect_ix_to_p( ix ); // Lua is 1-based
-    if(d){ // valid index
-        Detect_midi( d, L_queue_midi );
-    }
-    lua_pop( L, 1 );
     lua_settop(L, 0);
     return 0;
 }
@@ -462,7 +454,20 @@ static int _set_input_peak( lua_State *L )
     lua_settop(L, 0);
     return 0;
 }
-
+static int _set_input_freq( lua_State *L )
+{
+    uint8_t ix = luaL_checkinteger(L, 1)-1;
+    Detect_t* d = Detect_ix_to_p( ix ); // Lua is 1-based
+    if(d){ // valid index
+        Detect_freq( d
+                   , L_queue_freq
+                   , luaL_checknumber(L, 2)
+                   );
+    }
+    lua_pop( L, 2 );
+    lua_settop(L, 0);
+    return 0;
+}
 
 static int _send_usb( lua_State *L )
 {
@@ -641,11 +646,11 @@ static const struct luaL_Reg libCrow[]=
     , { "set_input_none"   , _set_input_none   }
     , { "set_input_stream" , _set_input_stream }
     , { "set_input_change" , _set_input_change }
-    , { "set_input_midi"   , _set_input_midi   }
     , { "set_input_scale"  , _set_input_scale  }
     , { "set_input_window" , _set_input_window }
     , { "set_input_volume" , _set_input_volume }
     , { "set_input_peak"   , _set_input_peak   }
+    , { "set_input_freq"   , _set_input_freq   }
         // usb
     , { "send_usb"         , _send_usb         }
         // i2c
@@ -907,27 +912,6 @@ float L_handle_ii_followRxTx( uint8_t cmd, int args, float* data )
     return n;
 }
 
-void L_queue_midi( uint8_t* data )
-{
-    event_t e = { .handler = L_handle_midi };
-    e.data.u8s[0] = data[0];
-    e.data.u8s[1] = data[1];
-    e.data.u8s[2] = data[2];
-    event_post(&e);
-}
-void L_handle_midi( event_t* e )
-{
-    uint8_t* data = e->data.u8s;
-    lua_getglobal(L, "midi_handler");
-    int count = MIDI_byte_count(data[0]) + 1; // +1 for cmd byte itself
-    for( int i=0; i<count; i++ ){
-        lua_pushinteger(L, data[i]);
-    }
-    if( Lua_call_usercode(L, count, 0) != LUA_OK ){
-        lua_pop( L, 1 );
-    }
-}
-
 void L_queue_in_scale( int id, float note )
 {
     event_t e = { .handler = L_handle_in_scale
@@ -1005,6 +989,24 @@ void L_handle_peak( event_t* e )
     lua_getglobal(L, "peak_handler");
     lua_pushinteger(L, e->index.i +1); // 1-ix'd
     if( Lua_call_usercode(L, 1, 0) != LUA_OK ){
+        lua_pop( L, 1 );
+    }
+}
+
+void L_queue_freq( int id, float freq )
+{
+    event_t e = { .handler = L_handle_freq
+                , .index.i = id
+                , .data.f  = freq
+                };
+    event_post(&e);
+}
+void L_handle_freq( event_t* e )
+{
+    lua_getglobal(L, "freq_handler");
+    lua_pushinteger(L, e->index.i +1); // 1-ix'd
+    lua_pushnumber(L, e->data.f);
+    if( Lua_call_usercode(L, 2, 0) != LUA_OK ){
         lua_pop( L, 1 );
     }
 }

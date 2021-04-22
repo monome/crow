@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <math.h>
+#include <stdio.h>
 
 uint8_t channel_count = 0;
 
@@ -18,6 +19,7 @@ static void d_window( Detect_t* self, float level );
 static void d_scale( Detect_t* self, float level );
 static void d_volume( Detect_t* self, float level );
 static void d_peak( Detect_t* self, float level );
+static void d_freq( Detect_t* self, float level );
 
 
 ///////////////////////////////////////////
@@ -64,9 +66,14 @@ int8_t Detect_str_to_dir( const char* str )
 //////////////////////////////////////////
 // mode configuration
 
+static void clear_ch_one( void )
+{
+    FTrack_stop();
+}
+
 void Detect_none( Detect_t* self )
 {
-    if( self->channel == 0 ){ MIDI_Active(0, NULL); }
+    if( self->channel == 0 ){ clear_ch_one(); }
     self->modefn = d_none;
 }
 
@@ -75,7 +82,7 @@ void Detect_stream( Detect_t*         self
                   , float             interval
                   )
 {
-    if( self->channel == 0 ){ MIDI_Active(0, NULL); }
+    if( self->channel == 0 ){ clear_ch_one(); }
     self->modefn         = d_stream;
     self->action         = cb;
     // SAMPLE_RATE * i / BLOCK_SIZE
@@ -91,7 +98,7 @@ void Detect_change( Detect_t*         self
                   , int8_t            direction
                   )
 {
-    if( self->channel == 0 ){ MIDI_Active(0, NULL); }
+    if( self->channel == 0 ){ clear_ch_one(); }
     self->modefn            = d_change;
     self->action            = cb;
     self->change.threshold  = threshold;
@@ -109,7 +116,7 @@ void Detect_scale( Detect_t*         self
                  , float             scaling
                  )
 {
-    if( self->channel == 0 ){ MIDI_Active(0, NULL); }
+    if( self->channel == 0 ){ clear_ch_one(); }
     self->modefn        = d_scale;
     self->action        = cb;
     self->scale.sLen    = (sLen > SCALE_MAX_COUNT) ? SCALE_MAX_COUNT : sLen;
@@ -141,7 +148,7 @@ void Detect_window( Detect_t*         self
                   , float             hysteresis
                   )
 {
-    if( self->channel == 0 ){ MIDI_Active(0, NULL); }
+    if( self->channel == 0 ){ clear_ch_one(); }
     printf("TODO need to sort the windows!\n");
     self->modefn         = d_window;
     self->action         = cb;
@@ -157,7 +164,7 @@ void Detect_volume( Detect_t*         self
                   , float             interval
                   )
 {
-    if( self->channel == 0 ){ MIDI_Active(0, NULL); }
+    if( self->channel == 0 ){ clear_ch_one(); }
     self->modefn         = d_volume;
     self->action         = cb;
 
@@ -174,7 +181,7 @@ void Detect_peak( Detect_t*         self
                 , float             hysteresis
                 )
 {
-    if( self->channel == 0 ){ MIDI_Active(0, NULL); }
+    if( self->channel == 0 ){ clear_ch_one(); }
     self->modefn            = d_peak;
     self->action            = cb;
     // TODO perhaps a abs->2lpf (no RMS averaging) is better?
@@ -186,14 +193,25 @@ void Detect_peak( Detect_t*         self
     self->peak.envelope   = 0.0;
 }
 
-void Detect_midi( Detect_t*              self
-                , Detect_void_callback_t cb
+void Detect_freq( Detect_t*         self
+                , Detect_callback_t cb
+                , float             interval
                 )
 {
-    // only first chan support MIDI. otherwise ignore
+    // only first chan supports freq tracking. otherwise ignore
     if( self->channel == 0 ){
-        self->modefn = d_none; // block processor does nothing
-        MIDI_Active(1, cb);
+        clear_ch_one(); 
+        self->modefn = d_freq;
+
+        // below is same as 'stream'
+        self->action = cb;
+        // SAMPLE_RATE * i / BLOCK_SIZE
+        self->stream.blocks  = (int)((48000.0 * interval) / 32.0);
+        if( self->stream.blocks <= 0 ){ self->stream.blocks = 1; }
+        self->stream.countdown = self->stream.blocks;
+
+        FTrack_init();
+        FTrack_start();
     }
 }
 
@@ -316,5 +334,16 @@ static void d_peak( Detect_t* self, float level )
             self->state = 1;
             (*self->action)( self->channel, 0.0 ); // callback! 0.0 is ignored
         }
+    }
+}
+
+static void d_freq( Detect_t* self, float level )
+{
+    float f = FTrack_get(); // call every block
+    if( --self->stream.countdown <= 0 ){
+        self->stream.countdown = self->stream.blocks; // reset counter
+        (*self->action)( self->channel
+                       , f
+                       ); // callback!
     }
 }
