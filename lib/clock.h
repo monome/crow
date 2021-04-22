@@ -43,5 +43,6 @@ void clock_internal_stop(void);
 
 // TODO add arg to choose input channel
 void clock_crow_init(void);
-void clock_crow_handle_clock(void); // TODO hook up to input driver
-void clock_crow_in_div( int div );
+void clock_input_handler( int id, float freq ); // Called from Detect lib
+void clock_crow_handle_clock(void);
+void clock_crow_in_div( float div );

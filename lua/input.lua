@@ -17,6 +17,7 @@ function Input.new( chan )
               , notes      = {}
               , temp       = 12
               , scaling    = 1.0
+              , div        = 1/4
               }
     setmetatable( i, Input )
     i:reset_events()
@@ -94,6 +95,13 @@ function Input:set_mode( mode, ... )
     elseif mode == 'freq' then
         self.time = args[1] or self.time
         set_input_freq( self.channel, self.time )
+    elseif mode == 'clock' then
+        self.div = args[1] or self.div
+        set_input_clock( self.channel
+                       , self.div
+                       , self.threshold
+                       , self.hysteresis
+                       )
     else
         set_input_none( self.channel )
     end

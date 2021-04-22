@@ -488,6 +488,24 @@ static int _set_input_freq( lua_State *L )
     lua_settop(L, 0);
     return 0;
 }
+static int _set_input_clock( lua_State *L )
+{
+    uint8_t ix = luaL_checkinteger(L, 1)-1;
+    Detect_t* d = Detect_ix_to_p( ix ); // Lua is 1-based
+    if(d){ // valid index
+        clock_set_source(CLOCK_SOURCE_CROW);
+        clock_crow_in_div(luaL_checknumber(L, 2));
+        Detect_change( d
+                     , clock_input_handler
+                     , luaL_checknumber(L, 3)
+                     , luaL_checknumber(L, 4)
+                     , Detect_str_to_dir("r")
+                     );
+    }
+    lua_pop( L, 4 );
+    lua_settop(L, 0);
+    return 0;
+}
 
 static int _send_usb( lua_State *L )
 {
@@ -749,6 +767,7 @@ static const struct luaL_Reg libCrow[]=
     , { "set_input_volume" , _set_input_volume }
     , { "set_input_peak"   , _set_input_peak   }
     , { "set_input_freq"   , _set_input_freq   }
+    , { "set_input_clock"  , _set_input_clock  }
         // usb
     , { "send_usb"         , _send_usb         }
         // i2c

@@ -309,9 +309,12 @@ void clock_crow_init(void)
     mean_sum = 0;
 }
 
-////// TODO
-//// called by an event received on input
-// call direct from C to avoid event loop delay
+// called by an event received on input
+void clock_input_handler( int id, float freq )
+{
+    // this stub function just ignores the args
+    clock_crow_handle_clock();
+}
 void clock_crow_handle_clock(void)
 {
     float beat_duration;
@@ -346,7 +349,7 @@ void clock_crow_handle_clock(void)
     }
 }
 
-void clock_crow_in_div( int div )
+void clock_crow_in_div( float div )
 {
-    crow_in_div = (float)div;
+    crow_in_div = 1.0/div;
 }
