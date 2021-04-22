@@ -734,12 +734,6 @@ static int _clock_internal_stop( lua_State* L )
     clock_internal_stop();
     return 0;
 }
-static int _clock_crow_in_div( lua_State* L )
-{
-    clock_crow_in_div( luaL_checkinteger(L, 1) );
-    lua_pop(L, 1);
-    return 0;
-}
 
 
 // array of all the available functions
@@ -801,8 +795,6 @@ static const struct luaL_Reg libCrow[]=
     , { "clock_internal_set_tempo" , _clock_internal_set_tempo }
     , { "clock_internal_start"     , _clock_internal_start     }
     , { "clock_internal_stop"      , _clock_internal_stop      }
-        // clock.crow
-    , { "clock_crow_in_div"        , _clock_crow_in_div        }
 
     , { NULL               , NULL              }
     };
