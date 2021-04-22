@@ -2,6 +2,7 @@
 
 #include <stm32f7xx.h>
 #include <stdlib.h>            // malloc()
+#include <stdio.h>
 
 #include "../ll/timers.h"      // _Init() _Start() _Stop() _Set_Params()
 #include "lualink.h"           // L_handle_metro()

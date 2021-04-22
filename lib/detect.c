@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <math.h>
+#include <stdio.h>
 
 uint8_t channel_count = 0;
 
@@ -67,7 +68,6 @@ int8_t Detect_str_to_dir( const char* str )
 
 static void clear_ch_one( void )
 {
-    MIDI_Active(0, NULL);
     FTrack_stop();
 }
 
@@ -191,17 +191,6 @@ void Detect_peak( Detect_t*         self
     self->peak.hysteresis = hysteresis;
     self->peak.release    = 0.01; // TODO tune this
     self->peak.envelope   = 0.0;
-}
-
-void Detect_midi( Detect_t*              self
-                , Detect_void_callback_t cb
-                )
-{
-    // only first chan support MIDI. otherwise ignore
-    if( self->channel == 0 ){
-        self->modefn = d_none; // block processor does nothing
-        MIDI_Active(1, cb);
-    }
 }
 
 void Detect_freq( Detect_t*         self

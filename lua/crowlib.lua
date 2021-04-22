@@ -2,7 +2,6 @@
 
 local C = {}
 
-
 --- Load all libraries
 Input  = dofile('lua/input.lua')
 Output = dofile('lua/output.lua')
@@ -11,7 +10,6 @@ asllib = dofile('lua/asllib.lua')
 metro  = dofile('lua/metro.lua')
 ii     = dofile('lua/ii.lua')
 cal    = dofile('lua/calibrate.lua')
---midi   = dofile('lua/midi.lua')
 
 
 function C.reset()

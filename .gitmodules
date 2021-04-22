@@ -10,6 +10,9 @@
 [submodule "submodules/lua"]
 	path = submodules/lua
 	url = https://github.com/trentgill/lua.git
-[submodule "submodules/STM32_Cube_F7"]
-	path = submodules/STM32_Cube_F7
-	url = https://github.com/trentgill/STM32_Cube_F7.git
+[submodule "submodules/STM32CubeF7_Drivers"]
+	path = submodules/STM32CubeF7_Drivers
+	url = https://github.com/trentgill/STM32CubeF7_Drivers
+[submodule "submodules/STM32CubeF7_USB"]
+	path = submodules/STM32CubeF7_USB
+	url = https://github.com/trentgill/STM32CubeF7_USB
