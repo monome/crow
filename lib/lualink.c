@@ -1,5 +1,6 @@
 #include "lib/lualink.h"
 
+#include <stdio.h>
 #include <string.h> // strcmp(), strlen()
 
 // Lua itself

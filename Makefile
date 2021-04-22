@@ -3,9 +3,9 @@ EXECUTABLE=$(TARGET).elf
 
 GIT_VERSION := $(shell git describe --tags)
 
-CUBE=submodules/STM32_Cube_F7/Drivers
+CUBE=submodules/STM32CubeF7_Drivers
 HALS=$(CUBE)/STM32F7xx_HAL_Driver/Src
-USBD=submodules/STM32_Cube_F7/Middlewares/ST/STM32_USB_Device_Library
+USBD=submodules/STM32CubeF7_USB/STM32_USB_Device_Library
 WRLIB=submodules/wrLib
 WRDSP=submodules/wrDsp
 LUAS=submodules/lua/src
