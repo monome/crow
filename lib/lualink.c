@@ -641,9 +641,25 @@ static int _random_int( lua_State* L )
 
 static int _calibrate_source( lua_State* L )
 {
-    CAL_LL_ActiveChannel( luaL_checkinteger(L, 1) ); // if arg present, use defaults
+    int chan = -1;
+    const char* src = luaL_checkstring(L, 1); // get string, or coerce int to string
+    if( strlen(src) > 1 ){ // assume string
+        switch(src[0]){ case 'g':{ chan=5; break; }
+                        case '2':{ chan=4; break; }
+        }
+    } else {
+        switch(src[0]){ case '1':{ chan=3; break; }
+                        case '2':{ chan=2; break; }
+                        case '3':{ chan=1; break; }
+                        case '4':{ chan=0; break; }
+        }
+    }
+    if(chan != -1){
+        CAL_LL_ActiveChannel(chan);
+    } else {
+        Caw_send_luachunk("cal.source: unknown source. use {1,2,3,4,'gnd','2v5'}");
+    }
     lua_pop(L, 1);
-    lua_settop(L, 0);
     return 0;
 }
 static int _calibrate_get( lua_State* L )
