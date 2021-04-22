@@ -1,6 +1,7 @@
 #include "adda.h"
 
 #include <string.h>
+#include <stdio.h>
 
 #include "debug_pin.h"
 #include "ads131.h"

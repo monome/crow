@@ -27,7 +27,6 @@ end
 function Input:reset_events()
     self.stream = function(value) _c.tell('stream',self.channel,value) end
     self.change = function(state) _c.tell('change',self.channel,state and 1 or 0) end
-    self.midi   = function(data) _c.tell('midi',table.unpack(data)) end
     self.window = function(win, dir) _c.tell('window',self.channel,win,dir and 1 or 0) end
     self.scale  = function(s)
                      local str = '{index=' .. s.index
@@ -60,8 +59,6 @@ function Input:set_mode( mode, ... )
                         , self.hysteresis
                         , self.direction
                         )
-    elseif mode == 'midi' then
-        set_input_midi( self.channel )
     elseif mode == 'window' then
         self.windows    = args[1] or self.windows
         self.hysteresis = args[2] or self.hysteresis
@@ -143,7 +140,6 @@ setmetatable(Input, Input) -- capture the metamethods
 -- callback
 function stream_handler( chan, val ) Input.inputs[chan].stream( val ) end
 function change_handler( chan, val ) Input.inputs[chan].change( val ~= 0 ) end
-function midi_handler( ... ) d = {...}; Input.inputs[1].midi(d) end
 function window_handler( chan, win, dir ) Input.inputs[chan].window( win, dir ~= 0 ) end
 function scale_handler(chan,i,o,n,v)
     --TODO build this table in C as it'll be faster?
