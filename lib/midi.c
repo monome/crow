@@ -1,6 +1,7 @@
 #include "midi.h"
 
 #include "../ll/midi_ll.h"
+#include <stdio.h>
 
 #include "lualink.h" // L_queue_midi()
 

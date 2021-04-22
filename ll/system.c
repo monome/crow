@@ -2,6 +2,7 @@
 
 #include <stm32f7xx.h>
 #include <stm32f7xx_hal.h>
+#include <stdio.h>
 
 #include "ll/debug_usart.h" // U_PrintNow()
 #include "lib/caw.h" // Caw_send_luachunk()
