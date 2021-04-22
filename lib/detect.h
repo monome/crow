@@ -3,7 +3,6 @@
 #include <stm32f7xx.h>
 
 #include "wrMeters.h"
-#include "midi.h"
 #include "ftrack.h"
 
 #define SCALE_MAX_COUNT 16
@@ -128,9 +127,6 @@ void Detect_peak( Detect_t*         self
                 , Detect_callback_t cb
                 , float             threshold
                 , float             hysteresis
-                );
-void Detect_midi( Detect_t*              self
-                , Detect_void_callback_t cb
                 );
 void Detect_freq( Detect_t*         self
                 , Detect_callback_t cb
