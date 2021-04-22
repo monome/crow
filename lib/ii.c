@@ -1,5 +1,6 @@
 #include "ii.h"
 
+#include <stdio.h>
 #include <string.h> // memcpy
 #include <stdbool.h>
 

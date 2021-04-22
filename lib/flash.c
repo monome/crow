@@ -1,5 +1,6 @@
 #include "flash.h"
 
+#include <stdio.h>
 #include "../ll/debug_usart.h"
 
 #define USER_MAGIC 0xA  // bit pattern

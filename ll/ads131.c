@@ -1,6 +1,7 @@
 #include "ads131.h"
 
 #include <stm32f7xx_hal.h>
+#include <stdio.h>
 
 #include "timers.h"
 #include "debug_pin.h"

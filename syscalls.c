@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <stdio.h>
 #include <stm32f7xx.h>
 #include "ll/debug_usart.h"
 

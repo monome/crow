@@ -1,5 +1,6 @@
 #include "lib/lualink.h"
 
+#include <stdio.h>
 #include <string.h> // strcmp(), strlen()
 
 // Lua itself
@@ -21,7 +22,6 @@
 #include "../ll/adda.h"     // CAL_Recalibrate() CAL_PrintCalibration()
 #include "../ll/system.h"   // getUID_Word()
 #include "lib/events.h"     // event_t event_post()
-#include "lib/midi.h"       // MIDI_Active()
 #include "stm32f7xx_hal.h"  // HAL_GetTick()
 #include "stm32f7xx_it.h"   // CPU_GetCount()
 
@@ -37,7 +37,6 @@
 #include "lua/ii.lua.h"
 #include "build/iihelp.lua.h"    // generated lua stub for loading i2c modules
 #include "lua/calibrate.lua.h"
-#include "lua/midi.lua.h"
 
 #include "build/ii_lualink.h" // generated C header for linking to lua
 
@@ -55,7 +54,6 @@ const struct lua_lib_locator Lua_libs[] =
     , { "lua_ii"        , lua_ii        }
     , { "build_iihelp"  , build_iihelp  }
     , { "lua_calibrate" , lua_calibrate }
-    , { "lua_midi"      , lua_midi      }
     , { NULL            , NULL          }
     };
 
@@ -77,7 +75,6 @@ void L_handle_change( event_t* e );
 void L_handle_ii_leadRx( event_t* e );;
 void L_handle_ii_followRx( event_t* e );
 void L_handle_ii_followRx_cont( uint8_t cmd, int args, float* data );
-void L_handle_midi( event_t* e );
 void L_handle_window( event_t* e );
 void L_handle_in_scale( event_t* e );
 void L_handle_volume( event_t* e );
@@ -383,17 +380,6 @@ static int _set_input_change( lua_State *L )
                      );
     }
     lua_pop( L, 4 );
-    lua_settop(L, 0);
-    return 0;
-}
-static int _set_input_midi( lua_State *L )
-{
-    uint8_t ix = luaL_checkinteger(L, 1)-1;
-    Detect_t* d = Detect_ix_to_p( ix ); // Lua is 1-based
-    if(d){ // valid index
-        Detect_midi( d, L_queue_midi );
-    }
-    lua_pop( L, 1 );
     lua_settop(L, 0);
     return 0;
 }
@@ -757,7 +743,6 @@ static const struct luaL_Reg libCrow[]=
     , { "set_input_none"   , _set_input_none   }
     , { "set_input_stream" , _set_input_stream }
     , { "set_input_change" , _set_input_change }
-    , { "set_input_midi"   , _set_input_midi   }
     , { "set_input_scale"  , _set_input_scale  }
     , { "set_input_window" , _set_input_window }
     , { "set_input_volume" , _set_input_volume }
@@ -1034,27 +1019,6 @@ float L_handle_ii_followRxTx( uint8_t cmd, int args, float* data )
     float n = luaL_checknumber(L, 1);
     lua_pop( L, 1 );
     return n;
-}
-
-void L_queue_midi( uint8_t* data )
-{
-    event_t e = { .handler = L_handle_midi };
-    e.data.u8s[0] = data[0];
-    e.data.u8s[1] = data[1];
-    e.data.u8s[2] = data[2];
-    event_post(&e);
-}
-void L_handle_midi( event_t* e )
-{
-    uint8_t* data = e->data.u8s;
-    lua_getglobal(L, "midi_handler");
-    int count = MIDI_byte_count(data[0]) + 1; // +1 for cmd byte itself
-    for( int i=0; i<count; i++ ){
-        lua_pushinteger(L, data[i]);
-    }
-    if( Lua_call_usercode(L, count, 0) != LUA_OK ){
-        lua_pop( L, 1 );
-    }
 }
 
 void L_queue_in_scale( int id, float note )

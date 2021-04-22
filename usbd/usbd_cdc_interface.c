@@ -55,6 +55,19 @@
 #define APP_TX_DATA_SIZE  1024 // the only tx buffer
 #define CONNECTION_DELAY  500 // millisecond delay before sending buffer after connect
 
+static int8_t CDC_Itf_Init(void);
+static int8_t CDC_Itf_DeInit(void);
+static int8_t CDC_Itf_Control(uint8_t cmd, uint8_t* pbuf, uint16_t length);
+static int8_t CDC_Itf_Receive(uint8_t* pbuf, uint32_t *Len);
+static int8_t CDC_Itf_TransmitCplt(uint8_t *pbuf, uint32_t *Len, uint8_t epnum);
+
+USBD_CDC_ItfTypeDef USBD_CDC_fops = { CDC_Itf_Init
+                                    , CDC_Itf_DeInit
+                                    , CDC_Itf_Control
+                                    , CDC_Itf_Receive
+                                    , CDC_Itf_TransmitCplt
+                                    };
+
 // Private vars
 USBD_CDC_LineCodingTypeDef LineCoding = { 115200  // baud rate
                                         , 0x00    // stop bits-1
@@ -62,12 +75,12 @@ USBD_CDC_LineCodingTypeDef LineCoding = { 115200  // baud rate
                                         , 0x08    // nb. of bits 8
                                         };
 
-uint8_t UserRxBuffer[APP_RX_DATA_SIZE];
-uint8_t UserTxBuffer[APP_TX_DATA_SIZE];
-uint32_t UserTxDataLen  = 0;
-uint32_t UserRxDataLen  = 0;
+static uint8_t UserRxBuffer[APP_RX_DATA_SIZE];
+static uint8_t UserTxBuffer[APP_TX_DATA_SIZE];
+static uint32_t UserTxDataLen  = 0;
+static uint32_t UserRxDataLen  = 0;
 
-TIM_HandleTypeDef  USBTimHandle;
+// static TIM_HandleTypeDef  USBTimHandle;
 int timer_index;
 
 extern USBD_HandleTypeDef  USBD_Device;
@@ -75,17 +88,6 @@ extern USBD_HandleTypeDef  USBD_Device;
 // Private declarations
 
 static void USB_Timer_Callback( int count );
-
-static int8_t CDC_Itf_Init(void);
-static int8_t CDC_Itf_DeInit(void);
-static int8_t CDC_Itf_Control(uint8_t cmd, uint8_t* pbuf, uint16_t length);
-static int8_t CDC_Itf_Receive(uint8_t* pbuf, uint32_t *Len);
-
-USBD_CDC_ItfTypeDef USBD_CDC_fops = { CDC_Itf_Init
-                                    , CDC_Itf_DeInit
-                                    , CDC_Itf_Control
-                                    , CDC_Itf_Receive
-                                    };
 
 /* Public functions ---------------------------------------------------------*/
 void CDC_clear_buffers( void )
@@ -241,6 +243,15 @@ __set_PRIMASK( old_primask );
     } else {
         printf("data in rx_queue means something's wrong.\n");
     }
+}
+
+static int8_t CDC_Itf_TransmitCplt(uint8_t *Buf, uint32_t *Len, uint8_t epnum)
+{
+  UNUSED(Buf);
+  UNUSED(Len);
+  UNUSED(epnum);
+
+  return (0);
 }
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
