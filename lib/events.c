@@ -4,6 +4,7 @@
 #include <stm32f7xx.h>
 #include "events.h"
 #include "lualink.h"
+#include "caw.h" // Caw_send_luachunk
 
 
 /// NOTE: if we are ever over-filling the event queue, we have problems.
@@ -77,7 +78,10 @@ uint8_t event_post( event_t *e ) {
         }
     );
 
-    if( !status ){ printf("event queue full!\n"); }
+    if( !status ){
+        printf("event queue full!\n");
+        Caw_send_luachunk("event queue full!\n");
+    }
 
     return status;
 }
