@@ -730,6 +730,7 @@ void Lua_crowbegin( void )
     if( Lua_call_usercode(L,0,0) != LUA_OK ){
         lua_pop(L, 1);
     }
+    Caw_send_luachunk("^^ready()"); // inform host that script is initialized
 }
 
 
