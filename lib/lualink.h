@@ -34,6 +34,9 @@ extern void L_queue_freq( int id, float freq );
 extern void L_queue_in_scale( int id, float note );
 extern void L_queue_ii_leadRx( uint8_t address, uint8_t cmd, float data, uint8_t arg );
 extern void L_queue_ii_followRx( void );
+extern void L_queue_clock_resume( int coro_id );
+extern void L_queue_clock_start( void );
+extern void L_queue_clock_stop( void );
 
 // Callback declarations
 extern float L_handle_ii_followRxTx( uint8_t cmd, int args, float* data );
