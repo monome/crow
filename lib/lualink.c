@@ -668,7 +668,7 @@ static int _calibrate_get( lua_State* L )
     const char* msg = luaL_checkstring(L, 2);
     float r = CAL_Get(chan, (msg[0]=='o') ? CAL_Offset : CAL_Scale);
     lua_pop(L, 2);
-    lua_pushinteger(L, r);
+    lua_pushnumber(L, r);
     return 1;
 }
 static int _calibrate_set( lua_State* L )
