@@ -24,5 +24,7 @@ float ADDA_GetADCValue( uint8_t channel );
 IO_block_t* IO_BlockProcess( IO_block_t* b );
 
 // calibration
-void CAL_Recalibrate( uint8_t use_defaults );
-void CAL_PrintCalibration( void );
+typedef enum{ CAL_Offset, CAL_Scale } CAL_Param_t;
+void CAL_WriteFlash( void );
+void CAL_Set( int chan, CAL_Param_t param, float val );
+float CAL_Get( int chan, CAL_Param_t param );

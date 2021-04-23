@@ -1,6 +1,7 @@
 #include "caw.h"
 
 #include <string.h>
+#include <stdio.h>
 
 #include "../usbd/usbd_main.h"
 

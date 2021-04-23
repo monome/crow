@@ -3,9 +3,9 @@ EXECUTABLE=$(TARGET).elf
 
 GIT_VERSION := $(shell git describe --tags)
 
-CUBE=submodules/STM32_Cube_F7/Drivers
+CUBE=submodules/STM32CubeF7_Drivers
 HALS=$(CUBE)/STM32F7xx_HAL_Driver/Src
-USBD=submodules/STM32_Cube_F7/Middlewares/ST/STM32_USB_Device_Library
+USBD=submodules/STM32CubeF7_USB/STM32_USB_Device_Library
 WRLIB=submodules/wrLib
 WRDSP=submodules/wrDsp
 LUAS=submodules/lua/src
@@ -244,11 +244,23 @@ debug:
 dfu: $(BIN)
 	sudo dfu-util -a 0 -s 0x08020000 -R -D $(BIN) -d ,0483:df11
 
+dfureset:
+	@stty -F /dev/ttyACM0 raw speed 115200
+	@echo '^^b' > /dev/ttyACM0
+	@sleep 1
+
+pydfu: $(TARGET).dfu $(BIN)
+	@python3 util/pydfu.py -u $<
+# 	@python3 util/pydfu.py --vid 0x0483 --pid 0xDF11 -u $<
+
+$(TARGET).dfu: $(BIN)
+	python3 util/dfu.py -D 0x0483:0xDF11 -b 0x08020000:$^ $@
+
 boot:
 	cd $(BOOTLOADER) && \
 	make R=1 flash
 
-zip: $(BIN)
+zip: $(BIN) $(TARGET).dfu
 	mkdir -p $(TARGET)-$(GIT_VERSION)
 	cp util/osx_linux-update_firmware.command $(TARGET)-$(GIT_VERSION)/
 	cp util/osx_linux-erase_userscript.command $(TARGET)-$(GIT_VERSION)/
@@ -256,6 +268,7 @@ zip: $(BIN)
 	cp util/windows-erase_userscript.bat $(TARGET)-$(GIT_VERSION)/
 	cp util/blank.bin $(TARGET)-$(GIT_VERSION)/
 	cp $(BIN) $(TARGET)-$(GIT_VERSION)/
+	cp $(TARGET).dfu $(TARGET)-$(GIT_VERSION)/
 	zip -r $(TARGET)-$(GIT_VERSION).zip $(TARGET)-$(GIT_VERSION)/
 
 %.o: %.c
@@ -299,7 +312,7 @@ norns:
 .PHONY: clean
 clean:
 	@rm -rf Startup.lst $(TARGET).elf.lst $(OBJS) $(AUTOGEN) \
-	$(TARGET).bin  $(TARGET).out  $(TARGET).hex \
+	$(TARGET).bin  $(TARGET).out  $(TARGET).hex $(TARGET).dfu \
 	$(TARGET).map  $(TARGET).dmp  $(EXECUTABLE) $(DEP) \
 	$(BUILD_DIR) lua/*.lua.h \
 	$(TARGET)-$(GIT_VERSION)/  *.zip \
