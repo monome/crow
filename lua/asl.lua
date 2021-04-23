@@ -8,6 +8,7 @@ local Dynmt = {
 function Asl.new(id)
     local c = {id = id or 1}
     c.dyn = setmetatable({_names={}, id=c.id}, Dynmt) -- needs link to `id`
+    c.iter = c.dyn -- alias iter to dyn for more natural manipulation of named iterables
     setmetatable(c, Asl)
     return c
 end
@@ -118,14 +119,30 @@ function Asl._while(pred, t)
     return loop(t)
 end
 
+--- iterable tables can have the standard math operators applied to them
+-- each operation wraps the table in another iterable table
+local Itermt = {
+    __unm = function(a)   return Asl._iter{'~', a} end,
+    __add = function(a,b) return Asl._iter{'+', a, b} end,
+    __sub = function(a,b) return Asl._iter{'-', a, b} end,
+    __mul = function(a,b) return Asl._iter{'*', a, b} end,
+    __div = function(a,b) return Asl._iter{'/', a, b} end,
+    __mod = function(a,b) return Asl._iter{'%', a, b} end, -- % is used to wrap to a range
+}
+
+function Asl._iter(tab)
+    return setmetatable(tab, Itermt)
+end
+
 function iterable(n)
-    return {Asl.iter_compiler, n}
+    -- if the iterable is named, create a dynamic to allow updating
+    if type(n)=='table' then return Asl._iter(dyn(n)) -- tables are wrapped into dynamics
+    else return Asl._iter{n} end
 end
 
 function times(n, t)
-    return Asl._while( iterable(n), t)
+    return Asl._while( iterable(n)-1, t)
 end
-
 
 
 return Asl
