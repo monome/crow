@@ -1,5 +1,6 @@
 --- recalibrate
 -- perform a recalibration of crow's hardware i/o
+-- begin with calibrate()
 
 VERBOSE = false -- true will print mV error at each step
 
@@ -7,7 +8,6 @@ function pprint()
     local function pprintset(key)
         print(key..'s: ')
         for k,v in ipairs(cal[key]) do
-            -- print('', k, 'offset:' .. v.offset, 'scale:' .. v.scale)
             print(string.format('  %i  offset: % 01.4f,  scale:% 01.4f', k, v.offset, v.scale))
         end
     end
@@ -51,14 +51,10 @@ end
 
 
 function step_offset(chan, vol, coeff)
-    coeff = coeff or 0.5
-    local off = chan.offset
-    local exact = off-vol
-    chan.offset = off + (-vol*coeff)
+    chan.offset = chan.offset + (-vol*coeff)
 end
 
 function step_scale(chan, vol, coeff)
-    coeff = coeff or 0.5
     local skal = chan.scale
     local exact = (skal * 2.5) / vol
     chan.scale = skal + coeff * (exact-skal) -- linear interpolate
@@ -81,7 +77,7 @@ function cal_input1(coeff)
     cal.source'2v5'
     rrr = read_avg(1, 4)
     if VERBOSE then print(string.format("input[1] %.3f %.3f", -1000*rr, 1000*(rrr-2.5))) end
-    return -rr, rrr-2.5
+    return -rr, rrr-2.5 -- return error levels
 end
 
 function cal_input2(coeff)
@@ -93,7 +89,7 @@ function cal_input2(coeff)
     cal.source'gnd'
     rr = read_avg(1, 4)
     if VERBOSE then print(string.format("input[2] %.3f", -1000*input[2].volts)) end
-    return -rr
+    return -rr -- return error
 end
 
 -- exclusive out: set chan to volts, and all others to zero
@@ -120,7 +116,7 @@ function cal_output(chan, coeff)
 
     xout(-1, 0) -- set all chans to 0
     if VERBOSE then print(string.format("output[%i] %.3f %.3f",chan, -1000*rr, 1000*(rrr-2.5))) end
-    return -rr, rrr-2.5
+    return -rr, rrr-2.5 -- return error levels
 end
 
 -- return true if all args are within range around zero
@@ -129,7 +125,7 @@ function in_window(window, ...)
     for k,v in pairs(args) do
         if v < -window or v > window then return nil end -- return on first failure
     end
-    return true -- full success
+    return true -- all succeeded
 end
 -- returns an in_window fn with window arg partially applied
 function make_win_checker(window) return function(...) return in_window(window, ...) end end
@@ -145,8 +141,6 @@ function init()
     print '2. run calibrate()'
     print '     if calibration succeeds, it will be saved to flash memory'
     print '3. view the calibration values with pprint()'
-    print '     offset should be near 0'
-    print '     scale should be near 1'
 end
 
 function calibrate()
@@ -155,10 +149,9 @@ function calibrate()
         local is_wide_win = make_win_checker(0.001) -- 1mV
         local is_tight_win = make_win_checker(0.0002) -- 200uV
 
-        -- calibrate input 1 offset & scaling
         print('  input[1]')
-        do_until(is_wide_win, cal_input1, 0.75) -- 200uV
-        do_until(is_tight_win, cal_input1, 0.15) -- 200uV
+        do_until(is_wide_win, cal_input1, 0.75)
+        do_until(is_tight_win, cal_input1, 0.15)
 
         print('  input[2]')
         cal.input[2].scale = cal.input[1].scale -- copy scale as we can't test input 2 scaling
@@ -171,7 +164,7 @@ function calibrate()
             do_until(is_tight_win, cal_output, n, 0.15)
         end
 
-        cal.source'gnd'
+        cal.source'gnd' -- ensure input[1] normalled to ground
 
         if validate_all() then
             print('calibration failed:')
