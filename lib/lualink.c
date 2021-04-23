@@ -19,7 +19,8 @@
 #include "lib/clock.h"      // clock_*()
 #include "lib/io.h"         // IO_GetADC()
 #include "../ll/random.h"   // Random_Get()
-#include "../ll/adda.h"     // CAL_Recalibrate() CAL_PrintCalibration()
+#include "../ll/adda.h"     // CAL_*()
+#include "../ll/cal_ll.h"   // CAL_LL_ActiveChannel()
 #include "../ll/system.h"   // getUID_Word()
 #include "lib/events.h"     // event_t event_post()
 #include "stm32f7xx_hal.h"  // HAL_GetTick()
@@ -638,15 +639,50 @@ static int _random_int( lua_State* L )
     return 1;
 }
 
-static int _calibrate_now( lua_State* L )
+static int _calibrate_source( lua_State* L )
 {
-    CAL_Recalibrate( (lua_gettop(L)) ); // if arg present, use defaults
-    lua_settop(L, 0);
+    int chan = -1;
+    const char* src = luaL_checkstring(L, 1); // get string, or coerce int to string
+    if( strlen(src) > 1 ){ // assume string
+        switch(src[0]){ case 'g':{ chan=5; break; }
+                        case '2':{ chan=4; break; }
+        }
+    } else {
+        switch(src[0]){ case '1':{ chan=3; break; }
+                        case '2':{ chan=2; break; }
+                        case '3':{ chan=1; break; }
+                        case '4':{ chan=0; break; }
+        }
+    }
+    if(chan != -1){
+        CAL_LL_ActiveChannel(chan);
+    } else {
+        Caw_send_luachunk("cal.source: unknown source. use {1,2,3,4,'gnd','2v5'}");
+    }
+    lua_pop(L, 1);
     return 0;
 }
-static int _calibrate_print( lua_State* L )
+static int _calibrate_get( lua_State* L )
 {
-    CAL_PrintCalibration();
+    int chan = luaL_checkinteger(L, 1);
+    const char* msg = luaL_checkstring(L, 2);
+    float r = CAL_Get(chan, (msg[0]=='o') ? CAL_Offset : CAL_Scale);
+    lua_pop(L, 2);
+    lua_pushnumber(L, r);
+    return 1;
+}
+static int _calibrate_set( lua_State* L )
+{
+    int chan = luaL_checkinteger(L, 1);
+    const char* msg = luaL_checkstring(L, 2);
+    float val = luaL_checknumber(L, 3);
+    CAL_Set(chan, (msg[0]=='o') ? CAL_Offset : CAL_Scale, val);
+    lua_pop(L, 3);
+    return 0;
+}
+static int _calibrate_save( lua_State* L )
+{
+    CAL_WriteFlash();
     return 0;
 }
 
@@ -768,8 +804,10 @@ static const struct luaL_Reg libCrow[]=
     , { "random_float"     , _random_float     }
     , { "random_int"       , _random_int       }
         // calibration
-    , { "calibrate_now"    , _calibrate_now    }
-    , { "calibrate_print"  , _calibrate_print  }
+    , { "calibrate_source" , _calibrate_source }
+    , { "calibrate_get"    , _calibrate_get    }
+    , { "calibrate_set"    , _calibrate_set    }
+    , { "calibrate_save"   , _calibrate_save   }
         // clock
     , { "clock_cancel"             , _clock_cancel             }
     , { "clock_schedule_sleep"     , _clock_schedule_sleep     }
