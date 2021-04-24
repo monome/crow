@@ -2,6 +2,18 @@
 --
 -- a collection of ASL descriptors, converted from original asllib
 
+Asllib = {}
+
+-- function lfo( time, level, shape )
+--     time,level,shape = time  or 1
+--                      , level or 5
+--                      , shape or 'sine'
+
+--     return loop{ to( level , time, shape )
+--                , to( level, time, shape )
+--                }
+-- end
+
 -- NB: these lib functions would have default vals like asllib
 
 --- LFO
@@ -49,3 +61,5 @@
 -- d.dyn.volume(3.3) -- works even though it's the 'literal' form of lfo
 
 print'todo asllib'
+
+return Asllib

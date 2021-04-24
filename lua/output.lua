@@ -56,6 +56,8 @@ Output.__newindex = function(self, ix, val)
         set_output_scale(self.channel, self.ji and just12(val) or val)
     elseif ix == 'dyn' then
         self.asl.dyn = val
+    elseif ix == 'iter' then
+        self.asl.dyn = val -- forwards iter to dyn for named iterables
     end
 end
 

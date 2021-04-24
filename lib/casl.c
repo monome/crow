@@ -258,12 +258,48 @@ static void capture_elem( Elem* e, lua_State* L, int ix )
         case LUA_TTABLE: // handle behavioural-types
             lua_pushnumber(L, ix); // push ix of To
             lua_gettable(L, -2);  // unwrap To[ix]
-            switch( ix_char(L, 1) ){ // parse on first char at ix[1]
-                case 'D':{
+            char index = ix_char(L, 1); // parse on first char at ix[1]
+            // switch( ix_char(L, 1) ){ // parse on first char at ix[1]
+            switch( index ){ // parse on first char at ix[1]
+                case 'D':{ // DYNAMIC
                     e->obj.dyn = ix_int(L, 2); // grab dyn_ix at ix[2]
                     e->type = ElemT_Dynamic;
                     break;}
-                default: printf("ERROR composite To char not found\n"); break;
+
+                case 'V':{ // VAR aka ITERABLE
+// TODO
+    // this is just the innermost variable, not the math operators
+    // the only complication is that it may be a dynamic
+    // but we can probably ignore this to get started
+                    e->obj.f = ix_num(L, 2); // FIXME assuming float for now
+                    e->type = ElemT_Iterable;
+                    break;}
+
+                case '~':{
+                    printf("TODO implement ~ (ie negate)\n");
+                    break;}
+
+                case '+':{
+                    printf("TODO implement +\n");
+                    break;}
+
+                case '-':{
+                    printf("TODO implement -\n");
+                    break;}
+
+                case '*':{
+                    printf("TODO implement *\n");
+                    break;}
+
+                case '/':{
+                    printf("TODO implement /\n");
+                    break;}
+
+                case '%':{
+                    printf("TODO implement %% (ie wrap)\n");
+                    break;}
+
+                default: printf("ERROR composite To char '%c'not found\n",index); break;
             }
             lua_pop(L, 1);
             break;
@@ -395,7 +431,7 @@ static bool find_control( ToControl ctrl, bool full_search )
 static Elem* iter_apply( ElemO o )
 {
     To* i = &iterables[o.iter];
-    i->a.obj.f -= i->b.obj.f;
+    // i->a.obj.f -= i->b.obj.f; // THIS IS ALL WRONG
     return &i->a;
 }
 

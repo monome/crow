@@ -69,14 +69,6 @@ function Asl.dyn_compiler(self, d)
     return {'DYN', ref}
 end
 
-function Asl.iter_compiler(self, n)
-    if type(n) == 'table' then
-        print 'named iterable'
-        -- TODO named counter: use a dynamic to allow updating
-    end
-    return {'ITER', n}
-end
-
 
 -- metatables
 Asl.__index = function(self, ix)
@@ -137,7 +129,7 @@ end
 function iterable(n)
     -- if the iterable is named, create a dynamic to allow updating
     if type(n)=='table' then return Asl._iter(dyn(n)) -- tables are wrapped into dynamics
-    else return Asl._iter{n} end
+    else return Asl._iter{'VAR', n} end -- iterables are tagged as 'VAR' to avoid clash with 'IF'
 end
 
 function times(n, t)
