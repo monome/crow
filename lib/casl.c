@@ -6,11 +6,10 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-#define TO_COUNT   16 // 
+#define TO_COUNT   16 //
 #define SEQ_COUNT  8
 #define SEQ_LENGTH 8
 #define DYN_COUNT  8
-#define ITER_COUNT 8
 
 typedef enum{ ToLiteral
             , ToRecur
@@ -25,16 +24,23 @@ typedef enum{ ToLiteral
 
 typedef union{
     float   f;
-    int     dyn;
-    int     seq;
-    int     iter;
+    int     dyn; // index into the dynamics array
+    uint16_t var[2]; // 2 indexes into dynamic table
+    int     seq; // reference to a Sequence object
     Shape_t shape;
 } ElemO;
 
 typedef enum{ ElemT_Float
             , ElemT_Shape
             , ElemT_Dynamic
-            , ElemT_Iterable
+            , ElemT_Mutable
+        // arithmetic ops
+            , ElemT_Negate
+            , ElemT_Add
+            , ElemT_Sub
+            , ElemT_Mul
+            , ElemT_Div
+            , ElemT_Mod
 } ElemT;
 
 typedef struct{
@@ -66,9 +72,6 @@ static int seq_select = -1; // current 'parent'
 
 static Elem dynamics[DYN_COUNT];
 static int dyn_ix = 0;
-
-static To iterables[ITER_COUNT];
-static int iter_ix = 0;
 
 static bool holding = false;
 static bool locked = false;
@@ -234,6 +237,16 @@ static void read_to( To* t, lua_State* L )
     t->ctrl = ToLiteral;
 }
 
+static void allocating_capture( Elem* e, lua_State* L, ElemT t, int count )
+{
+    e->type = t;
+    for(int i=0; i<count; i++){
+        int var = casl_defdynamic(0); // allocate a dynamic to hold op. FIXME 0 is asl id
+        e->obj.var[i] = var; // capture dynamic ref
+        capture_elem(&dynamics[var], L, i+2); // recur to capture operand
+    }
+}
+
 // static void capture_elem( lua_State* L, int ix, Elem* e, ElemT* t )
 // REFACTOR to have it return the Elem (and copy it) rather than passing a pointer
 static void capture_elem( Elem* e, lua_State* L, int ix )
@@ -266,44 +279,27 @@ static void capture_elem( Elem* e, lua_State* L, int ix )
                     e->type = ElemT_Dynamic;
                     break;}
 
-                case 'V':{ // VAR aka ITERABLE
+                case 'V':{ // VAR aka Mutable
 // TODO
     // this is just the innermost variable, not the math operators
     // the only complication is that it may be a dynamic
     // but we can probably ignore this to get started
                     e->obj.f = ix_num(L, 2); // FIXME assuming float for now
-                    e->type = ElemT_Iterable;
+                    e->type = ElemT_Mutable;
                     break;}
 
-                case '~':{
-                    printf("TODO implement ~ (ie negate)\n");
-                    break;}
-
-                case '+':{
-                    printf("TODO implement +\n");
-                    break;}
-
-                case '-':{
-                    printf("TODO implement -\n");
-                    break;}
-
-                case '*':{
-                    printf("TODO implement *\n");
-                    break;}
-
-                case '/':{
-                    printf("TODO implement /\n");
-                    break;}
-
-                case '%':{
-                    printf("TODO implement %% (ie wrap)\n");
-                    break;}
+                case '~': allocating_capture(e, L, ElemT_Negate, 1); break;
+                case '+': allocating_capture(e, L, ElemT_Add, 2); break;
+                case '-': allocating_capture(e, L, ElemT_Sub, 2); break;
+                case '*': allocating_capture(e, L, ElemT_Mul, 2); break;
+                case '/': allocating_capture(e, L, ElemT_Div, 2); break;
+                case '%': allocating_capture(e, L, ElemT_Mod, 2); break;
 
                 default: printf("ERROR composite To char '%c'not found\n",index); break;
             }
             lua_pop(L, 1);
             break;
-            
+
         default: printf("ERROR unknown To type\n"); break;
     }
 }
@@ -428,25 +424,25 @@ static bool find_control( ToControl ctrl, bool full_search )
     return false;
 }
 
-static Elem* iter_apply( ElemO o )
-{
-    To* i = &iterables[o.iter];
-    // i->a.obj.f -= i->b.obj.f; // THIS IS ALL WRONG
-    return &i->a;
-}
-
-static void iter_reset( ElemO o )
-{
-    To* i = &iterables[o.iter];
-    i->a.obj.f = i->c.obj.f;
-}
-
 // resolves behavioural types to a literal value
 static ElemO resolve( Elem* e )
 {
     switch( e->type ){
         case ElemT_Dynamic: return resolve( &dynamics[e->obj.dyn] );
-        case ElemT_Iterable: return resolve( iter_apply( e->obj ));
+        case ElemT_Negate: return (ElemO){-resolve( &dynamics[e->obj.dyn] ).f};
+        case ElemT_Add: return (ElemO){resolve( &dynamics[e->obj.var[0]] ).f
+                                      + resolve( &dynamics[e->obj.var[1]] ).f};
+        case ElemT_Sub: return (ElemO){resolve( &dynamics[e->obj.var[0]] ).f
+                                      - resolve( &dynamics[e->obj.var[1]] ).f};
+        case ElemT_Mul: return (ElemO){resolve( &dynamics[e->obj.var[0]] ).f
+                                      * resolve( &dynamics[e->obj.var[1]] ).f};
+        case ElemT_Div: return (ElemO){resolve( &dynamics[e->obj.var[0]] ).f
+                                      / resolve( &dynamics[e->obj.var[1]] ).f};
+        case ElemT_Mod:{
+            float val = resolve( &dynamics[e->obj.var[0]] ).f;
+            float wrap = resolve( &dynamics[e->obj.var[1]] ).f;
+            int mul = (int)(val/wrap);
+            return (ElemO){val - (wrap * mul)};}
         default: return e->obj;
     }
 }

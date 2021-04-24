@@ -38,7 +38,7 @@ function Asl.set_held(self, b)
 end
 
 -- direc(tive) can take 0/1 of false/true. ONLY has effect if there is a held{} construct
--- truthy always restarts 
+-- truthy always restarts
 -- falsey means 'release'
 function Asl:action(direc)
     if not direc then -- no arg is always 'restart'
@@ -90,7 +90,9 @@ function loop(t)
 end
 
 function dyn(d)
-    return {Asl.dyn_compiler, d} -- defer to allow dyn to be captured per instance
+    -- wrap in _iter to enable runtime arithmetic ops
+    return Asl._iter{Asl.dyn_compiler, d} -- defer to allow dyn to be captured per instance
+    return setmetatable({Asl.dyn_compiler, d}, Itermt) -- defer to allow dyn to be captured per instance
 end
 
 function held(t)
