@@ -90,9 +90,9 @@ function loop(t)
 end
 
 function dyn(d)
-    -- wrap in _iter to enable runtime arithmetic ops
-    return Asl._iter{Asl.dyn_compiler, d} -- defer to allow dyn to be captured per instance
-    return setmetatable({Asl.dyn_compiler, d}, Itermt) -- defer to allow dyn to be captured per instance
+    -- wrap in math to enable runtime arithmetic ops
+    return Asl.math{Asl.dyn_compiler, d} -- defer to allow dyn to be captured per instance
+    -- return setmetatable({Asl.dyn_compiler, d}, Itermt) -- defer to allow dyn to be captured per instance
 end
 
 function held(t)
@@ -115,23 +115,23 @@ end
 
 --- iterable tables can have the standard math operators applied to them
 -- each operation wraps the table in another iterable table
-local Itermt = {
-    __unm = function(a)   return Asl._iter{'~', a} end,
-    __add = function(a,b) return Asl._iter{'+', a, b} end,
-    __sub = function(a,b) return Asl._iter{'-', a, b} end,
-    __mul = function(a,b) return Asl._iter{'*', a, b} end,
-    __div = function(a,b) return Asl._iter{'/', a, b} end,
-    __mod = function(a,b) return Asl._iter{'%', a, b} end, -- % is used to wrap to a range
+local Mathmt = {
+    __unm = function(a)   return Asl.math{'~', a} end,
+    __add = function(a,b) return Asl.math{'+', a, b} end,
+    __sub = function(a,b) return Asl.math{'-', a, b} end,
+    __mul = function(a,b) return Asl.math{'*', a, b} end,
+    __div = function(a,b) return Asl.math{'/', a, b} end,
+    __mod = function(a,b) return Asl.math{'%', a, b} end, -- % is used to wrap to a range
 }
 
-function Asl._iter(tab)
-    return setmetatable(tab, Itermt)
+function Asl.math(tab)
+    return setmetatable(tab, Mathmt)
 end
 
 function iterable(n)
     -- if the iterable is named, create a dynamic to allow updating
-    if type(n)=='table' then return Asl._iter(dyn(n)) -- tables are wrapped into dynamics
-    else return Asl._iter{'VAR', n} end -- iterables are tagged as 'VAR' to avoid clash with 'IF'
+    if type(n)=='table' then return Asl.math(dyn(n)) -- tables are wrapped into dynamics
+    else return Asl.math{'VAR', n} end -- iterables are tagged as 'VAR' to avoid clash with 'IF'
 end
 
 function times(n, t)

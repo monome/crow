@@ -17,7 +17,8 @@ end
 
 -- TODO
 -- handle iterables in C:describe
-output[1].action = asl._while(iterable(4), {to(4, 0.01), to(-4, 0.1)})
+aa = asl._while(iterable(4), {to((dyn{lev=3}/1)+1, 0.01), to(-4, 0.1)})
+output[1].action = aa
 -- this compiles ok, but triggers a hardfault on execution
 -- output[1]( asl._while(iterable(4), {to(4, 0.01), to(-4, 0.1)}))
 -- output[1]( times(20, {to(4, 0.01), to(-4, 0.1)}))
@@ -31,3 +32,18 @@ output[1].action = asl._while(iterable(4), {to(4, 0.01), to(-4, 0.1)})
 -- slopes run at half speed for some reason?
 
 
+
+function decompile(a, indent)
+    indent = indent or 0
+    if type(a) == 'number' then print(string.rep(' ', indent)..a)
+    elseif type(a) == 'string' then print(string.rep(' ', indent)..a)
+    elseif type(a) == 'table' then
+        for k,v in ipairs(a) do
+            decompile(v, indent + 2)
+        end
+        print(string.rep(' ', indent)..',')
+    end
+end
+
+
+decompile( aa )
