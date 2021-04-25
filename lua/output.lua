@@ -54,10 +54,6 @@ Output.__newindex = function(self, ix, val)
         self.asl.done = val
     elseif ix == 'scale' then
         set_output_scale(self.channel, self.ji and just12(val) or val)
-    elseif ix == 'dyn' then
-        self.asl.dyn = val
-    elseif ix == 'iter' then
-        self.asl.dyn = val -- forwards iter to dyn for named iterables
     end
 end
 
@@ -78,6 +74,7 @@ Output.__index = function(self, ix)
             set_output_scale(self.channel, table.unpack(args)) -- close over .channel
         end
     elseif ix == 'dyn' then return self.asl.dyn
+    elseif ix == 'mutable' then return self.asl.dyn -- forward mutable to dyn as they share named vars
     end
 end
 

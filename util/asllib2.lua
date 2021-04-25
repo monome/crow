@@ -17,8 +17,15 @@ end
 
 -- TODO
 -- handle iterables in C:describe
-aa = asl._while(iterable(4), {to((dyn{lev=3}/1)+1, 0.01), to(-4, 0.1)})
-output[1].action = aa
+-- aa = asl._while(iterable(4), {to((dyn{lev=3}/1)+1, 0.01), to(-4, 0.1)})
+
+aa = loop{ to((mutable{lev=3}+2), 0.01)
+         , to(-4, 0.1)
+         }
+-- aa = loop{ to((dyn{lev=3}+2), 0.01)
+--          , to(-4, 0.1)
+--          }
+-- output[1].action = aa
 -- this compiles ok, but triggers a hardfault on execution
 -- output[1]( asl._while(iterable(4), {to(4, 0.01), to(-4, 0.1)}))
 -- output[1]( times(20, {to(4, 0.01), to(-4, 0.1)}))
@@ -38,12 +45,16 @@ function decompile(a, indent)
     if type(a) == 'number' then print(string.rep(' ', indent)..a)
     elseif type(a) == 'string' then print(string.rep(' ', indent)..a)
     elseif type(a) == 'table' then
+        local iters = 0
         for k,v in ipairs(a) do
+            iters = iters + 1
             decompile(v, indent + 2)
         end
+        if iters == 0 then print(string.rep(' ', indent+2),next(a)) end
         print(string.rep(' ', indent)..',')
     end
 end
 
 
 decompile( aa )
+output[1].action = aa

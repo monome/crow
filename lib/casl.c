@@ -121,7 +121,8 @@ void casl_describe( int index, lua_State* L )
 {
     // deallocate everything
     to_ix  = 0;
-    dyn_ix = 0;
+    // dyn_ix = 0; // need to reset *before* link time (which is before this fn is called)
+        // otherwise we're trampling named vars
     seq_ix = 0;
 
     // enter first sequence
@@ -279,15 +280,12 @@ static void capture_elem( Elem* e, lua_State* L, int ix )
                     e->type = ElemT_Dynamic;
                     break;}
 
-                case 'V':{ // VAR aka Mutable
-// TODO
-    // this is just the innermost variable, not the math operators
-    // the only complication is that it may be a dynamic
-    // but we can probably ignore this to get started
-                    e->obj.f = ix_num(L, 2); // FIXME assuming float for now
+                case 'M': // MUTABLE
+                    allocating_capture(e, L, ElemT_Mutable, 1); break;
+                case 'N':{// NAMED MUTABLE. combination of dynamic & mutable for live update
+                    e->obj.var[0] = ix_int(L, 2); // grab dyn_ix at ix[2]
                     e->type = ElemT_Mutable;
                     break;}
-
                 case '~': allocating_capture(e, L, ElemT_Negate, 1); break;
                 case '+': allocating_capture(e, L, ElemT_Add, 2); break;
                 case '-': allocating_capture(e, L, ElemT_Sub, 2); break;
@@ -429,7 +427,8 @@ static ElemO resolve( Elem* e )
 {
     switch( e->type ){
         case ElemT_Dynamic: return resolve( &dynamics[e->obj.dyn] );
-        case ElemT_Negate: return (ElemO){-resolve( &dynamics[e->obj.dyn] ).f};
+        case ElemT_Mutable: return resolve( &dynamics[e->obj.var[0]] );
+        case ElemT_Negate: return (ElemO){-resolve( &dynamics[e->obj.var[0]] ).f};
         case ElemT_Add: return (ElemO){resolve( &dynamics[e->obj.var[0]] ).f
                                       + resolve( &dynamics[e->obj.var[1]] ).f};
         case ElemT_Sub: return (ElemO){resolve( &dynamics[e->obj.var[0]] ).f

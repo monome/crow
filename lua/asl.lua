@@ -8,7 +8,7 @@ local Dynmt = {
 function Asl.new(id)
     local c = {id = id or 1}
     c.dyn = setmetatable({_names={}, id=c.id}, Dynmt) -- needs link to `id`
-    c.iter = c.dyn -- alias iter to dyn for more natural manipulation of named iterables
+    c.mutable = c.dyn -- alias mutable to dyn for more natural manipulation of named mutables
     setmetatable(c, Asl)
     return c
 end
@@ -50,23 +50,18 @@ function Asl:action(direc)
     end
 end
 
-function Asl._if(pred, tab)
-    table.insert(tab,1,{'IF',pred})
-    return tab
-end
 
 function Asl.dyn_compiler(self, d)
     -- register a dynamic pair {name=default}, and return a reference to it
-    local ref = 0
-    for k,v in pairs(d) do -- ONLY ONE ELEMENT!
-        if not self.dyn._names[k] then -- check if it's a new entry
-            self.dyn._names[k] = casl_defdynamic(self.id)
-        end
-        ref = self.dyn._names[k]
-        self.dyn[k] = v -- set the default
-        break -- only a single iteration
+    local elem, typ = d, 'DYN'
+    if d[1] == 'NMUT' then elem, typ = d[2], 'NMUT' end
+    local k,v = next(elem)
+    if not self.dyn._names[k] then -- check if it's a new entry
+        self.dyn._names[k] = casl_defdynamic(self.id)
     end
-    return {'DYN', ref}
+    local ref = self.dyn._names[k]
+    self.dyn[k] = v -- set the default
+    return {typ, ref}
 end
 
 
@@ -79,20 +74,19 @@ end
 setmetatable(Asl, Asl)
 
 
--- global functions
+-- basic constructs
 function to(volts, time, shape)
     return {'TO', volts or 0.0, time or 1.0, shape or 'linear'}
 end
 
 function loop(t)
-    table.insert(t,{'RECUR'}) -- TODO does this need to be wrapped in a table?
+    table.insert(t,{'RECUR'})
     return t
 end
 
-function dyn(d)
-    -- wrap in math to enable runtime arithmetic ops
-    return Asl.math{Asl.dyn_compiler, d} -- defer to allow dyn to be captured per instance
-    -- return setmetatable({Asl.dyn_compiler, d}, Itermt) -- defer to allow dyn to be captured per instance
+function Asl._if(pred, t)
+    table.insert(t,1,{'IF',pred})
+    return t
 end
 
 function held(t)
@@ -108,13 +102,10 @@ function lock(t)
     return t
 end
 
-function Asl._while(pred, t)
-    t = Asl._if(pred, t)
-    return loop(t)
-end
 
---- iterable tables can have the standard math operators applied to them
--- each operation wraps the table in another iterable table
+--- behavioural types
+-- available for dynamics so exposed variables can be musician-centric
+-- and mutables, where operations are destructive to the value for iteration
 local Mathmt = {
     __unm = function(a)   return Asl.math{'~', a} end,
     __add = function(a,b) return Asl.math{'+', a, b} end,
@@ -123,20 +114,29 @@ local Mathmt = {
     __div = function(a,b) return Asl.math{'/', a, b} end,
     __mod = function(a,b) return Asl.math{'%', a, b} end, -- % is used to wrap to a range
 }
+function Asl.math(tab) return setmetatable(tab, Mathmt) end -- overload table with arithmetic semantics
 
-function Asl.math(tab)
-    return setmetatable(tab, Mathmt)
+-- usage: dyn{name = default} -- create 'name', initialized to default
+-- update: myasl.dyn.name = new_value -- updates the registered 'name' dynamic to value 'new_value'
+function dyn(d) return Asl.math{Asl.dyn_compiler, d} end
+
+-- usage: mutable(4) -- creates a literal 4 which can be modified by math ops
+-- usage: mutable{ mymut = 3 } -- creates a named mutable so the value can be set directly
+-- update named: myasl.mutable.mymut = 42 -- update mymut to value 42
+-- NOTE: this type is only useful if math ops are applied
+-- ops will be applied on each access to the varable (ie at a breakpoint)
+-- use these to build iterators, cycling control flow, algorithmic waveforms
+function mutable(n)
+    if type(n)=='table' then return dyn({'NMUT', n}) -- named vars are wrapped in dynamics for user control
+    else return Asl.math{'MUT', n} end
 end
 
-function iterable(n)
-    -- if the iterable is named, create a dynamic to allow updating
-    if type(n)=='table' then return Asl.math(dyn(n)) -- tables are wrapped into dynamics
-    else return Asl.math{'VAR', n} end -- iterables are tagged as 'VAR' to avoid clash with 'IF'
-end
 
-function times(n, t)
-    return Asl._while( iterable(n)-1, t)
-end
+-- composite constructs
+
+function Asl._while(pred, t) return loop( Asl._if(pred, t)) end
+
+function times(n, t) return Asl._while( mutable(n)-1, t) end
 
 
 return Asl
