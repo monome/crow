@@ -17,10 +17,14 @@ end
 
 -- TODO
 -- handle iterables in C:describe
--- aa = asl._while(iterable(4), {to((dyn{lev=3}/1)+1, 0.01), to(-4, 0.1)})
+-- aa = {times(2, {to(3, 0.1), to(-4, 0.1)}), to(0,0)}
+-- aa = {times(4, {to(dyn{lev=3}+1, 0.01), to(-4, 0.1)}), to(0,0)}
 
-aa = loop{ to((mutable{lev=3}+2), 0.01)
-         , to(-4, 0.1)
+-- aa = loop{ to((mutable(3)*0.9), 0.01)
+--          , to(-4, 0.1)
+--          }
+aa = loop{ to((mutable{lev=3}+0.1)%3, 0.001)
+         , to(-4, (mutable(0.001)+0.0001)%0.005 + 0.001)
          }
 -- aa = loop{ to((dyn{lev=3}+2), 0.01)
 --          , to(-4, 0.1)
@@ -44,17 +48,21 @@ function decompile(a, indent)
     indent = indent or 0
     if type(a) == 'number' then print(string.rep(' ', indent)..a)
     elseif type(a) == 'string' then print(string.rep(' ', indent)..a)
+    elseif type(a) == 'function' then print(string.rep(' ', indent)..tostring(a))
     elseif type(a) == 'table' then
         local iters = 0
         for k,v in ipairs(a) do
             iters = iters + 1
             decompile(v, indent + 2)
         end
-        if iters == 0 then print(string.rep(' ', indent+2),next(a)) end
-        print(string.rep(' ', indent)..',')
+        if iters == 0 then print(string.rep(' ', indent),string.format("%s=%d",next(a))) end
+        print(string.rep(' ', indent)..' ,')
     end
 end
 
 
-decompile( aa )
-output[1].action = aa
+function init()
+    decompile( aa )
+    output[1].action = aa
+    output[1]()
+end

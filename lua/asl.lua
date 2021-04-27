@@ -27,6 +27,8 @@ function Asl.link(self, tab)
 end
 
 function Asl:describe(d)
+    casl_cleardynamics(self.id)
+    self.dyn._names = {} -- clear local dynamic refs
     casl_describe(self.id, Asl.link(self, d))
 end
 
@@ -54,7 +56,7 @@ end
 function Asl.dyn_compiler(self, d)
     -- register a dynamic pair {name=default}, and return a reference to it
     local elem, typ = d, 'DYN'
-    if d[1] == 'NMUT' then elem, typ = d[2], 'NMUT' end
+    if d[1] == 'NMUT' then elem, typ = d[2], 'NMUT' end -- unwrap named mutables
     local k,v = next(elem)
     if not self.dyn._names[k] then -- check if it's a new entry
         self.dyn._names[k] = casl_defdynamic(self.id)
@@ -136,7 +138,7 @@ end
 
 function Asl._while(pred, t) return loop( Asl._if(pred, t)) end
 
-function times(n, t) return Asl._while( mutable(n)-1, t) end
+function times(n, t) return Asl._while( mutable(n+1)-1, t) end -- n+1 adds before mutation for exactly n repeats
 
 
 return Asl

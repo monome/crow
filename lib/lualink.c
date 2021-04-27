@@ -521,6 +521,13 @@ static int _casl_defdynamic( lua_State *L )
     lua_pushinteger( L, casl_defdynamic( c_ix ) );
     return 1;
 }
+static int _casl_cleardynamics( lua_State *L )
+{
+    int c_ix = luaL_checkinteger(L, 1)-1; // lua is 1-based
+    lua_pop(L, 1);
+    casl_cleardynamics( c_ix );
+    return 0;
+}
 static int _casl_setdynamic( lua_State *L )
 {
     casl_setdynamic( luaL_checkinteger(L, 1)
@@ -837,6 +844,7 @@ static const struct luaL_Reg libCrow[]=
     , { "casl_describe"    , _casl_describe    }
     , { "casl_action"      , _casl_action      }
     , { "casl_defdynamic"  , _casl_defdynamic  }
+    , { "casl_cleardynamics", _casl_cleardynamics }
     , { "casl_setdynamic"  , _casl_setdynamic  }
     , { "casl_getdynamic"  , _casl_getdynamic  }
         // usb

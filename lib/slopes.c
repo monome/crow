@@ -99,10 +99,8 @@ void S_toward( int        index
         self->scale     = 0.0;
         self->here      = 1.0; // hard set to end of range
         if(self->countdown > 0.0){
-            printf("countdown above zero with instant action? %f\n",self->countdown);
-            self->countdown = -1.0; // inactive. i don't think this will ever occur
-                // we don't want to affect countdown on instant callback
-                // bc we want to carry it through to next call as 'overflow'
+            // only happens when assynchronously updating S_toward
+            self->countdown = -1.0; // inactive.
         }
     } else {
         // save current output level as new starting point

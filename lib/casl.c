@@ -9,7 +9,7 @@
 #define TO_COUNT   16 //
 #define SEQ_COUNT  8
 #define SEQ_LENGTH 8
-#define DYN_COUNT  8
+#define DYN_COUNT  16
 
 typedef enum{ ToLiteral
             , ToRecur
@@ -121,9 +121,10 @@ void casl_describe( int index, lua_State* L )
 {
     // deallocate everything
     to_ix  = 0;
-    // dyn_ix = 0; // need to reset *before* link time (which is before this fn is called)
-        // otherwise we're trampling named vars
     seq_ix = 0;
+    // reset all sequences (fix reset bug?)
+    seq_current = &seqs[0]; // first sequence
+    for(int i=0; i<SEQ_COUNT; i++){ seqs[i].pc = 0; } // reset all program counters
 
     // enter first sequence
     seq_enter();
@@ -273,7 +274,6 @@ static void capture_elem( Elem* e, lua_State* L, int ix )
             lua_pushnumber(L, ix); // push ix of To
             lua_gettable(L, -2);  // unwrap To[ix]
             char index = ix_char(L, 1); // parse on first char at ix[1]
-            // switch( ix_char(L, 1) ){ // parse on first char at ix[1]
             switch( index ){ // parse on first char at ix[1]
                 case 'D':{ // DYNAMIC
                     e->obj.dyn = ix_int(L, 2); // grab dyn_ix at ix[2]
@@ -423,29 +423,42 @@ static bool find_control( ToControl ctrl, bool full_search )
 }
 
 // resolves behavioural types to a literal value
-static ElemO resolve( Elem* e )
+static volatile uint16_t resolving_mutable; // tmp global var for cheaper recursive fn
+static ElemO _resolve( Elem* e )
 {
     switch( e->type ){
-        case ElemT_Dynamic: return resolve( &dynamics[e->obj.dyn] );
-        case ElemT_Mutable: return resolve( &dynamics[e->obj.var[0]] );
-        case ElemT_Negate: return (ElemO){-resolve( &dynamics[e->obj.var[0]] ).f};
-        case ElemT_Add: return (ElemO){resolve( &dynamics[e->obj.var[0]] ).f
-                                      + resolve( &dynamics[e->obj.var[1]] ).f};
-        case ElemT_Sub: return (ElemO){resolve( &dynamics[e->obj.var[0]] ).f
-                                      - resolve( &dynamics[e->obj.var[1]] ).f};
-        case ElemT_Mul: return (ElemO){resolve( &dynamics[e->obj.var[0]] ).f
-                                      * resolve( &dynamics[e->obj.var[1]] ).f};
-        case ElemT_Div: return (ElemO){resolve( &dynamics[e->obj.var[0]] ).f
-                                      / resolve( &dynamics[e->obj.var[1]] ).f};
+        case ElemT_Dynamic: return _resolve( &dynamics[e->obj.dyn] );
+        case ElemT_Mutable:{
+            resolving_mutable = e->obj.var[0];
+            return _resolve( &dynamics[e->obj.var[0]] );}
+        case ElemT_Negate: return (ElemO){-_resolve( &dynamics[e->obj.var[0]] ).f};
+        case ElemT_Add: return (ElemO){_resolve( &dynamics[e->obj.var[0]] ).f
+                                      + _resolve( &dynamics[e->obj.var[1]] ).f};
+        case ElemT_Sub: return (ElemO){_resolve( &dynamics[e->obj.var[0]] ).f
+                                      - _resolve( &dynamics[e->obj.var[1]] ).f};
+        case ElemT_Mul: return (ElemO){_resolve( &dynamics[e->obj.var[0]] ).f
+                                      * _resolve( &dynamics[e->obj.var[1]] ).f};
+        case ElemT_Div: return (ElemO){_resolve( &dynamics[e->obj.var[0]] ).f
+                                      / _resolve( &dynamics[e->obj.var[1]] ).f};
         case ElemT_Mod:{
-            float val = resolve( &dynamics[e->obj.var[0]] ).f;
-            float wrap = resolve( &dynamics[e->obj.var[1]] ).f;
+            float val = _resolve( &dynamics[e->obj.var[0]] ).f;
+            float wrap = _resolve( &dynamics[e->obj.var[1]] ).f;
             int mul = (int)(val/wrap);
             return (ElemO){val - (wrap * mul)};}
         default: return e->obj;
     }
 }
 
+// wrap _resolve with mutable resolution
+static ElemO resolve( Elem* e )
+{
+    resolving_mutable = DYN_COUNT; // out of range
+    ElemO eo = _resolve(e);
+    if(resolving_mutable < DYN_COUNT){
+        dynamics[resolving_mutable].obj = eo; // update value
+    }
+    return eo;
+}
 
 ////////////////////////////////////
 // Dynamic Variables
@@ -455,7 +468,13 @@ int casl_defdynamic( int index )
 {
     if(dyn_ix >= DYN_COUNT){ printf("ERROR: no dynamic slots remain\n"); return -1; }
     int ix = dyn_ix; dyn_ix++;
+    printf("casl_defdynamic %i\n",ix);
     return ix;
+}
+
+void casl_cleardynamics( int index )
+{
+    dyn_ix = 0;
 }
 
 void casl_setdynamic( int index, int dynamic_ix, float val )
