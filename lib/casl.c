@@ -1,137 +1,87 @@
 #include "casl.h"
 
-// TODO should S_toward be passed as a fnptr? or is it too closely linked?
-#include "slopes.h" // S_toward
-
+#include <stdlib.h>
 #include <stdio.h>
-#include <stdbool.h>
 
-#define TO_COUNT   16 //
-#define SEQ_COUNT  8
-#define SEQ_LENGTH 8
-#define DYN_COUNT  16
 
-typedef enum{ ToLiteral
-            , ToRecur
-            , ToIf
-            , ToEnter
-            , ToHeld
-            , ToWait
-            , ToUnheld
-            , ToLock
-            , ToOpen
-} ToControl;
+#define SELVES_COUNT 4
+static Casl* _selves[SELVES_COUNT];
 
-typedef union{
-    float   f;
-    int     dyn; // index into the dynamics array
-    uint16_t var[2]; // 2 indexes into dynamic table
-    int     seq; // reference to a Sequence object
-    Shape_t shape;
-} ElemO;
 
-typedef enum{ ElemT_Float
-            , ElemT_Shape
-            , ElemT_Dynamic
-            , ElemT_Mutable
-        // arithmetic ops
-            , ElemT_Negate
-            , ElemT_Add
-            , ElemT_Sub
-            , ElemT_Mul
-            , ElemT_Div
-            , ElemT_Mod
-} ElemT;
+static int casl_defdynamicP( Casl* self );
 
-typedef struct{
-    ElemO obj;
-    ElemT type;
-} Elem; // 8bytes
 
-typedef struct{
-    Elem a;
-    Elem b;
-    Elem c;
-    ToControl ctrl;
-} To; // 28bytes
-
-typedef struct{
-    To* stage[SEQ_LENGTH];
-    int length;
-    int pc;
-    int parent; // seq_ix, like a tree 'parent' link
-} Sequence;
-
-static To tos[TO_COUNT];
-static int to_ix = 0; // just counts up allocated To slots
-
-static Sequence* seq_current;
-static Sequence seqs[SEQ_COUNT];
-static int seq_ix  = 0;  // counts up allocation of Sequence slots
-static int seq_select = -1; // current 'parent'
-
-static Elem dynamics[DYN_COUNT];
-static int dyn_ix = 0;
-
-static bool holding = false;
-static bool locked = false;
-
-// update to use self instead of an index lookup
-
-void casl_init( void )
+Casl* casl_init( int index )
 {
-    // TODO return allocated self
+    if(index < 0 || index >= SELVES_COUNT){ return NULL; }
+
+    Casl* self = malloc(sizeof(Casl));
+    if(!self){ printf("Casl* malloc!\n"); return NULL; }
+
+    _selves[index] = self; // save ref for indexed lookup
+
+    self->to_ix = 0; // To* allocation count
+    self->seq_current = &self->seqs[0];
+    self->seq_ix  = 0;  // counts up allocation of Sequence slots
+    self->seq_select = -1; // current 'parent'
+    self->dyn_ix = 0;
+
+    self->holding = false;
+    self->locked = false;
+
+    return self;
 }
 
-
-
-static void seq_enter( void )
+static void seq_enter( Casl* self )
 {
-    if(seq_ix >= SEQ_COUNT){ printf("ERROR: no sequences left!\n"); return; }
-    Sequence* s = &seqs[seq_ix];
-    seq_current = s; // save as 'active' Sequence
+    if(self->seq_ix >= SEQ_COUNT){ printf("ERROR: no sequences left!\n"); return; }
+    Sequence* s = &self->seqs[self->seq_ix];
+    self->seq_current = s; // save as 'active' Sequence
 
     s->length = 0;
     s->pc     = 0;
-    s->parent = seq_select;
+    s->parent = self->seq_select;
 
-    seq_select = seq_ix; // select the new Sequence
+    self->seq_select = self->seq_ix; // select the new Sequence
     // printf("enter: %i\n",seq_select);
-    seq_ix++; // marks the sequence as allocated
+    self->seq_ix++; // marks the sequence as allocated
 }
 
-static void seq_exit( void )
+static void seq_exit( Casl* self )
 {
-    seq_select = seq_current->parent; // move up tree
+    self->seq_select = self->seq_current->parent; // move up tree
     // printf("exit: %i\n",seq_select);
-    seq_current = &seqs[seq_select]; // save the new node
+    self->seq_current = &self->seqs[self->seq_select]; // save the new node
 }
 
 
-static void seq_append( To* t )
+static void seq_append( Casl* self, To* t )
 {
-    Sequence* s = seq_current;
+    Sequence* s = self->seq_current;
     if(s->length >= SEQ_LENGTH){ printf("ERROR: no stages left!\n"); }
     s->stage[s->length] = t; // append To* to end of Sequence
     s->length++;
 }
 
-static void parse_table( lua_State* L );
+static void parse_table( Casl* self, lua_State* L );
 void casl_describe( int index, lua_State* L )
 {
+    if(index < 0 || index >= SELVES_COUNT){ return; }
+    Casl* self = _selves[index];
+
     // deallocate everything
-    to_ix  = 0;
-    seq_ix = 0;
+    self->to_ix  = 0;
+    self->seq_ix = 0;
     // reset all sequences (fix reset bug?)
-    seq_current = &seqs[0]; // first sequence
-    for(int i=0; i<SEQ_COUNT; i++){ seqs[i].pc = 0; } // reset all program counters
+    self->seq_current = &self->seqs[0]; // first sequence
+    for(int i=0; i<SEQ_COUNT; i++){ self->seqs[i].pc = 0; } // reset all program counters
 
     // enter first sequence
-    seq_enter();
+    seq_enter(self);
 
     // printf("casl_describe\n");
-    parse_table(L);
-    // seq_exit()? // i think we want to start inside the first Seq anyway
+    parse_table(self, L);
+    // seq_exit(self)? // i think we want to start inside the first Seq anyway
 }
 
 // suite of functions for unwrapping elements of Lua tables
@@ -176,29 +126,29 @@ static int ix_int( lua_State* L, int ix )
     return ix_int;
 }
 
-static To* to_alloc( void )
+static To* to_alloc( Casl* self )
 {
-    if(to_ix >= TO_COUNT){ return NULL; }
-    To* t = &tos[to_ix]; // get next To
-    to_ix++; // mark as allocated
+    if(self->to_ix >= TO_COUNT){ return NULL; }
+    To* t = &self->tos[self->to_ix]; // get next To
+    self->to_ix++; // mark as allocated
     return t;
 }
 
-static void read_to( To* t, lua_State* L );
-static void capture_elem( Elem* e, lua_State* L, int ix );
-static void parse_table( lua_State* L )
+static void read_to( Casl* self, To* t, lua_State* L );
+static void capture_elem( Casl* self, Elem* e, lua_State* L, int ix );
+static void parse_table( Casl* self, lua_State* L )
 {
     switch( ix_type(L, 1) ){ // types from lua.h
 
         case LUA_TSTRING: { // TO, RECUR
-            To* t = to_alloc();
+            To* t = to_alloc(self);
             if(t == NULL){ printf("ERROR: not enough To slots left\n"); return; }
-            seq_append(t);
+            seq_append(self, t);
             switch( ix_char(L, 1) ){
-                case 'T': read_to(t, L); break; // standard To
+                case 'T': read_to(self, t, L); break; // standard To
                 case 'R':{ t->ctrl = ToRecur; break; } // Recur ctrlflow
                 case 'I':{ // If ctrlflow
-                    capture_elem(&(t->a), L, 2); // capture predicate from ix[2] to t->a
+                    capture_elem(self, &(t->a), L, 2); // capture predicate from ix[2] to t->a
                     t->ctrl = ToIf;
                     break; }
                 case 'H':{ t->ctrl = ToHeld; break; }
@@ -211,47 +161,47 @@ static void parse_table( lua_State* L )
             break;}
 
         case LUA_TTABLE:{ // NEST
-            To* t = to_alloc();
-            seq_append(t);
+            To* t = to_alloc(self);
+            seq_append(self, t);
             t->ctrl = ToEnter; // mark as entering a sub-Seq
-            seq_enter();
-            t->a.obj.seq = seq_select; // pass this To* to seq_enter, and do this line in there
+            seq_enter(self);
+            t->a.obj.seq = self->seq_select; // pass this To* to seq_enter, and do this line in there
             int seq_len = lua_rawlen(L, -1);
             // printf("seq_len %i\n",seq_len);
             for( int i=1; i<=seq_len; i++ ){ // Lua is 1-based
                 lua_pushnumber(L, i); // grab the next elem
                 lua_gettable(L, -2); // push that inner-table to the stack
-                parse_table(L); // RECUR
+                parse_table(self, L); // RECUR
                 lua_pop(L, 1); // pops inner-table
             }
-            seq_exit();
+            seq_exit(self);
             break;}
 
         default: printf("ERROR unhandled parse type\n"); break;
     }
 }
 
-static void read_to( To* t, lua_State* L )
+static void read_to( Casl* self, To* t, lua_State* L )
 {
-    capture_elem(&(t->a), L, 2);
-    capture_elem(&(t->b), L, 3);
-    capture_elem(&(t->c), L, 4);
+    capture_elem(self, &(t->a), L, 2);
+    capture_elem(self, &(t->b), L, 3);
+    capture_elem(self, &(t->c), L, 4);
     t->ctrl = ToLiteral;
 }
 
-static void allocating_capture( Elem* e, lua_State* L, ElemT t, int count )
+static void allocating_capture( Casl* self, Elem* e, lua_State* L, ElemT t, int count )
 {
     e->type = t;
     for(int i=0; i<count; i++){
-        int var = casl_defdynamic(0); // allocate a dynamic to hold op. FIXME 0 is asl id
+        int var = casl_defdynamicP(self); // allocate a dynamic to hold op. FIXME 0 is asl id
         e->obj.var[i] = var; // capture dynamic ref
-        capture_elem(&dynamics[var], L, i+2); // recur to capture operand
+        capture_elem(self, &self->dynamics[var], L, i+2); // recur to capture operand
     }
 }
 
 // static void capture_elem( lua_State* L, int ix, Elem* e, ElemT* t )
 // REFACTOR to have it return the Elem (and copy it) rather than passing a pointer
-static void capture_elem( Elem* e, lua_State* L, int ix )
+static void capture_elem( Casl* self, Elem* e, lua_State* L, int ix )
 {
     switch( ix_type(L, ix) ){ // type of table elem
         case LUA_TNUMBER:{
@@ -281,17 +231,17 @@ static void capture_elem( Elem* e, lua_State* L, int ix )
                     break;}
 
                 case 'M': // MUTABLE
-                    allocating_capture(e, L, ElemT_Mutable, 1); break;
+                    allocating_capture(self, e, L, ElemT_Mutable, 1); break;
                 case 'N':{// NAMED MUTABLE. combination of dynamic & mutable for live update
                     e->obj.var[0] = ix_int(L, 2); // grab dyn_ix at ix[2]
                     e->type = ElemT_Mutable;
                     break;}
-                case '~': allocating_capture(e, L, ElemT_Negate, 1); break;
-                case '+': allocating_capture(e, L, ElemT_Add, 2); break;
-                case '-': allocating_capture(e, L, ElemT_Sub, 2); break;
-                case '*': allocating_capture(e, L, ElemT_Mul, 2); break;
-                case '/': allocating_capture(e, L, ElemT_Div, 2); break;
-                case '%': allocating_capture(e, L, ElemT_Mod, 2); break;
+                case '~': allocating_capture(self, e, L, ElemT_Negate, 1); break;
+                case '+': allocating_capture(self, e, L, ElemT_Add, 2); break;
+                case '-': allocating_capture(self, e, L, ElemT_Sub, 2); break;
+                case '*': allocating_capture(self, e, L, ElemT_Mul, 2); break;
+                case '/': allocating_capture(self, e, L, ElemT_Div, 2); break;
+                case '%': allocating_capture(self, e, L, ElemT_Mod, 2); break;
 
                 default: printf("ERROR composite To char '%c'not found\n",index); break;
             }
@@ -306,9 +256,9 @@ static void capture_elem( Elem* e, lua_State* L, int ix )
 ///////////////////////////////
 // Runtime
 
-static To* seq_advance( void )
+static To* seq_advance( Casl* self )
 {
-    Sequence* s = seq_current;
+    Sequence* s = self->seq_current;
     To* t = NULL;
     if( s->pc < s->length ){ // stages remain
         t = s->stage[s->pc]; // get next stage
@@ -318,43 +268,46 @@ static To* seq_advance( void )
 }
 
 // return true if there is an upval
-static bool seq_up( void )
+static bool seq_up( Casl* self )
 {
-    if( seq_current->parent < 0 ){ return false; } // nothing left to do
+    if( self->seq_current->parent < 0 ){ return false; } // nothing left to do
 
-    seq_current->pc = 0; // RESET PC so it runs more than once
+    self->seq_current->pc = 0; // RESET PC so it runs more than once
     // TODO this will prob change when it comes to nesting conditionals?
     // TODO or at least when it comes to behavioural data
 
-    seq_select = seq_current->parent;
-    seq_current = &seqs[seq_select];
+    self->seq_select = self->seq_current->parent;
+    self->seq_current = &self->seqs[self->seq_select];
     return true;
 }
 
-static void seq_down( int s_ix )
+static void seq_down( Casl* self, int s_ix )
 {
-    seq_select = s_ix;
-    seq_current = &seqs[seq_select];
+    self->seq_select = s_ix;
+    self->seq_current = &self->seqs[self->seq_select];
 }
 
 static void next_action( int index );
-static bool find_control( ToControl ctrl, bool full_search );
-static ElemO resolve( Elem* e );
+static bool find_control( Casl* self, ToControl ctrl, bool full_search );
+static ElemO resolve( Casl* self, Elem* e );
 
 void casl_action( int index, int action )
 {
-    if( locked ){ // can't apply action until unlocked
-        if( action == 2 ){ locked = false; } // 'unlock' message received
+    if(index < 0 || index >= SELVES_COUNT){ return; }
+    Casl* self = _selves[index];
+
+    if( self->locked ){ // can't apply action until unlocked
+        if( action == 2 ){ self->locked = false; } // 'unlock' message received
         return; // doesn't trigger action
     }
     if( action == 1){ // restart sequence
-        seq_current = &seqs[0]; // first sequence
-        for(int i=0; i<SEQ_COUNT; i++){ seqs[i].pc = 0; } // reset all program counters
-        holding = false;
-        locked = false;
-    } else if( action == 0 && holding ){ // goto release if held
-        if( find_control(ToUnheld, false) ){
-            holding = false;
+        self->seq_current = &self->seqs[0]; // first sequence
+        for(int i=0; i<SEQ_COUNT; i++){ self->seqs[i].pc = 0; } // reset all program counters
+        self->holding = false;
+        self->locked = false;
+    } else if( action == 0 && self->holding ){ // goto release if held
+        if( find_control(self, ToUnheld, false) ){
+            self->holding = false;
         } else {
             printf("couldn't find ToWait. restarting\n");
             casl_action(index, 1);
@@ -364,85 +317,88 @@ void casl_action( int index, int action )
         printf("do nothing\n");
         return;
     }
-    next_action( index );
+    next_action(index);
 }
 
 static void next_action( int index )
 {
-    To* t = seq_advance();
+    if(index < 0 || index >= SELVES_COUNT){ return; }
+    Casl* self = _selves[index];
+
+    To* t = seq_advance(self);
     if(t){ // To is valid
         switch(t->ctrl){
             case ToLiteral:{
-                float ms = resolve(&t->b).f * 1000.0;
+                float ms = resolve(self, &t->b).f * 1000.0;
                 S_toward( index
-                        , resolve(&t->a).f
+                        , resolve(self, &t->a).f
                         , ms
-                        , resolve(&t->c).shape
+                        , resolve(self, &t->c).shape
                         , &next_action // recur upon breakpoint
                         );
                 if(ms > 0.0){ return; } // wait for DSP callback before proceeding
                 break;}
 
             case ToIf:{
-                if( resolve(&t->a).f <= 0.0 ){ // pred is false
-                    if( !seq_up() ){ return; } // step up & return if nothing to do
+                if( resolve(self, &t->a).f <= 0.0 ){ // pred is false
+                    if( !seq_up(self) ){ return; } // step up & return if nothing to do
                 }
                 break;}
 
-            case ToRecur:{  seq_current->pc = 0;    break;}
-            case ToEnter:   seq_down(t->a.obj.seq); break;
-            case ToHeld:{   holding = true;         break;}
+            case ToRecur:{  self->seq_current->pc = 0;    break;}
+            case ToEnter:   seq_down(self, t->a.obj.seq); break;
+            case ToHeld:{   self->holding = true;         break;}
             case ToWait:    /* halt execution */    return;
-            case ToUnheld:{ holding = false;        break;} // this is never executed, but here for reference
-            case ToLock:{   locked = true;          break;}
-            case ToOpen:{   locked = false;         break;}
+            case ToUnheld:{ self->holding = false;        break;} // this is never executed, but here for reference
+            case ToLock:{   self->locked = true;          break;}
+            case ToOpen:{   self->locked = false;         break;}
         }
-    } else if( !seq_up() ){ return; } // To invalid. Jump up. return if nothing left to do
+    } else if( !seq_up(self) ){ return; } // To invalid. Jump up. return if nothing left to do
     next_action(index); // tail call recur as we haven't halted yet
 }
 
-static bool find_control( ToControl ctrl, bool full_search )
+static bool find_control( Casl* self, ToControl ctrl, bool full_search )
 {
-    To* t = seq_advance();
+    To* t = seq_advance(self);
     if(t){ // To is valid
         if(t->ctrl == ctrl){ return true; } // FOUND IT
         switch(t->ctrl){ // else handle navigation
             case ToEnter:
-                if(full_search){ seq_down(t->a.obj.seq); }
-                return find_control(ctrl, full_search);
+                if(full_search){ seq_down(self, t->a.obj.seq); }
+                return find_control(self, ctrl, full_search);
             case ToIf:
-                if( !full_search ){ seq_up(); } // skip If contents
+                if( !full_search ){ seq_up(self); } // skip If contents
                 // FALLS THROUGH
             default:
-                return find_control(ctrl, full_search);
+                return find_control(self, ctrl, full_search);
         }
-    } else if( seq_up() ){ // end of list. Jump up the retstk
-        return find_control(ctrl, full_search); // recur
+    } else if( seq_up(self) ){ // end of list. Jump up the retstk
+        return find_control(self, ctrl, full_search); // recur
     }
     return false;
 }
 
 // resolves behavioural types to a literal value
 static volatile uint16_t resolving_mutable; // tmp global var for cheaper recursive fn
-static ElemO _resolve( Elem* e )
+static ElemO _resolve( Casl* self, Elem* e )
 {
     switch( e->type ){
-        case ElemT_Dynamic: return _resolve( &dynamics[e->obj.dyn] );
+        case ElemT_Dynamic: return _resolve(self, &self->dynamics[e->obj.dyn] );
         case ElemT_Mutable:{
             resolving_mutable = e->obj.var[0];
-            return _resolve( &dynamics[e->obj.var[0]] );}
-        case ElemT_Negate: return (ElemO){-_resolve( &dynamics[e->obj.var[0]] ).f};
-        case ElemT_Add: return (ElemO){_resolve( &dynamics[e->obj.var[0]] ).f
-                                      + _resolve( &dynamics[e->obj.var[1]] ).f};
-        case ElemT_Sub: return (ElemO){_resolve( &dynamics[e->obj.var[0]] ).f
-                                      - _resolve( &dynamics[e->obj.var[1]] ).f};
-        case ElemT_Mul: return (ElemO){_resolve( &dynamics[e->obj.var[0]] ).f
-                                      * _resolve( &dynamics[e->obj.var[1]] ).f};
-        case ElemT_Div: return (ElemO){_resolve( &dynamics[e->obj.var[0]] ).f
-                                      / _resolve( &dynamics[e->obj.var[1]] ).f};
+            return _resolve(self, &self->dynamics[e->obj.var[0]] );}
+        case ElemT_Negate: return (ElemO){-_resolve(self, &self->dynamics[e->obj.var[0]] ).f};
+        case ElemT_Add: return (ElemO){_resolve(self, &self->dynamics[e->obj.var[0]] ).f
+                                      + _resolve(self, &self->dynamics[e->obj.var[1]] ).f};
+        case ElemT_Sub: return (ElemO){_resolve(self, &self->dynamics[e->obj.var[0]] ).f
+                                      - _resolve(self, &self->dynamics[e->obj.var[1]] ).f};
+        case ElemT_Mul: return (ElemO){_resolve(self, &self->dynamics[e->obj.var[0]] ).f
+                                      * _resolve(self, &self->dynamics[e->obj.var[1]] ).f};
+        case ElemT_Div: return (ElemO){_resolve(self, &self->dynamics[e->obj.var[0]] ).f
+                                      / _resolve(self, &self->dynamics[e->obj.var[1]] ).f};
         case ElemT_Mod:{
-            float val = _resolve( &dynamics[e->obj.var[0]] ).f;
-            float wrap = _resolve( &dynamics[e->obj.var[1]] ).f;
+            float val = _resolve(self, &self->dynamics[e->obj.var[0]] ).f;
+            float wrap = _resolve(self, &self->dynamics[e->obj.var[1]] ).f;
             int mul = (int)(val/wrap);
             return (ElemO){val - (wrap * mul)};}
         default: return e->obj;
@@ -450,12 +406,12 @@ static ElemO _resolve( Elem* e )
 }
 
 // wrap _resolve with mutable resolution
-static ElemO resolve( Elem* e )
+static ElemO resolve( Casl* self, Elem* e )
 {
     resolving_mutable = DYN_COUNT; // out of range
-    ElemO eo = _resolve(e);
+    ElemO eo = _resolve(self, e);
     if(resolving_mutable < DYN_COUNT){
-        dynamics[resolving_mutable].obj = eo; // update value
+        self->dynamics[resolving_mutable].obj = eo; // update value
     }
     return eo;
 }
@@ -466,28 +422,48 @@ static ElemO resolve( Elem* e )
 
 int casl_defdynamic( int index )
 {
-    if(dyn_ix >= DYN_COUNT){ printf("ERROR: no dynamic slots remain\n"); return -1; }
-    int ix = dyn_ix; dyn_ix++;
+    if(index < 0 || index >= SELVES_COUNT){ return -1; }
+    Casl* self = _selves[index];
+
+    if(self->dyn_ix >= DYN_COUNT){ printf("ERROR: no dynamic slots remain\n"); return -1; }
+    int ix = self->dyn_ix; self->dyn_ix++;
+    printf("casl_defdynamic %i\n",ix);
+    return ix;
+}
+
+int casl_defdynamicP( Casl* self )
+{
+    if(self->dyn_ix >= DYN_COUNT){ printf("ERROR: no dynamic slots remain\n"); return -1; }
+    int ix = self->dyn_ix; self->dyn_ix++;
     printf("casl_defdynamic %i\n",ix);
     return ix;
 }
 
 void casl_cleardynamics( int index )
 {
-    dyn_ix = 0;
+    if(index < 0 || index >= SELVES_COUNT){ return; }
+    Casl* self = _selves[index];
+
+    self->dyn_ix = 0;
 }
 
 void casl_setdynamic( int index, int dynamic_ix, float val )
 {
-    dynamics[dynamic_ix].obj.f = val;
-    dynamics[dynamic_ix].type  = ElemT_Float; // FIXME support other types
+    if(index < 0 || index >= SELVES_COUNT){ return; }
+    Casl* self = _selves[index];
+
+    self->dynamics[dynamic_ix].obj.f = val;
+    self->dynamics[dynamic_ix].type  = ElemT_Float; // FIXME support other types
 }
 
 float casl_getdynamic( int index, int dynamic_ix )
 {
-    switch(dynamics[dynamic_ix].type){
+    if(index < 0 || index >= SELVES_COUNT){ return 0.0; }
+    Casl* self = _selves[index];
+
+    switch(self->dynamics[dynamic_ix].type){
         case ElemT_Float:
-            return dynamics[dynamic_ix].obj.f;
+            return self->dynamics[dynamic_ix].obj.f;
         default: printf("getdynamic! wrong type\n"); return 0.0;
     }
 }
