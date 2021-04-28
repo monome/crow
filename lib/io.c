@@ -19,6 +19,9 @@ void IO_Init( int adc_timer_ix )
 
     // dsp objects
     Detect_init( IN_CHANNELS );
+    for(int i=0; i<SLOPE_CHANNELS; i++){
+        casl_init(i);
+    }
     S_init( SLOPE_CHANNELS );
     AShaper_init( SLOPE_CHANNELS );
 }

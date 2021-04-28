@@ -13,17 +13,21 @@ function Asl.new(id)
     return c
 end
 
+-- returns a copy of the table, so a description can be re-used
 function Asl.link(self, tab)
+    local t2 = {}
     for k,v in pairs(tab) do
         local typ = type(v)
         if typ == 'function' then
             return v(self, tab[2]) -- call compiler fn with self & return new table
             -- early return bc fn must be in the first position, and consumes following arg
         elseif typ == 'table' then
-            tab[k] = Asl.link(self, v) -- link nested tables (won't copy unchanged tables)
+            t2[k] = Asl.link(self, v) -- link nested tables (won't copy unchanged tables)
+        else
+            t2[k] = v -- copy value into new table
         end
     end
-    return tab
+    return t2
 end
 
 function Asl:describe(d)

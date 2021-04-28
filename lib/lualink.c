@@ -523,14 +523,13 @@ static int _casl_defdynamic( lua_State *L )
 }
 static int _casl_cleardynamics( lua_State *L )
 {
-    int c_ix = luaL_checkinteger(L, 1)-1; // lua is 1-based
+    casl_cleardynamics( luaL_checkinteger(L, 1)-1 ); // lua is 1-based
     lua_pop(L, 1);
-    casl_cleardynamics( c_ix );
     return 0;
 }
 static int _casl_setdynamic( lua_State *L )
 {
-    casl_setdynamic( luaL_checkinteger(L, 1)
+    casl_setdynamic( luaL_checkinteger(L, 1)-1 // lua is 1-based
                    , luaL_checkinteger(L, 2)
                    , luaL_checknumber(L, 3)
                    );
@@ -539,7 +538,7 @@ static int _casl_setdynamic( lua_State *L )
 }
 static int _casl_getdynamic( lua_State *L )
 {
-    float d = casl_getdynamic( luaL_checkinteger(L, 1)
+    float d = casl_getdynamic( luaL_checkinteger(L, 1)-1 // lua is 1-based
                              , luaL_checkinteger(L, 2)
                              );
     lua_pop(L, 2);

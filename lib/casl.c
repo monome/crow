@@ -3,6 +3,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+// TODO
+// add sequins data type
+// add random math operator
+// dynamics should be available for SHAPEs (though not mutables)
+// switch to a pooled memory store to enable more complex ASLs to borrow memory from cheap ones
 
 #define SELVES_COUNT 4
 static Casl* _selves[SELVES_COUNT];
@@ -54,7 +59,6 @@ static void seq_exit( Casl* self )
     self->seq_current = &self->seqs[self->seq_select]; // save the new node
 }
 
-
 static void seq_append( Casl* self, To* t )
 {
     Sequence* s = self->seq_current;
@@ -72,7 +76,8 @@ void casl_describe( int index, lua_State* L )
     // deallocate everything
     self->to_ix  = 0;
     self->seq_ix = 0;
-    // reset all sequences (fix reset bug?)
+    self->seq_select = -1; // current 'parent'
+    // reset all sequences
     self->seq_current = &self->seqs[0]; // first sequence
     for(int i=0; i<SEQ_COUNT; i++){ self->seqs[i].pc = 0; } // reset all program counters
 
@@ -423,12 +428,7 @@ static ElemO resolve( Casl* self, Elem* e )
 int casl_defdynamic( int index )
 {
     if(index < 0 || index >= SELVES_COUNT){ return -1; }
-    Casl* self = _selves[index];
-
-    if(self->dyn_ix >= DYN_COUNT){ printf("ERROR: no dynamic slots remain\n"); return -1; }
-    int ix = self->dyn_ix; self->dyn_ix++;
-    printf("casl_defdynamic %i\n",ix);
-    return ix;
+    return casl_defdynamicP(_selves[index]);
 }
 
 int casl_defdynamicP( Casl* self )
@@ -468,49 +468,3 @@ float casl_getdynamic( int index, int dynamic_ix )
     }
 }
 
-
-/* operators
-    math: + - * / %
-        (add a b)
-        (sub a b)
-        (mul a b)
-        (div a b)
-        (mod a b)
-
-    ctrl: loop held lock times (if while)
-        (do ...)        ;; sequences args once
-        (loop ...)      ;; repeats args indefinitely
-        (if p ...)      ;; executes args if predicate is true (checks at each step)
-        (while p ...)   ;; repeats until predicate is false
-        (held ...)      ;; like (if) but with 'attack' / 'release' directive support
-        (lock ...)      ;; disables directives while executing args. can release with `unlock` directive
-        (times n ...)   ;; executes all args n times (so (do) == (times 1))
-
-    data: literal dynamic (can both be 'number' or 'shape')
-        3
-        54.2
-        e    ;; char. act as enum for shapes
-        &3   ;; dynamic index
-
-    seqn: (table of data with behaviour)
-*/
-
-/* data-types
-    number: represents time & volts
-    shape: an enum of available LUTs
-*/
-
-/* data-behaviours
-    literal: a fixed value
-    dynamic: a named value with an update method (eg. changable lfo time)
-    sequin: a collection of data (of the same data-type) with a traversal-behaviour
-        seq-behaviours: +n, drunk, random (index overflows, non-saturating)
-    iterable: a number with a range and a iterating-behaviour
-        iter-behaviours: +n, drunk-n, random
-nb: both sequin & iterable are dynamic in nature, and can be updated if named
-*/
-
-/* directives
-    ctrl: restart release
-    data: kset aset (update 'dynamic', k: at next breakpoint, a: immediate)
-*/
