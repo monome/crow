@@ -84,6 +84,7 @@ typedef struct{
     bool locked;
 } Casl;
 
+Casl* casl_init( int index );
 void casl_describe( int index, lua_State* L );
 void casl_action( int index, int action );
 
