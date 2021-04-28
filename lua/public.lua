@@ -1,8 +1,8 @@
 --- public library
-local Public = {} -- FIXME make this local
-
-Public._names = {} -- keys are names, linked to indexed _params
-Public._params = {} -- storage of params
+local Public = {
+    _names = {}, -- keys are names, linked to indexed _params
+    _params = {}, -- storage of params
+}
 
 
 -- Pubtable for indexing methods
@@ -60,11 +60,8 @@ setmetatable(Pubtable, Pubtable)
 
 Public.Pubtable = Pubtable -- capture into public lib
 
-
-Public.unwrap = function(name)
-	local ix = Public._names[name]
-	return ix and Public._params[ix]
-end
+-- get the value of a named public parameter
+Public.unwrap = function(name) return Public._params[ Public._names[name] ] end
 
 Public.add = function(name, default, typ, action)
   -- link index & name
@@ -73,14 +70,14 @@ Public.add = function(name, default, typ, action)
 		ix = #(Public._params) + 1
 		Public._names[name] = ix
 	end
-  
+
   -- initialze name & value
 	if type(default) == 'table' then
 		Public._params[ix] = Public.Pubtable.new(name, default)
 	else
 		Public._params[ix] = { k=name, v=default or 0 }
 	end
-  
+
   -- register type metadata
 	if typ then
 		local p = Public._params[ix] -- alias
@@ -112,45 +109,45 @@ end
 local function quoteptab(p, index)
 	local t = {}
 	for i=1,#p.v do
-		t[i] = p.v[i]
-		if type(p.v[i] == 'string') then t[i] = quotes(p.v[i]) end
+		if type(p.v[i] == 'string') then t[i] = quotes(p.v[i])
+        else t[i] = p.v[i] end
 	end
 	if index then t[#t+1] = string.format('index=%g',p._index) end
 	return string.format('{%s}', table.concat(t,','))
 end
 
-Public.discover = function()
-	local function dval(p)
-		local tv = type(p.v)
-		local s = p.v
-		if tv == 'string' then
-			s = quotes(p.v)
-		elseif tv == 'table' then
-			s = quoteptab(p, true)
+local function dval(p)
+	local tv = type(p.v)
+	if tv == 'string' then
+		return quotes(p.v)
+	elseif tv == 'table' then
+		return quoteptab(p, true)
+    else
+        return p.v
+	end
+end
+
+local function dtype(p)
+	if p.enum then
+		local t = {'enum'}
+		for i=1,#p.enum do
+			t[#t+1] = quotes(p.enum[i])
 		end
+		return table.concat(t)
+	else
+		local s = ''
+		if p.min then s = string.format('%s%g,', s, p.min) end
+		if p.max then s = string.format('%s%g,', s, p.max) end
+		if p.type then s = string.format('%s%q', s, p.type) end
 		return s
 	end
+end
 
-	local function dtype(p)
-		if p.enum then
-			local t = {'enum'}
-			for i=1,#p.enum do
-				t[#t+1] = quotes(p.enum[i])
-			end
-			return table.concat(t)
-		else
-			local s = ''
-			if p.min then s = string.format('%s%g,', s, p.min) end
-			if p.max then s = string.format('%s%g,', s, p.max) end
-			if p.type then s = string.format('%s%q', s, p.type) end
-			return s
-		end
-	end
-	
+Public.discover = function()
 	for _,p in ipairs(Public._params) do
-		print(string.format('^^pub(%q,%s,{%s})', p.k, dval(p), dtype(p)))
+        _c.tell('pub', quotes(p.k), dval(p), string.format('{%s}',dtype(p)))
 	end
-	_c.tell('pub',string.format('%q','_end'))
+	_c.tell('pub',quotes'_end')
 end
 
 Public.doact = function(p, v)
@@ -159,7 +156,8 @@ end
 
 local function clampn(v, min, max)
 	return (v < min) and min
-		or (v > max) and max or v
+		or (v > max) and max
+        or v
 end
 
 Public.clamp = function(p, val)
@@ -179,12 +177,12 @@ end
 
 Public.broadcast = function(k, v, kk)
 	local tv = type(v)
-	local vstr = v -- default, will apply tostring to value
-	if tv == 'string' then vstr = quotes(v)
-	elseif tv == 'table' then vstr = quoteptab(v, true) end
-	if kk then 
-		_c.tell('pupdate', quotes(k), vstr, quotes(kk))
-	else _c.tell('pupdate', quotes(k), vstr) end
+	if tv == 'string' then v = quotes(v)
+	elseif tv == 'table' then v = quoteptab(v, true) end
+    -- else v = v
+	if kk then
+		_c.tell('pupdate', quotes(k), v, quotes(kk))
+	else _c.tell('pupdate', quotes(k), v) end
 end
 
 -- NOTE: To only be called by remote device
