@@ -1,5 +1,6 @@
 #include "io.h"
 
+#include <stdio.h>
 #include "stm32f7xx_hal.h"     // HAL_Delay()
 
 #include "../ll/adda.h"        // _Init(), _Start(), _GetADCValue(), IO_block_t
@@ -7,10 +8,13 @@
 #include "ashapes.h"           // AShaper_init(), AShaper_v()
 #include "detect.h"            // Detect_init(), Detect(), Detect_ix_to_p()
 #include "metro.h"
+#include "caw.h"
 
 #include "lualink.h"           // L_handle_in_stream (pass this in as ptr?)
 
 #define IN_CHANNELS ADDA_ADC_CHAN_COUNT
+
+static void public_update( void );
 
 void IO_Init( int adc_timer_ix )
 {
@@ -47,6 +51,7 @@ IO_block_t* IO_BlockProcess( IO_block_t* b )
                  , b->size
                  );
     }
+    public_update();
     return b;
 }
 float IO_GetADC( uint8_t channel )
@@ -93,4 +98,47 @@ void IO_SetADCaction( uint8_t channel, const char* mode )
         default: break;
     }
     // set the appropriate fn to be called in ADC dsp loop
+}
+
+static bool view_chans[6] = {[0 ... 5]=false};
+void IO_public_set_view( int chan, bool state )
+{
+    if(chan < 0 || chan >= 6){ return; }
+    printf("set view %i, %i\n",chan,state);
+    view_chans[chan] = state;
+}
+
+static void public_update( void )
+{
+    // boils down to ~15fps update per parameter, spread out evenly
+    const float VDIFF = 0.1; // hysteresis distance. pretty coarse
+    static int bcount = 0;
+    static int chan = 0; // outputs*4 then inputs*2
+    static float last[6];
+    bcount++;
+    if(bcount >= 16){ // time to send a new update
+        bcount = 0;
+        if(view_chans[chan]){
+            if(chan<4){ // outputs
+                float new = AShaper_get_state(chan);
+                if( new + VDIFF < last[chan]
+                 || new - VDIFF > last[chan] ){
+                    last[chan] = new;
+                    char msg[46]; // oversized to quell compiler warning. TODO change to caw_printf
+                    snprintf(msg, 46, "^^pubview('output',%i,%g)", chan+1, (double)new);
+                    Caw_send_luachunk(msg);
+                }
+            } else {
+                float new = IO_GetADC(chan-4);
+                if( new + VDIFF < last[chan]
+                 || new - VDIFF > last[chan] ){
+                    last[chan] = new;
+                    char msg[46]; // oversized to quell compiler warning. TODO change to caw_printf
+                    snprintf(msg, 46, "^^pubview('input',%i,%g)", chan-3, (double)new);
+                    Caw_send_luachunk(msg);
+                }
+            }
+        }
+        chan = (chan + 1) % 6;
+    }
 }

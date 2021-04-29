@@ -2,8 +2,25 @@
 local Public = {
     _names = {}, -- keys are names, linked to indexed _params
     _params = {}, -- storage of params
+    view = {
+    	input = {},
+    	output = {},
+    },
 }
 
+for n=1,2 do Public.view.input[n] = function(b)
+	if b==nil then b = 1 end
+	pub_view_in(n, b) end
+end
+for n=1,4 do Public.view.output[n] = function(b)
+	if b==nil then b = 1 end
+	pub_view_out(n, b) end
+end
+
+Public.view.all = function(b)
+	for n=1,2 do Public.view.input[n](b) end
+	for n=1,4 do Public.view.output[n](b) end
+end
 
 -- Pubtable for indexing methods
 local Pubtable = {} -- metamethods for methods on a tables in the public variable space

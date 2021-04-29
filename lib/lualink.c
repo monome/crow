@@ -814,6 +814,27 @@ static int _clock_internal_stop( lua_State* L )
     return 0;
 }
 
+static int _pub_view_in( lua_State* L )
+{
+    int chan = luaL_checkinteger(L, 1)-1; // lua is 1-based
+    bool state;
+    if(lua_isboolean(L, 2)){ state = lua_toboolean(L, 2); }
+    else{ state = (bool)lua_tointeger(L, 2); }
+    IO_public_set_view(chan+4, state);
+    lua_pop(L, 2);
+    return 0;
+}
+static int _pub_view_out( lua_State* L )
+{
+    int chan = luaL_checkinteger(L, 1)-1; // lua is 1-based
+    bool state;
+    if(lua_isboolean(L, 2)){ state = lua_toboolean(L, 2); }
+    else{ state = (bool)lua_tointeger(L, 2); }
+    IO_public_set_view(chan, state);
+    lua_pop(L, 2);
+    return 0;
+}
+
 
 // array of all the available functions
 static const struct luaL_Reg libCrow[]=
@@ -875,6 +896,9 @@ static const struct luaL_Reg libCrow[]=
     , { "clock_internal_set_tempo" , _clock_internal_set_tempo }
     , { "clock_internal_start"     , _clock_internal_start     }
     , { "clock_internal_stop"      , _clock_internal_stop      }
+        // public
+    , { "pub_view_in"       , _pub_view_in      }
+    , { "pub_view_out"      , _pub_view_out     }
 
     , { NULL               , NULL              }
     };
