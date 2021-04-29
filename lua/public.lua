@@ -9,12 +9,14 @@ local Public = {
 }
 
 for n=1,2 do Public.view.input[n] = function(b)
-	if b==nil then b = 1 end
-	pub_view_in(n, b) end
+		if b==nil then b = 1 end -- no arg enables
+		pub_view_in(n, b)
+	end
 end
 for n=1,4 do Public.view.output[n] = function(b)
-	if b==nil then b = 1 end
-	pub_view_out(n, b) end
+		if b==nil then b = 1 end -- no arg enables
+		pub_view_out(n, b)
+	end
 end
 
 Public.view.all = function(b)
