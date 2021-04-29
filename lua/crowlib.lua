@@ -11,6 +11,7 @@ metro  = dofile('lua/metro.lua')
 ii     = dofile('lua/ii.lua')
 cal    = dofile('lua/calibrate.lua')
 public = dofile('lua/public.lua')
+clock  = dofile('lua/clock.lua')
 
 
 function C.reset()
@@ -27,6 +28,7 @@ function C.reset()
     ii_follow_reset() -- resets forwarding to output libs
     metro.free_all()
     public.clear()
+    clock.cleanup()
 end
 
 --- Communication functions
@@ -130,6 +132,7 @@ for _,fn in ipairs( wrapped_fns ) do
     -- below is original version that didn't work. nb: wrapped_fns was fns not strs
     -- fn = closure_if_table( fn ) -- this *doesn't* redirect the identifier
 end
+
 
 --- Delay execution of a function
 -- dynamically assigns metros (clashes with indexed metro syntax)

@@ -218,13 +218,11 @@ void ADC_UnpickleBlock( float*   unpickled
         float once = ((float)((int16_t*)aRxBuffer)[j+1]) // +1 past status byte
                         * adc_calibrated_scalar[j]
                         + adc_calibrated_shift[j];
-        float c    = 1.0 / bsize;
         for( uint16_t i=0; i<bsize; i++ ){
-            *unpick++ = last[j] + (c * (i+1))*(once - last[j]);
+            *unpick++ = once; // copy single value into whole block
         }
         last[j] = once;
     }
-
 
     // Request next buffer
     if (HAL_SPI_GetState(&adc_spi) == HAL_SPI_STATE_READY){
