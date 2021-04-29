@@ -48,14 +48,12 @@ static void seq_enter( Casl* self )
     s->parent = self->seq_select;
 
     self->seq_select = self->seq_ix; // select the new Sequence
-    // printf("enter: %i\n",seq_select);
     self->seq_ix++; // marks the sequence as allocated
 }
 
 static void seq_exit( Casl* self )
 {
     self->seq_select = self->seq_current->parent; // move up tree
-    // printf("exit: %i\n",seq_select);
     self->seq_current = &self->seqs[self->seq_select]; // save the new node
 }
 
@@ -84,7 +82,6 @@ void casl_describe( int index, lua_State* L )
     // enter first sequence
     seq_enter(self);
 
-    // printf("casl_describe\n");
     parse_table(self, L);
     // seq_exit(self)? // i think we want to start inside the first Seq anyway
 }
@@ -172,7 +169,6 @@ static void parse_table( Casl* self, lua_State* L )
             seq_enter(self);
             t->a.obj.seq = self->seq_select; // pass this To* to seq_enter, and do this line in there
             int seq_len = lua_rawlen(L, -1);
-            // printf("seq_len %i\n",seq_len);
             for( int i=1; i<=seq_len; i++ ){ // Lua is 1-based
                 lua_pushnumber(L, i); // grab the next elem
                 lua_gettable(L, -2); // push that inner-table to the stack
@@ -204,7 +200,6 @@ static void allocating_capture( Casl* self, Elem* e, lua_State* L, ElemT t, int 
     }
 }
 
-// static void capture_elem( lua_State* L, int ix, Elem* e, ElemT* t )
 // REFACTOR to have it return the Elem (and copy it) rather than passing a pointer
 static void capture_elem( Casl* self, Elem* e, lua_State* L, int ix )
 {
@@ -234,7 +229,6 @@ static void capture_elem( Casl* self, Elem* e, lua_State* L, int ix )
                     e->obj.dyn = ix_int(L, 2); // grab dyn_ix at ix[2]
                     e->type = ElemT_Dynamic;
                     break;}
-
                 case 'M': // MUTABLE
                     allocating_capture(self, e, L, ElemT_Mutable, 1); break;
                 case 'N':{// NAMED MUTABLE. combination of dynamic & mutable for live update
@@ -385,6 +379,7 @@ static bool find_control( Casl* self, ToControl ctrl, bool full_search )
 
 // resolves behavioural types to a literal value
 static volatile uint16_t resolving_mutable; // tmp global var for cheaper recursive fn
+#define RESOLVE_VAR(self, e, n) _resolve(self, &self->dynamics[e->obj.var[n]] ).f
 static ElemO _resolve( Casl* self, Elem* e )
 {
     switch( e->type ){
@@ -392,23 +387,22 @@ static ElemO _resolve( Casl* self, Elem* e )
         case ElemT_Mutable:{
             resolving_mutable = e->obj.var[0];
             return _resolve(self, &self->dynamics[e->obj.var[0]] );}
-        case ElemT_Negate: return (ElemO){-_resolve(self, &self->dynamics[e->obj.var[0]] ).f};
-        case ElemT_Add: return (ElemO){_resolve(self, &self->dynamics[e->obj.var[0]] ).f
-                                      + _resolve(self, &self->dynamics[e->obj.var[1]] ).f};
-        case ElemT_Sub: return (ElemO){_resolve(self, &self->dynamics[e->obj.var[0]] ).f
-                                      - _resolve(self, &self->dynamics[e->obj.var[1]] ).f};
-        case ElemT_Mul: return (ElemO){_resolve(self, &self->dynamics[e->obj.var[0]] ).f
-                                      * _resolve(self, &self->dynamics[e->obj.var[1]] ).f};
-        case ElemT_Div: return (ElemO){_resolve(self, &self->dynamics[e->obj.var[0]] ).f
-                                      / _resolve(self, &self->dynamics[e->obj.var[1]] ).f};
+        case ElemT_Negate: return (ElemO){-RESOLVE_VAR(self,e,0)};
+        case ElemT_Add: return (ElemO){RESOLVE_VAR(self,e,0) + RESOLVE_VAR(self,e,1)};
+        case ElemT_Sub: return (ElemO){RESOLVE_VAR(self,e,0) - RESOLVE_VAR(self,e,1)};
+        case ElemT_Mul: return (ElemO){RESOLVE_VAR(self,e,0) * RESOLVE_VAR(self,e,1)};
+        case ElemT_Div: return (ElemO){RESOLVE_VAR(self,e,0) / RESOLVE_VAR(self,e,1)};
         case ElemT_Mod:{
-            float val = _resolve(self, &self->dynamics[e->obj.var[0]] ).f;
-            float wrap = _resolve(self, &self->dynamics[e->obj.var[1]] ).f;
+            // this is just fmodf(val, wrap), but we need to handle negative numerators
+            // FIXME negative values shoud wrap to 'wrap' value
+            float val  = RESOLVE_VAR(self,e,0);
+            float wrap = RESOLVE_VAR(self,e,1);
             int mul = (int)(val/wrap);
             return (ElemO){val - (wrap * mul)};}
         default: return e->obj;
     }
 }
+#undef RESOLVE_VAR
 
 // wrap _resolve with mutable resolution
 static ElemO resolve( Casl* self, Elem* e )
@@ -435,7 +429,6 @@ int casl_defdynamicP( Casl* self )
 {
     if(self->dyn_ix >= DYN_COUNT){ printf("ERROR: no dynamic slots remain\n"); return -1; }
     int ix = self->dyn_ix; self->dyn_ix++;
-    printf("casl_defdynamic %i\n",ix);
     return ix;
 }
 
@@ -467,4 +460,3 @@ float casl_getdynamic( int index, int dynamic_ix )
         default: printf("getdynamic! wrong type\n"); return 0.0;
     }
 }
-

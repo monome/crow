@@ -141,7 +141,7 @@ _ = loop{ asl._if( true
         , to(0.0, dyn{key=val})
         }
 
--- pre-linkage table description
+-- pre-linkage table description. this can be saved in a regular var
 _ = { { {'IF', true}
       , {'TO', 1.0, 3.3, 'linear'}
       }
@@ -150,6 +150,7 @@ _ = { { {'IF', true}
     }
 
 -- linked table description (this is what we actually parse in C-land)
+-- this is what happens when applying to asl:describe(...)
 _ = { { {'IF', true}
       , {'TO', 1.0, 3.3, 'linear'}
       }

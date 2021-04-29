@@ -9,7 +9,7 @@
 
 #include "slopes.h" // S_toward
 
-#define TO_COUNT   16 //
+#define TO_COUNT   16
 #define SEQ_COUNT  8
 #define SEQ_LENGTH 8
 #define DYN_COUNT  16
@@ -64,8 +64,6 @@ typedef struct{
     int pc;
     int parent; // seq_ix, like a tree 'parent' link
 } Sequence;
-
-
 
 // TODO rename 'dynamics' to 'elements' and use it as a general abstraction (eg with To*)
 typedef struct{

@@ -10,19 +10,8 @@ function Output.new( chan )
               , ji      = false -- mark if .scale is in just intonation mode
               , asl     = asl.new( chan )
               , clock_div = 1
---              , trig    = { asl      = asl.new(k)
---                          , polarity = 1
---                          , time     = 1
---                          , level    = 5
---                          }
               }
-    -- o.asl.describe = lfo( function() return o.rate  end
-    --                   , function() return o.level end
-    --                   )
-
-    setmetatable( o, Output )
-
-    return o
+    return setmetatable( o, Output )
 end
 
 function Output.clock(self, div)
@@ -48,10 +37,7 @@ Output.__newindex = function(self, ix, val)
         self.asl:describe(val)
     elseif ix == 'volts' then
         self.asl:describe(to(val, self.slew, self.shape))
-        -- self.asl.action = to(val, self.slew, self.shape)
         self.asl:action()
-    elseif ix == 'done' then
-        self.asl.done = val
     elseif ix == 'scale' then
         set_output_scale(self.channel, self.ji and just12(val) or val)
     end
@@ -61,17 +47,16 @@ end
 Output.__index = function(self, ix)
     if     ix == 'action'  then return self.asl.action
     elseif ix == 'volts'   then return LL_get_state(self.channel)
-    elseif ix == 'running' then return self.asl.running
     elseif ix == 'clock'   then return Output.clock
     elseif ix == 'scale'   then return
-        function(...)
+        function(...) -- return lambda as we're closing over self
             local args = {...}
             if type(args[2]) == 'string' then
                 self.ji = true
                 args[2] = 12 -- fake 12TET with floating point just notes
                 args[1] = just12(args[1])
             else self.ji = false end
-            set_output_scale(self.channel, table.unpack(args)) -- close over .channel
+            set_output_scale(self.channel, table.unpack(args))
         end
     elseif ix == 'dyn' then return self.asl.dyn
     elseif ix == 'mutable' then return self.asl.dyn -- forward mutable to dyn as they share named vars

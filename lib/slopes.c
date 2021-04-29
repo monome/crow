@@ -13,8 +13,8 @@
 ////////////////////////////////
 // global vars
 
-uint8_t slope_count = 0;
-Slope_t* slopes = NULL;
+static uint8_t slope_count = 0;
+static Slope_t* slopes = NULL;
 
 
 ////////////////////////////////
@@ -86,7 +86,6 @@ void S_toward( int        index
     if( index < 0 || index >= SLOPE_CHANNELS ){ return; }
     Slope_t* self = &slopes[index]; // safe pointer
 
-
     // update destination
     self->dest   = destination;
     self->shape  = shape;
@@ -118,6 +117,7 @@ void S_toward( int        index
             self->countdown -= overflow;
             if( self->countdown <= 0.0 ){ // guard against overflow hitting callback
                 printf("FIXME near immediate callback\n");
+                // FIXME this should apply the destination & call self->action
                 self->countdown = 0.00001; // force callback on next sample
                 self->here = 1.0; // set to destination
             }
@@ -136,7 +136,6 @@ float* S_step_v( int     index
 
     return step_v( self, out, size );
 }
-
 
 
 ///////////////////////
