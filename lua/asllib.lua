@@ -1,65 +1,66 @@
 --- ASL library
---
 -- a collection of ASL descriptors, converted from original asllib
 
 Asllib = {}
 
--- function lfo( time, level, shape )
---     time,level,shape = time  or 1
---                      , level or 5
---                      , shape or 'sine'
+function note(mn, dur) return to(mn/12, dur, 'now') end
 
---     return loop{ to( level , time, shape )
---                , to( level, time, shape )
---                }
--- end
+function lfo(time, level, shape)
+    time = time or 1
+    level = level or 5
+    shape = shape or 'sine'
 
--- NB: these lib functions would have default vals like asllib
+    return loop{ to( level, time/2, shape)
+               , to(-level, time/2, shape)
+               }
+end
 
---- LFO
--- function lfo_literal( time, level, shape )
---     return loop{ to(       level , div( time, 2), shape )
---                , to( sub(0,level), div( time, 2), shape )
---                }
--- end
+function pulse(time, level, polarity)
+    time = time or 0.01
+    level = level or 5
+    polarity = polarity or 1
 
--- using dynamics (same dynamic can be shared in multiple places)
--- function lfo_dynamic( time, level, shape )
---     -- caution here: dyn{level=level} means
---         -- register a dynamic with the name "level"
---         -- and set it's initial value to the argument level
---     return loop{ to( dyn{level=level}
---                    , div( dyn{time=time}, 2)
---                    , dyn{shape=shape} )
---                , to( sub(0,dyn{level=level})
---                    , div( dyn{time=time}, 2)
---                    , dyn{shape=shape} )
---                }
--- end
+    return{ Asl._if(polarity, { to(level, time, 'now')
+                              , to(0, 0)
+                              })
+          , Asl._if(1-polarity, { to(0, time, 'now')
+                                , to(level, 0)
+                                })
+          }
+end
 
---- usage
--- literal
--- cc = casl.new()
--- cc.action = lfo_literal()   -- assign the casl action
--- cc.action()                 -- tell the asl to start running
--- cc.dyn.level(2.0)           -- ERROR. there is no dynamic in lfo_literal()
+function ramp(time, skew, level)
+    time = time  or 1
+    skew = skew or 0.25
+    level = level or 5
 
--- -- dynamic
--- ccc = casl.new()
--- ccc.action = lfo_dynamic()   -- assign the casl action
--- ccc.action()                 -- tell the asl to start running
--- ccc.dyn.level(2.0)           -- updates 'level' dynamic to new value
+    return loop{ to( level, time*(1.996*skew + 0.001))
+               , to(-level, time*(1.998 - 1.996*skew))
+               }
+end
 
+function ar(a, r, level, shape)
+    a = a or 0.05
+    r = r or 0.5
+    level = level or 7
+    shape = shape or 'log'
 
--- --- because we're in Lua, and really just passing around functions & tables, we can abstract the core to() calls from dyn{}
--- d = casl.new()
--- d.action = lfo_literal( dyn{time=1.0}
---                       , dyn{volume=5.0} -- note we can use whatever name we want
---                       , dyn{shape='sine'}
---                       )
--- d.action()
--- d.dyn.volume(3.3) -- works even though it's the 'literal' form of lfo
+    return{ to(level, a, shape)
+          , to(0, r, shape)
+          }
+end
 
-print'todo asllib'
+function adsr(a, d, s, r, shape)
+    a = a or 0.05
+    d = d or 0.3
+    s = s or 2
+    r = r or 2
+
+    return{ held{ to(7.0, a, shape)
+                , to(s, d, shape)
+                }
+          , to(0, r, shape)
+          }
+end
 
 return Asllib

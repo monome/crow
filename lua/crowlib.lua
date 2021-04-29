@@ -78,10 +78,6 @@ function LL_get_state( id )
 end
 
 
---- asl
-cc = asl.new(1) -- channel 1
-
-
 --- ii
 -- pullups on by default
 ii.pullup(true)
