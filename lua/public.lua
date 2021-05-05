@@ -104,6 +104,8 @@ Public.add = function(name, default, typ, action)
 	  -- register action
 		if action then p.action = action end
 		if t == 'function' then p.action = typ
+	  -- string in typ position means literal with special external handling
+		elseif t == 'string' then p.type = typ
 	  -- table of metadata
 		else
 			if type(typ[1]) == 'string' then
@@ -154,11 +156,12 @@ local function dtype(p)
 		end
 		return table.concat(t)
 	else
-		local s = ''
-		if p.min then s = string.format('%s%g,', s, p.min) end
-		if p.max then s = string.format('%s%g,', s, p.max) end
-		if p.type then s = string.format('%s%q', s, p.type) end
-		return s
+		local t = {}
+		-- TODO update to use quote() instead of string.format
+		if p.min then table.insert(t, string.format('%g', p.min)) end
+		if p.max then table.insert(t, string.format('%g', p.max)) end
+		if p.type then table.insert(t, string.format('%q', p.type)) end
+		return table.concat(t,',')
 	end
 end
 
