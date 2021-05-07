@@ -101,11 +101,12 @@ void IO_SetADCaction( uint8_t channel, const char* mode )
 }
 
 static bool view_chans[6] = {[0 ... 5]=false};
+static float last_chans[6];
 void IO_public_set_view( int chan, bool state )
 {
     if(chan < 0 || chan >= 6){ return; }
-    printf("set view %i, %i\n",chan,state);
     view_chans[chan] = state;
+    if(state){ last_chans[chan] = -6.0; } // reset out of range, to force update
 }
 
 static void public_update( void )
@@ -114,25 +115,24 @@ static void public_update( void )
     const float VDIFF = 0.1; // hysteresis distance. pretty coarse
     static int bcount = 0;
     static int chan = 0; // outputs*4 then inputs*2
-    static float last[6];
     bcount++;
     if(bcount >= 16){ // time to send a new update
         bcount = 0;
         if(view_chans[chan]){
             if(chan<4){ // outputs
                 float new = AShaper_get_state(chan);
-                if( new + VDIFF < last[chan]
-                 || new - VDIFF > last[chan] ){
-                    last[chan] = new;
+                if( new + VDIFF < last_chans[chan]
+                 || new - VDIFF > last_chans[chan] ){
+                    last_chans[chan] = new;
                     char msg[46]; // oversized to quell compiler warning. TODO change to caw_printf
                     snprintf(msg, 46, "^^pubview('output',%i,%g)", chan+1, (double)new);
                     Caw_send_luachunk(msg);
                 }
             } else {
                 float new = IO_GetADC(chan-4);
-                if( new + VDIFF < last[chan]
-                 || new - VDIFF > last[chan] ){
-                    last[chan] = new;
+                if( new + VDIFF < last_chans[chan]
+                 || new - VDIFF > last_chans[chan] ){
+                    last_chans[chan] = new;
                     char msg[46]; // oversized to quell compiler warning. TODO change to caw_printf
                     snprintf(msg, 46, "^^pubview('input',%i,%g)", chan-3, (double)new);
                     Caw_send_luachunk(msg);

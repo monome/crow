@@ -125,6 +125,7 @@ end
 Public.clear = function()
 	Public._names = {}
 	Public._params = {}
+	Public.view.all(false)
 end
 
 local function quoteptab(p, index)
