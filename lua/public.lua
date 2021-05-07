@@ -109,10 +109,10 @@ Public.add = function(name, default, typ, action)
 	  -- table of metadata
 		else
 			if type(typ[1]) == 'string' then
-				p.type = 'enum'
-				p.enum = typ -- save table locally (confirm this works)
-				p.mune = {} -- build a key-based lookup for type checks
-				for i=1,#typ do p.mune[typ[i]] = i end
+				p.type = 'option'
+				p.option = typ
+				p.noitpo = {} -- build a reverse-lookup table
+				for i=1,#typ do p.noitpo[typ[i]] = i end
 			else
 				p.min = typ[1]
 				p.max = typ[2]
@@ -149,20 +149,19 @@ local function dval(p)
 end
 
 local function dtype(p)
-	if p.enum then
-		local t = {'enum'}
-		for i=1,#p.enum do
-			t[#t+1] = quotes(p.enum[i])
+	local t = {}
+	if p.option then
+		t = {string.format('%q', 'option')}
+		for i=1,#p.option do
+			t[#t+1] = quotes(p.option[i])
 		end
-		return table.concat(t)
 	else
-		local t = {}
 		-- TODO update to use quote() instead of string.format
 		if p.min then table.insert(t, string.format('%g', p.min)) end
 		if p.max then table.insert(t, string.format('%g', p.max)) end
 		if p.type then table.insert(t, string.format('%q', p.type)) end
-		return table.concat(t,',')
 	end
+	return table.concat(t,',')
 end
 
 Public.discover = function()
@@ -191,8 +190,8 @@ Public.clamp = function(p, val)
 		else
 			val = clampn(val, p.min, p.max)
 		end
-	elseif p.enum then
-		if not p.mune[val] then val = p.v end -- disallow changes out of enum
+	elseif p.option then
+		if not p.noitpo[val] then val = p.v end -- disallow changes out of option
 	end
 	return val
 end
