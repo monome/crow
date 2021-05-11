@@ -11,6 +11,7 @@ metro  = dofile('lua/metro.lua')
 ii     = dofile('lua/ii.lua')
 cal    = dofile('lua/calibrate.lua')
 clock  = dofile('lua/clock.lua')
+sequins= dofile('lua/sequins.lua')
 
 
 function C.reset()
@@ -148,6 +149,8 @@ function delay(action, time, repeats)
     if d then d:start() end
     return d
 end
+
+function quotes(s) return string.format('%q',s) end
 
 --- Just Intonation helpers
 -- convert a single fraction, or table of fractions to just intonation
