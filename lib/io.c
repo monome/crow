@@ -128,18 +128,14 @@ static void public_update( void )
                 if( new + VDIFF < last_chans[chan]
                  || new - VDIFF > last_chans[chan] ){
                     last_chans[chan] = new;
-                    char msg[46]; // oversized to quell compiler warning. TODO change to caw_printf
-                    snprintf(msg, 46, "^^pubview('output',%i,%g)", chan+1, (double)new);
-                    Caw_send_luachunk(msg);
+                    Caw_printf("^^pubview('output',%i,%g)", chan+1, (double)new);
                 }
             } else {
                 float new = IO_GetADC(chan-4);
                 if( new + VDIFF < last_chans[chan]
                  || new - VDIFF > last_chans[chan] ){
                     last_chans[chan] = new;
-                    char msg[46]; // oversized to quell compiler warning. TODO change to caw_printf
-                    snprintf(msg, 46, "^^pubview('input',%i,%g)", chan-3, (double)new);
-                    Caw_send_luachunk(msg);
+                    Caw_printf("^^pubview('input',%i,%g)", chan-3, (double)new);
                 }
             }
         }
