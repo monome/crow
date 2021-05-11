@@ -51,7 +51,7 @@ function S.next(self)
 end
 
 function S.select(self, ix)
-    rawset(self, set_ix, ix)
+    rawset(self, 'set_ix', ix)
     return self
 end
 
@@ -151,6 +151,7 @@ S.metaix = { settable = S.setdata
            , all      = S.all
            , once     = S.once
            , reset    = S.reset
+           , select   = S.select
            }
 S.__index = function(self, ix)
     -- runtime calls to step() and select() should return values, not functions
