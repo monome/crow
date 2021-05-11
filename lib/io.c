@@ -9,6 +9,7 @@
 #include "detect.h"            // Detect_init(), Detect(), Detect_ix_to_p()
 #include "metro.h"
 #include "caw.h"
+#include "casl.h"
 
 #include "lualink.h"           // L_handle_in_stream (pass this in as ptr?)
 
@@ -23,6 +24,9 @@ void IO_Init( int adc_timer_ix )
 
     // dsp objects
     Detect_init( IN_CHANNELS );
+    for(int i=0; i<SLOPE_CHANNELS; i++){
+        casl_init(i);
+    }
     S_init( SLOPE_CHANNELS );
     AShaper_init( SLOPE_CHANNELS );
 }

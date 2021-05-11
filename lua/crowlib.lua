@@ -12,6 +12,7 @@ ii     = dofile('lua/ii.lua')
 cal    = dofile('lua/calibrate.lua')
 public = dofile('lua/public.lua')
 clock  = dofile('lua/clock.lua')
+sequins= dofile('lua/sequins.lua')
 
 
 function C.reset()

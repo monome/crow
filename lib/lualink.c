@@ -11,6 +11,7 @@
 
 // Hardware IO
 #include "lib/slopes.h"     // S_toward
+#include "lib/casl.h"       // C-ASL
 #include "lib/ashapes.h"    // AShaper_unset_scale(), AShaper_set_scale()
 #include "lib/detect.h"     // Detect*
 #include "lib/caw.h"        // Caw_send_*()
@@ -40,6 +41,7 @@
 #include "lua/ii.lua.h"
 #include "build/iihelp.lua.h"    // generated lua stub for loading i2c modules
 #include "lua/calibrate.lua.h"
+#include "lua/sequins.lua.h"
 
 #include "build/ii_lualink.h" // generated C header for linking to lua
 
@@ -58,6 +60,7 @@ const struct lua_lib_locator Lua_libs[] =
     , { "lua_ii"        , lua_ii        }
     , { "build_iihelp"  , build_iihelp  }
     , { "lua_calibrate" , lua_calibrate }
+    , { "lua_sequins"   , lua_sequins   }
     , { NULL            , NULL          }
     };
 
@@ -551,6 +554,56 @@ static int _set_input_clock( lua_State *L )
     return 0;
 }
 
+// CASL
+static int _casl_describe( lua_State *L )
+{
+    casl_describe( luaL_checkinteger(L, 1)-1 // C is zero-based
+                 , L // descriptor is on top of the stack
+                 );
+    lua_pop( L, 2 );
+    lua_settop(L, 0);
+    return 0;
+}
+static int _casl_action( lua_State *L )
+{
+    casl_action( luaL_checkinteger(L, 1)-1 // C is zero-based
+               , luaL_checkinteger(L, 2) );
+    lua_pop(L, 2);
+    lua_settop(L, 0);
+    return 0;
+}
+static int _casl_defdynamic( lua_State *L )
+{
+    int c_ix = luaL_checkinteger(L, 1)-1; // lua is 1-based
+    lua_pop(L, 1);
+    lua_pushinteger( L, casl_defdynamic( c_ix ) );
+    return 1;
+}
+static int _casl_cleardynamics( lua_State *L )
+{
+    casl_cleardynamics( luaL_checkinteger(L, 1)-1 ); // lua is 1-based
+    lua_pop(L, 1);
+    return 0;
+}
+static int _casl_setdynamic( lua_State *L )
+{
+    casl_setdynamic( luaL_checkinteger(L, 1)-1 // lua is 1-based
+                   , luaL_checkinteger(L, 2)
+                   , luaL_checknumber(L, 3)
+                   );
+    lua_pop(L, 3);
+    return 0;
+}
+static int _casl_getdynamic( lua_State *L )
+{
+    float d = casl_getdynamic( luaL_checkinteger(L, 1)-1 // lua is 1-based
+                             , luaL_checkinteger(L, 2)
+                             );
+    lua_pop(L, 2);
+    lua_pushnumber(L, d);
+    return 1;
+}
+
 static int _send_usb( lua_State *L )
 {
     // pattern match on type: handle values vs strings vs chunk
@@ -574,12 +627,14 @@ static int _ii_list_commands( lua_State *L )
     uint8_t address = luaL_checkinteger(L, 1);
     printf("i2c help %i\n", address);
     Caw_send_luachunk( (char*)ii_list_cmds(address) );
+    lua_pop(L, 1);
     return 0;
 }
 
 static int _ii_pullup( lua_State *L )
 {
     ii_set_pullups( luaL_checkinteger(L, 1) );
+    lua_pop(L, 1);
     return 0;
 }
 
@@ -863,6 +918,13 @@ static const struct luaL_Reg libCrow[]=
     , { "set_input_peak"   , _set_input_peak   }
     , { "set_input_freq"   , _set_input_freq   }
     , { "set_input_clock"  , _set_input_clock  }
+        // casl
+    , { "casl_describe"    , _casl_describe    }
+    , { "casl_action"      , _casl_action      }
+    , { "casl_defdynamic"  , _casl_defdynamic  }
+    , { "casl_cleardynamics", _casl_cleardynamics }
+    , { "casl_setdynamic"  , _casl_setdynamic  }
+    , { "casl_getdynamic"  , _casl_getdynamic  }
         // usb
     , { "send_usb"         , _send_usb         }
         // i2c
