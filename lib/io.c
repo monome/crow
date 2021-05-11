@@ -7,6 +7,7 @@
 #include "ashapes.h"           // AShaper_init(), AShaper_v()
 #include "detect.h"            // Detect_init(), Detect(), Detect_ix_to_p()
 #include "metro.h"
+#include "casl.h"
 
 #include "lualink.h"           // L_handle_in_stream (pass this in as ptr?)
 
