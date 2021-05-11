@@ -28,6 +28,22 @@ __disable_irq();
 __set_PRIMASK( old_primask );
 }
 
+void Caw_printf( char* text, ... )
+{
+    va_list aptr;
+    va_start(aptr, text);
+    size_t len = vsnprintf( NULL, 0, text, aptr ); // get length of string
+    char b[len+1]; // buffer to fit string plus NULL
+    vsnprintf( b, len+1, text, aptr ); // put string in b
+    va_end(aptr);
+
+    const uint8_t newline[] = "\n\r";
+    BLOCK_IRQS(
+        USB_tx_enqueue( (uint8_t*)b, len );
+        USB_tx_enqueue( (uint8_t*)newline, 2 );
+    );
+}
+
 // luachunk expects a \0 terminated string
 void Caw_send_luachunk( char* text )
 {
