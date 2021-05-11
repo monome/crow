@@ -253,40 +253,38 @@ static int _print_serial( lua_State *L )
 static int _print_tell( lua_State *L )
 {
     int nargs = lua_gettop(L);
-    char teller[60];
     // nb: luaL_checkstring() will coerce ints & nums into strings
     switch( nargs ){
         case 0:
             return luaL_error(L, "no event to tell.");
         case 1:
-            sprintf( teller, "^^%s()", luaL_checkstring(L, 1) );
+            Caw_printf( "^^%s()", luaL_checkstring(L, 1) );
             break;
         case 2:
-            sprintf( teller, "^^%s(%s)", luaL_checkstring(L, 1)
-                                       , luaL_checkstring(L, 2) );
+            Caw_printf( "^^%s(%s)", luaL_checkstring(L, 1)
+                                  , luaL_checkstring(L, 2) );
             break;
         case 3:
-            sprintf( teller, "^^%s(%s,%s)", luaL_checkstring(L, 1)
-                                          , luaL_checkstring(L, 2)
-                                          , luaL_checkstring(L, 3) );
+            Caw_printf( "^^%s(%s,%s)", luaL_checkstring(L, 1)
+                                     , luaL_checkstring(L, 2)
+                                     , luaL_checkstring(L, 3) );
             break;
         case 4:
-            sprintf( teller, "^^%s(%s,%s,%s)", luaL_checkstring(L, 1)
-                                             , luaL_checkstring(L, 2)
-                                             , luaL_checkstring(L, 3)
-                                             , luaL_checkstring(L, 4) );
+            Caw_printf( "^^%s(%s,%s,%s)", luaL_checkstring(L, 1)
+                                        , luaL_checkstring(L, 2)
+                                        , luaL_checkstring(L, 3)
+                                        , luaL_checkstring(L, 4) );
             break;
         case 5:
-            sprintf( teller, "^^%s(%s,%s,%s,%s)", luaL_checkstring(L, 1)
-                                                , luaL_checkstring(L, 2)
-                                                , luaL_checkstring(L, 3)
-                                                , luaL_checkstring(L, 4)
-                                                , luaL_checkstring(L, 5) );
+            Caw_printf( "^^%s(%s,%s,%s,%s)", luaL_checkstring(L, 1)
+                                           , luaL_checkstring(L, 2)
+                                           , luaL_checkstring(L, 3)
+                                           , luaL_checkstring(L, 4)
+                                           , luaL_checkstring(L, 5) );
             break;
         default:
             return luaL_error(L, "too many args to tell.");
     }
-    Caw_send_luachunk( teller );
     lua_pop( L, nargs );
     lua_settop(L, 0);
     return 0;
