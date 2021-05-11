@@ -1,5 +1,5 @@
 --- public library
-local Public = {
+local P = {
     _names = {}, -- keys are names, linked to indexed _params
     _params = {}, -- storage of params
     view = {
@@ -8,98 +8,42 @@ local Public = {
     },
 }
 
-for n=1,2 do Public.view.input[n] = function(b)
+for n=1,2 do P.view.input[n] = function(b)
 		if b==nil then b = 1 end -- no arg enables
 		pub_view_in(n, b)
 	end
 end
-for n=1,4 do Public.view.output[n] = function(b)
+for n=1,4 do P.view.output[n] = function(b)
 		if b==nil then b = 1 end -- no arg enables
 		pub_view_out(n, b)
 	end
 end
 
-Public.view.all = function(b)
-	for n=1,2 do Public.view.input[n](b) end
-	for n=1,4 do Public.view.output[n](b) end
+P.view.all = function(b)
+	for n=1,2 do P.view.input[n](b) end
+	for n=1,4 do P.view.output[n](b) end
 end
 
--- Pubtable for indexing methods
-local Pubtable = {} -- metamethods for methods on a tables in the public variable space
-
-Pubtable.new = function(name, p) -- converts an array-table into a pubtable
-	-- p.v doesn't exist. accessed through metamethods
-	p.k = name
-	p._index = 0 -- invalid index
-	p._step = 1 -- default step motion
-	setmetatable(p, Pubtable) -- overload the parameter with table semantics
-	return p
-end
-
-local function indexwrap(p, ix)
-	-- don't use # op because it can include old table entries
-	local len = 0; for _,_ in ipairs(p) do len = len + 1 end
-	return ((ix-1) % len) + 1 -- wrap to table size
-end
-
-Pubtable.__newindex = function(self, ix, val)
-	if ix == 'v' then
-		for i=1,#val do self[i] = val[i] end -- copy over old table
-		self[#val+1] = nil -- mark end of table so ipairs ignores older longer lists
-		self._index = indexwrap(self, self._index)
-	elseif ix == 'index' then -- like select(n) but no broadcast
-		self._index = indexwrap(self, val)
-	else
-		rawset(self, ix, val)
-	end
-end
-
-Pubtable.__index = function(self, ix) -- getters
-	if ix == 'select' then
-		return function(n)
-			self._index = indexwrap(self, n or self._index) -- no arg, re-indexes (use after changing table structure)
-			Public.broadcast(self.k, self._index, 'index')
-			return self[self._index]
-		  end
-	elseif ix == 'step' then
-		return function(n)
-			self._step = n or self._step -- no arg uses last step
-			self._index = indexwrap(self, self._index + self._step)
-			Public.broadcast(self.k, self._index, 'index')
-			return self[self._index]
-		  end
-	elseif ix == 'v' then
-		return self
-	elseif ix == 'index' then
-		return self._index
-	end
-end
-
-setmetatable(Pubtable, Pubtable)
-
-Public.Pubtable = Pubtable -- capture into public lib
 
 -- get the value of a named public parameter
-Public.unwrap = function(name) return Public._params[ Public._names[name] ] end
+P.unwrap = function(name) return P._params[ P._names[name] ] end
 
-Public.add = function(name, default, typ, action)
+P.add = function(name, default, typ, action)
   -- link index & name
-	local ix = Public._names[name]
+	local ix = P._names[name]
 	if not ix then
-		ix = #(Public._params) + 1
-		Public._names[name] = ix
+		ix = #(P._params) + 1
+		P._names[name] = ix
 	end
-
   -- initialze name & value
-	if type(default) == 'table' then
-		Public._params[ix] = Public.Pubtable.new(name, default)
-	else
-		Public._params[ix] = { k=name, v=default or 0 }
+	P._params[ix] = { k=name, v=default or 0 }
+	local p = P._params[ix] -- alias
+	if sequins.is_sequins(p.v) then
+		p.sequins = true
+		p._index = p.v.ix
 	end
-
   -- register type metadata
 	if typ then
-		local p = Public._params[ix] -- alias
 		local t = type(typ)
 	  -- register action
 		if action then p.action = action end
@@ -122,19 +66,21 @@ Public.add = function(name, default, typ, action)
 	end
 end
 
-Public.clear = function()
-	Public._names = {}
-	Public._params = {}
-	Public.view.all(false)
+P.clear = function()
+	P._names = {}
+	P._params = {}
+	P.view.all(false)
 end
 
-local function quoteptab(p, index)
+local function quoteptab(p)
 	local t = {}
-	for i=1,#p.v do
+	local i = 1 -- manual iteration to enable table or sequins (ipairs won't work with sequins)
+	while p.v[i] ~= nil do
 		if type(p.v[i] == 'string') then t[i] = quotes(p.v[i])
         else t[i] = p.v[i] end
-	end
-	if index then t[#t+1] = string.format('index=%g',p._index) end
+        i = i + 1
+    end
+    if p.sequins then t[i] = string.format('index=%g',p.v.ix) end
 	return string.format('{%s}', table.concat(t,','))
 end
 
@@ -143,7 +89,7 @@ local function dval(p)
 	if tv == 'string' then
 		return quotes(p.v)
 	elseif tv == 'table' then
-		return quoteptab(p, true)
+		return quoteptab(p)
     else
         return p.v
 	end
@@ -165,14 +111,14 @@ local function dtype(p)
 	return table.concat(t,',')
 end
 
-Public.discover = function()
-	for _,p in ipairs(Public._params) do
+P.discover = function()
+	for _,p in ipairs(P._params) do
         _c.tell('pub', quotes(p.k), dval(p), string.format('{%s}',dtype(p)))
 	end
 	_c.tell('pub',quotes'_end')
 end
 
-Public.doact = function(p, v)
+P.doact = function(p, v)
 	if p.action then p.action(v) end
 end
 
@@ -182,7 +128,7 @@ local function clampn(v, min, max)
         or v
 end
 
-Public.clamp = function(p, val)
+P.clamp = function(p, val)
 	if p.min then
 		if type(val) == 'table' then
 			for k,v in ipairs(val) do
@@ -197,10 +143,10 @@ Public.clamp = function(p, val)
 	return val
 end
 
-Public.broadcast = function(k, v, kk)
+P.broadcast = function(k, v, kk)
 	local tv = type(v)
 	if tv == 'string' then v = quotes(v)
-	elseif tv == 'table' then v = quoteptab(v, true) end
+	elseif tv == 'table' then v = quoteptab(v) end
     -- else v = v
 	if kk then
 		_c.tell('pupdate', quotes(k), v, quotes(kk))
@@ -208,38 +154,53 @@ Public.broadcast = function(k, v, kk)
 end
 
 -- NOTE: To only be called by remote device
--- TODO add optional 3rd arg for updating a table member
-Public.update = function(k,v,kk)
-	local p = Public.unwrap(k)
+P.update = function(k,v,kk)
+	local p = P.unwrap(k)
 	if p then
-		if kk then -- setting a table-element
-			if type(kk) == 'number' then v = Public.clamp(p, v) end
-			p[kk] = v
-		else
-			p.v = Public.clamp(p, v)
+		if kk then -- setting a table / sequins element
+			if type(kk) == 'number' then v = P.clamp(p, v) end -- setting a data element
+			p.v[kk] = v
+		elseif sequins.is_sequins(p.v) then -- sequins type
+			p.v:settable(P.clamp(p, v))
+		else -- number, option, table types
+			p.v = P.clamp(p, v)
 		end
-		Public.doact(p, p.v)
+		P.doact(p, p.v)
+	end
+end
+
+P.did_update = function(p, last)
+	-- check if anything changed in sequins that should be sent
+	if last ~= p.v.ix then -- index was changed
+		P.broadcast(p.k, p.v.ix, 'index')
+	-- else
+		-- TODO how do we detect what changed in the sequins? just send it all?
 	end
 end
 
 --- METAMETHODS
 -- self.ix = val
-Public.__newindex = function(self, ix, val)
-	-- TODO identical to .update but without .broadcast. unify after adding table support
-	local p = Public.unwrap(ix)
+P.__newindex = function(self, ix, val)
+	-- TODO identical to .update but adds .broadcast. unify after adding table support
+	local p = P.unwrap(ix)
 	if p then
-		p.v = Public.clamp(p, val)
-		Public.broadcast(p.k, p.v)
-		Public.doact(p, p.v)
+		p.v = P.clamp(p, val)
+		P.broadcast(p.k, p.v)
+		P.doact(p, p.v)
 	end
 end
 
 -- self.ix._ or val = self.ix
-Public.__index = function(self, ix)
-	local p = Public.unwrap(ix)
-	if p then return p.v end
+P.__index = function(self, ix)
+	local p = P.unwrap(ix)
+	if p then
+		if p.sequins then -- defer query of whether something changed to main loop
+			clock.run(function() local i=p.v.ix; clock.sleep(0); P.did_update(p, i) end)
+		end
+		return p.v
+	end
 end
 
-setmetatable(Public, Public)
+setmetatable(P, P)
 
-return Public
+return P
