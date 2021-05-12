@@ -106,12 +106,9 @@ end
 
 local function dval(p)
 	local tv = type(p.v)
-	if tv == 'string' then
-		return quotes(p.v)
-	elseif tv == 'table' then
-		return quoteptab(p)
-    else
-        return p.v
+	if tv == 'string' then return quotes(p.v)
+	elseif tv == 'table' then return quoteptab(p)
+    else return p.v
 	end
 end
 
