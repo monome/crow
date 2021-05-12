@@ -10,19 +10,20 @@ function Output.new( chan )
               , ji      = false -- mark if .scale is in just intonation mode
               , asl     = asl.new( chan )
               , clock_div = 1
+              , ckcoro  = false -- clock coroutine
               }
     return setmetatable( o, Output )
 end
 
 function Output.clock(self, div)
     if type(div) == 'string' then -- 'off' or 'none' will cancel a running output clock
-        if self._clock then clock.cancel(self._clock) end
+        if self.ckcoro then clock.cancel(self.ckcoro) end
         return
     end
     self.clock_div = div or self.clock_div
-    self.asl.action = pulse()
-    if self._clock then clock.cancel(self._clock) end -- replace the existing coro
-    self._clock = clock.run(function()
+    self.asl:describe(pulse())
+    if self.ckcoro then clock.cancel(self.ckcoro) end -- replace the existing coro
+    self.ckcoro = clock.run(function()
             while true do
                 clock.sync(self.clock_div)
                 self.asl:action()
