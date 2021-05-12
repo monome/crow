@@ -28,7 +28,26 @@ end
 -- get the value of a named public parameter
 P.unwrap = function(name) return P._params[ P._names[name] ] end
 
+
+P._chain = {
+	-- all fns must return p for method chaining
+	__index = { range   = function(p,m,x) p.min, p.max = m, x; return p end
+	 	      , options = function(p,os)
+	 	  			p.tipe, p.option, p.noitpo = 'option', os, {}
+					for i=1,#os do p.noitpo[os[i]] = i end -- reverse-lookup
+					return p
+	 	  	  	end
+	 	      , type    = function(p,t) p.tipe = t; return p end
+	 	  	  , action  = function(p,f) p.act = f; return p end
+ 	  	  	  }
+}
+
 P.add = function(name, default, typ, action)
+	if type(name) == 'table' then -- assume method-chain style
+		k,v = next(name) -- table should have a single k,v pair entry
+		default = v
+		name = k
+	end
   -- link index & name
 	local ix = P._names[name]
 	if not ix then
@@ -46,24 +65,25 @@ P.add = function(name, default, typ, action)
 	if typ then
 		local t = type(typ)
 	  -- register action
-		if action then p.action = action end
-		if t == 'function' then p.action = typ
+		if action then p.act = action end
+		if t == 'function' then p.act = typ
 	  -- string in typ position means literal with special external handling
-		elseif t == 'string' then p.type = typ
+		elseif t == 'string' then p.tipe = typ
 	  -- table of metadata
 		else
 			if type(typ[1]) == 'string' then
-				p.type = 'option'
+				p.tipe = 'option'
 				p.option = typ
 				p.noitpo = {} -- build a reverse-lookup table
 				for i=1,#typ do p.noitpo[typ[i]] = i end
 			else
 				p.min = typ[1]
 				p.max = typ[2]
-				p.type = typ[3]
+				p.tipe = typ[3]
 			end
 		end
 	end
+	return setmetatable(p, P._chain) -- return a reference to the new public table entry
 end
 
 P.clear = function()
@@ -106,7 +126,7 @@ local function dtype(p)
 		-- TODO update to use quote() instead of string.format
 		if p.min then table.insert(t, string.format('%g', p.min)) end
 		if p.max then table.insert(t, string.format('%g', p.max)) end
-		if p.type then table.insert(t, string.format('%q', p.type)) end
+		if p.tipe then table.insert(t, string.format('%q', p.tipe)) end
 	end
 	return table.concat(t,',')
 end
@@ -119,7 +139,7 @@ P.discover = function()
 end
 
 P.doact = function(p, v)
-	if p.action then p.action(v) end
+	if p.act then p.act(v) end
 end
 
 local function clampn(v, min, max)
@@ -200,6 +220,9 @@ P.__index = function(self, ix)
 		return p.v
 	end
 end
+
+-- call public itself as a shortcut to public.add
+P.__call = function(self, ...) return P.add(...) end
 
 setmetatable(P, P)
 
