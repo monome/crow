@@ -32,6 +32,7 @@ P.unwrap = function(name) return P._params[ P._names[name] ] end
 P._chain = {
     -- all fns must return p for method chaining
     __index = { range   = function(p,m,x) p.min, p.max = m, x; return p end
+              , xrange  = function(p,m,x) p.min, p.max, p.tipe = m, x, 'exp'; return p end
               , options = function(p,os)
                     p.tipe, p.option, p.noitpo = 'option', os, {}
                     for i=1,#os do p.noitpo[os[i]] = i end -- reverse-lookup
