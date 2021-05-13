@@ -91,6 +91,7 @@ P.clear = function()
     P._names = {}
     P._params = {}
     P.view.all(false)
+    _c.tell('pub',quotes'_clear')
 end
 
 local function quoteptab(p)
