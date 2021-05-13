@@ -35,6 +35,7 @@
 #include "lua/asllib.lua.h"
 #include "lua/clock.lua.h"
 #include "lua/metro.lua.h"
+#include "lua/public.lua.h"
 #include "lua/input.lua.h"
 #include "lua/output.lua.h"
 #include "lua/ii.lua.h"
@@ -55,6 +56,7 @@ const struct lua_lib_locator Lua_libs[] =
     , { "lua_metro"     , lua_metro     }
     , { "lua_input"     , lua_input     }
     , { "lua_output"    , lua_output    }
+    , { "lua_public"    , lua_public    }
     , { "lua_ii"        , lua_ii        }
     , { "build_iihelp"  , build_iihelp  }
     , { "lua_calibrate" , lua_calibrate }
@@ -865,6 +867,27 @@ static int _clock_internal_stop( lua_State* L )
     return 0;
 }
 
+static int _pub_view_in( lua_State* L )
+{
+    int chan = luaL_checkinteger(L, 1)-1; // lua is 1-based
+    bool state;
+    if(lua_isboolean(L, 2)){ state = lua_toboolean(L, 2); }
+    else{ state = (bool)lua_tointeger(L, 2); }
+    IO_public_set_view(chan+4, state);
+    lua_pop(L, 2);
+    return 0;
+}
+static int _pub_view_out( lua_State* L )
+{
+    int chan = luaL_checkinteger(L, 1)-1; // lua is 1-based
+    bool state;
+    if(lua_isboolean(L, 2)){ state = lua_toboolean(L, 2); }
+    else{ state = (bool)lua_tointeger(L, 2); }
+    IO_public_set_view(chan, state);
+    lua_pop(L, 2);
+    return 0;
+}
+
 
 // array of all the available functions
 static const struct luaL_Reg libCrow[]=
@@ -933,6 +956,9 @@ static const struct luaL_Reg libCrow[]=
     , { "clock_internal_set_tempo" , _clock_internal_set_tempo }
     , { "clock_internal_start"     , _clock_internal_start     }
     , { "clock_internal_stop"      , _clock_internal_stop      }
+        // public
+    , { "pub_view_in"       , _pub_view_in      }
+    , { "pub_view_out"      , _pub_view_out     }
 
     , { NULL               , NULL              }
     };
@@ -990,6 +1016,7 @@ void Lua_crowbegin( void )
     if( Lua_call_usercode(L,0,0) != LUA_OK ){
         lua_pop(L, 1);
     }
+    Caw_send_luachunk("^^ready()"); // inform host that script is initialized
 }
 
 

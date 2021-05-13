@@ -10,6 +10,7 @@ asllib = dofile('lua/asllib.lua')
 metro  = dofile('lua/metro.lua')
 ii     = dofile('lua/ii.lua')
 cal    = dofile('lua/calibrate.lua')
+public = dofile('lua/public.lua')
 clock  = dofile('lua/clock.lua')
 sequins= dofile('lua/sequins.lua')
 
@@ -27,6 +28,7 @@ function C.reset()
     ii.reset_events(ii.self)
     ii_follow_reset() -- resets forwarding to output libs
     metro.free_all()
+    public.clear()
     clock.cleanup()
 end
 
