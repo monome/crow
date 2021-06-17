@@ -15,6 +15,16 @@ function lfo(time, level, shape)
                }
 end
 
+function oscillate(freq, level, shape)
+    freq = freq or 1
+    level = level or 5
+    shape = shape or 'sine'
+
+    return loop{ to( level, 0.5/freq, shape)
+               , to(-level, 0.5/freq, shape)
+               }
+end
+
 function pulse(time, level, polarity)
     time = time or 0.01
     level = level or 5
