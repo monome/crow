@@ -16,7 +16,7 @@ function lfo(time, level, shape)
 end
 
 function oscillate(freq, level, shape)
-    lfo(1/freq, level, shape)
+    return lfo(1/freq, level, shape)
 end
 
 function pulse(time, level, polarity)
