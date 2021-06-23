@@ -75,7 +75,7 @@ static int Lua_handle_error( lua_State* L );
 static void timeouthook( lua_State* L, lua_Debug* ar );
 
 // Handler prototypes
-void L_handle_toward( event_t* e );
+void L_handle_asl_done( event_t* e );
 void L_handle_metro( event_t* e );
 void L_handle_stream( event_t* e );
 void L_handle_change( event_t* e );
@@ -313,18 +313,6 @@ static int _cpu_time( lua_State *L )
     // returns count of background loops for the last 8ms
     lua_pushinteger(L, CPU_GetCount());
     return 1;
-}
-static int _go_toward( lua_State *L )
-{
-    S_toward( luaL_checkinteger(L, 1)-1 // C is zero-based
-            , luaL_checknumber(L, 2)
-            , luaL_checknumber(L, 3) * 1000.0
-            , S_str_to_shape( luaL_checkstring(L, 4) )
-            , L_queue_toward
-            );
-    lua_pop( L, 4 );
-    lua_settop(L, 0);
-    return 0;
 }
 static int _get_state( lua_State *L )
 {
@@ -903,7 +891,6 @@ static const struct luaL_Reg libCrow[]=
     , { "cputime"          , _cpu_time         }
     //, { "sys_cpu_load"     , _sys_cpu          }
         // io
-    , { "go_toward"        , _go_toward        }
     , { "get_state"        , _get_state        }
     , { "set_output_scale" , _set_scale        }
     , { "io_get_input"     , _io_get_input     }
@@ -1069,16 +1056,16 @@ static int Lua_call_usercode( lua_State* L, int nargs, int nresults )
 
 
 // Public Callbacks from C to Lua
-void L_queue_toward( int id )
+void L_queue_asl_done( int id )
 {
-    event_t e = { .handler = L_handle_toward
+    event_t e = { .handler = L_handle_asl_done
                 , .index.i = id
                 };
     event_post(&e);
 }
-void L_handle_toward( event_t* e )
+void L_handle_asl_done( event_t* e )
 {
-    lua_getglobal(L, "toward_handler");
+    lua_getglobal(L, "asl_done_handler");
     lua_pushinteger(L, e->index.i + 1); // 1-ix'd
     if( Lua_call_usercode(L, 1, 0) != LUA_OK ){
         lua_pop( L, 1 );

@@ -9,6 +9,7 @@ function Output.new( chan )
               , _scale  = 'none'
               , ji      = false -- mark if .scale is in just intonation mode
               , asl     = asl.new( chan )
+              , done    = function() end -- customizable event called on asl completion
               , clock_div = 1
               , ckcoro  = false -- clock coroutine
               }
