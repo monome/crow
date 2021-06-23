@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h> // floorf
 
 // TODO
 // add sequins data type
@@ -395,10 +396,10 @@ static ElemO _resolve( Casl* self, Elem* e )
         case ElemT_Mod:{
             // this is just fmodf(val, wrap), but we need to handle negative numerators
             // FIXME negative values shoud wrap to 'wrap' value
-            float val  = RESOLVE_VAR(self,e,0);
-            float wrap = RESOLVE_VAR(self,e,1);
-            int mul = (int)(val/wrap);
-            return (ElemO){val - (wrap * mul)};}
+            float val  = RESOLVE_VAR(self,e,0); // -0.001
+            float wrap = RESOLVE_VAR(self,e,1); // 0.1
+            float mul = floorf(val/wrap); // -0.01 -> -1
+            return (ElemO){val - (wrap * mul)};} // -0.001 - (0.1 * -1) => 0.099
         default: return e->obj;
     }
 }
