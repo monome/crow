@@ -13,6 +13,7 @@ cal    = dofile('lua/calibrate.lua')
 public = dofile('lua/public.lua')
 clock  = dofile('lua/clock.lua')
 sequins= dofile('lua/sequins.lua')
+quote  = dofile('lua/quote.lua')
 
 
 function C.reset()
@@ -151,8 +152,6 @@ function delay(action, time, repeats)
     if d then d:start() end
     return d
 end
-
-function quotes(s) return string.format('%q',s) end
 
 --- Just Intonation helpers
 -- convert a single fraction, or table of fractions to just intonation

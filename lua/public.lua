@@ -91,14 +91,15 @@ P.clear = function()
     P._names = {}
     P._params = {}
     P.view.all(false)
-    _c.tell('pub',quotes'_clear')
+    _c.tell('pub',quote'_clear')
 end
 
 local function quoteptab(p)
+    -- TODO optimize this to leverage quote library
     local t = {}
     local i = 1 -- manual iteration to enable table or sequins (ipairs won't work with sequins)
     while p.v[i] ~= nil do
-        if type(p.v[i] == 'string') then t[i] = quotes(p.v[i])
+        if type(p.v[i] == 'string') then t[i] = quote(p.v[i])
         else t[i] = p.v[i] end
         i = i + 1
     end
@@ -108,7 +109,7 @@ end
 
 local function dval(p)
     local tv = type(p.v)
-    if tv == 'string' then return quotes(p.v)
+    if tv == 'string' then return quote(p.v)
     elseif tv == 'table' then return quoteptab(p)
     else return p.v
     end
@@ -119,22 +120,21 @@ local function dtype(p)
     if p.option then
         t = {string.format('%q', 'option')}
         for i=1,#p.option do
-            t[#t+1] = quotes(p.option[i])
+            t[#t+1] = quote(p.option[i])
         end
     else
-        -- TODO update to use quote() instead of string.format
-        if p.min then table.insert(t, string.format('%g', p.min)) end
-        if p.max then table.insert(t, string.format('%g', p.max)) end
-        if p.tipe then table.insert(t, string.format('%q', p.tipe)) end
+        if p.min then table.insert(t, quote(p.min)) end
+        if p.max then table.insert(t, quote(p.max)) end
+        if p.tipe then table.insert(t, quote(p.tipe)) end
     end
     return table.concat(t,',')
 end
 
 P.discover = function()
     for _,p in ipairs(P._params) do
-        _c.tell('pub', quotes(p.k), dval(p), string.format('{%s}',dtype(p)))
+        _c.tell('pub', quote(p.k), dval(p), string.format('{%s}',dtype(p)))
     end
-    _c.tell('pub',quotes'_end')
+    _c.tell('pub',quote'_end')
 end
 
 P.doact = function(p, v)
@@ -164,12 +164,12 @@ end
 
 P.broadcast = function(k, v, kk)
     local tv = type(v)
-    if tv == 'string' then v = quotes(v)
+    if tv == 'string' then v = quote(v)
     elseif tv == 'table' then v = quoteptab(v) end
     -- else v = v
     if kk then
-        _c.tell('pupdate', quotes(k), v, quotes(kk))
-    else _c.tell('pupdate', quotes(k), v) end
+        _c.tell('pupdate', quote(k), v, quote(kk))
+    else _c.tell('pupdate', quote(k), v) end
 end
 
 -- NOTE: To only be called by remote device
