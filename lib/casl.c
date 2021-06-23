@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <math.h> // floorf
 
+#include "caw.h" // Caw_printf
+
 // TODO
 // add sequins data type
 // add random math operator
@@ -40,7 +42,11 @@ Casl* casl_init( int index )
 
 static void seq_enter( Casl* self )
 {
-    if(self->seq_ix >= SEQ_COUNT){ printf("ERROR: no sequences left!\n"); return; }
+    if(self->seq_ix >= SEQ_COUNT){
+        printf("ERROR: no sequences left!\n");
+        Caw_printf("ERROR: no sequences left!\n");
+        return;
+    }
     Sequence* s = &self->seqs[self->seq_ix];
     self->seq_current = s; // save as 'active' Sequence
 
@@ -61,7 +67,10 @@ static void seq_exit( Casl* self )
 static void seq_append( Casl* self, To* t )
 {
     Sequence* s = self->seq_current;
-    if(s->length >= SEQ_LENGTH){ printf("ERROR: no stages left!\n"); }
+    if(s->length >= SEQ_LENGTH){
+        printf("ERROR: no stages left!\n");
+        Caw_printf("ERROR: no stages left!\n");
+    }
     s->stage[s->length] = t; // append To* to end of Sequence
     s->length++;
 }
@@ -145,7 +154,11 @@ static void parse_table( Casl* self, lua_State* L )
 
         case LUA_TSTRING: { // TO, RECUR
             To* t = to_alloc(self);
-            if(t == NULL){ printf("ERROR: not enough To slots left\n"); return; }
+            if(t == NULL){
+                printf("ERROR: not enough To slots left\n");
+                Caw_printf("ERROR: not enough To slots left\n");
+                return;
+            }
             seq_append(self, t);
             switch( ix_char(L, 1) ){
                 case 'T': read_to(self, t, L); break; // standard To
@@ -159,7 +172,10 @@ static void parse_table( Casl* self, lua_State* L )
                 case 'U':{ t->ctrl = ToUnheld; break; }
                 case 'L':{ t->ctrl = ToLock; break; }
                 case 'O':{ t->ctrl = ToOpen; break; }
-                default: printf("ERROR char not found\n"); break;
+                default:
+                    printf("ERROR char not found\n");
+                    Caw_printf("ERROR char not found\n");
+                    break;
             }
             break;}
 
@@ -179,7 +195,10 @@ static void parse_table( Casl* self, lua_State* L )
             seq_exit(self);
             break;}
 
-        default: printf("ERROR unhandled parse type\n"); break;
+        default:
+            printf("ERROR unhandled parse type\n");
+            Caw_printf("ERROR unhandled parse type\n");
+            break;
     }
 }
 
@@ -243,12 +262,18 @@ static void capture_elem( Casl* self, Elem* e, lua_State* L, int ix )
                 case '/': allocating_capture(self, e, L, ElemT_Div, 2); break;
                 case '%': allocating_capture(self, e, L, ElemT_Mod, 2); break;
 
-                default: printf("ERROR composite To char '%c'not found\n",index); break;
+                default:
+                    printf("ERROR composite To char '%c'not found\n",index);
+                    Caw_printf("ERROR composite To char '%c'not found\n",index);
+                    break;
             }
             lua_pop(L, 1);
             break;
 
-        default: printf("ERROR unknown To type\n"); break;
+        default:
+            printf("ERROR unknown To type\n");
+            Caw_printf("ERROR unknown To type\n");
+            break;
     }
 }
 
@@ -428,7 +453,11 @@ int casl_defdynamic( int index )
 
 int casl_defdynamicP( Casl* self )
 {
-    if(self->dyn_ix >= DYN_COUNT){ printf("ERROR: no dynamic slots remain\n"); return -1; }
+    if(self->dyn_ix >= DYN_COUNT){
+        printf("ERROR: no dynamic slots remain\n");
+        Caw_printf("ERROR: no dynamic slots remain\n");
+        return -1;
+    }
     int ix = self->dyn_ix; self->dyn_ix++;
     return ix;
 }
@@ -458,6 +487,9 @@ float casl_getdynamic( int index, int dynamic_ix )
     switch(self->dynamics[dynamic_ix].type){
         case ElemT_Float:
             return self->dynamics[dynamic_ix].obj.f;
-        default: printf("getdynamic! wrong type\n"); return 0.0;
+        default:
+            printf("getdynamic! wrong type\n");
+            Caw_printf("getdynamic! wrong type\n");
+            return 0.0;
     }
 }
