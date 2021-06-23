@@ -343,6 +343,7 @@ static void next_action( int index )
 
                 case ToIf:{
                     if( resolve(self, &t->a).f <= 0.0 ){ // pred is false
+                        goto STEPUP; // WARNING! ensuring only 1 path to asl_done event
                         if( !seq_up(self) ){ return; } // step up & return if nothing to do
                     }
                     break;}
@@ -355,9 +356,12 @@ static void next_action( int index )
                 case ToLock:{   self->locked = true;          break;}
                 case ToOpen:{   self->locked = false;         break;}
             }
-        } else if( !seq_up(self) ){ // To invalid. Jump up. return if nothing left to do
-            L_queue_asl_done(index); // trigger a lua event when sequence is complete
-            return;
+        } else {
+STEPUP:
+            if( !seq_up(self) ){ // To invalid. Jump up. return if nothing left to do
+                L_queue_asl_done(index); // trigger a lua event when sequence is complete
+                return;
+            }
         }
     }
 }
