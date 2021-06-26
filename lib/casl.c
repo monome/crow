@@ -261,6 +261,7 @@ static void capture_elem( Casl* self, Elem* e, lua_State* L, int ix )
                 case '*': allocating_capture(self, e, L, ElemT_Mul, 2); break;
                 case '/': allocating_capture(self, e, L, ElemT_Div, 2); break;
                 case '%': allocating_capture(self, e, L, ElemT_Mod, 2); break;
+                case '#': allocating_capture(self, e, L, ElemT_Mutate, 1); break;
 
                 default:
                     printf("ERROR composite To char '%c'not found\n",index);
@@ -425,6 +426,13 @@ static ElemO _resolve( Casl* self, Elem* e )
             float wrap = RESOLVE_VAR(self,e,1); // 0.1
             float mul = floorf(val/wrap); // -0.01 -> -1
             return (ElemO){val - (wrap * mul)};} // -0.001 - (0.1 * -1) => 0.099
+        case ElemT_Mutate:{
+            ElemO mutated = (ElemO){RESOLVE_VAR(self,e,0)};
+            if(resolving_mutable < DYN_COUNT){
+                self->dynamics[resolving_mutable].obj = mutated; // update value
+                resolving_mutable = DYN_COUNT; // mutation resolved!
+            }
+            return mutated;} // return the resultant value
         default: return e->obj;
     }
 }

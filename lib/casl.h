@@ -9,10 +9,10 @@
 
 #include "slopes.h" // S_toward
 
-#define TO_COUNT   16
-#define SEQ_COUNT  8
-#define SEQ_LENGTH 8
-#define DYN_COUNT  32
+#define TO_COUNT   16   // 28bytes
+#define SEQ_COUNT  8    // 16bytes
+#define SEQ_LENGTH 8    // 4bytes
+#define DYN_COUNT  40   // 8bytes
 
 typedef enum{ ToLiteral
             , ToRecur
@@ -44,6 +44,7 @@ typedef enum{ ElemT_Float
             , ElemT_Mul
             , ElemT_Div
             , ElemT_Mod
+            , ElemT_Mutate
 } ElemT;
 
 typedef struct{

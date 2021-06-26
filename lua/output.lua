@@ -60,7 +60,6 @@ Output.__index = function(self, ix)
             set_output_scale(self.channel, table.unpack(args))
         end
     elseif ix == 'dyn' then return self.asl.dyn
-    elseif ix == 'mutable' then return self.asl.dyn -- forward mutable to dyn as they share named vars
     end
 end
 
