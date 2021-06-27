@@ -25,6 +25,7 @@ function C.reset()
         output[n].slew = 0
         output[n].volts = 0
         output[n].scale('none')
+        output[n].done = function() end
     end
     ii.reset_events(ii.self)
     ii_follow_reset() -- resets forwarding to output libs
@@ -66,15 +67,8 @@ end
 
 
 --- asl
-toward_handler = function(id)
-    output[id].asl:step()
-end
--- special wrapper should really be in the ASL lib itself?
-function LL_toward( id, d, t, s )
-    while type(d) == 'function' do d = d() end
-    while type(t) == 'function' do t = t() end
-    while type(s) == 'function' do s = s() end
-    go_toward( id, d, t, s )
+asl_done_handler = function(id)
+    output[id].done()
 end
 
 function LL_get_state( id )

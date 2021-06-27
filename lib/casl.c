@@ -6,6 +6,8 @@
 
 #include "caw.h" // Caw_printf
 
+#include "lualink.h" // L_queue_asl_done for raising a sequence-complete event
+
 // TODO
 // add sequins data type
 // add random math operator
@@ -351,36 +353,43 @@ static void next_action( int index )
     if(index < 0 || index >= SELVES_COUNT){ return; }
     Casl* self = _selves[index];
 
-    To* t = seq_advance(self);
-    if(t){ // To is valid
-        switch(t->ctrl){
-            case ToLiteral:{
-                float ms = resolve(self, &t->b).f * 1000.0;
-                S_toward( index
-                        , resolve(self, &t->a).f
-                        , ms
-                        , resolve(self, &t->c).shape
-                        , &next_action // recur upon breakpoint
-                        );
-                if(ms > 0.0){ return; } // wait for DSP callback before proceeding
-                break;}
+    while(true){ // repeat until halt
+        To* t = seq_advance(self);
+        if(t){ // To is valid
+            switch(t->ctrl){
+                case ToLiteral:{
+                    float ms = resolve(self, &t->b).f * 1000.0;
+                    S_toward( index
+                            , resolve(self, &t->a).f
+                            , ms
+                            , resolve(self, &t->c).shape
+                            , &next_action // recur upon breakpoint
+                            );
+                    if(ms > 0.0){ return; } // wait for DSP callback before proceeding
+                    break;}
 
-            case ToIf:{
-                if( resolve(self, &t->a).f <= 0.0 ){ // pred is false
-                    if( !seq_up(self) ){ return; } // step up & return if nothing to do
-                }
-                break;}
+                case ToIf:{
+                    if( resolve(self, &t->a).f <= 0.0 ){ // pred is false
+                        goto stepup; // WARNING! ensuring only 1 path to asl_done event
+                    }
+                    break;}
 
-            case ToRecur:{  self->seq_current->pc = 0;    break;}
-            case ToEnter:   seq_down(self, t->a.obj.seq); break;
-            case ToHeld:{   self->holding = true;         break;}
-            case ToWait:    /* halt execution */    return;
-            case ToUnheld:{ self->holding = false;        break;} // this is never executed, but here for reference
-            case ToLock:{   self->locked = true;          break;}
-            case ToOpen:{   self->locked = false;         break;}
+                case ToRecur:{  self->seq_current->pc = 0;    break;}
+                case ToEnter:   seq_down(self, t->a.obj.seq); break;
+                case ToHeld:{   self->holding = true;         break;}
+                case ToWait:    /* halt execution */    return;
+                case ToUnheld:{ self->holding = false;        break;} // this is never executed, but here for reference
+                case ToLock:{   self->locked = true;          break;}
+                case ToOpen:{   self->locked = false;         break;}
+            }
+        } else {
+stepup:
+            if( !seq_up(self) ){ // To invalid. Jump up. return if nothing left to do
+                L_queue_asl_done(index); // trigger a lua event when sequence is complete
+                return;
+            }
         }
-    } else if( !seq_up(self) ){ return; } // To invalid. Jump up. return if nothing left to do
-    next_action(index); // tail call recur as we haven't halted yet
+    }
 }
 
 static bool find_control( Casl* self, ToControl ctrl, bool full_search )
