@@ -42,11 +42,11 @@ function Asl.set_held(self, b)
     end
 end
 
--- direc(tive) can take 0/1 of false/true. ONLY has effect if there is a held{} construct
+-- direc(tive) can take 0/1 or false/true. ONLY has effect if there is a held{} construct
 -- truthy always restarts
 -- falsey means 'release'
 function Asl:action(direc)
-    if not direc then -- no arg is always 'restart'
+    if direc == nil then -- no arg is always 'restart'
         casl_action(self.id, 1)
     elseif direc == 'unlock' then casl_action(self.id, 2) -- release lock construct
     else -- set `held` dyn if it exists. call action unless no `held` and direc is falsey
