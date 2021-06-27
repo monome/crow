@@ -131,20 +131,14 @@ end
 
 
 --- Delay execution of a function
--- dynamically assigns metros (clashes with indexed metro syntax)
 function delay(action, time, repeats)
     local r = repeats or 0
-    local d = {}
-    function devent(c)
-        action(c) -- make the action aware of current iteration
-        if c > r then
-            metro.free(d.id)
-            d = nil
-        end
-    end
-    d = metro.init(devent, time)
-    if d then d:start() end
-    return d
+    return clock.run(function()
+            for i=1,1+r do
+                clock.sleep(time)
+                action(i)
+            end
+        end)
 end
 
 --- Just Intonation helpers
