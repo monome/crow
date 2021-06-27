@@ -3,6 +3,8 @@
 
 Asllib = {}
 
+-- note is deprecated for use in ASL
+-- if you're sequencing notes in time, use Sequins & Clock
 function note(mn, dur) return to(mn/12, dur, 'now') end
 
 function lfo(time, level, shape)

@@ -8,7 +8,6 @@ local Dynmt = {
 function Asl.new(id)
     local c = {id = id or 1}
     c.dyn = setmetatable({_names={}, id=c.id}, Dynmt) -- needs link to `id`
-    c.mutable = c.dyn -- alias mutable to dyn for more natural manipulation of named mutables
     setmetatable(c, Asl)
     return c
 end
@@ -43,11 +42,11 @@ function Asl.set_held(self, b)
     end
 end
 
--- direc(tive) can take 0/1 of false/true. ONLY has effect if there is a held{} construct
+-- direc(tive) can take 0/1 or false/true. ONLY has effect if there is a held{} construct
 -- truthy always restarts
 -- falsey means 'release'
 function Asl:action(direc)
-    if not direc then -- no arg is always 'restart'
+    if direc == nil then -- no arg is always 'restart'
         casl_action(self.id, 1)
     elseif direc == 'unlock' then casl_action(self.id, 2) -- release lock construct
     else -- set `held` dyn if it exists. call action unless no `held` and direc is falsey
@@ -112,6 +111,16 @@ end
 --- behavioural types
 -- available for dynamics so exposed variables can be musician-centric
 -- and mutables, where operations are destructive to the value for iteration
+
+local Matheds = {
+    step = function(t, inc) return t + inc end,
+    mul  = function(t, mul) return t * mul end,
+    wrap = function(t, min, max)
+        if min == 0 then return t % max
+        else return (t - min) % (max - min) + min end
+    end,
+}
+
 local Mathmt = {
     __unm = function(a)   return Asl.math{'~', a} end,
     __add = function(a,b) return Asl.math{'+', a, b} end,
@@ -119,6 +128,20 @@ local Mathmt = {
     __mul = function(a,b) return Asl.math{'*', a, b} end,
     __div = function(a,b) return Asl.math{'/', a, b} end,
     __mod = function(a,b) return Asl.math{'%', a, b} end, -- % is used to wrap to a range
+    __len = function(a)   return Asl.math{'#', a} end, -- freeze operator for mutables
+    __index = function(t, ix)
+        local fn = Matheds[ix]
+        if fn then
+            if t[1] == '#' then -- if parent is #(freeze), peel it off
+                t = t[2] -- NOTE this doesn't change the self table, must close over
+            else -- ==first method ==parent is DYN. convert it to NMUT
+                t[2] = {'NMUT', t[2]}
+            end
+            return function(nop, ...) -- ignore self, instead close over above 't'
+                return Asl.math{'#', fn(t, ...)}
+            end
+        end
+    end, -- enable method-chain on dynamics
 }
 function Asl.math(tab) return setmetatable(tab, Mathmt) end -- overload table with arithmetic semantics
 
