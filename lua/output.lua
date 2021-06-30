@@ -36,6 +36,9 @@ end
 -- setters
 Output.__newindex = function(self, ix, val)
     if ix == 'action' then
+        if type(val) == 'string' then -- resolve string ASL to datastructure
+            val = assert(load('return '..val))()
+        end
         self.asl:describe(val)
     elseif ix == 'volts' then
         self.asl:describe(to(val, self.slew, self.shape))
