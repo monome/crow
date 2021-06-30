@@ -8,7 +8,7 @@ crow development can mean many things, but if you want to write anything beyond 
 
 - [arm-none-eabi-gcc 4.9.3](https://launchpad.net/gcc-arm-embedded/4.9)
 - lua 5.2 or higher
-- dfu-util 0.8+
+- dfu-util 0.8+ OR python3 with pyusb
 
 ### Get the project
 - `git clone --recursive https://github.com/monome/crow.git`
@@ -44,10 +44,19 @@ exit.
 
 #### DFU Programmer
 
-For dfu programming over usb, replace `make` above with:
-- `make dfu`
+Before flashing with DFU, crow must be put into bootloader mode. That can be acheived with any of the following:
+* send `^^b` to crow from druid or similar
+* `make dfureset` *linux only, uses `stty`, assumes crow is on /dev/ttyACM0*
+* 'force' the bootloader by bridging i2c pins and resetting crow
+
+There are 2 options for DFU programming crow:
+
+* dfu-util: `make dfu`
+* pydfu: `make pydfu`
 
 This will build the project and then attempt to flash it over the crow USB port.
+
+`pydfu` is preferred as it has faster upload speeds, and less ambiguous error messaging.
 
 #### ST-link / Discovery board
 

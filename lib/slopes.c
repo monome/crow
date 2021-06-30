@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <math.h>
+#include <stdio.h>
 
 #include "stm32f7xx.h"
 
@@ -12,8 +13,8 @@
 ////////////////////////////////
 // global vars
 
-uint8_t slope_count = 0;
-Slope_t* slopes = NULL;
+static uint8_t slope_count = 0;
+static Slope_t* slopes = NULL;
 
 
 ////////////////////////////////
@@ -85,7 +86,6 @@ void S_toward( int        index
     if( index < 0 || index >= SLOPE_CHANNELS ){ return; }
     Slope_t* self = &slopes[index]; // safe pointer
 
-
     // update destination
     self->dest   = destination;
     self->shape  = shape;
@@ -97,7 +97,10 @@ void S_toward( int        index
         self->shaped    = self->dest;
         self->scale     = 0.0;
         self->here      = 1.0; // hard set to end of range
-        self->countdown = -1.0; // inactive
+        if(self->countdown > 0.0){
+            // only happens when assynchronously updating S_toward
+            self->countdown = -1.0; // inactive.
+        }
     } else {
         // save current output level as new starting point
         self->last   = self->shaped;
@@ -113,6 +116,8 @@ void S_toward( int        index
             self->here += overflow * self->delta;
             self->countdown -= overflow;
             if( self->countdown <= 0.0 ){ // guard against overflow hitting callback
+                printf("FIXME near immediate callback\n");
+                // FIXME this should apply the destination & call self->action
                 self->countdown = 0.00001; // force callback on next sample
                 self->here = 1.0; // set to destination
             }
@@ -131,7 +136,6 @@ float* S_step_v( int     index
 
     return step_v( self, out, size );
 }
-
 
 
 ///////////////////////
@@ -173,7 +177,7 @@ static float* motion_v( Slope_t* self, float* out, int size )
         for( int i=0; i<size; i++ ){
             *out2++ = self->here;
         }
-    } else {
+    } else { // WARN: requires size >= 1
         *out2++ = self->here + self->delta;
         for( int i=1; i<size; i++ ){
             *out2++ = *out3++ + self->delta;
@@ -200,12 +204,15 @@ static float* breakpoint_v( Slope_t* self, float* out, int size )
             // side-affects: self->{dest, shape, action, countdown, delta, (here)}
         }
         if( self->action != NULL ){ // instant callback
-            printf("FIXME: shouldn't happen on crow\n");
             *out++ = shaper( self, self->here );
             // 1. unwind self->countdown (ADD it to countdown)
             // 2. recalc current sample with new slope
             // 3. below call should be on out[0] and size
-            return step_v( self, out, size-1 );
+            if(size > 1){
+                return step_v( self, out, size-1 );
+            } else { // handle breakpoint on last sample of frame
+                return out;
+            }
         } else { // slope complete, or queued response
             self->here  = 1.0;
             self->delta = 0.0;

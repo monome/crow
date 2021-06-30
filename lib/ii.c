@@ -1,5 +1,6 @@
 #include "ii.h"
 
+#include <stdio.h>
 #include <string.h> // memcpy
 #include <stdbool.h>
 
@@ -239,33 +240,52 @@ static void lead_callback( uint8_t address, uint8_t command, uint8_t* rx_data )
                      );
 }
 
+static int _two_step_request = 0;
 static int follow_request( uint8_t* pdata )
 {
-    const ii_Cmd_t* c = ii_find_command(ii_get_address(), *pdata);
+    // remember previous response to enable separate TX/RX pairs for query
+    // some devices (eg Teletype) do requests as separate messages
+    static float response = 0.0;
+    static const ii_Cmd_t* c;
 
-    float args[c->args];
-    decode_packet( args, &pdata[1], c, 1 );
-    float response;
-    switch( c->cmd ){
-        case II_GET+3: // 'input'
-            response = IO_GetADC( (int)args[0] - 1 ); // i2c is 1-based
-            break;
-        case II_GET+4: // 'output'
-            response = S_get_state( (int)args[0] - 1 ); // i2c is 1-based
-            break;
-        default: // 'query'
-            // DANGER!! run the Lua callback directly!
-            response = L_handle_ii_followRxTx( c->cmd
-                            , c->args
-                            , args
-                            );
-            break;
+    if( _two_step_request == 1 ){
+        // response has already been set, so we just pass to encode
+        _two_step_request = 0; // unset 2-step
+    } else {
+        c = ii_find_command(ii_get_address(), *pdata);
+        float args[c->args];
+        decode_packet( args, &pdata[1], c, 1 );
+        switch( c->cmd ){
+            case II_GET+3: // 'input'
+                response = IO_GetADC( (int)args[0] - 1 ); // i2c is 1-based
+                break;
+            case II_GET+4: // 'output'
+                response = S_get_state( (int)args[0] - 1 ); // i2c is 1-based
+                break;
+            default: // 'query'
+                // DANGER!! run the Lua callback directly!
+                // Not safe, but going via event queue would introduce *big* latency
+                response = L_handle_ii_followRxTx( c->cmd
+                                , c->args
+                                , args
+                                );
+                break;
+        }
     }
     return encode( pdata, c->return_type, response );
 }
 
 static int follow_action( uint8_t* pdata )
 {
+    // some ii leaders (eg TT) do requests as an action with args followed by
+    // a request without args, which should use the prepared value
+    // here we capture GET cmds & prepare a val, and mark _two_step_request as true
+    if(ii_find_command(ii_get_address(), *pdata)->cmd >= II_GET){
+        follow_request(pdata); // process as a request, ignore response
+        _two_step_request = 1; // mark as a 2-step request
+        return 0;
+    }
+
     int ix = queue_enqueue( f_qix );
     if( ix < 0 ){
         printf("ii_follow queue overflow\n");

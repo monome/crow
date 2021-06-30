@@ -14,6 +14,7 @@ typedef struct{
     float  scaling;
     float  offset;
     bool   active;
+    float  state;
 } AShape_t;
 
 void AShaper_init( int channels );
@@ -25,6 +26,7 @@ void AShaper_set_scale( int    index
                       , float  modulo
                       , float  scaling
                       );
+float AShaper_get_state( int index );
 
 float* AShaper_v( int     index
                 , float*  out
