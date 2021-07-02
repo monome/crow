@@ -199,7 +199,7 @@ static void parse_table( Casl* self, lua_State* L )
 
         default:
             printf("ERROR unhandled parse type\n");
-            Caw_printf("ERROR unhandled parse type\n");
+            Caw_printf("ERROR ASL unhandled type. Do you have a function in your ASL? Replace it with dyn.\n");
             break;
     }
 }
