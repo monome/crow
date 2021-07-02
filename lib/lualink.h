@@ -1,12 +1,17 @@
 #pragma once
 
 #include <stdint.h>
+#include <stdbool.h>
 
 // Lua itself
 #include "../submodules/lua/src/lua.h" // lua_State*
 
 typedef void (*ErrorHandler_t)(char* error_message);
-struct lua_lib_locator{ const char* name; const char* addr_of_luacode; };
+struct lua_lib_locator{
+    const char* name;
+    const char* addr_of_luacode;
+    const bool stripped;
+};
 
 extern volatile int CPU_count; // count from main.c
 
