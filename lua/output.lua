@@ -50,7 +50,8 @@ end
 
 -- getters
 Output.__index = function(self, ix)
-    if ix == 'action' or ix == 'execute' then return self.asl.action
+    if ix == 'action' or ix == 'execute' then
+        return function(...) return self.asl:action(...) end
     elseif ix == 'volts' then return LL_get_state(self.channel)
     elseif ix == 'clock' then return Output.clock
     elseif ix == 'scale' then return
