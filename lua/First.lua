@@ -10,8 +10,14 @@ scale  = { {0,2,4,7,9}, {0,2,4,5,7,9,11} }
 decay  = 0.4
 attack = 0.04
 
-function set_d(t) decay = (t-1)/8 + 0.05 end
-function set_a(t) attack = (t-1)/64 + 0.003 end
+function set_d(t)
+  output[2].dyn.d = (t-1)/8 + 0.05
+  output[4].dyn.d = (t-1)/8 + 0.05
+end
+function set_a(t)
+  output[2].dyn.a = (t-1)/64 + 0.003
+  output[4].dyn.a = (t-1)/64 + 0.003
+end
 
 function play(out,ix)
   -- play rhythm
@@ -48,9 +54,6 @@ function lcg(seed)
   return sd
 end
 
-function get_d() return decay end
-function get_a() return attack end
-
 t = {0,0}
 function env(count)
   for i=1,2 do t[i] = t[i] + 1 end
@@ -83,10 +86,10 @@ function init()
   -- out params
   output[1].slew   = 0
   output[1].volts  = 0
-  output[2].action = ar(get_a,get_d)
+  output[2].action = ar(dyn{a=0.04},dyn{d=0.4})
   output[3].slew   = 0.01
   output[3].volts  = 0
-  output[4].action = ar(get_a,get_d)
+  output[4].action = ar(dyn{a=0.04},dyn{d=0.4})
 
   -- start sequence!
   input[1]{ mode = 'change', direction = 'rising' }
