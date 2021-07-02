@@ -49,17 +49,18 @@
 #define WATCHDOG_FREQ      0x100000 // ~1s how often we run the watchdog
 #define WATCHDOG_COUNT     2        // how many watchdogs before 'frozen'
 
+// mark the 3rd arg 'false' if you need to debug that library
 const struct lua_lib_locator Lua_libs[] =
     { { "lua_crowlib"   , lua_crowlib   , true}
     , { "lua_asl"       , lua_asl       , true}
     , { "lua_asllib"    , lua_asllib    , true}
-    , { "lua_clock"     , lua_clock     , false}
+    , { "lua_clock"     , lua_clock     , true}
     , { "lua_metro"     , lua_metro     , true}
     , { "lua_input"     , lua_input     , true}
     , { "lua_output"    , lua_output    , true}
     , { "lua_public"    , lua_public    , true}
-    , { "lua_ii"        , lua_ii        , false}
-    , { "build_iihelp"  , build_iihelp  , false}
+    , { "lua_ii"        , lua_ii        , true}
+    , { "build_iihelp"  , build_iihelp  , true}
     , { "lua_calibrate" , lua_calibrate , true}
     , { "lua_sequins"   , lua_sequins   , true}
     , { "lua_quote"     , lua_quote     , true}
