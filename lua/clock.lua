@@ -82,6 +82,7 @@ clock.cleanup = function()
       clock.cancel(id)
     end
   end
+  clock.tempo = 120
   clock.transport.start = nil
   clock.transport.stop = nil
 end
