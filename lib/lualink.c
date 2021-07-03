@@ -49,21 +49,22 @@
 #define WATCHDOG_FREQ      0x100000 // ~1s how often we run the watchdog
 #define WATCHDOG_COUNT     2        // how many watchdogs before 'frozen'
 
+// mark the 3rd arg 'false' if you need to debug that library
 const struct lua_lib_locator Lua_libs[] =
-    { { "lua_crowlib"   , lua_crowlib   }
-    , { "lua_asl"       , lua_asl       }
-    , { "lua_asllib"    , lua_asllib    }
-    , { "lua_clock"     , lua_clock     }
-    , { "lua_metro"     , lua_metro     }
-    , { "lua_input"     , lua_input     }
-    , { "lua_output"    , lua_output    }
-    , { "lua_public"    , lua_public    }
-    , { "lua_ii"        , lua_ii        }
-    , { "build_iihelp"  , build_iihelp  }
-    , { "lua_calibrate" , lua_calibrate }
-    , { "lua_sequins"   , lua_sequins   }
-    , { "lua_quote"     , lua_quote     }
-    , { NULL            , NULL          }
+    { { "lua_crowlib"   , lua_crowlib   , true}
+    , { "lua_asl"       , lua_asl       , true}
+    , { "lua_asllib"    , lua_asllib    , true}
+    , { "lua_clock"     , lua_clock     , true}
+    , { "lua_metro"     , lua_metro     , true}
+    , { "lua_input"     , lua_input     , true}
+    , { "lua_output"    , lua_output    , true}
+    , { "lua_public"    , lua_public    , true}
+    , { "lua_ii"        , lua_ii        , true}
+    , { "build_iihelp"  , build_iihelp  , true}
+    , { "lua_calibrate" , lua_calibrate , true}
+    , { "lua_sequins"   , lua_sequins   , true}
+    , { "lua_quote"     , lua_quote     , true}
+    , { NULL            , NULL          , true}
     };
 
 // Basic crow script
@@ -190,25 +191,19 @@ close_LL:
     return retval;
 }
 
-// STRIPPED removes debug info from crow libs to reduce RAM usage
-// TODO could flag this per file if we need debug info in some files
-#define STRIPPED 1
-static int _open_lib( const struct lua_lib_locator* lib, const char* name )
+static int _open_lib( lua_State *L, const struct lua_lib_locator* lib, const char* name )
 {
     uint8_t i = 0;
     while( lib[i].addr_of_luacode != NULL ){
         if( !strcmp( name, lib[i].name ) ){ // if the strings match
-            if( _load_chunk(L, lib[i].addr_of_luacode, STRIPPED) ){
-            // if( luaL_loadstring(L, lib[i].addr_of_luacode) ){ // old version. same as STRIPPED == 0
-                 printf("can't load library: %s\n", (char*)lib[i].name );
-                // lua error
+            if( _load_chunk(L, lib[i].addr_of_luacode, lib[i].stripped) ){
+                printf("can't load library: %s\n", (char*)lib[i].name );
                 printf( "%s\n", (char*)lua_tostring( L, -1 ) );
                 lua_pop( L, 1 );
                 return -1; // error
             }
             if( lua_pcall(L, 0, LUA_MULTRET, 0) ){
                 printf("can't exec library: %s\n", (char*)lib[i].name );
-                // lua error
                 printf( "%s\n", (char*)lua_tostring( L, -1 ) );
                 lua_pop( L, 1 );
                 return -1; // error
@@ -224,12 +219,12 @@ static int _dofile( lua_State *L )
 {
     const char* l_name = luaL_checkstring(L, 1);
     lua_pop( L, 1 );
-    switch( _open_lib( Lua_libs, l_name ) ){
+    switch( _open_lib( L, Lua_libs, l_name ) ){
         case -1: goto fail;
         case 1: return 1;
         default: break;
     }
-    switch( _open_lib( Lua_ii_libs, l_name ) ){
+    switch( _open_lib( L, Lua_ii_libs, l_name ) ){
         case -1: goto fail;
         case 1: return 1;
         default: break;
