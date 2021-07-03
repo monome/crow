@@ -9,7 +9,7 @@ function make_lualink(files)
     ll = ll .. '\n'
             .. 'const struct lua_lib_locator Lua_ii_libs[] = {\n'
     for _,f in ipairs(files) do
-        ll = ll .. '\t{ \"build_ii_' .. f.lua_name .. '\", build_ii_' .. f.lua_name .. ' },\n'
+        ll = ll .. '\t{ \"build_ii_' .. f.lua_name .. '\", build_ii_' .. f.lua_name .. ', true },\n'
     end
     ll = ll .. '\t{ NULL, NULL } };\n'
     return ll

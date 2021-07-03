@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <string.h> // strcmp(), strlen()
+#include <stdlib.h>
 
 // Lua itself
 //#include "../submodules/lua/src/lua.h" // in header
@@ -10,15 +11,18 @@
 
 // Hardware IO
 #include "lib/slopes.h"     // S_toward
+#include "lib/casl.h"       // C-ASL
 #include "lib/ashapes.h"    // AShaper_unset_scale(), AShaper_set_scale()
 #include "lib/detect.h"     // Detect*
 #include "lib/caw.h"        // Caw_send_*()
 #include "lib/ii.h"         // ii_*()
 #include "lib/bootloader.h" // bootloader_enter()
 #include "lib/metro.h"      // metro_start() metro_stop() metro_set_time()
+#include "lib/clock.h"      // clock_*()
 #include "lib/io.h"         // IO_GetADC()
 #include "../ll/random.h"   // Random_Get()
-#include "../ll/adda.h"     // CAL_Recalibrate() CAL_PrintCalibration()
+#include "../ll/adda.h"     // CAL_*()
+#include "../ll/cal_ll.h"   // CAL_LL_ActiveChannel()
 #include "../ll/system.h"   // getUID_Word()
 #include "lib/events.h"     // event_t event_post()
 #include "stm32f7xx_hal.h"  // HAL_GetTick()
@@ -29,18 +33,23 @@
 #include "lua/crowlib.lua.h"
 #include "lua/asl.lua.h"
 #include "lua/asllib.lua.h"
+#include "lua/clock.lua.h"
 #include "lua/metro.lua.h"
+#include "lua/public.lua.h"
 #include "lua/input.lua.h"
 #include "lua/output.lua.h"
 #include "lua/ii.lua.h"
 #include "build/iihelp.lua.h"    // generated lua stub for loading i2c modules
 #include "lua/calibrate.lua.h"
+#include "lua/sequins.lua.h"
+#include "lua/quote.lua.h"
 
 #include "build/ii_lualink.h" // generated C header for linking to lua
 
 #define WATCHDOG_FREQ      0x100000 // ~1s how often we run the watchdog
 #define WATCHDOG_COUNT     2        // how many watchdogs before 'frozen'
 
+// mark the 3rd arg 'false' if you need to debug that library
 const struct lua_lib_locator Lua_libs[] =
     { { "lua_crowlib"   , lua_crowlib   }
     , { "lua_asl"       , lua_asl       }
@@ -52,6 +61,20 @@ const struct lua_lib_locator Lua_libs[] =
     , { "build_iihelp"  , build_iihelp  }
     , { "lua_calibrate" , lua_calibrate }
     , { NULL            , NULL          }
+    { { "lua_crowlib"   , lua_crowlib   , true}
+    , { "lua_asl"       , lua_asl       , true}
+    , { "lua_asllib"    , lua_asllib    , true}
+    , { "lua_clock"     , lua_clock     , true}
+    , { "lua_metro"     , lua_metro     , true}
+    , { "lua_input"     , lua_input     , true}
+    , { "lua_output"    , lua_output    , true}
+    , { "lua_public"    , lua_public    , true}
+    , { "lua_ii"        , lua_ii        , true}
+    , { "build_iihelp"  , build_iihelp  , true}
+    , { "lua_calibrate" , lua_calibrate , true}
+    , { "lua_sequins"   , lua_sequins   , true}
+    , { "lua_quote"     , lua_quote     , true}
+    , { NULL            , NULL          , true}
     };
 
 // Basic crow script
@@ -65,7 +88,7 @@ static int Lua_handle_error( lua_State* L );
 static void timeouthook( lua_State* L, lua_Debug* ar );
 
 // Handler prototypes
-void L_handle_toward( event_t* e );
+void L_handle_asl_done( event_t* e );
 void L_handle_metro( event_t* e );
 void L_handle_stream( event_t* e );
 void L_handle_change( event_t* e );
@@ -76,6 +99,9 @@ void L_handle_window( event_t* e );
 void L_handle_in_scale( event_t* e );
 void L_handle_volume( event_t* e );
 void L_handle_peak( event_t* e );
+void L_handle_clock_resume( event_t* e );
+void L_handle_clock_start( event_t* e );
+void L_handle_clock_stop( event_t* e );
 void L_handle_freq( event_t* e );
 
 void _printf(char* error_message)
@@ -109,6 +135,7 @@ lua_State* Lua_Reset( void )
         S_toward( i, 0.0, 0.0, SHAPE_Linear, NULL );
     }
     events_clear();
+    clock_cancel_coro_all();
     Lua_DeInit();
     return Lua_Init();
 }
@@ -132,14 +159,61 @@ void Lua_DeInit(void)
 // to avoid shadowing similar-named extern functions in other modules
 // and also to distinguish from extern 'L_' functions.
 
-static int _find_lib( const struct lua_lib_locator* lib, const char* name )
+// this is a somewhat arbitrary size. must be big enough for the biggest library. 8kB was too small
+#define SIZED_STRING_LEN 0x4000 // (16kB)
+struct sized_string{
+    char data[SIZED_STRING_LEN];
+    int  len;
+};
+static int _writer(lua_State *L, const void *p, size_t sz, void *ud)
+{
+    UNUSED(L);
+    struct sized_string* chunkstr = ud; /// need explicit cast?
+    if(chunkstr->len + sz >= SIZED_STRING_LEN){
+        printf("chunkstr too small.\n");
+        return 1;
+    }
+    memcpy(&chunkstr->data[chunkstr->len], p, sz);
+    chunkstr->len += sz;
+    return 0;
+}
+static int _load_chunk(lua_State* L, const char* code, int strip)
+{
+    int retval = 0;
+    struct sized_string chunkstr = {.len = 0};
+    { // scope lua_State to destroy it asap
+        lua_State* LL=luaL_newstate();
+        if( !LL ){ printf("luaL_newstate failed\n"); return 1; }
+        if( luaL_loadstring(LL, code) ){
+            printf("loadstring error\n");
+            retval = 1;
+            goto close_LL;
+        }
+        if( lua_dump(LL, _writer, &chunkstr, strip) ){
+            printf("dump error\n");
+            retval = 1;
+            goto close_LL;
+        }
+close_LL:
+        lua_close(LL);
+    }
+    luaL_loadbuffer(L, chunkstr.data, chunkstr.len, chunkstr.data); // load our compiled chunk
+    return retval;
+}
+
+static int _open_lib( lua_State *L, const struct lua_lib_locator* lib, const char* name )
 {
     uint8_t i = 0;
     while( lib[i].addr_of_luacode != NULL ){
         if( !strcmp( name, lib[i].name ) ){ // if the strings match
-            if( luaL_dostring( L, lib[i].addr_of_luacode ) ){
+            if( _load_chunk(L, lib[i].addr_of_luacode, lib[i].stripped) ){
                 printf("can't load library: %s\n", (char*)lib[i].name );
-                // lua error
+                printf( "%s\n", (char*)lua_tostring( L, -1 ) );
+                lua_pop( L, 1 );
+                return -1; // error
+            }
+            if( lua_pcall(L, 0, LUA_MULTRET, 0) ){
+                printf("can't exec library: %s\n", (char*)lib[i].name );
                 printf( "%s\n", (char*)lua_tostring( L, -1 ) );
                 lua_pop( L, 1 );
                 return -1; // error
@@ -155,17 +229,17 @@ static int _dofile( lua_State *L )
 {
     const char* l_name = luaL_checkstring(L, 1);
     lua_pop( L, 1 );
-    switch( _find_lib( Lua_libs, l_name ) ){
+    switch( _open_lib( L, Lua_libs, l_name ) ){
         case -1: goto fail;
         case 1: return 1;
         default: break;
     }
-    switch( _find_lib( Lua_ii_libs, l_name ) ){
+    switch( _open_lib( L, Lua_ii_libs, l_name ) ){
         case -1: goto fail;
         case 1: return 1;
         default: break;
     }
-    printf("can't find library: %s\n", (char*)l_name);
+    printf("can't open library: %s\n", (char*)l_name);
 fail:
     lua_pushnil(L);
     return 1;
@@ -188,40 +262,38 @@ static int _print_serial( lua_State *L )
 static int _print_tell( lua_State *L )
 {
     int nargs = lua_gettop(L);
-    char teller[60];
     // nb: luaL_checkstring() will coerce ints & nums into strings
     switch( nargs ){
         case 0:
             return luaL_error(L, "no event to tell.");
         case 1:
-            sprintf( teller, "^^%s()", luaL_checkstring(L, 1) );
+            Caw_printf( "^^%s()", luaL_checkstring(L, 1) );
             break;
         case 2:
-            sprintf( teller, "^^%s(%s)", luaL_checkstring(L, 1)
-                                       , luaL_checkstring(L, 2) );
+            Caw_printf( "^^%s(%s)", luaL_checkstring(L, 1)
+                                  , luaL_checkstring(L, 2) );
             break;
         case 3:
-            sprintf( teller, "^^%s(%s,%s)", luaL_checkstring(L, 1)
-                                          , luaL_checkstring(L, 2)
-                                          , luaL_checkstring(L, 3) );
+            Caw_printf( "^^%s(%s,%s)", luaL_checkstring(L, 1)
+                                     , luaL_checkstring(L, 2)
+                                     , luaL_checkstring(L, 3) );
             break;
         case 4:
-            sprintf( teller, "^^%s(%s,%s,%s)", luaL_checkstring(L, 1)
-                                             , luaL_checkstring(L, 2)
-                                             , luaL_checkstring(L, 3)
-                                             , luaL_checkstring(L, 4) );
+            Caw_printf( "^^%s(%s,%s,%s)", luaL_checkstring(L, 1)
+                                        , luaL_checkstring(L, 2)
+                                        , luaL_checkstring(L, 3)
+                                        , luaL_checkstring(L, 4) );
             break;
         case 5:
-            sprintf( teller, "^^%s(%s,%s,%s,%s)", luaL_checkstring(L, 1)
-                                                , luaL_checkstring(L, 2)
-                                                , luaL_checkstring(L, 3)
-                                                , luaL_checkstring(L, 4)
-                                                , luaL_checkstring(L, 5) );
+            Caw_printf( "^^%s(%s,%s,%s,%s)", luaL_checkstring(L, 1)
+                                           , luaL_checkstring(L, 2)
+                                           , luaL_checkstring(L, 3)
+                                           , luaL_checkstring(L, 4)
+                                           , luaL_checkstring(L, 5) );
             break;
         default:
             return luaL_error(L, "too many args to tell.");
     }
-    Caw_send_luachunk( teller );
     lua_pop( L, nargs );
     lua_settop(L, 0);
     return 0;
@@ -248,18 +320,6 @@ static int _cpu_time( lua_State *L )
     // returns count of background loops for the last 8ms
     lua_pushinteger(L, CPU_GetCount());
     return 1;
-}
-static int _go_toward( lua_State *L )
-{
-    S_toward( luaL_checkinteger(L, 1)-1 // C is zero-based
-            , luaL_checknumber(L, 2)
-            , luaL_checknumber(L, 3) * 1000.0
-            , S_str_to_shape( luaL_checkstring(L, 4) )
-            , L_queue_toward
-            );
-    lua_pop( L, 4 );
-    lua_settop(L, 0);
-    return 0;
 }
 static int _get_state( lua_State *L )
 {
@@ -468,6 +528,74 @@ static int _set_input_freq( lua_State *L )
     lua_settop(L, 0);
     return 0;
 }
+static int _set_input_clock( lua_State *L )
+{
+    uint8_t ix = luaL_checkinteger(L, 1)-1;
+    Detect_t* d = Detect_ix_to_p( ix ); // Lua is 1-based
+    if(d){ // valid index
+        clock_set_source(CLOCK_SOURCE_CROW);
+        clock_crow_in_div(luaL_checknumber(L, 2));
+        Detect_change( d
+                     , clock_input_handler
+                     , luaL_checknumber(L, 3)
+                     , luaL_checknumber(L, 4)
+                     , Detect_str_to_dir("r")
+                     );
+    }
+    lua_pop( L, 4 );
+    lua_settop(L, 0);
+    return 0;
+}
+
+// CASL
+static int _casl_describe( lua_State *L )
+{
+    casl_describe( luaL_checkinteger(L, 1)-1 // C is zero-based
+                 , L // descriptor is on top of the stack
+                 );
+    lua_pop( L, 2 );
+    lua_settop(L, 0);
+    return 0;
+}
+static int _casl_action( lua_State *L )
+{
+    casl_action( luaL_checkinteger(L, 1)-1 // C is zero-based
+               , luaL_checkinteger(L, 2) );
+    lua_pop(L, 2);
+    lua_settop(L, 0);
+    return 0;
+}
+static int _casl_defdynamic( lua_State *L )
+{
+    int c_ix = luaL_checkinteger(L, 1)-1; // lua is 1-based
+    lua_pop(L, 1);
+    lua_pushinteger( L, casl_defdynamic( c_ix ) );
+    return 1;
+}
+static int _casl_cleardynamics( lua_State *L )
+{
+    casl_cleardynamics( luaL_checkinteger(L, 1)-1 ); // lua is 1-based
+    lua_pop(L, 1);
+    return 0;
+}
+static int _casl_setdynamic( lua_State *L )
+{
+    casl_setdynamic( luaL_checkinteger(L, 1)-1 // lua is 1-based
+                   , luaL_checkinteger(L, 2)
+                   , luaL_checknumber(L, 3)
+                   );
+    lua_pop(L, 3);
+    return 0;
+}
+static int _casl_getdynamic( lua_State *L )
+{
+    float d = casl_getdynamic( luaL_checkinteger(L, 1)-1 // lua is 1-based
+                             , luaL_checkinteger(L, 2)
+                             );
+    lua_pop(L, 2);
+    lua_pushnumber(L, d);
+    return 1;
+}
 
 static int _send_usb( lua_State *L )
 {
@@ -492,12 +620,14 @@ static int _ii_list_commands( lua_State *L )
     uint8_t address = luaL_checkinteger(L, 1);
     printf("i2c help %i\n", address);
     Caw_send_luachunk( (char*)ii_list_cmds(address) );
+    lua_pop(L, 1);
     return 0;
 }
 
 static int _ii_pullup( lua_State *L )
 {
     ii_set_pullups( luaL_checkinteger(L, 1) );
+    lua_pop(L, 1);
     return 0;
 }
 
@@ -613,17 +743,146 @@ static int _random_int( lua_State* L )
     return 1;
 }
 
-static int _calibrate_now( lua_State* L )
+static int _calibrate_source( lua_State* L )
 {
-    CAL_Recalibrate( (lua_gettop(L)) ); // if arg present, use defaults
-    lua_settop(L, 0);
+    int chan = -1;
+    const char* src = luaL_checkstring(L, 1); // get string, or coerce int to string
+    if( strlen(src) > 1 ){ // assume string
+        switch(src[0]){ case 'g':{ chan=5; break; }
+                        case '2':{ chan=4; break; }
+        }
+    } else {
+        switch(src[0]){ case '1':{ chan=3; break; }
+                        case '2':{ chan=2; break; }
+                        case '3':{ chan=1; break; }
+                        case '4':{ chan=0; break; }
+        }
+    }
+    if(chan != -1){
+        CAL_LL_ActiveChannel(chan);
+    } else {
+        Caw_send_luachunk("cal.source: unknown source. use {1,2,3,4,'gnd','2v5'}");
+    }
+    lua_pop(L, 1);
     return 0;
 }
-static int _calibrate_print( lua_State* L )
+static int _calibrate_get( lua_State* L )
 {
-    CAL_PrintCalibration();
+    int chan = luaL_checkinteger(L, 1);
+    const char* msg = luaL_checkstring(L, 2);
+    float r = CAL_Get(chan, (msg[0]=='o') ? CAL_Offset : CAL_Scale);
+    lua_pop(L, 2);
+    lua_pushnumber(L, r);
+    return 1;
+}
+static int _calibrate_set( lua_State* L )
+{
+    int chan = luaL_checkinteger(L, 1);
+    const char* msg = luaL_checkstring(L, 2);
+    float val = luaL_checknumber(L, 3);
+    CAL_Set(chan, (msg[0]=='o') ? CAL_Offset : CAL_Scale, val);
+    lua_pop(L, 3);
     return 0;
 }
+static int _calibrate_save( lua_State* L )
+{
+    CAL_WriteFlash();
+    return 0;
+}
+
+// clock
+static int _clock_cancel( lua_State* L )
+{
+    int coro_id = (int)luaL_checkinteger(L, 1);
+    clock_cancel_coro(coro_id);
+    lua_pop(L, 1);
+    return 0;
+}
+static int _clock_schedule_sleep( lua_State* L )
+{
+    int coro_id = (int)luaL_checkinteger(L, 1);
+    float seconds = luaL_checknumber(L, 2);
+
+    if( seconds <= 0 ){
+        L_queue_clock_resume(coro_id); // immediate callback
+    } else {
+        clock_schedule_resume_sleep(coro_id, seconds);
+    }
+    lua_pop(L, 2);
+    return 0;
+}
+static int _clock_schedule_sync( lua_State* L )
+{
+    int coro_id = (int)luaL_checkinteger(L, 1);
+    float beats = luaL_checknumber(L, 2);
+
+    if (beats <= 0) {
+        L_queue_clock_resume(coro_id); // immediate callback
+    } else {
+        clock_schedule_resume_sync(coro_id, beats);
+    }
+    lua_pop(L, 2);
+    return 0;
+}
+static int _clock_get_time_beats( lua_State* L )
+{
+    lua_pushnumber(L, clock_get_time_beats());
+    return 1;
+}
+static int _clock_get_tempo( lua_State* L )
+{
+    lua_pushnumber(L, clock_get_tempo());
+    return 1;
+}
+static int _clock_set_source( lua_State* L )
+{
+    clock_set_source( (int)luaL_checkinteger(L, 1)-1 ); // lua is 1-based
+    lua_pop(L, 1);
+    return 0;
+}
+static int _clock_internal_set_tempo( lua_State* L )
+{
+    float bpm = luaL_checknumber(L, 1);
+    clock_internal_set_tempo(bpm);
+    lua_pop(L, 1);
+    return 0;
+}
+static int _clock_internal_start( lua_State* L )
+{
+    float new_beat = luaL_checknumber(L, 1);
+    clock_set_source(CLOCK_SOURCE_INTERNAL);
+    clock_internal_start(new_beat, true);
+    lua_pop(L, 1);
+    return 0;
+}
+static int _clock_internal_stop( lua_State* L )
+{
+    clock_set_source(CLOCK_SOURCE_INTERNAL);
+    clock_internal_stop();
+    return 0;
+}
+
+static int _pub_view_in( lua_State* L )
+{
+    int chan = luaL_checkinteger(L, 1)-1; // lua is 1-based
+    bool state;
+    if(lua_isboolean(L, 2)){ state = lua_toboolean(L, 2); }
+    else{ state = (bool)lua_tointeger(L, 2); }
+    IO_public_set_view(chan+4, state);
+    lua_pop(L, 2);
+    return 0;
+}
+static int _pub_view_out( lua_State* L )
+{
+    int chan = luaL_checkinteger(L, 1)-1; // lua is 1-based
+    bool state;
+    if(lua_isboolean(L, 2)){ state = lua_toboolean(L, 2); }
+    else{ state = (bool)lua_tointeger(L, 2); }
+    IO_public_set_view(chan, state);
+    lua_pop(L, 2);
+    return 0;
+}
+
 
 // array of all the available functions
 static const struct luaL_Reg libCrow[]=
@@ -639,7 +898,6 @@ static const struct luaL_Reg libCrow[]=
     , { "cputime"          , _cpu_time         }
     //, { "sys_cpu_load"     , _sys_cpu          }
         // io
-    , { "go_toward"        , _go_toward        }
     , { "get_state"        , _get_state        }
     , { "set_output_scale" , _set_scale        }
     , { "io_get_input"     , _io_get_input     }
@@ -651,6 +909,14 @@ static const struct luaL_Reg libCrow[]=
     , { "set_input_volume" , _set_input_volume }
     , { "set_input_peak"   , _set_input_peak   }
     , { "set_input_freq"   , _set_input_freq   }
+    , { "set_input_clock"  , _set_input_clock  }
+        // casl
+    , { "casl_describe"    , _casl_describe    }
+    , { "casl_action"      , _casl_action      }
+    , { "casl_defdynamic"  , _casl_defdynamic  }
+    , { "casl_cleardynamics", _casl_cleardynamics }
+    , { "casl_setdynamic"  , _casl_setdynamic  }
+    , { "casl_getdynamic"  , _casl_getdynamic  }
         // usb
     , { "send_usb"         , _send_usb         }
         // i2c
@@ -669,8 +935,24 @@ static const struct luaL_Reg libCrow[]=
     , { "random_float"     , _random_float     }
     , { "random_int"       , _random_int       }
         // calibration
-    , { "calibrate_now"    , _calibrate_now    }
-    , { "calibrate_print"  , _calibrate_print  }
+    , { "calibrate_source" , _calibrate_source }
+    , { "calibrate_get"    , _calibrate_get    }
+    , { "calibrate_set"    , _calibrate_set    }
+    , { "calibrate_save"   , _calibrate_save   }
+        // clock
+    , { "clock_cancel"             , _clock_cancel             }
+    , { "clock_schedule_sleep"     , _clock_schedule_sleep     }
+    , { "clock_schedule_sync"      , _clock_schedule_sync      }
+    , { "clock_get_time_beats"     , _clock_get_time_beats     }
+    , { "clock_get_tempo"          , _clock_get_tempo          }
+    , { "clock_set_source"         , _clock_set_source         }
+        // clock.internal
+    , { "clock_internal_set_tempo" , _clock_internal_set_tempo }
+    , { "clock_internal_start"     , _clock_internal_start     }
+    , { "clock_internal_stop"      , _clock_internal_stop      }
+        // public
+    , { "pub_view_in"       , _pub_view_in      }
+    , { "pub_view_out"      , _pub_view_out     }
 
     , { NULL               , NULL              }
     };
@@ -728,6 +1010,7 @@ void Lua_crowbegin( void )
     if( Lua_call_usercode(L,0,0) != LUA_OK ){
         lua_pop(L, 1);
     }
+    Caw_send_luachunk("^^ready()"); // inform host that script is initialized
 }
 
 
@@ -780,16 +1063,16 @@ static int Lua_call_usercode( lua_State* L, int nargs, int nresults )
 
 
 // Public Callbacks from C to Lua
-void L_queue_toward( int id )
+void L_queue_asl_done( int id )
 {
-    event_t e = { .handler = L_handle_toward
+    event_t e = { .handler = L_handle_asl_done
                 , .index.i = id
                 };
     event_post(&e);
 }
-void L_handle_toward( event_t* e )
+void L_handle_asl_done( event_t* e )
 {
-    lua_getglobal(L, "toward_handler");
+    lua_getglobal(L, "asl_done_handler");
     lua_pushinteger(L, e->index.i + 1); // 1-ix'd
     if( Lua_call_usercode(L, 1, 0) != LUA_OK ){
         lua_pop( L, 1 );
@@ -1007,6 +1290,48 @@ void L_handle_freq( event_t* e )
     lua_pushinteger(L, e->index.i +1); // 1-ix'd
     lua_pushnumber(L, e->data.f);
     if( Lua_call_usercode(L, 2, 0) != LUA_OK ){
+        lua_pop( L, 1 );
+    }
+}
+
+void L_queue_clock_resume( int coro_id )
+{
+    event_t e = { .handler = L_handle_clock_resume
+                , .index.i = coro_id
+                };
+    event_post(&e);
+}
+void L_handle_clock_resume( event_t* e )
+{
+    lua_getglobal(L, "clock_resume_handler");
+    lua_pushinteger(L, e->index.i);
+    if( Lua_call_usercode(L, 1, 0) != LUA_OK ){
+        lua_pop( L, 1 );
+    }
+}
+
+void L_queue_clock_start( void )
+{
+    event_t e = { .handler = L_handle_clock_start };
+    event_post(&e);
+}
+void L_handle_clock_start( event_t* e )
+{
+    lua_getglobal(L, "clock_start_handler");
+    if( Lua_call_usercode(L, 0, 0) != LUA_OK ){
+        lua_pop( L, 1 );
+    }
+}
+
+void L_queue_clock_stop( void )
+{
+    event_t e = { .handler = L_handle_clock_stop };
+    event_post(&e);
+}
+void L_handle_clock_stop( event_t* e )
+{
+    lua_getglobal(L, "clock_stop_handler");
+    if( Lua_call_usercode(L, 0, 0) != LUA_OK ){
         lua_pop( L, 1 );
     }
 }

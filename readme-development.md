@@ -110,6 +110,22 @@ Then you can upload to crow with `make dfu` or `make flash`.
 
 If you want to improve the way lua code is included in the binary see issue [#40](https://github.com/monome/crow/issues/40).
 
+## Making a Release
+
+Once new changes are tested & ready for production, follow these steps to provide a new release:
+
+* `git merge` all changes to `main` branch (if there's conflicts, something went wrong & needs more testing). This step can also be done from within github if preferred.
+* (optional) `make` to ensure there's no errors or warnings
+* edit `version.txt` with new semantic version & webaddress (you can make a github draft release if needed)
+* `git commit -m "release X.X.X"`
+* `git tag vX.X.X` with semantic version
+* `git push` uploads the changes
+* `git push --tags` uploads tags (i think this also does a plain `git push` but am unsure)
+* `make clean` so new tag will take effect
+* `make zip` to build all binaries and create the zip archive
+* Make a github Release & upload `crow-vX.X.X.zip` AND `crow.dfu`. Describe the release & manually add Changelog
+* (probably) make a new lines thread announcing the release (provides forum for feedback)
+
 ## Project structure
 
 - `ll/*`: all the low-level hardware drivers written in C using STM32 HAL.

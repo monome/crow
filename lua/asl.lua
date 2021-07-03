@@ -1,332 +1,171 @@
---- A Slope Language
--- declarative scripts for time-based event structures
--- scripts can have compile-time, or call-time behaviour and
--- query hardware states at the appropriate time
-
 local Asl = {}
-Asl.__index = Asl
+
+local Dynmt = {
+    __newindex = function(self, k, v) casl_setdynamic(self.id, self._names[k], v) end,
+    __index = function(self, k) return casl_getdynamic(self.id, self._names[k]) end
+}
 
 function Asl.new(id)
-    local asl = {}
-    if id == nil then print'asl needs id of output channel' end
-    asl.id      = id or 1  -- id defaults to 1
-    asl.exe     = {}       -- a coroutine to be!
-    asl.hold    = false    -- is the slope trigger currently held high
-    asl.in_hold = false    -- is eval currently in a held construct
-    asl.locked  = false    -- flag to lockout bangs during lock{}
-    asl.running = false    -- flag to mark if asl is active
-    asl.retStk = {}
-    asl.pc = 1
-    asl.done = function() end -- function that does nothing
-    setmetatable( asl, Asl )
-    return asl
+    local c = {id = id or 1}
+    c.dyn = setmetatable({_names={}, id=c.id}, Dynmt) -- needs link to `id`
+    setmetatable(c, Asl)
+    return c
 end
 
-function Asl:init() -- reset to defaults
-    self.exe     = {}
-    self.hold    = false  -- is the slope trigger currently held high
-    self.in_hold = false  -- is eval currently in a held construct
-    self.locked  = false  -- flag to lockout bangs during lock{}
-    self.running = false  -- flag to mark if asl is active
-    self.retStk = {}
-    self.pc = 1
-    return self
-end
-
-
--------------------------------
--- setting & calling .action
-
-local function set_action( self, exe )
-    if type(exe) == 'function' then
-        self.exe = {exe}
-    else self.exe = exe end
-    self.hold   = false
-    self.locked = false
-    self.retStk = {}
-    self.pc = 1
-end
-
-local function do_action( self, dir )
-    self.running = true  -- mark asl as running
-    local t = type(dir)
-    if t == 'table' or t == 'function' then
-        set_action(self,dir) -- assign new action. dir is an ASL!
-        self.hold = true           -- call it!
-    elseif t == 'string' then
-        if dir == '' or dir == 'start' then
-            self.hold = true
-        elseif dir == 'restart' or dir == 'attack' then
-            self.hold = true
-            Asl.restart(self)
-        elseif dir == 'release' then
-            self.hold = false
-            Asl.release(self)
-        elseif dir == 'step' then -- do nothing
-        elseif dir == 'unlock' then self.locked = false
-        elseif dir == 'nil' then self.hold = true -- simulating a nil call
-        else print'ERROR unmatched action string'
-        end
-    elseif t == 'boolean' then
-        self.hold = dir
-        if not dir then
-            Asl.release(self)
-        end
-    else self.hold = true
-    end
-
-    if not self.locked then
-        if Asl.isOver(self) then Asl.restart(self) end
-        Asl.step(self)
-    end
-end
-
-
--------------------------------------
--- metamethods for handling .action
-
-Asl.__newindex = function(self, ix, val)
-    if ix == 'action' then set_action( self, val) end
-end
-
-Asl.__index = function(self, ix)
-    if ix == 'action' then
-        return function(self,a) do_action(self,a) end
-    elseif ix == 'step' then return Asl.step
-    elseif ix == 'init' then return Asl.init
-    -- private fns below (called from step)
-    elseif ix == 'nek' then return Asl.nek
-    elseif ix == 'enter' then return Asl.enter
-    elseif ix == 'exit' then return Asl.exit
-    elseif ix == 'recur' then return Asl.recur
-    elseif ix == 'release' then return Asl.release
-    elseif ix == 'restart' then return Asl.restart
-    elseif ix == 'cleanup' then return Asl.cleanup
-    elseif ix == 'isOver' then return Asl.cleanup
-    end
-end
-
-
---------------------------------------------
--- program counter (runtime) manipulations
-
-local function get_frame( self )
-    local f = self.exe
-    for i=1, #self.retStk do
-        f = f[self.retStk[i]]
-    end
-    return f
-end
-
--- Asl:step() is the primary entry point for a to-callback
-function Asl:step()
-    if self.exe == nil then print'no asl active' return end
-
-    -- get the new frame
-    -- escape up a layer if it doesn't exist & recurse
-    local p = get_frame(self)[self.pc]
-    if not p then
-        if self:exit() then
-            if self:nek() then print'layer doesnt exist'
-            else self:step() end
+-- returns a copy of the table, so a description can be re-used
+function Asl.link(self, tab)
+    local t2 = {}
+    for k,v in pairs(tab) do
+        local typ = type(v)
+        if typ == 'function' then
+            return v(self, tab[2]) -- call compiler fn with self & return new table
+            -- early return bc fn must be in the first position, and consumes following arg
+        elseif typ == 'table' then
+            t2[k] = Asl.link(self, v) -- link nested tables (won't copy unchanged tables)
         else
-            self.running = false
-            self.done() -- user callback on completion
+            t2[k] = v -- copy value into new table
         end
-        return
     end
+    return t2
+end
 
-    -- execute the next element in the asl table
-    local t = type(p)
-    if t == 'function' then
-        -- run a function & recurse until seeing a 'wait'
-        -- 'wait' is typically the result of a call to 'to'
-        local wait = p(self)
-        if self:nek() then print'last exit'
-        elseif not wait then self:step()
-        end
-    elseif t == 'string' then
-        -- skip strings (they are comments or tags)
-        if self:nek() then print'string exit'
-        else self:step() end
-    elseif t == 'table' then
-        -- enter a table which should contain another asl
-        self:enter(p):step()
+function Asl:describe(d)
+    casl_cleardynamics(self.id)
+    self.dyn._names = {} -- clear local dynamic refs
+    casl_describe(self.id, Asl.link(self, d))
+end
+
+function Asl.set_held(self, b)
+    if self.dyn._held then
+        self.dyn._held = b
+        return true -- ie. success in setting
     end
 end
 
-function Asl:nek()
-    if self.pc then
-        self.pc = self.pc + 1
-    else return 'over' end
-end
-
-function Asl:enter( fns )
-    table.insert( self.retStk, self.pc )
-    self.pc = 1
-    return self
-end
-
-function Asl:exit()
-    if next(self.retStk) then -- return stack non empty
-        self.pc = table.remove( self.retStk )
-        return true
+-- direc(tive) can take 0/1 or false/true. ONLY has effect if there is a held{} construct
+-- truthy always restarts
+-- falsey means 'release'
+function Asl:action(direc)
+    if direc == nil then -- no arg is always 'restart'
+        casl_action(self.id, 1)
+    elseif direc == 'unlock' then casl_action(self.id, 2) -- release lock construct
+    else -- set `held` dyn if it exists. call action unless no `held` and direc is falsey
+        local s = (direc == true or direc == 1) and 1 or 0
+        if Asl.set_held(self, s) or s==1 then casl_action(self.id, s) end
     end
 end
 
-function Asl:recur()
-    self.pc = 0
+
+function Asl.dyn_compiler(self, d)
+    -- register a dynamic pair {name=default}, and return a reference to it
+    local elem, typ = d, 'DYN'
+    if d[1] == 'NMUT' then elem, typ = d[2], 'NMUT' end -- unwrap named mutables
+    local k,v = next(elem)
+    if not self.dyn._names[k] then -- check if it's a new entry
+        self.dyn._names[k] = casl_defdynamic(self.id)
+    end
+    local ref = self.dyn._names[k]
+    self.dyn[k] = v -- set the default
+    return {typ, ref}
 end
 
-function Asl:isOver()
-    if #self.retStk == 0 and self.pc > #self.exe then
-        return true
+
+-- metatables
+Asl.__index = function(self, ix)
+    if     ix == 'describe' then return Asl.describe
+    elseif ix == 'action' then return Asl.action
     end
 end
+setmetatable(Asl, Asl)
 
-function Asl:restart()
-    self.retStk = {}
-    self.pc = 1
+
+-- basic constructs
+function to(volts, time, shape)
+    return {'TO', volts or 0.0, time or 1.0, shape or 'linear'}
 end
 
-function Asl:cleanup(str)
-    if     str == 'unlock' then self.lock = false
-    elseif str == 'unhold' then self.in_hold = false
-    else return true
-    end
+function loop(t)
+    table.insert(t,{'RECUR'})
+    return t
 end
 
-function Asl:release()
-    while self.in_hold do
-        local f = get_frame(self)
-        if f then
-            local p = f[self.pc]
-            if type(p) == 'string' then
-                self:cleanup(p)
+function Asl._if(pred, t)
+    table.insert(t,1,{'IF',pred})
+    return t
+end
+
+function held(t)
+    table.insert(t,1,{'HELD'})
+    table.insert(t,{'WAIT'})
+    table.insert(t,{'UNHELD'})
+    return Asl._if( dyn{_held=0}, t)
+end
+
+function lock(t)
+    table.insert(t,1,{'LOCK'})
+    table.insert(t,{'OPEN'})
+    return t
+end
+
+
+--- behavioural types
+-- available for dynamics so exposed variables can be musician-centric
+-- and mutables, where operations are destructive to the value for iteration
+
+local Matheds = {
+    step = function(t, inc) return t + inc end,
+    mul  = function(t, mul) return t * mul end,
+    wrap = function(t, min, max)
+        if min == 0 then return t % max
+        else return (t - min) % (max - min) + min end
+    end,
+}
+
+local Mathmt = {
+    __unm = function(a)   return Asl.math{'~', a} end,
+    __add = function(a,b) return Asl.math{'+', a, b} end,
+    __sub = function(a,b) return Asl.math{'-', a, b} end,
+    __mul = function(a,b) return Asl.math{'*', a, b} end,
+    __div = function(a,b) return Asl.math{'/', a, b} end,
+    __mod = function(a,b) return Asl.math{'%', a, b} end, -- % is used to wrap to a range
+    __len = function(a)   return Asl.math{'#', a} end, -- freeze operator for mutables
+    __index = function(t, ix)
+        local fn = Matheds[ix]
+        if fn then
+            if t[1] == '#' then -- if parent is #(freeze), peel it off
+                t = t[2] -- NOTE this doesn't change the self table, must close over
+            else -- ==first method ==parent is DYN. convert it to NMUT
+                t[2] = {'NMUT', t[2]}
+            end
+            return function(nop, ...) -- ignore self, instead close over above 't'
+                return Asl.math{'#', fn(t, ...)}
             end
         end
-        self:exit()
-        self:nek()
-    end
+    end, -- enable method-chain on dynamics
+}
+function Asl.math(tab) return setmetatable(tab, Mathmt) end -- overload table with arithmetic semantics
+
+-- usage: dyn{name = default} -- create 'name', initialized to default
+-- update: myasl.dyn.name = new_value -- updates the registered 'name' dynamic to value 'new_value'
+function dyn(d) return Asl.math{Asl.dyn_compiler, d} end
+
+-- usage: mutable(4) -- creates a literal 4 which can be modified by math ops
+-- usage: mutable{ mymut = 3 } -- creates a named mutable so the value can be set directly
+-- update named: myasl.mutable.mymut = 42 -- update mymut to value 42
+-- NOTE: this type is only useful if math ops are applied
+-- ops will be applied on each access to the varable (ie at a breakpoint)
+-- use these to build iterators, cycling control flow, algorithmic waveforms
+function mutable(n)
+    if type(n)=='table' then return dyn({'NMUT', n}) -- named vars are wrapped in dynamics for user control
+    else return Asl.math{'MUT', n} end
 end
 
 
-----------------------------
--- low-level ASL constructs
+-- composite constructs
 
-function Asl.prepend( fn_head, fns )
-    table.insert( fns, 1, fn_head )
-    return fns
-end
+function Asl._while(pred, t) return loop( Asl._if(pred, t)) end
 
-function Asl.append( fn_tail, fns )
-    table.insert( fns, fn_tail )
-    return fns
-end
-
-function Asl._if( fn_to_bool, fns )
-    return {Asl.prepend(
-              function(self)
-                if not fn_to_bool(self) then self:exit() end
-              end
-            , fns )}
-end
-
-function Asl.wrap( fn_head, fns, fn_tail )
-    return Asl.append( fn_tail
-                     , Asl.prepend( fn_head
-                                  , fns ))
-end
-
-function Asl._while( fn_to_bool, fns )
-    return {Asl.wrap( function(self)
-                        if not fn_to_bool(self) then self:exit() end
-                      end
-                    , fns
-                    , Asl.recur
-                    )}
-end
-
-
------------------------------------------------
--- helper for deferring computation to runtime
-
-function Asl.runtime(fn,...)
-    local args = {...}
-    if #args == 0 then
-        return fn
-    else
-        local a = table.remove(args,1)
-        if type(a) == 'function' then
-            return Asl.runtime(function(...) return fn(a(),...) end, table.unpack(args))
-        else
-            return Asl.runtime(function(...) return fn(a,...) end, table.unpack(args))
-        end
-    end
-end
-
-
--------------------------------------
--- public (global) ASL constructs
-
-function to( dest, time, shape )
-    -- COMPILE TIME
-    local d,t,s
-    if type(dest) == 'table' then -- accept table syntax
-        local tt = dest
-        d,t,s = tt.dest or 'here', tt.time or 0, tt.shape or 'linear'
-    else
-        d,t,s = dest or 'here', time or 0, shape or 'linear'
-    end
-
-    -- RUNTIME
-    return function( self )
-        LL_toward( self.id
-                 , (d == 'here') and LL_get_state( self.id ) or d
-                 , t
-                 , s
-                 )
-        return (t ~= 0)
-    end
-end
-
-function loop( fns )
-    return {Asl.append( Asl.recur, fns )}
-end
-
-function times( count, fns )
-    local c
-    return Asl._while(
-              function(self)
-                  if not c then c = count end
-                  if c <= 0 then c = nil
-                  else c = c-1; return true end
-              end
-            , fns
-            )
-end
-
-function lock( fns ) -- table -> table
-    return{ Asl.append( function(self) self.lock = true end
-                      , fns )
-          , 'unlock'
-          }
-end
-
-function held( fns ) -- table -> table
-    return{ Asl._if( function(self) return self.hold end
-                , Asl.append( function(self) return 'wait' end
-                  , Asl.prepend( function(self) self.in_hold = true end
-                    , fns )))
-          , 'unhold'
-          }
-end
-
-
----------------------------------------------------------
--- capture all the metamethods & Asl namespace functions
-
-setmetatable(Asl, Asl)
+function times(n, t) return Asl._while( mutable(n+1)-1, t) end -- n+1 adds before mutation for exactly n repeats
 
 
 return Asl

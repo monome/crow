@@ -1,12 +1,17 @@
 #pragma once
 
 #include <stdint.h>
+#include <stdbool.h>
 
 // Lua itself
 #include "../submodules/lua/src/lua.h" // lua_State*
 
 typedef void (*ErrorHandler_t)(char* error_message);
-struct lua_lib_locator{ const char* name; const char* addr_of_luacode; };
+struct lua_lib_locator{
+    const char* name;
+    const char* addr_of_luacode;
+    const bool stripped;
+};
 
 extern volatile int CPU_count; // count from main.c
 
@@ -23,7 +28,7 @@ uint8_t Lua_eval( lua_State*     L
 void Lua_load_default_script( void );
 
 // Event enqueue wrappers
-extern void L_queue_toward( int id );
+extern void L_queue_asl_done( int id );
 extern void L_queue_metro( int id, int state );
 extern void L_queue_stream( int id, float state );
 extern void L_queue_change( int id, float state );
@@ -34,6 +39,9 @@ extern void L_queue_freq( int id, float freq );
 extern void L_queue_in_scale( int id, float note );
 extern void L_queue_ii_leadRx( uint8_t address, uint8_t cmd, float data, uint8_t arg );
 extern void L_queue_ii_followRx( void );
+extern void L_queue_clock_resume( int coro_id );
+extern void L_queue_clock_start( void );
+extern void L_queue_clock_stop( void );
 
 // Callback declarations
 extern float L_handle_ii_followRxTx( uint8_t cmd, int args, float* data );
