@@ -26,6 +26,7 @@ function C.reset()
         output[n].volts = 0
         output[n].scale('none')
         output[n].done = function() end
+        output[n]:clock('none')
     end
     ii.reset_events(ii.self)
     ii_follow_reset() -- resets forwarding to output libs
