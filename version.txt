@@ -1,1 +1,1 @@
-3.0.0 https://github.com/monome/crow/releases/download/v3.0.0/crow.dfu
+3.0.1 https://github.com/monome/crow/releases/download/v3.0.1/crow.dfu
