@@ -99,7 +99,7 @@ void S_toward( int        index
         self->here      = 1.0; // hard set to end of range
         if(self->countdown > 0.0){
             // only happens when assynchronously updating S_toward
-            self->countdown = -1.0; // inactive.
+            self->countdown = -0.0; // inactive.
         }
     } else {
         // save current output level as new starting point
@@ -196,10 +196,12 @@ static float* breakpoint_v( Slope_t* self, float* out, int size )
 
     self->countdown -= 1.0;
     if( self->countdown <= 0.0 ){
+        // TODO unroll overshoot and apply proportionally to the post-*act sample
         self->here = 1.0; // clamp for overshoot
         if( self->action != NULL ){
             Callback_t act = self->action;
             self->action = NULL;
+            self->shaped = self->dest; // save real destination into shaped to actually reach it
             (*act)(self->index);
             // side-affects: self->{dest, shape, action, countdown, delta, (here)}
         }
