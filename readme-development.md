@@ -34,7 +34,7 @@ container.
 git clone --recursive --config core.autocrlf=input https://github.com/monome/crow
 cd crow
 docker build . -t crow-dev
-docker run --rm -it -v "$(pwd)":/target crow-dev bash
+docker run --rm -it -v "$(pwd)":/target --entrypoint /bin/bash crow-dev
 ```
 
 and then `make` to build, or use `docker run --rm -it -v
