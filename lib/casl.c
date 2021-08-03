@@ -107,6 +107,16 @@ static int ix_type( lua_State* L, int ix )
     lua_pop(L, 1);
     return ix_type;
 }
+static void ix_str( char *result, lua_State* L, int ix, int length )
+{
+    lua_pushnumber(L, ix); // query first table elem
+    lua_gettable(L, -2);  // get above key from table on stack
+    const char *s = luaL_checkstring(L, -1);
+    for (int i = 0; i < length; ++i) {
+        result[i] = s[i];
+    }
+    lua_pop(L, 1);
+}
 static const char ix_char( lua_State* L, int ix )
 {
     lua_pushnumber(L, ix); // query first table elem
@@ -237,8 +247,9 @@ static void capture_elem( Casl* self, Elem* e, lua_State* L, int ix )
             break;}
 
         case LUA_TSTRING:{
-            char c = ix_char(L, ix);
-            e->obj.shape = S_str_to_shape( &c );
+            char s[2];
+            ix_str(s, L, ix, 2);
+            e->obj.shape = S_str_to_shape( s );
             e->type = ElemT_Shape;
             break;}
 
