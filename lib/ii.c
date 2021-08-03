@@ -115,6 +115,8 @@ void ii_set_address( uint8_t index ){
         default: break;
     }
     I2C_SetAddress( i2c );
+    ii_deinit();
+    ii_init(i2c);
 }
 
 
