@@ -118,6 +118,56 @@ do return
   , { name = 'all_notes_off'
     , cmd = 0x57
     }
+  -- dual mode algorithms
+  , { name = 'set_dual_parameter'
+    , cmd = 0x5D
+    , docs = 'set side/parameter to actual value'
+    , args = { { 'side_parameter', u8 }
+             , { 'value', s16 }
+             }
+    }
+  , { name = 'set_dual_scale_parameter'
+    , cmd = 0x5E
+    , docs = 'The 0-16384 value range scales to the actual param. value range'
+    , args = { { 'side_parameter', u8 }
+             , { 'value', u16 }
+             }
+    }
+  , { name = 'load_dual_algorithm'
+    , cmd = 0x60
+    , docs = 'load dual mode algorithm'
+    , args = { { 'side', u8 }
+             ,  { 'algorithm', u8 }
+             }
+    }
+  , { name = 'load_dual_algorithms'
+    , cmd = 0x61
+    , docs = 'load dual mode algorithms'
+    , args = { { 'algorithm_left', u8 }
+             ,  { 'algorithm_right', u8 }
+             }
+    }
+  , { name = 'load_dual_preset'
+      , cmd = 0x63
+      , docs = 'load dual mode preset'
+      , args = { { 'side', u8 }
+        ,  { 'preset', u8 }
+      }
+    }
+  , { name = 'save_dual_preset'
+      , cmd = 0x64
+      , docs = 'save dual mode preset'
+      , args = { { 'side', u8 }
+        ,  { 'preset', u8 }
+      }
+    }
+  , { name = 'take_over_z'
+      , cmd = 0x65
+      , docs = 'take over/release z. 0-127 = take over, else release'
+      , args = { { 'side', u8 }
+        ,  { 'value', u8 }
+      }
+    }
   }
 , getters =
   { { name = 'preset'
@@ -148,6 +198,27 @@ do return
     , retval = { 'state', u8 }
     , docs = '0-based loop index'
     }
+  , { name = 'dual_parameter'
+    , cmd = 0x5A
+    , args = { 'side_parameter', u8 }
+    , retval = { 'value', u8 }
+    }
+  , { name = 'dual_parameter_min'
+    , cmd = 0x5B
+    , args = { 'side_parameter', u8 }
+    , retval = { 'value', u8 }
+    }
+  , { name = 'dual_parameter_max'
+    , cmd = 0x5C
+    , args = { 'side_parameter', u8 }
+    , retval = { 'value', u8 }
+  , { name = 'dual_algorithm'
+    , cmd = 0x5F
+    , args = { 'side', u8 }
+    , retval = { 'value', u8 }
+    }   }
   }
+
+
 }
 end
