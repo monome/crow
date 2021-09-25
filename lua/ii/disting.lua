@@ -200,17 +200,23 @@ do return
     }
   , { name = 'dual_parameter'
     , cmd = 0x5A
-    , args = { 'side_parameter', u8 }
+    , args = { { 'side', u8 }
+             , { 'parameter', u8 }
+             }
     , retval = { 'value', u8 }
     }
   , { name = 'dual_parameter_min'
     , cmd = 0x5B
-    , args = { 'side_parameter', u8 }
+    , args = { { 'side', u8 }
+             , { 'parameter', u8 }
+             }
     , retval = { 'value', u8 }
     }
   , { name = 'dual_parameter_max'
     , cmd = 0x5C
-    , args = { 'side_parameter', u8 }
+    , args = { { 'side', u8 }
+             , { 'parameter', u8 }
+             }
     , retval = { 'value', u8 }
   , { name = 'dual_algorithm'
     , cmd = 0x5F
@@ -218,7 +224,20 @@ do return
     , retval = { 'value', u8 }
     }   }
   }
+, pickle = -- send side/parameter as one byte
+--void pickle( uint8_t* address, uint8_t* data, uint8_t* byte_count );
+[[
 
+uint8_t side = data[1];  // side
+
+if (data[0] >= 0x5A &&
+    data[0] <= 0x5C) {
+  data[1] = (data[1] & 0xF0) | (data[2] & 0xF);
+  data[1] = (data[1] & 0x0F) | ((side & 0xF) << 4);
+  *byte_count = *byte_count - 1;
+}
+
+]]
 
 }
 end
