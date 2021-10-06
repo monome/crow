@@ -235,10 +235,8 @@ if (data[0] >= 0x5A &&
   data[1] = ((data[1] & 0xF) << 4) | (data[2] & 0xF);
 
   if (data[0] >= 0x5C) {
-    data[2] = data[3];
-    data[3] = data[4];
+    memmove(&data[2], &data[3], 2);
   }
-
   *byte_count = *byte_count - 1;
 }
 
