@@ -276,8 +276,14 @@ void clock_internal_stop(void)
 /////////////////////////////////////
 // private clock_internal
 
+// note how we have to track the quantization error of the clock over cycles
+// long-term precision is accurate to a double, while each clock pulse will
+// be quantized to the tick *before* it's absolute position.
+// this is important so that the beat division counter leads the userspace
+// sync() calls & ensures they don't double-trigger.
 void clock_internal_run(uint32_t ms)
 {
+    static double error = 0.0; // track ms error across clock pulses
     if( internal.running ){
         double time_now = ms;
         if( internal.wakeup < time_now ){
@@ -286,6 +292,11 @@ void clock_internal_run(uint32_t ms)
                                        , internal_interval_seconds
                                        , CLOCK_SOURCE_INTERNAL );
             internal.wakeup = time_now + internal_interval_seconds * (double)1000.0;
+            error += 1+ floor(internal.wakeup) - internal.wakeup;
+            if(error > (double)0.0){
+                internal.wakeup -= (double)1.0;
+                error--;
+            }
         }
     }
 }
