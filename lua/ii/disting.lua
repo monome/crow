@@ -17,25 +17,25 @@ do return
   , { name = 'reset_preset'
     , cmd = 0x42
     }
-  , { name = 'load_algorithm'
+  , { name = 'algorithm'
     , cmd = 0x44
     , docs = 'load single mode algorithm'
     , args = { 'algorithm', u8 }
     }
-  , { name = 'set_controller'
+  , { name = 'controller'
     , cmd = 0x11
     , docs = 'sets parameters via mappings'
     , args = { { 'controller', u8 }
              , { 'value', s16 }
              }
     }
-  , { name = 'set_parameter'
+  , { name = 'parameter'
     , cmd = 0x46
     , args = { { 'parameter', u8 }
              , { 'value', s16 }
              }
     }
-  , { name = 'set_scale_parameter'
+  , { name = 'scale_parameter'
     , cmd = 0x47
     , docs = 'The 0-16384 value range scales to the actual param. value range'
     , args = { { 'parameter', u8 }
@@ -107,7 +107,7 @@ do return
     , cmd = 0x55
     , docs = 'set voice velocity for note id'
     , args = { { 'note_id', u8 }
-             ,  { 'velocity', s16V }
+             , { 'velocity', s16V }
              }
     }
   , { name = 'note_off'
@@ -117,6 +117,58 @@ do return
     }
   , { name = 'all_notes_off'
     , cmd = 0x57
+    }
+  -- dual mode algorithms
+  , { name = 'dual_parameter'
+    , cmd = 0x5D
+    , docs = 'set side/parameter to actual value'
+    , args = { { 'side', u8 }
+             , { 'param', u8 }
+             , { 'value', s16 }
+             }
+    }
+  , { name = 'dual_scale_parameter'
+    , cmd = 0x5E
+    , docs = 'The 0-16384 value range scales to the actual param. value range'
+    , args = { { 'side', u8 }
+             , { 'param', u8 }
+             , { 'value', u16 }
+             }
+    }
+  , { name = 'dual_algorithm'
+    , cmd = 0x60
+    , docs = 'load dual mode algorithm'
+    , args = { { 'side', u8 }
+             , { 'algorithm', u8 }
+             }
+    }
+  , { name = 'dual_algorithms'
+    , cmd = 0x61
+    , docs = 'load dual mode algorithms'
+    , args = { { 'algorithm_left', u8 }
+             , { 'algorithm_right', u8 }
+             }
+    }
+  , { name = 'load_dual_preset'
+      , cmd = 0x63
+      , docs = 'load dual mode preset'
+      , args = { { 'side', u8 }
+               , { 'preset', u8 }
+               }
+    }
+  , { name = 'save_dual_preset'
+      , cmd = 0x64
+      , docs = 'save dual mode preset'
+      , args = { { 'side', u8 }
+               , { 'preset', u8 }
+               }
+    }
+  , { name = 'take_over_z'
+      , cmd = 0x65
+      , docs = 'take over/release z. 0-127 = take over, else release'
+      , args = { { 'side', u8 }
+               , { 'value', u8 }
+               }
     }
   }
 , getters =
@@ -148,6 +200,47 @@ do return
     , retval = { 'state', u8 }
     , docs = '0-based loop index'
     }
+  , { name = 'dual_parameter'
+    , cmd = 0x5A
+    , args = { { 'side', u8 }
+             , { 'parameter', u8 }
+             }
+    , retval = { 'value', u8 }
+    }
+  , { name = 'dual_parameter_min'
+    , cmd = 0x5B
+    , args = { { 'side', u8 }
+             , { 'parameter', u8 }
+             }
+    , retval = { 'value', u8 }
+    }
+  , { name = 'dual_parameter_max'
+    , cmd = 0x5C
+    , args = { { 'side', u8 }
+             , { 'parameter', u8 }
+             }
+    , retval = { 'value', u8 }
+  , { name = 'dual_algorithm'
+    , cmd = 0x5F
+    , args = { 'side', u8 }
+    , retval = { 'value', u8 }
+    }   }
   }
+, pickle = -- send side/parameter as one byte
+--void pickle( uint8_t* address, uint8_t* data, uint8_t* byte_count );
+[[
+
+if (data[0] >= 0x5A &&
+    data[0] <= 0x5E) {
+  data[1] = ((data[1] & 0xF) << 4) | (data[2] & 0xF);
+
+  if (data[0] >= 0x5C) {
+    memmove(&data[2], &data[3], 2);
+  }
+  *byte_count = *byte_count - 1;
+}
+
+]]
+
 }
 end
