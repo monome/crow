@@ -248,7 +248,7 @@ void clock_internal_init(void)
 
 void clock_internal_set_tempo( float bpm )
 {
-    internal_interval_seconds = 60.0 / bpm;
+    internal_interval_seconds = (double)60.0 / (double)bpm;
     clock_internal_start( internal_beat, false );
 }
 
