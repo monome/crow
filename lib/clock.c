@@ -268,6 +268,7 @@ void clock_internal_start( float new_beat, bool transport_start )
 
 void clock_internal_stop(void)
 {
+    internal.running = false; // actually stop the sync clock
     clock_stop_from( CLOCK_SOURCE_INTERNAL ); // user callback
 }
 
