@@ -5,14 +5,6 @@ local ii = {}
 
 ii.is = dofile('build/iihelp.lua')
 
---- METAMETHODS
-ii.__index = function( self, ix )
-    local e = rawget(ii.is, ix) -- avoids openlib() in case of .help
-    if e ~= nil then return e
-    else print'not found. try ii.help()' end
-end
-setmetatable(ii, ii)
-
 function ii.help()
     ii_list_modules()
 end
@@ -29,11 +21,7 @@ end
 -- aliases to C functions
 ii.set_address = ii_set_add
 ii.get_address = ii_get_add
-
--- TODO is it possible to just define ii.lead from c directly?
-function ii.set( address, cmd, ... )
-    ii_lead( address, cmd, ... )
-end
+ii.set = ii_lead
 
 function ii.raw( address, bytes, rx_len )
     ii_lead_bytes( address, bytes, rx_len or 0 )
@@ -109,5 +97,18 @@ function ii_followRxTx_handler( cmd, ... )
     local name = ii.self.cmds[cmd]
     return ii.self[name](...)
 end
+
+--- METAMETHODS
+ii.__index = function( self, ix )
+    if ix == 'address' then return ii.get_address() end
+    local e = rawget(ii.is, ix) -- avoids openlib() in case of .help
+    if e ~= nil then return e
+    else print'not found. try ii.help()' end
+end
+ii.__newindex = function( self, ix, v )
+    if ix == 'address' then ii.set_address(v)
+    else rawset(self, ix, v) end
+end
+setmetatable(ii, ii)
 
 return ii
