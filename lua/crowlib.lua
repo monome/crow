@@ -95,6 +95,12 @@ end
 ii_follow_reset()
 
 
+--- Pseudo RNG
+-- use s prefix for seeded random
+math.srandom = math.random
+math.srandomseed = math.randomseed
+
+
 --- True Random Number Generator
 -- redefine library function to use stm native rng
 math.random = function(a,b)
