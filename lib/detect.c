@@ -144,7 +144,7 @@ void Detect_scale( Detect_t*         self
     if( sLen == 0 ){ // assume chromatic
         s->sLen = (divs > SCALE_MAX_COUNT) ? SCALE_MAX_COUNT : (int)divs;
         for( int i=0; i<(s->sLen); i++ ){
-            s->scale[i] = ((float)i) / divs; // build chromatic
+            s->scale[i] = (float)i; // build chromatic
         }
     } else {
         for( int i=0; i<(s->sLen); i++ ){
