@@ -70,5 +70,6 @@ int main(void)
         clock_update();
         event_next(); // check/execute single event
         ii_leader_process();
+        Caw_send_queued();
     }
 }

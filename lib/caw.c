@@ -8,6 +8,7 @@
 #define USB_RX_BUFFER 2048
 static char reader[USB_RX_BUFFER];
 static int16_t pReader = 0;
+static const char* queued_ptr = NULL;
 
 void Caw_Init( int timer_index )
 {

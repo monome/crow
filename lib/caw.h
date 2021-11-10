@@ -26,6 +26,8 @@ void Caw_printf( char* text, ... );
 void Caw_send_luachunk( char* text );
 void Caw_send_luaerror( char* error_msg );
 void Caw_send_value( uint8_t type, float value ); // enum the type
+void Caw_stream_constchar( const char* stream );
+void Caw_send_queued( void );
 
 C_cmd_t Caw_try_receive( void );
 char* Caw_get_read( void );
