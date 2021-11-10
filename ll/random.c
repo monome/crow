@@ -50,6 +50,10 @@ void RNG_IRQHandler( void )
 void HAL_RNG_ErrorCallback( RNG_HandleTypeDef* hr )
 {
     printf("rng error\n");
+    // Just reset the RNG and hope for the best!
+    // should handle seed errors correctly, and is overkill for clock error
+    Random_DeInit(); // clears SEIS bit (recover from seed error)
+    Random_Init();
 }
 
 void HAL_RNG_ReadyDataCallback( RNG_HandleTypeDef* hr, uint32_t rand32 )
