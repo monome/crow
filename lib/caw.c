@@ -54,11 +54,6 @@ void Caw_send_luachunk( char* text )
     );
 }
 
-static void queue_stream( const char* ptr )
-{
-    queued_ptr = ptr;
-}
-
 void Caw_stream_constchar( const char* stream )
 {
     size_t len = strlen(stream);
@@ -70,7 +65,7 @@ void Caw_stream_constchar( const char* stream )
         Caw_send_raw( (uint8_t*)stream, space ); // fill the buffer
 
         // here's the remainder that didn't fit
-        queue_stream( stream + space );
+        queued_ptr = stream + space;
     }
 }
 
