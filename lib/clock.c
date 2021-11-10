@@ -116,27 +116,35 @@ bool clock_schedule_resume_sleep( int coro_id, float seconds )
     return false;
 }
 
+// some helpers to cleanup sync
+static double zero_beat_time(void)
+{
+    return reference.last_beat_time - ((double)reference.beat_duration * reference.beat);
+}
+static double time_to_beats(double time_ms)
+{
+    return (time_ms - zero_beat_time()) / (double)reference.beat_duration;
+}
+static double beats_to_time(double beats)
+{
+    return zero_beat_time() + (beats * (double)reference.beat_duration);
+}
+
 bool clock_schedule_resume_sync( int coro_id, float beats )
 {
-    double zero_beat_time;
-    double this_beat;
-    double next_beat;
+    double current_time = clock_get_time_seconds(); // 1ms steps
+    double current_beat = time_to_beats(current_time); // was 'this beat'
+
+    double next_beat = (double)beats * floor(current_beat / (double)beats);
     double next_beat_time;
-    int next_beat_multiplier = 0;
-
-    double current_time = clock_get_time_seconds();
-    zero_beat_time = reference.last_beat_time
-                        - ((double)reference.beat_duration * reference.beat);
-    this_beat = (current_time - zero_beat_time) / (double)reference.beat_duration;
-
     do{
-        next_beat_multiplier += 1;
-
-        next_beat = (floor(this_beat / (double)beats) + next_beat_multiplier)
-                        * (double)beats;
-        next_beat_time = zero_beat_time + (next_beat * (double)reference.beat_duration);
+        next_beat += (double)beats;
+        next_beat_time = beats_to_time(next_beat);
     } while( next_beat_time - current_time
            < (double)reference.beat_duration * (double)beats / (double)2000.0 );
+        // i don't know why this value is 2000.0
+        // seems like it should be 1000.0 to convert ms to seconds?
+        // so i guess we have to divide by 2 for some reason...
 
     return clock_schedule_resume_sleep( coro_id
                                       , (float)(next_beat_time - current_time) );
@@ -179,10 +187,7 @@ void clock_set_source( clock_source_t source )
 
 float clock_get_time_beats(void)
 {
-    double current_time = clock_get_time_seconds();
-    double zero_beat_time = reference.last_beat_time
-                            - ((double)reference.beat_duration * reference.beat);
-    return (float)(current_time - zero_beat_time) / reference.beat_duration;
+    return (float)( time_to_beats( clock_get_time_seconds()));
 }
 
 double clock_get_time_seconds(void)
@@ -248,7 +253,7 @@ void clock_internal_init(void)
 
 void clock_internal_set_tempo( float bpm )
 {
-    internal_interval_seconds = 60.0 / bpm;
+    internal_interval_seconds = (double)60.0 / (double)bpm;
     clock_internal_start( internal_beat, false );
 }
 
@@ -268,6 +273,7 @@ void clock_internal_start( float new_beat, bool transport_start )
 
 void clock_internal_stop(void)
 {
+    internal.running = false; // actually stop the sync clock
     clock_stop_from( CLOCK_SOURCE_INTERNAL ); // user callback
 }
 
@@ -275,8 +281,14 @@ void clock_internal_stop(void)
 /////////////////////////////////////
 // private clock_internal
 
+// note how we have to track the quantization error of the clock over cycles
+// long-term precision is accurate to a double, while each clock pulse will
+// be quantized to the tick *before* it's absolute position.
+// this is important so that the beat division counter leads the userspace
+// sync() calls & ensures they don't double-trigger.
 void clock_internal_run(uint32_t ms)
 {
+    static double error = 0.0; // track ms error across clock pulses
     if( internal.running ){
         double time_now = ms;
         if( internal.wakeup < time_now ){
@@ -285,6 +297,11 @@ void clock_internal_run(uint32_t ms)
                                        , internal_interval_seconds
                                        , CLOCK_SOURCE_INTERNAL );
             internal.wakeup = time_now + internal_interval_seconds * (double)1000.0;
+            error += 1+ floor(internal.wakeup) - internal.wakeup;
+            if(error > (double)0.0){
+                internal.wakeup -= (double)1.0;
+                error--;
+            }
         }
     }
 }
