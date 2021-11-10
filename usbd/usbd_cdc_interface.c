@@ -191,11 +191,9 @@ size_t USB_tx_space( void )
 }
 int USB_tx_is_ready( void )
 {
-    // ensure the bufer is empty
-    // and the CDC driver has finished any active transfer
     USBD_CDC_HandleTypeDef *hcdc = USBD_Device.pClassData;
-    return (UserTxDataLen == 0)
-        && (hcdc->TxState == 0);
+    return (UserTxDataLen == 0)  // ensure the bufer is empty
+        && (hcdc->TxState == 0); // CDC has finished active tx
 }
 
 // interrupt sends out any queued data
