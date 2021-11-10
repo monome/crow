@@ -23,10 +23,9 @@ void Caw_DeInit( void )
 
 void Caw_send_raw( uint8_t* buf, uint32_t len )
 {
-uint32_t old_primask = __get_PRIMASK();
-__disable_irq();
-    USB_tx_enqueue( buf, len );
-__set_PRIMASK( old_primask );
+    BLOCK_IRQS(
+        USB_tx_enqueue( buf, len );
+    );
 }
 
 void Caw_printf( char* text, ... )
@@ -49,23 +48,51 @@ void Caw_printf( char* text, ... )
 void Caw_send_luachunk( char* text )
 {
     const uint8_t newline[] = "\n\r";
-uint32_t old_primask = __get_PRIMASK();
-__disable_irq();
-    USB_tx_enqueue( (uint8_t*)text, strlen(text) );
-    USB_tx_enqueue( (uint8_t*)newline, 2 );
-__set_PRIMASK( old_primask );
+    BLOCK_IRQS(
+        USB_tx_enqueue( (uint8_t*)text, strlen(text) );
+        USB_tx_enqueue( (uint8_t*)newline, 2 );
+    );
+}
+
+static void queue_stream( const char* ptr )
+{
+    queued_ptr = ptr;
+}
+
+void Caw_stream_constchar( const char* stream )
+{
+    size_t len = strlen(stream);
+    size_t space = USB_tx_space();
+    if( len < (space-2) ){ // leave space for newline
+        Caw_send_luachunk( (char*)stream ); // send it normally
+    } else {
+        // break up the stream into chunks
+        Caw_send_raw( (uint8_t*)stream, space ); // fill the buffer
+
+        // here's the remainder that didn't fit
+        queue_stream( stream + space );
+    }
+}
+
+void Caw_send_queued( void )
+{
+    if( queued_ptr != NULL
+     && USB_tx_is_ready() ){
+        const char* p = queued_ptr; // copy
+        queued_ptr = NULL; // clear before calling
+        Caw_stream_constchar( p ); // may reinstate queued_ptr
+    }
 }
 
 void Caw_send_luaerror( char* error_msg )
 {
     const uint8_t leader[] = "\\";
     const uint8_t newline[] = "\n\r";
-uint32_t old_primask = __get_PRIMASK();
-__disable_irq();
-    USB_tx_enqueue( (uint8_t*)leader, 1 );
-    USB_tx_enqueue( (uint8_t*)error_msg, strlen(error_msg) );
-    USB_tx_enqueue( (uint8_t*)newline, 2 );
-__set_PRIMASK( old_primask );
+    BLOCK_IRQS(
+        USB_tx_enqueue( (uint8_t*)leader, 1 );
+        USB_tx_enqueue( (uint8_t*)error_msg, strlen(error_msg) );
+        USB_tx_enqueue( (uint8_t*)newline, 2 );
+    );
 }
 
 void Caw_send_value( uint8_t type, float value )
