@@ -196,6 +196,10 @@ S.__tostring = function(t)
     return s
 end
 
+-- use memoized data length, aka #(t.data)
+S.__len = function(t) return t.length end
+
+
 setmetatable(S, S)
 
 return S
