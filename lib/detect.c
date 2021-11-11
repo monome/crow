@@ -8,6 +8,8 @@ uint8_t channel_count = 0;
 
 Detect_t*  selves = NULL;
 
+// helpers
+static void scale_bounds( Detect_t* self, int ix, int oct );
 
 ////////////////////////////////////////////////
 // signal processor declarations
@@ -108,6 +110,19 @@ void Detect_change( Detect_t*         self
     // can force update based on global struct members?
 }
 
+static void scale_bounds( Detect_t* self, int ix, int oct )
+{
+    D_scale_t* s = &self->scale; // readability
+
+    // find ideal voltage for this window
+    float ideal = ((float)oct * s->scaling) + ix * s->win;
+    ideal = ideal - s->offset; // shift start of window down
+
+    // calculate bounds
+    s->lower = ideal - s->hyst;
+    s->upper = ideal + s->hyst + s->win;
+}
+
 void Detect_scale( Detect_t*         self
                  , Detect_callback_t cb
                  , float*            scale
@@ -117,28 +132,34 @@ void Detect_scale( Detect_t*         self
                  )
 {
     if( self->channel == 0 ){ clear_ch_one(); }
-    self->modefn        = d_scale;
-    self->action        = cb;
-    self->scale.sLen    = (sLen > SCALE_MAX_COUNT) ? SCALE_MAX_COUNT : sLen;
-    self->scale.offset  = 0.5 * scaling / divs; // use raw val for chromatic
-    // hysteresis window
-    self->scale.hwin    = self->scale.offset * 1.1; // 10% overlap
-    if( self->scale.hwin < 0.0666 ){ // minimum 67mV which is ~noisefloor
-        self->scale.hwin = 0.0666;
-    }
+    self->modefn = d_scale;
+    self->action = cb;
+
+    D_scale_t* s = &self->scale; // readability
+
+    s->sLen    = (sLen > SCALE_MAX_COUNT) ? SCALE_MAX_COUNT : sLen;
+    s->divs    = divs;
+    s->scaling = scaling;
+
     if( sLen == 0 ){ // assume chromatic
-        self->scale.sLen     = 1;
-        self->scale.scale[0] = 0.0;
-        self->scale.scaling  = scaling / divs; // scale to n-TET
-        self->scale.divs     = 1.0; // force 1 div
-    } else {
-        for( int i=0; i<self->scale.sLen; i++ ){
-            self->scale.scale[i] = *scale++;
+        s->sLen = (divs > SCALE_MAX_COUNT) ? SCALE_MAX_COUNT : (int)divs;
+        for( int i=0; i<(s->sLen); i++ ){
+            s->scale[i] = (float)i; // build chromatic
         }
-        self->scale.divs    = divs;
-        self->scale.scaling = scaling;
+    } else {
+        for( int i=0; i<(s->sLen); i++ ){
+            s->scale[i] = *scale++; // copy array into local struct
+        }
     }
-    self->scale.lastNote = -100.0; // out of range, to force a new match
+
+    // nb: 'div' refers to divisions of the octave (eg. 12 in 12TET)
+    //     'window' refers to divisions of the scale (eg. 7 in major)
+    s->offset = 0.5 * scaling / divs; // half a div, in volts
+    s->win = scaling / ((float)s->sLen); // a window in terms of voltage
+    s->hyst = s->win / 20.0; // 5% hysteresis on either side of window
+    s->hyst = s->hyst < 0.006 ? 0.006 : s->hyst; // clamp to 1LSB at 12bit
+
+    scale_bounds(self, 0, -10); // set to invalid note
 }
 
 void Detect_window( Detect_t*         self
@@ -273,36 +294,30 @@ static void d_window( Detect_t* self, float level )
 
 static void d_scale( Detect_t* self, float level )
 {
-    // FIXME there is something wrong with this logic
-    // This initial window casing should make the inner ix & octaves check redundant
-    // Currently the outer case gets into a state where it is true, but the inner
-    // state is false. Results in rapid callbacks with the same value
-    if( level > (self->scale.lastVolts + self->scale.hwin)
-     || level < (self->scale.lastVolts - self->scale.hwin) ){
+    D_scale_t* s = &self->scale; // readability
 
-        level += self->scale.offset;                 // centre each window
-        float n_level = level / self->scale.scaling; // normalize scaling
-        int octaves = (int)floorf(n_level);          // # of folds around scaling
-        float phase = n_level - (float)octaves;      // position in win [0,1.0)
-        float fix = phase * self->scale.sLen;        // map phase to #scale
-        int ix = (int)fix;                           // truncate to nearest
+    if( level > s->upper
+     || level < s->lower ){
+        // offset input to ensure we capture noisy notes at the divs
+        level += self->scale.offset;
 
-        if( ix      != self->scale.lastIndex
-         || octaves != self->scale.lastOct
-          ){ // new note detected
-            float note = self->scale.scale[ix]; // apply LUT within octave
-            float noteOct = note + (float)octaves*self->scale.divs;
-            float volts = (note / self->scale.divs + (float)octaves)
-                           * self->scale.scaling;
+        // calculate index of input
+        float norm   = level / s->scaling;       // normalize scaling
+        s->lastOct   = (int)floorf(norm);        // # of folds around scaling
+        float phase  = norm - (float)s->lastOct; // position in win [0,1.0)
+        float fix    = phase * s->sLen;          // map phase to #scale
+        s->lastIndex = (int)floorf(fix);         // select octave at or beneath selection
 
-            // save values for event callback
-            self->scale.lastIndex = ix;
-            self->scale.lastOct   = octaves;
-            self->scale.lastNote  = noteOct;
-            self->scale.lastVolts = volts;
+        // perform scale lookup & prepare outs
+        float note    = s->scale[s->lastIndex]; // lookup within octave
+        s->lastNote  = note + (float)s->lastOct * s->divs;
+        s->lastVolts = (note/s->divs + (float)s->lastOct) * s->scaling;
 
-            (*self->action)( self->channel, 0.0 ); // callback! 0.0 is ignored
-        }
+        // call action
+        (*self->action)( self->channel, 0.0 ); // callback! 0.0 is ignored
+
+        // calculate new bounds
+        scale_bounds(self, s->lastIndex, s->lastOct);
     }
 }
 

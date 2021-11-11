@@ -29,9 +29,14 @@ typedef struct{
     float scaling;
     // state / pre-computation
     float offset;
-    float hwin;
-    int   lastIndex;
-    int   lastOct;
+    float win;
+    float hyst;
+    // pre-calc for detection of next window
+    float upper;
+    float lower;
+    // saved for remote access
+    int lastIndex;
+    int lastOct;
     float lastNote;
     float lastVolts;
 } D_scale_t;
