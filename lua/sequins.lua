@@ -182,6 +182,19 @@ S.__newindex = function(self, ix, v)
     end
 end
 
+S.__tostring = function(t)
+    -- will recursively call for other sequins
+    local st = {}
+    for i=1,t.length do
+        st[i] = tostring(t.data[i])
+    end
+    local s = string.format('s[%i]{%s}', t.ix, table.concat(st,','))
+
+    -- TODO modifiers: need to add metadata to modifiers so they can be introspected
+    -- TODO transforms: not sure what the structure is yet
+
+    return s
+end
 
 setmetatable(S, S)
 
