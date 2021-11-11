@@ -5,7 +5,18 @@
 
 local S = {}
 
+-- convert a string to a table of chars
+function totable(t)
+    if type(t) == 'string' then
+        local tmp = {}
+        t:gsub('.', function(c) table.insert(tmp,c) end)
+        return tmp
+    end
+    return t
+end
+
 function S.new(t)
+    t = totable(t) -- convert a string to a table of chars
     -- wrap a table in a sequins with defaults
     local s = { data   = t
               , length = #t -- memoize table length for speed
@@ -22,6 +33,8 @@ local function wrap_index(s, ix) return ((ix - 1) % s.length) + 1 end
 
 -- can this be generalized to cover every/count/times etc
 function S.setdata(self, t)
+    t = totable(t) -- convert a string to a table of chars
+
     self.data   = t
     self.length = #t
     self.ix = wrap_index(self, self.ix)
