@@ -31,11 +31,21 @@ end
 
 local function wrap_index(s, ix) return ((ix - 1) % s.length) + 1 end
 
--- can this be generalized to cover every/count/times etc
+-- TODO generalize to cover every/count/times etc
 function S.setdata(self, t)
+    if S.is_sequins(t) then t = t.data end -- handle sequins as input
+
     t = totable(t) -- convert a string to a table of chars
 
-    self.data   = t
+    for i=1,#t do
+        if S.is_sequins(t[i]) and S.is_sequins(self.data[i]) then
+            self.data[i]:settable(t[i]) -- recurse nested sequins
+        else
+            self.data[i] = t[i] -- copy table piecemeal
+        end
+    end
+    self.data[#t+1] = nil -- disregard any surplus data
+
     self.length = #t
     self.ix = wrap_index(self, self.ix)
 end
