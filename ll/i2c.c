@@ -180,6 +180,15 @@ uint8_t I2C_GetAddress( void )
 void I2C_SetAddress( uint8_t address )
 {
     i2c_handle.Init.OwnAddress1 = address << 1;
+    I2C_DeInit();
+    if( lead_response != NULL ){
+        I2C_Init( address
+                , lead_response
+                , follow_action
+                , follow_request
+                , error_action
+                );
+    }
 }
 
 
