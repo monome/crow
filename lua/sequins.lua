@@ -52,6 +52,26 @@ local function turtle(t, fn)
     return t
 end
 
+function S.copy(og, cp)
+    cp = cp or {}
+    local og_type = type(og)
+    local copy = {}
+    if og_type == 'table' then
+        if cp[og] then -- handle duplicate refs to an internal table
+            copy = cp[og]
+        else
+            cp[og] = copy
+            for og_k, og_v in next, og, nil do
+                copy[S.copy(og_k, cp)] = S.copy(og_v, cp)
+            end
+            setmetatable(copy, S.copy(getmetatable(og), cp))
+        end
+    else -- literal value
+        copy = og
+    end
+    return copy
+end
+
 
 ------------------------------
 --- control flow execution
@@ -167,6 +187,7 @@ S.metaix = { settable = S.setdata
            , reset    = S.reset
            , select   = S.select
            , peek     = S.peek
+           , copy     = S.copy
            }
 S.__index = function(self, ix)
     -- runtime calls to step() and select() should return values, not functions
