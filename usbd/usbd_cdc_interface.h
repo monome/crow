@@ -66,6 +66,8 @@ extern int timer_index;
 void CDC_clear_buffers();
 
 void USB_tx_enqueue( uint8_t* buf, uint32_t len );
+size_t USB_tx_space( void );
+int USB_tx_is_ready( void );
 uint8_t USB_rx_dequeue_LOCK( uint8_t** buf, uint32_t* len );
 void USB_rx_dequeue_UNLOCK( void );
 

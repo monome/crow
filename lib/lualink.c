@@ -609,7 +609,7 @@ static int _ii_list_commands( lua_State *L )
 {
     uint8_t address = luaL_checkinteger(L, 1);
     printf("i2c help %i\n", address);
-    Caw_send_luachunk( (char*)ii_list_cmds(address) );
+    Caw_stream_constchar( ii_list_cmds(address) );
     lua_pop(L, 1);
     return 0;
 }

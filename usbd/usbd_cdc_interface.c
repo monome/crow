@@ -166,6 +166,11 @@ static int8_t CDC_Itf_Control (uint8_t cmd, uint8_t* pbuf, uint16_t length)
 // user call copies the data to the tx queue
 void USB_tx_enqueue( uint8_t* buf, uint32_t len )
 {
+    // WARNING: UserTxDataLen having room doesn't necessarily mean
+    // the buffer is junk data. There can still be an ongoing transfer
+    // using the end of the buffer (usually just the last few bytes).
+    // Check USB_tx_is_ready()==1 if you need to be sure no data is lost.
+    // especially if *streaming* data to the CDC.
     if( (UserTxDataLen + len) >= APP_TX_DATA_SIZE ){
         len = APP_TX_DATA_SIZE - UserTxDataLen; // stop buffer overflow
     }
@@ -178,6 +183,17 @@ void USB_tx_enqueue( uint8_t* buf, uint32_t len )
           , len
           );
     UserTxDataLen += len;
+}
+
+size_t USB_tx_space( void )
+{
+    return (size_t)(APP_TX_DATA_SIZE - UserTxDataLen);
+}
+int USB_tx_is_ready( void )
+{
+    USBD_CDC_HandleTypeDef *hcdc = USBD_Device.pClassData;
+    return (UserTxDataLen == 0)  // ensure the bufer is empty
+        && (hcdc->TxState == 0); // CDC has finished active tx
 }
 
 // interrupt sends out any queued data
