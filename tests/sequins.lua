@@ -236,13 +236,42 @@ assert(#s1 == 3)
 local s1 = s{1,2,s{2,3}} -- nests only count as one
 assert(#s1 == 3)
 
+--- transformer tests
+-- simple function
+local sfn = s{1,2}:fn(function(n) return n+1 end)
+-- for i=1,4 do print(sfn()) end
+assert(sfn() == 2)
+assert(sfn() == 3)
+assert(sfn() == 2)
+sfn:fn() -- remove the transformer
+assert(sfn() == 2)
+assert(sfn() == 1)
+assert(sfn() == 2)
+
+-- function with captured args
+local sfn = s{1,2}:fn(function(n,arg) return n*arg end, 2)
+assert(sfn() == 2)
+assert(sfn() == 4)
+assert(sfn() == 2)
+assert(sfn() == 4)
+
+-- function with captured sequins
+local sfn = s{0,3,6}:fn(function(n,sq)
+        return n+sq()
+    end, s{0,12})
+assert(sfn() == 0)
+assert(sfn() == 15)
+assert(sfn() == 6)
+assert(sfn() == 12)
+
+
+
 
 --[[
 -- TODO copy test
 
 -- TODO setdata tests
 
--- TODO transformer tests
 
 -- TODO bake tests
 

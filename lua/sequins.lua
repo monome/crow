@@ -21,7 +21,7 @@ function S.new(t)
               , qix    = 1 -- force 1st value to 1st step
               , n      = 1 -- store the step val (can be a sequins)
               , flw    = {} -- store any applied flow modifiers
-              , fn     = {} -- store a transformer function & any additional arguments
+              , fun    = {} -- store a transformer function & any additional arguments
               }
     return setmetatable(s, S)
 end
@@ -77,6 +77,22 @@ function S:peek() return self.data[self.ix] end
 
 
 ------------------------------
+--- transformers
+
+function S:func(fn, ...)
+    self.fun = {fn, {...}} -- capture function & any args (sequins)
+    return self
+end
+
+local function do_transform(s, v)
+    if s.fun[1] then -- implicitly handles a cleared function
+        if #s.fun[2] > 0 then
+            return s.fun[1](v, table.unpack(s.fun[2]))
+        else return s.fun[1](v) end
+    else return v end
+end
+
+------------------------------
 --- control flow execution
 
 local function turtle(t, fn)
@@ -107,7 +123,7 @@ S.flows = {
     end
 }
 
-function do_flow(s, k)
+local function do_flow(s, k)
     local f = s.flw[k] -- check if times exists
     if f then
         f.ix = f.ix + 1
@@ -123,7 +139,7 @@ function S.next(s)
         local e = s.flw.every
         if e then e.ix = e.ix - 1 end -- undo every advance
     end
-    return do_step(s), again
+    return do_transform(s,do_step(s)), again
 end
 
 function S:step(n) self.n = n; return self end
@@ -169,6 +185,7 @@ S.metaix = { settable = S.setdata
            , select   = S.select
            , peek     = S.peek
            , copy     = S.copy
+           , fn       = S.func
            }
 S.__index = function(self, ix)
     if type(ix) == 'number' then return self.data[ix]
@@ -198,8 +215,8 @@ S.__tostring = function(t)
     end
 
     -- transformer
-    if #t.fn > 0 then
-        s = string.format('%s:fn(%s)',s, k:sub(1,1), tostring(t.fn[1]))
+    if #t.fun > 0 then
+        s = string.format('%s:fn(%s)',s, k:sub(1,1), tostring(t.fun[1]))
     end
 
     return s
