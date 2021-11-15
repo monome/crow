@@ -1,7 +1,7 @@
 --- sequins.lua tester
 
 
-s = dofile("../lua/sequins_alt.lua")
+s = dofile("../lua/sequins.lua")
 
 --- make a table of notes, with default next() behaviour
 local s1 = s{0,4,7,11}

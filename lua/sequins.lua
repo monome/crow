@@ -98,41 +98,32 @@ local function do_step(s)
     return retval, exec
 end
 
--- a really tight run-time function
+S.flows = {
+    every = function(f,n) return (f.ix % n) ~= 0 end,
+    times = function(f,n) return f.ix > n end,
+    count = function(f,n)
+        if f.ix < n then return 'again'
+        else f.ix = 0 end
+    end
+}
+
+function do_flow(s, k)
+    local f = s.flw[k] -- check if times exists
+    if f then
+        f.ix = f.ix + 1
+        return S.flows[k](f, turtle(f.n))
+    end
+end
+
 function S.next(s)
-    if S.do_every(s) then return 'skip' end
-    if S.do_times(s) then return 'dead' end
-    local again = S.do_count(s)
+    if do_flow(s, 'every') then return 'skip' end
+    if do_flow(s, 'times') then return 'dead' end
+    local again = do_flow(s, 'count')
     if again then
         local e = s.flw.every
         if e then e.ix = e.ix - 1 end -- undo every advance
     end
     return do_step(s), again
-end
-
-function S.do_every(s)
-    local e = s.flw.every -- check if every exists
-    if e then
-        e.ix = e.ix + 1
-        return (e.ix % turtle(e.n)) ~= 0
-    end
-end
-
-function S.do_times(s)
-    local t = s.flw.times -- check if times exists
-    if t then
-        t.ix = t.ix + 1
-        return t.ix > turtle(t.n)
-    end
-end
-
-function S.do_count(s)
-    local c = s.flw.count -- check if count exists
-    if c then
-        c.ix = c.ix + 1
-        if c.ix < turtle(c.n) then return 'again'
-        else c.ix = 0 end
-    end
 end
 
 function S:step(n) self.n = n; return self end
