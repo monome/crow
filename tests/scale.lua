@@ -45,7 +45,7 @@ qscale = dofile("../lua/scale.lua")
 -- if divs == 'ji', then our table should be in just fractions
 -- if scaling == divs, then output matches input
 -- if divs==12 & scaling==1 then convert note table to voltage
---[[
+--
 -- quantize to octaves, staying in 12TET
 local s1 = qscale({0},12,12)
 assert(type(s1) == 'function')
@@ -112,9 +112,15 @@ assert(sj1(5) == 0) -- round down
 -- note we need to account for floating point inaccuracies here
 assert(sj1(6) >= 0.9999 and sj1(6) <= 1.0001) -- round up
 assert(sj1(12) == 1.0) -- round up
-]]
--- input as voltage
+
+-- input as voltage, convert to 12TET
 local sv1 = qscale({0,7},1.0,12)
-print(sv1(0))
 assert(sv1(0) == 0)
-assert(sv1(0.5) == 7)
+assert(sv1(0.5) >= 6.9999 and sv1(0.5) <= 7.0001) -- round up
+assert(sv1(1) == 12)
+
+-- input as voltage, output to voltage
+local sv1 = qscale({0,7},1.0,1.0)
+assert(sv1(0) == 0)
+assert(sv1(0.5) >= 0.583 and sv1(0.5) <= 0.584) -- round up
+assert(sv1(1) == 1)

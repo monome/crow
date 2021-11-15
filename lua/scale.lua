@@ -18,15 +18,16 @@ Q.__call = function(self, ns, ins, outs)
 
     -- optimize by precalculating constants
     local _INS = 1/ins -- inverse of in-scaling (mul cheaper than div!)
-    local OFF = 0.5 * _INS -- half an input-window of offset
+    local TET = 12 -- TODO configurable
+    local _TET = 1/TET -- TODO configurable
+    local OFF = 0.5 * ins / TET -- half an input-window of offset
     local LEN = #ns -- memoize length
-
 
     return function(n)
         local norm = (n+OFF) * _INS -- normalize to input scaling
         local octs = math.floor(norm) -- extract octaves
         local ix   = math.floor((norm - octs) * LEN)
-        return (ns[ix+1]*_INS + octs) * outs -- scale lookup & reconstruct
+        return (ns[ix+1]*_TET + octs) * outs -- scale lookup & reconstruct
     end
 end
 
