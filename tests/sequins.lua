@@ -1,15 +1,14 @@
 --- sequins.lua tester
 
 
-s = dofile("lua/sequins.lua")
+s = dofile("../lua/sequins.lua")
 
 --- make a table of notes, with default next() behaviour
 local s1 = s{0,4,7,11}
 assert(s1() == 0)
 assert(s1() == 4)
 assert(s1() == 7)
-assert(s1() == 11)
-assert(s1() == 0) -- wraps
+assert(s1() == 11) -- assert(s1() == 0) -- wraps
 
 -- custom behaviour: steps backward by 1
 -- local s2 = s({0,3,6,9}, s.step(-1))
@@ -20,16 +19,16 @@ assert(s2() == 6)
 assert(s2() == 3)
 
 --- default behaviour, demonstrate select for direct setting
--- local s3 = s{1,2,3,4,5}
--- -- for i=1,5 do print(s2()) end
--- assert(s3() == 1)
--- assert(s3() == 2)
--- assert(s3:select(4)() == 4) -- select() is 1-based like the rest of lua
--- assert(s3() == 5)
--- assert(s3() == 1)
+local s3 = s{1,2,3,4,5}
+-- for i=1,5 do print(s2()) end
+assert(s3() == 1)
+assert(s3() == 2)
+assert(s3:select(4)() == 4) -- select() is 1-based like the rest of lua
+assert(s3() == 5)
+assert(s3() == 1)
 
---[[
 --- explicit behaviours (any datatype!)
+--- FIXME: unsure if this usge of :select & :step is supported / documented?
 -- local s4 = s{'a','b','c','d'}
 -- assert(s4:select(1) == 'a')
 -- assert(s4:select(1) == 'a')
@@ -44,7 +43,6 @@ assert(s2() == 3)
 -- assert(s6() == 2)
 -- assert(s6() == 3)
 
-]]
 
 
 
@@ -166,56 +164,31 @@ assert(s15() == 4)
 assert(s15() == 5)
 
 
---- wrapped iteration should multiply calls like nested loops
-local s16 = s{1, s{2}:count(2):count(2)}
+--- wrapped iteration should overwrite
+local s16 = s{1, s{2}:count(3):count(2)}
 assert(s16() == 1)
 assert(s16() == 2)
 assert(s16() == 2)
-assert(s16() == 2)
-assert(s16() == 2)
 assert(s16() == 1)
+assert(s16() == 2)
+assert(s16() == 2)
 
--- FIXME broken- current result is (1,2,1,3,1,2,1,3)
 --- reverse nested every/count
--- local s17 = s{1, s{2,3}:every(2):count(3)}
--- for i=1,8 do print(); print(s17()) end
--- assert(s17() == 1)
--- assert(s17() == 2)
--- assert(s17() == 3)
--- assert(s17() == 2)
--- assert(s17() == 1)
--- assert(s17() == 3)
--- assert(s17() == 2)
--- assert(s17() == 3)
--- assert(s17() == 1)
+-- re-ordered so every always happens first
+local s17 = s{1, s{2,3}:every(2):count(3)}
+assert(s17() == 1)
+assert(s17() == 1)
+assert(s17() == 2)
+assert(s17() == 3)
+assert(s17() == 2)
+assert(s17() == 1)
+assert(s17() == 1)
+assert(s17() == 3)
+assert(s17() == 2)
+assert(s17() == 3)
+assert(s17() == 1)
 
--- --- every+every composition divides timing
--- FIXME disabled bc i can't tell what the desired behaviour is
--- local s17 = s{1, s{2,3}:every(2):every(2)}
--- for i=1,8 do print(); print(s17()) end
--- assert(s17() == 1)
--- assert(s17() == 1)
--- assert(s17() == 1)
--- assert(s17() == 1)
--- assert(s17() == 2)
--- assert(s17() == 1)
--- assert(s17() == 1)
--- assert(s17() == 1)
--- assert(s17() == 1)
--- assert(s17() == 3)
--- assert(s17() == 1)
-
-local s18 = s{ 1, s{2,3}:all():count(2)}
-assert(s18() == 1)
-assert(s18() == 2)
-assert(s18() == 3)
-assert(s18() == 2)
-assert(s18() == 3)
-assert(s18() == 1)
-assert(s18() == 2)
-assert(s18() == 3)
-assert(s18() == 2)
-
+-- times
 local s19 = s{ 1, s{2,3}:times(3)}
 assert(s19() == 1)
 assert(s19() == 2)
@@ -235,30 +208,42 @@ s5:step(-1)
 assert(s5() == 1)
 assert(s5() == 4) -- wraps
 
-
--- generic cond function
-STATE = true
-local s1 = s{1, s{2}:cond(function() return STATE end)}
-assert(s1() == 1)
-assert(s1() == 2)
-assert(s1() == 1)
-assert(s1() == 2)
-STATE = false
-assert(s1() == 1)
-assert(s1() == 1)
-assert(s1() == 1)
-
-
 -- test reset
-local s18 = s{ 1, s{2,3}:all():count(2)}
+local s18 = s{ 1, s{2,3}:count(2)}
 assert(s18() == 1)
-assert(s18() == 2)
-assert(s18() == 3)
 assert(s18() == 2)
 s18:reset()
 assert(s18() == 1)
 assert(s18() == 2)
 assert(s18() == 3)
-assert(s18() == 2)
-assert(s18() == 3)
 assert(s18() == 1)
+assert(s18() == 2)
+
+-- string tests
+local s1 = s"cba"
+assert(s1() == 'c')
+assert(s1() == 'b')
+assert(s1() == 'a')
+assert(s1() == 'c') -- assert(s1() == 0) -- wraps
+
+-- __len test
+local s1 = s{1,2,3}
+assert(#s1 == 3)
+
+local s1 = s"cba"
+assert(#s1 == 3)
+
+local s1 = s{1,2,s{2,3}} -- nests only count as one
+assert(#s1 == 3)
+
+
+--[[
+-- TODO copy test
+
+-- TODO setdata tests
+
+-- TODO transformer tests
+
+-- TODO bake tests
+
+]]
