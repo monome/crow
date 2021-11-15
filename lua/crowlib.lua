@@ -14,6 +14,7 @@ public = dofile('lua/public.lua')
 clock  = dofile('lua/clock.lua')
 sequins= dofile('lua/sequins.lua')
 quote  = dofile('lua/quote.lua')
+qscale = dofile('lua/scale.lua')
 
 
 function C.reset()
