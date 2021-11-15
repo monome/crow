@@ -264,6 +264,63 @@ assert(sfn() == 15)
 assert(sfn() == 6)
 assert(sfn() == 12)
 
+-- divide operator
+local sfn = s{0,12}/12
+-- for i=1,4 do print(sfn()) end
+assert(sfn() == 0)
+assert(sfn() == 1)
+assert(sfn() == 0)
+
+-- divide operator sequins
+local sfn = s{1,2}/s{1,2,3}
+-- for i=1,4 do print(sfn()) end
+assert(sfn() == 1)
+assert(sfn() == 1)
+assert(sfn() == 1/3)
+assert(sfn() == 2)
+assert(sfn() == 1/2)
+assert(sfn() == 2/3)
+assert(sfn() == 1)
+
+local sfn = s{1,2}+1
+assert(sfn() == 2)
+assert(sfn() == 3)
+assert(sfn() == 2)
+
+local sfn = s{1,2}-1
+assert(sfn() == 0)
+assert(sfn() == 1)
+assert(sfn() == 0)
+
+local sfn = s{1,2}*2
+assert(sfn() == 2)
+assert(sfn() == 4)
+assert(sfn() == 2)
+
+local sfn = s{0,3,4}%3
+assert(sfn() == 0)
+assert(sfn() == 0)
+assert(sfn() == 1)
+
+local sfn = s{1}+s{0,1}
+assert(sfn() == 1)
+assert(sfn() == 2)
+assert(sfn() == 1)
+
+local sfn = s{1}-s{0,1}
+assert(sfn() == 1)
+assert(sfn() == 0)
+assert(sfn() == 1)
+
+local sfn = s{1}*s{1,2}
+assert(sfn() == 1)
+assert(sfn() == 2)
+assert(sfn() == 1)
+
+local sfn = s{3}%s{1,2,3}
+assert(sfn() == 0)
+assert(sfn() == 1)
+assert(sfn() == 0)
 
 
 

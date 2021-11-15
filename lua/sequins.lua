@@ -75,6 +75,12 @@ end
 
 function S:peek() return self.data[self.ix] end
 
+local function turtle(t, fn)
+    -- apply fn to all nested sequins
+    fn = fn or S.next -- default to S.next
+    if S.is_sequins(t) then return fn(t) end -- unwrap
+    return t -- literal value
+end
 
 ------------------------------
 --- transformers
@@ -92,15 +98,24 @@ local function do_transform(s, v)
     else return v end
 end
 
+-- support arithmetic via math operators
+S._fns = {
+    add = function(n,b) return n+turtle(b) end,
+    sub = function(n,b) return n-turtle(b) end,
+    mul = function(n,b) return n*turtle(b) end,
+    div = function(n,b) return n/turtle(b) end,
+    mod = function(n,b) return n%turtle(b) end,
+}
+
+-- assume 'a' is self of a sequins
+S.__add = function(a,b) return S.func(a, S._fns.add, b) end
+S.__sub = function(a,b) return S.func(a, S._fns.sub, b) end
+S.__mul = function(a,b) return S.func(a, S._fns.mul, b) end
+S.__div = function(a,b) return S.func(a, S._fns.div, b) end
+S.__mod = function(a,b) return S.func(a, S._fns.mod, b) end
+
 ------------------------------
 --- control flow execution
-
-local function turtle(t, fn)
-    -- apply fn to all nested sequins
-    fn = fn or S.next -- default to S.next
-    if S.is_sequins(t) then return fn(t) end -- unwrap
-    return t -- literal value
-end
 
 local function do_step(s)
     -- if .qix is set, it will be used, rather than incrementing by s.n
