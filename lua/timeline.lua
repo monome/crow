@@ -1,10 +1,9 @@
 --- timeline sequencer
 -- hotrod some clock & sequins structures for rapid playability
 
---- IF CROW
-local s = sequins
-local clk = clock
---- END CROW
+--- globals are available on crow, otherwise require for norns
+local s = sequins or require 'lib/sequins'
+local clk = clock or require 'clock'
 
 local TL = {}
 
