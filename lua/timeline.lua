@@ -23,7 +23,8 @@ local isfn = function(f) return (type(f) == 'function') end
 -- abstract fns that handle value realization & fn application
 local doact = function(fn)
     fn = real(fn)
-    if isfn(fn) then fn()
+    if type(fn) == 'string' then return fn -- strings are keywords
+    elseif isfn(fn) then fn() -- call it directly
     else -- table of fn & args
         local t = {} -- make a copy to avoid changing sequins
         for i=1,#fn do t[i] = real(fn[i]) end
@@ -123,10 +124,11 @@ function TL:_score(t)
     self.fn = function()
         local now = clk.get_beats()
         local lq = self.lq or 1
+        ::_R:: -- this tag will cause counter to reset
         self.z = now + (lq - (now % lq)) -- calculate beat-zero
         for i=1,#t,2 do
             doalign(t[i], self.z)
-            doact(t[i+1])
+            if doact(t[i+1]) == 'reset' then goto _R end
         end
     end
     if not self.qd then TL.play(self) end
@@ -143,10 +145,11 @@ function TL:_timed(t)
     self.mode = 'timed'
     self.fn = function()
         clk.sync(self.lq or 1) -- launch quantization
+        ::_R::
         self.z = 0 -- tracks elapsed time as 0 is arbitrary
         for i=1,#t,2 do
             self.z = doaligns(t[i], self.z) -- track current loop time
-            doact(t[i+1])
+            if doact(t[i+1]) == 'reset' then goto _R end
         end
     end
     if not self.qd then TL.play(self) end
