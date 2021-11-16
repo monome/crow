@@ -78,13 +78,16 @@ function TL.loop(t) return TL.new{}:loop(t) end
 
 -- method version
 function TL:_loop(t)
+    self.mode = 'loop'
     self.fn = function()
+        self.i = 0 -- iteration 0 before quant finished
         clk.sync(self.lq or 1) -- launch quantization
-        local z = math.floor(clk.get_beats()) -- reference beat to stop drift
+        self.z = math.floor(clk.get_beats()) -- reference beat to stop drift
         repeat
+            self.i = self.i + 1
             for i=1,#t,2 do
                 doact(t[i+1])
-                z = dowait(t[i], z)
+                self.z = dowait(t[i], self.z)
             end
         until(dopred(self.p or false))
     end
@@ -116,12 +119,13 @@ function TL.score(t) return TL.new{}:score(t) end
 
 -- method version
 function TL:_score(t)
+    self.mode = 'score'
     self.fn = function()
         local now = clk.get_beats()
         local lq = self.lq or 1
-        local z = now + (lq - (now % lq)) -- calculate beat-zero
+        self.z = now + (lq - (now % lq)) -- calculate beat-zero
         for i=1,#t,2 do
-            doalign(t[i], z)
+            doalign(t[i], self.z)
             doact(t[i+1])
         end
     end
@@ -136,11 +140,12 @@ function TL.timed(t) return TL.new{}:timed(t) end
 
 -- method version
 function TL:_timed(t)
+    self.mode = 'timed'
     self.fn = function()
         clk.sync(self.lq or 1) -- launch quantization
-        local now = 0
+        self.z = 0 -- tracks elapsed time as 0 is arbitrary
         for i=1,#t,2 do
-            now = doaligns(t[i], now) -- track current loop time
+            self.z = doaligns(t[i], self.z) -- track current loop time
             doact(t[i+1])
         end
     end
@@ -160,6 +165,8 @@ end
 -- play a queued timeline
 function TL:play() self.coro = clk.run(self.fn) end
 
+-- return count of loop repetitions inclusive
+function TL:iter() return self.i end
 
 -- alias clock cleanup to stop all running timelines
 TL.cleanup = clk.cleanup
@@ -173,6 +180,7 @@ TL.mms = { stop   = TL.stop
          , score  = TL._score
          , timed  = TL._timed
          , play   = TL.play
+         , iter   = TL.iter
          }
 TL.__index = TL.mms
 
