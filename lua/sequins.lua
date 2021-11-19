@@ -54,23 +54,14 @@ function S:setdata(t)
     self.ix = wrap_index(self, self.ix)
 end
 
--- nb: 2nd arg 'cp' is for internal recursive use only
-function S.copy(og, cp)
-    cp = cp or {}
-    local og_type = type(og)
-    local copy = {}
-    if og_type == 'table' then
-        if cp[og] then -- handle duplicate refs to an internal table
-            copy = cp[og]
-        else
-            cp[og] = copy
-            for og_k, og_v in next, og, nil do
-                copy[S.copy(og_k, cp)] = S.copy(og_v, cp)
-            end
-            setmetatable(copy, S.copy(getmetatable(og), cp))
+function S:copy()
+    if type(self) == 'table' then
+        local cp = {}
+        for k,v in pairs(self) do
+            cp[k] = S.copy(v)
         end
-    else copy = og end -- literal value
-    return copy
+        return setmetatable(cp, getmetatable(self))
+    else return self end
 end
 
 function S:peek() return self.data[self.ix] end

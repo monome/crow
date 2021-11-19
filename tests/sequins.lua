@@ -356,16 +356,33 @@ eq(sfn(), sbaked())
 eq(sfn(), sbaked())
 eq(#sbaked, 7)
 
--- test :reset on a sequins transformer map
+-- :reset() on a sequins transformer map
 local sfn = s{1}+s{0,1}
 eq(sfn(), 1)
 sfn:reset()
 eq(sfn(), 1)
 
+-- copy tests
+-- plain sequins
+local sog = s{1,2,3}
+local scp = sog:copy()
+for i=1,10 do eq(sog(), scp()) end
 
+-- nested sequins
+local sog = s{1,2,s{3,4}}
+local scp = sog:copy()
+for i=1,3 do eq(sog(), scp()) end
+
+-- nested sequins with flow-mod
+local sog = s{1,2,s{3,4}:every(2)}
+local scp = sog:copy()
+for i=1,10 do eq(sog(), scp()) end
+
+-- sequins with transformer
+local sog = s{1,2,3}+1
+local scp = sog:copy()
+for i=1,10 do eq(sog(), scp()) end
 
 --[[
--- TODO copy test
-
 -- TODO setdata tests
 ]]
