@@ -200,7 +200,7 @@ S.metaix = { settable = S.setdata
            , select   = S.select
            , peek     = S.peek
            , copy     = S.copy
-           , fn       = S.func
+           , map      = S.func
            }
 S.__index = function(self, ix)
     if type(ix) == 'number' then return self.data[ix]
@@ -231,7 +231,7 @@ S.__tostring = function(t)
 
     -- transformer
     if #t.fun > 0 then
-        s = string.format('%s:fn(%s)',s, k:sub(1,1), tostring(t.fun[1]))
+        s = string.format('%s:map(%s)',s, k:sub(1,1), tostring(t.fun[1]))
     end
 
     return s

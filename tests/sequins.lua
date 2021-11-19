@@ -238,25 +238,25 @@ assert(#s1 == 3)
 
 --- transformer tests
 -- simple function
-local sfn = s{1,2}:fn(function(n) return n+1 end)
+local sfn = s{1,2}:map(function(n) return n+1 end)
 -- for i=1,4 do print(sfn()) end
 assert(sfn() == 2)
 assert(sfn() == 3)
 assert(sfn() == 2)
-sfn:fn() -- remove the transformer
+sfn:map() -- remove the transformer
 assert(sfn() == 2)
 assert(sfn() == 1)
 assert(sfn() == 2)
 
 -- function with captured args
-local sfn = s{1,2}:fn(function(n,arg) return n*arg end, 2)
+local sfn = s{1,2}:map(function(n,arg) return n*arg end, 2)
 assert(sfn() == 2)
 assert(sfn() == 4)
 assert(sfn() == 2)
 assert(sfn() == 4)
 
 -- function with captured sequins
-local sfn = s{0,3,6}:fn(function(n,sq)
+local sfn = s{0,3,6}:map(function(n,sq)
         return n+sq()
     end, s{0,12})
 assert(sfn() == 0)
