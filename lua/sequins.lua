@@ -186,6 +186,11 @@ function S:reset()
         v.ix = 0
         turtle(v.n, S.reset)
     end
+    if self.fun[1] and #self.fun[2] > 0 then
+        for _,v in pairs(self.fun[2]) do
+            turtle(v, S.reset)
+        end
+    end
 end
 
 

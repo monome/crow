@@ -357,7 +357,6 @@ eq(sfn(), sbaked())
 eq(#sbaked, 7)
 
 -- test :reset on a sequins transformer map
-print':reset'
 local sfn = s{1}+s{0,1}
 eq(sfn(), 1)
 sfn:reset()
@@ -365,23 +364,8 @@ eq(sfn(), 1)
 
 
 
--- eq(sfn(), 2)
--- eq(sfn(), 2)
--- eq(sfn(), 2)
--- eq(sfn(), 1)
--- eq(sfn(), 3)
-
--- eq(sfn(), 1)
--- eq(sfn(), 2)
--- eq(sfn(), 2)
--- eq(sfn(), 2)
-
-
 --[[
 -- TODO copy test
 
 -- TODO setdata tests
-
-
-
 ]]
