@@ -322,6 +322,59 @@ assert(sfn() == 0)
 assert(sfn() == 1)
 assert(sfn() == 0)
 
+-- dumb equality assertion shim to print values if assertion fails
+function eq(testcase,expect)
+    if testcase ~= expect then
+        print('failed: got '..testcase)
+        print('   expected '..expect)
+    end
+end
+
+-- bake tests
+-- default bake length  == length of parent sequins
+local sfn = s{1,2}+s{0,0,1}
+local sbaked = sfn:bake() -- will produce list of length 2
+local sfn = s{1,2}+s{0,0,1} -- reset to ensure we're phase aligned
+-- FIXME transformer is not reset with :reset()
+-- sfn:reset() -- reset to ensure we're phase aligned
+eq(sfn(), sbaked())
+eq(sfn(), sbaked())
+eq(#sfn, #sbaked)
+
+-- explicit bake length
+local sfn = s{1,2}+s{0,0,1}
+local sbaked = sfn:bake(7)
+local sfn = s{1,2}+s{0,0,1} -- reset to ensure we're phase aligned
+-- FIXME transformer is not reset with :reset()
+-- sfn:reset() -- reset to ensure we're phase aligned
+eq(sfn(), sbaked())
+eq(sfn(), sbaked())
+eq(sfn(), sbaked())
+eq(sfn(), sbaked())
+eq(sfn(), sbaked())
+eq(sfn(), sbaked())
+eq(sfn(), sbaked())
+eq(#sbaked, 7)
+
+-- test :reset on a sequins transformer map
+print':reset'
+local sfn = s{1}+s{0,1}
+eq(sfn(), 1)
+sfn:reset()
+eq(sfn(), 1)
+
+
+
+-- eq(sfn(), 2)
+-- eq(sfn(), 2)
+-- eq(sfn(), 2)
+-- eq(sfn(), 1)
+-- eq(sfn(), 3)
+
+-- eq(sfn(), 1)
+-- eq(sfn(), 2)
+-- eq(sfn(), 2)
+-- eq(sfn(), 2)
 
 
 --[[
@@ -330,6 +383,5 @@ assert(sfn() == 0)
 -- TODO setdata tests
 
 
--- TODO bake tests
 
 ]]

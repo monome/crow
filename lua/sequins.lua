@@ -75,6 +75,15 @@ end
 
 function S:peek() return self.data[self.ix] end
 
+function S:bake(n)
+    n = n or #self -- void call creates a table of length == the parent sequins
+    local t = {}
+    for i=1,n do
+        t[i] = self()
+    end
+    return S.new(t)
+end
+
 local function turtle(t, fn)
     -- apply fn to all nested sequins
     fn = fn or S.next -- default to S.next
@@ -201,6 +210,7 @@ S.metaix = { settable = S.setdata
            , peek     = S.peek
            , copy     = S.copy
            , map      = S.func
+           , bake     = S.bake
            }
 S.__index = function(self, ix)
     if type(ix) == 'number' then return self.data[ix]
