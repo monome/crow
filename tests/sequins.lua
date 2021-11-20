@@ -383,6 +383,52 @@ local sog = s{1,2,3}+1
 local scp = sog:copy()
 for i=1,10 do eq(sog(), scp()) end
 
---[[
--- TODO setdata tests
-]]
+
+-- setdata tests
+-- swap data, maintain index
+local sd = s{1,2}
+sd(); sd()
+eq(tostring(sd), 's[2]{1,2}')
+ix = sd.ix
+sd:settable{3,4}
+eq(ix, sd.ix)
+eq(tostring(sd), 's[2]{3,4}')
+
+-- swap data, maintain index, sequins input
+local sd = s{1,2}
+sd(); sd()
+eq(tostring(sd), 's[2]{1,2}')
+ix = sd.ix
+sd:settable(s{3,4})
+eq(ix, sd.ix)
+eq(tostring(sd), 's[2]{3,4}')
+
+-- swap nested data, maintain index
+local sd = s{1,s{2,3}}
+sd(); sd(); sd(); sd()
+eq(tostring(sd), 's[2]{1,s[2]{2,3}}')
+ix = sd.ix
+sd:settable{2,s{3,4}}
+eq(ix, sd.ix)
+eq(tostring(sd), 's[2]{2,s[2]{3,4}}')
+
+-- swap nested flow-mod (same type), maintain flow-index
+local sd = s{1,s{2,3}:every(2)}
+sd(); sd(); sd(); sd()
+eq(tostring(sd), 's[1]{1,s[1]{2,3}:e[2](2)}')
+sd:settable{1,s{2,3}:every(5)}
+eq(tostring(sd), 's[1]{1,s[1]{2,3}:e[2](5)}')
+
+-- swap nested flow-mod (new type), maintain flow-index
+local sd = s{1,s{2,3}:every(2)}
+sd(); sd(); sd(); sd()
+eq(tostring(sd), 's[1]{1,s[1]{2,3}:e[2](2)}')
+sd:settable{1,s{2,3}:count(5)}
+eq(tostring(sd), 's[1]{1,s[1]{2,3}:c[0](5)}')
+
+-- swap seq w/ transformer
+local sd = s{1}+s{2,3}
+sd(); sd();
+eq(tostring(sd), 's[1]{1}:map(fn,s[2]{2,3})')
+sd:settable(s{1}+s{3,4})
+eq(tostring(sd), 's[1]{1}:map(fn,s[2]{3,4})')

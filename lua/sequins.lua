@@ -32,15 +32,48 @@ function S:is_sequins() return getmetatable(self) == S end
 
 function S:setdata(t)
     if S.is_sequins(t) then
-        t = t.data -- handle sequins as input
+        do -- flow modifiers
+            local src = t.flw
+            local dst = self.flw
 
-        -- FIXME generalize to cover flow-mods & transforms
-        -- only need to worry about it in here
-        -- otherwise it's just a raw table (hence untouched)
+            -- update / remove existing
+            for k,v in pairs(dst) do
+                if src[k] then -- already exists
+                    dst[k].n  = src[k].n -- update value
+                else dst[k] = nil end -- removed
+            end
+
+            -- add any new
+            for k,v in pairs(src) do
+                if not dst[k] then -- newly added
+                    dst[k] = {ix = v.ix, n = v.n} -- manual copy
+                end
+            end
+        end
+
+        do -- update data of transformers
+            local src = t.fun
+            local dst = self.fun
+
+            if dst[1] then -- already have a transformer
+                dst[1] = src[1] -- copy function
+                for k,v in ipairs(src[2]) do
+                     if S.is_sequins(v) and S.is_sequins(dst[2][k]) then
+                        dst[2][k]:settable(v) -- recurse nested sequins
+                    else
+                        dst[2][k] = v -- copy piecemeal
+                    end
+                end
+            end
+        end
+
+        -- finally, place data over top of input sequins
+        t = t.data -- handle sequins data as input table
     end
 
     t = totable(t) -- convert a string to a table of chars
 
+    -- data swap
     for i=1,#t do
         if S.is_sequins(t[i]) and S.is_sequins(self.data[i]) then
             self.data[i]:settable(t[i]) -- recurse nested sequins
@@ -139,7 +172,7 @@ S.flows = {
 }
 
 local function do_flow(s, k)
-    local f = s.flw[k] -- check if times exists
+    local f = s.flw[k] -- check if flow-mod exists
     if f then
         f.ix = f.ix + 1
         return S.flows[k](f, turtle(f.n))
@@ -232,12 +265,16 @@ S.__tostring = function(t)
     -- modifiers
     for k,v in pairs(t.flw) do
         -- TODO do we need to print current counters?
-        s = string.format('%s:%s(%s)',s, k:sub(1,1), tostring(v.n))
+        s = string.format('%s:%s[%i](%s)',s, k:sub(1,1), v.ix, tostring(v.n))
     end
 
     -- transformer
     if #t.fun > 0 then
-        s = string.format('%s:map(%s)',s, k:sub(1,1), tostring(t.fun[1]))
+        local fns = {'fn'}
+        for i=1,#t.fun[2] do
+            fns[i+1] = tostring(t.fun[2][i])
+        end
+        s = string.format('%s:map(%s)',s, table.concat(fns, ','))
     end
 
     return s
