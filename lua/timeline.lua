@@ -5,11 +5,14 @@
 local s = sequins or require 'lib/sequins'
 local clk = clock or require 'clock'
 
-local TL = {}
-
+local TL = {launch_default = 1}
 
 -- create a timeline object from a table
-function TL.new(t) return setmetatable(t, TL) end
+function TL.new(t)
+    return setmetatable({ lq = t.lq or TL.launch_default
+                        , qd = t.qd or 0
+                        }, TL)
+end
 
 
 -- helper fns
@@ -82,7 +85,7 @@ function TL:_loop(t)
     self.mode = 'loop'
     self.fn = function()
         self.i = 0 -- iteration 0 before quant finished
-        clk.sync(self.lq or 1) -- launch quantization
+        clk.sync(self.lq) -- launch quantization
         self.z = math.floor(clk.get_beats()) -- reference beat to stop drift
         repeat
             self.i = self.i + 1
@@ -126,7 +129,7 @@ function TL:_score(t)
     self.mode = 'score'
     self.fn = function()
         local now = clk.get_beats()
-        local lq = self.lq or 1
+        local lq = self.lq
         ::_R:: -- this tag will cause counter to reset
         self.z = now + (lq - (now % lq)) -- calculate beat-zero
         for i=1,#t,2 do
@@ -147,7 +150,7 @@ function TL.timed(t) return TL.new{}:timed(t) end
 function TL:_timed(t)
     self.mode = 'timed'
     self.fn = function()
-        clk.sync(self.lq or 1) -- launch quantization
+        clk.sync(self.lq) -- launch quantization
         ::_R::
         self.z = 0 -- tracks elapsed time as 0 is arbitrary
         for i=1,#t,2 do
