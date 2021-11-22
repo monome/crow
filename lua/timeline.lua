@@ -21,6 +21,7 @@ function TL.hotswap(old, new)
         if TL.is_timeline(old) then
             if TL.is_timeline(new) then -- tl for tl
                 TL.hotswap(old.t, new.t)
+                new:stop() -- ensure a new timeline doesn't run!
                 -- TODO hotswap other elements of the timeline
             else -- put the new data table in existing tl
                 TL.hotswap(old.t, new)
