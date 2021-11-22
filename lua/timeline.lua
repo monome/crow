@@ -14,6 +14,8 @@ function TL.new(t)
                         }, TL)
 end
 
+function TL.is_timeline(t) return getmetatable(t) == TL end
+
 
 -- helper fns
 local real = function(q)
