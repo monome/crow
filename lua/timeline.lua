@@ -70,7 +70,7 @@ end
 function TL.launch(q) return TL.new{lq = q} end
 
 -- stops auto-play
-function TL.queue(q) return TL.new{qd = 1} end
+function TL.queue() return TL.new{qd = 1} end
 
 
 --- loop
@@ -95,6 +95,9 @@ function TL:_loop(t)
     if not self.qd then TL.play(self) end
     return self
 end
+
+-- shortcut for a loop that begins stopped
+function TL.qloop(t) TL.queue():loop(t) end
 
 -- loop predicate methods
 function TL:unless(pred)
