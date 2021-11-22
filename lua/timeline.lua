@@ -16,6 +16,13 @@ end
 
 function TL.is_timeline(t) return getmetatable(t) == TL end
 
+function TL:hotswap(t)
+    -- naively swap out the timeline table
+    self.t = t
+    -- TODO nested timelines
+    -- TODO sequins data
+end
+
 
 -- helper fns
 local real = function(q)
@@ -29,11 +36,11 @@ local isfn = function(f) return (type(f) == 'function') end
 local doact = function(fn)
     fn = real(fn)
     if type(fn) == 'string' then return fn -- strings are keywords
-    elseif isfn(fn) then fn() -- call it directly
+    elseif isfn(fn) then return fn() -- call it directly
     else -- table of fn & args
         local t = {} -- make a copy to avoid changing sequins
         for i=1,#fn do t[i] = real(fn[i]) end
-        apply(table.unpack(t))
+        return apply(table.unpack(t))
     end
 end
 
@@ -85,15 +92,16 @@ function TL.loop(t) return TL.new{}:loop(t) end
 -- method version
 function TL:_loop(t)
     self.mode = 'loop'
+    self.t = t -- capture table
     self.fn = function()
         self.i = 0 -- iteration 0 before quant finished
         clk.sync(self.lq) -- launch quantization
         self.z = math.floor(clk.get_beats()) -- reference beat to stop drift
         repeat
             self.i = self.i + 1
-            for i=1,#t,2 do
-                doact(t[i+1])
-                self.z = dowait(t[i], self.z)
+            for i=1,#self.t,2 do
+                doact(self.t[i+1])
+                self.z = dowait(self.t[i], self.z)
             end
         until(dopred(self.p or false))
     end
@@ -129,14 +137,15 @@ function TL.score(t) return TL.new{}:score(t) end
 -- method version
 function TL:_score(t)
     self.mode = 'score'
+    self.t = t -- capture table
     self.fn = function()
         local now = clk.get_beats()
         local lq = self.lq
         ::_R:: -- this tag will cause counter to reset
         self.z = now + (lq - (now % lq)) -- calculate beat-zero
-        for i=1,#t,2 do
-            doalign(t[i], self.z)
-            if doact(t[i+1]) == 'reset' then goto _R end
+        for i=1,#self.t,2 do
+            doalign(self.t[i], self.z)
+            if doact(self.t[i+1]) == 'reset' then goto _R end
         end
     end
     if not self.qd then TL.play(self) end
@@ -151,13 +160,14 @@ function TL.timed(t) return TL.new{}:timed(t) end
 -- method version
 function TL:_timed(t)
     self.mode = 'timed'
+    self.t = t -- capture table
     self.fn = function()
         clk.sync(self.lq) -- launch quantization
         ::_R::
         self.z = 0 -- tracks elapsed time as 0 is arbitrary
-        for i=1,#t,2 do
-            self.z = doaligns(t[i], self.z) -- track current loop time
-            if doact(t[i+1]) == 'reset' then goto _R end
+        for i=1,#self.t,2 do
+            self.z = doaligns(self.t[i], self.z) -- track current loop time
+            if doact(self.t[i+1]) == 'reset' then goto _R end
         end
     end
     if not self.qd then TL.play(self) end
