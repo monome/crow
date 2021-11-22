@@ -10,17 +10,30 @@ local TL = {launch_default = 1}
 -- create a timeline object from a table
 function TL.new(t)
     return setmetatable({ lq = t.lq or TL.launch_default
-                        , qd = t.qd or 0
+                        , qd = t.qd or false
                         }, TL)
 end
 
 function TL.is_timeline(t) return getmetatable(t) == TL end
 
-function TL:hotswap(t)
-    -- naively swap out the timeline table
-    self.t = t
+function TL.hotswap(old, new)
+    if type(old) == 'table' then
+        if TL.is_timeline(old) then
+            if TL.is_timeline(new) then -- tl for tl
+                TL.hotswap(old.t, new.t)
+                -- TODO hotswap other elements of the timeline
+            else -- put the new data table in existing tl
+                TL.hotswap(old.t, new)
+            end
+        elseif s.is_sequins(old) then old:settable(new) -- sequins
+        else -- regular table
+            for k,v in pairs(old) do
+                old[k] = TL.hotswap(v, new[k])
+            end
+        end
+    else return new end -- return updated value
     -- TODO nested timelines
-    -- TODO sequins data
+    return old
 end
 
 
@@ -82,7 +95,7 @@ end
 function TL.launch(q) return TL.new{lq = q} end
 
 -- stops auto-play
-function TL.queue() return TL.new{qd = 1} end
+function TL.queue() return TL.new{qd = true} end
 
 
 --- loop
@@ -110,7 +123,7 @@ function TL:_loop(t)
 end
 
 -- shortcut for a loop that begins stopped
-function TL.qloop(t) TL.queue():loop(t) end
+function TL.qloop(t) return TL.queue():loop(t) end
 
 -- loop predicate methods
 function TL:unless(pred)
@@ -202,6 +215,7 @@ TL.mms = { stop   = TL.stop
          , timed  = TL._timed
          , play   = TL.play
          , iter   = TL.iter
+         , hotswap= TL.hotswap
          }
 TL.__index = TL.mms
 
