@@ -24,6 +24,7 @@
 #include "../ll/adda.h"     // CAL_*()
 #include "../ll/cal_ll.h"   // CAL_LL_ActiveChannel()
 #include "../ll/system.h"   // getUID_Word()
+#include "../ll/i2c.h"      // I2C_SetTimings(u8)
 #include "lib/events.h"     // event_t event_post()
 #include "stm32f7xx_hal.h"  // HAL_GetTick()
 #include "stm32f7xx_it.h"   // CPU_GetCount()
@@ -873,6 +874,14 @@ static int _pub_view_out( lua_State* L )
     return 0;
 }
 
+// i2c debug control
+static int _i2c_set_timings( lua_State *L )
+{
+    I2C_SetTimings( luaL_checkinteger(L, 1) );
+    lua_pop( L, 1 );
+    return 0;
+}
+
 
 // array of all the available functions
 static const struct luaL_Reg libCrow[]=
@@ -886,6 +895,7 @@ static const struct luaL_Reg libCrow[]=
     , { "unique_id"        , _unique_id        }
     , { "time"             , _time             }
     , { "cputime"          , _cpu_time         }
+    , { "i2c_fastmode"     , _i2c_set_timings  }
     //, { "sys_cpu_load"     , _sys_cpu          }
         // io
     , { "get_state"        , _get_state        }
