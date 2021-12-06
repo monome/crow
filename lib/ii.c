@@ -322,9 +322,9 @@ static void error_action( int error_code )
             break;
         case 1: // Bus is busy. Could this also be ARLO?
             if( I2C_GetPullups() ){
-                Caw_send_luachunk("ii: lines are low.");
-                Caw_send_luachunk("  check ii devices are connected correctly.");
-                Caw_send_luachunk("  check no ii devices are frozen.");
+                // Caw_send_luachunk("ii: lines are low.");
+                // Caw_send_luachunk("  check ii devices are connected correctly.");
+                // Caw_send_luachunk("  check no ii devices are frozen.");
             } else {
                 Caw_send_luachunk("ii: lines are low. try ii.pullup(true)");
             }
