@@ -438,6 +438,14 @@ void I2Cx_ER_IRQHandler( void )
 
 void HAL_I2C_ErrorCallback( I2C_HandleTypeDef* h )
 {
+    printf("I2C_ERROR_");
+    switch( h->ErrorCode ){
+        case HAL_I2C_ERROR_BERR: printf("BERR\n"); break;
+        case HAL_I2C_ERROR_OVR:  printf("OVR\n"); break;
+        case HAL_I2C_ERROR_ARLO: printf("ARLO\n"); break;
+        case HAL_I2C_ERROR_AF:   printf("AF\n"); break;
+        default: printf("unknown!\n"); break;
+    }
     if( h->ErrorCode == HAL_I2C_ERROR_AF ){
         (*error_action)( 0 );
     } else {
