@@ -2,6 +2,7 @@
 
 (var s-mt {}) ;to be metatable (redefined to avoid circular dependence)
 
+;; FIXME should this just be a modulo-base1 fn & remove the need for a self?
 (fn wrap-index [{: len} ix]
   "fold index into range of a sequins"
   (-> ix
@@ -19,33 +20,28 @@
       (values (f v)) ;unwrap function can return multiple values
       v))
 
-(fn do-step [{: step &as t} rev]
-  "step the index forward destructively, or undo if rev"
-  (if (> step.qix 0)
-      (do (tset step :qix (- step.qix))
-          _)
+;every = function(f,n) return (f.ix % n) ~= 0 end,
+;function do_flow(s, k)
+;    local f = s.flw[k] -- check if times exists
+;    if f then
+;        f.ix = f.ix + 1
+;        return S.flows[k](f, turtle(f.n))
+;    end
+;end
+;if do_flow(s, 'every') then return 'skip' end
 
+(fn do-every-with [f self]
+  )
 
-;; gotta incorporate the tset appropriately
-;; try and consolidate the mutation into one spot
-
-;; the general idea is to destructively do-step
-;; then if an 'again' occurs, be able to unroll it
-
-;; think (> qix 0) it needs to act
-;; (< qix 0) it was just used
-;; (= qix 0) it is inactive
-
-
-
-
-    0 _
-    )
-  (tset step :ix (wrap-index t (if (> step.qix 0)
-                                   step.qix
-                                   (+ step.ix (unwrap-with realize step.n)))))
-  (tset step :qix -1)
-  step.ix)
+(fn do-step-with [f {: step &as self}]
+  "advance index by step amount"
+  ;TODO if we use mod-base1 instead just destructure :len directly
+  (let [ix (wrap-index self (if (> step.qix 0)
+                                step.qix
+                                (+ step.ix (unwrap-with f step.n))))]
+    (tset step :ix ix)
+    (tset step :qix -1)
+    ix))
 
 (fn realize [{: data &as self}]
   "realize the next value from a sequins, or signal to its parent"
@@ -53,14 +49,8 @@
   ; TODO times
   ; TODO count
   ; step & get
-  (let [newix (do-step self)])
-  (let [newix (wrap-index self (if (> step.qix 0)
-                                   step.qix
-                                   (+ step.ix (unwrap-with realize step.n))))
+  (let [newix (do-step-with realize self)
         (val flow) (unwrap-with realize (. data newix))]
-    (when (not (= flow :again))
-      (tset step :ix newix)
-      (tset step :qix -1))
     val)) ;TODO turtle
 
 (fn adorn [self mods]
