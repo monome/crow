@@ -35,6 +35,13 @@
               {:every 2})])
        [1 1 2 1 1 2 1])
 
+(stest "nested sequins with times"
+       (s* [1 (s* [2]
+              {:times 2})])
+       [1 2 1 2 1 1 1])
+;;(local s19 (s* [1 (s* [2 3]
+;;                      {:times 3})]))
+
 ;;(local s9 (s* [1 (s* [2]
 ;;                     {:count 2})]))
 ;;
@@ -48,8 +55,6 @@
 ;;      s15 (s* [melody (s*! umelo
 ;;                           {:every 3})])])
 ;;
-;;(local s19 (s* [1 (s* [2 3]
-;;                      {:times 3})]))
 
 
 
