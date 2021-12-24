@@ -9,14 +9,6 @@
       (% wrap)
       (+ 1)))
 
-;; FIXME should this just be a modulo-base1 fn & remove the need for a self?
-(fn wrap-index [{: len} ix]
-  "fold index into range of a sequins"
-  (-> ix
-      (- 1)
-      (% len)
-      (+ 1)))
-
 (fn sequins? [t]
   "return true if the argument is a sequins-table"
   (= s-mt (getmetatable t)))
