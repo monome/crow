@@ -74,7 +74,9 @@ void ADC_Init( uint16_t bsize, uint8_t chan_count, int timer_ix )
     
 
     //uint32_t prescaler = (uint32_t)((SystemCoreClock / 10000)-1);
-    uint32_t period_value = 27-1; // 8MHz
+// FIXME in progress
+    //uint32_t period_value = 27-1; // 8MHz
+    uint32_t period_value = 25-1; // 8.64MHz (overclock to ensure OSR finishes in time)
     adc_tim.Instance = TIMa;
     adc_tim.Init.Period = period_value;
     // adc_tim.Init.Prescaler = 3; //prescaler;
@@ -133,13 +135,13 @@ void ADS_Init_Sequence(void)
     //printf( "%i\n",ADS_Cmd(ADS_NULL) ); // assert ADS_CLK1
         // 0x02 is /2 which is least divisions (fastest internal)
         // meaning slowest clkout from uc and least noise.
-    // ADS_Reg(ADS_WRITE_REG | ADS_CLK2, 0x25); // fMOD = fICLK/2, OSR = 512
-    // ADS_Reg(ADS_WRITE_REG | ADS_CLK2, 0x27); // fMOD = fICLK/2, OSR = 384
 
 // weirdly, we choose the OSR value by increasing the multiplier until the DRDY error flag is set
     // we actualy *want* this error flag set, bc it infers the filter has settled
     ADS_Reg(ADS_WRITE_REG | ADS_CLK2, 0x28); // fMOD = fICLK/2, OSR = 256
     // ADS_Reg(ADS_WRITE_REG | ADS_CLK2, 0x2a); // fMOD = fICLK/2, OSR = 192
+    // ADS_Reg(ADS_WRITE_REG | ADS_CLK2, 0x2b); // fMOD = fICLK/2, OSR = 128
+    //
     // 0x2* sets clockdiv to /2 (the least divisions, for slowest MCLK)
     // 0x*b was lowest (ie most oversampling) where -5v actually reached 0x8000
     // using 0x*c for safety

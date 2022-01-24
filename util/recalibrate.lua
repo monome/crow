@@ -51,10 +51,14 @@ end
 
 
 function step_offset(chan, vol, coeff)
+    if chan.offset > 1 then chan.offset = 0 end
+    if chan.offset < -1 then chan.offset = 0 end
     chan.offset = chan.offset + (-vol*coeff)
 end
 
 function step_scale(chan, vol, coeff)
+    if chan.scale > 2 then chan.scale = 1 end
+    if chan.scale < 0.1 then chan.scale = 1 end
     local skal = chan.scale
     local exact = (skal * 2.5) / vol
     chan.scale = skal + coeff * (exact-skal) -- linear interpolate
@@ -66,6 +70,7 @@ function cal_input1(coeff)
     local rr = read_avg(1)
     cal.source'2v5'
     local rrr = read_avg(1)
+    if VERBOSE then print(string.format(" %.3f %.3f", rr, rrr), coeff) end
 
     -- step toward ideal values
     step_offset(cal.input[1], rr, coeff)
@@ -116,6 +121,7 @@ function cal_output(chan, coeff)
 
     xout(-1, 0) -- set all chans to 0
     if VERBOSE then print(string.format("output[%i] %.3f %.3f",chan, -1000*rr, 1000*(rrr-2.5))) end
+    if VERBOSE then print(" " .. coeff) end
     return -rr, rrr-2.5 -- return error levels
 end
 
@@ -141,13 +147,28 @@ function init()
     print '2. run calibrate()'
     print '     if calibration succeeds, it will be saved to flash memory'
     print '3. view the calibration values with pprint()'
+
+    calibrate()
+end
+
+function reset_calibration()
+    for i=1,2 do
+        cal.input[i].offset = 0
+        cal.input[i].scale = 1
+    end
+    for i=1,4 do
+        cal.output[i].offset = 0
+        cal.output[i].scale = 1
+    end
 end
 
 function calibrate()
     print('calibrating...')
     clock.run(function()
         local is_wide_win = make_win_checker(0.001) -- 1mV
-        local is_tight_win = make_win_checker(0.0002) -- 200uV
+        --local is_tight_win = make_win_checker(0.0002) -- 200uV
+        local is_tight_win = make_win_checker(0.000333) -- 333uV
+        --local is_tight_win = make_win_checker(0.00044) -- 200uV
 
         print('  input[1]')
         do_until(is_wide_win, cal_input1, 0.75)
