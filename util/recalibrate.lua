@@ -148,7 +148,7 @@ function init()
     print '     if calibration succeeds, it will be saved to flash memory'
     print '3. view the calibration values with pprint()'
 
-    calibrate()
+    --calibrate()
 end
 
 function reset_calibration()
