@@ -119,7 +119,7 @@ Input.__index = function(self, ix)
     if     ix == 'volts' then
         return Input.get_value(self)
     elseif ix == 'query' then
-        return function() _c.tell('stream',self.channel,Input.get_value(self)) end
+        return function() stream_handler(self.channel,Input.get_value(self)) end
     elseif ix == 'mode'  then
         return function(...) Input.set_mode( self, ...) end
     elseif ix == 'reset_events' then
