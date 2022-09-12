@@ -31,7 +31,7 @@ int fputc(int ch, FILE *f)
     return ch;
 }
 
-caddr_t _sbrk(int incr)
+void* _sbrk(int incr)
 {
     extern char end __asm("end");
     static char *heap_end;
@@ -44,10 +44,10 @@ caddr_t _sbrk(int incr)
     if (heap_end + incr > stack_ptr)
     {
         errno = ENOMEM;
-        return (caddr_t) -1;
+        return (void*) -1;
     }
 
     heap_end += incr;
 
-    return (caddr_t) prev_heap_end;
+    return (void*) prev_heap_end;
 }
