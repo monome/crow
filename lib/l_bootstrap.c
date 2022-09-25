@@ -2,7 +2,7 @@
 
 #include <string.h>
 
-//#include "lualink.h"
+#include "l_crowlib.h"
 
 #include "lua/crowlib.lua.h"
 #include "lua/asl.lua.h"
@@ -42,15 +42,11 @@ const struct lua_lib_locator Lua_libs[] =
     , { NULL            , NULL          , true}
     };
 
+
 void l_bootstrap_init(lua_State* L){
 	// collectgarbage('setpause', 55)
 	lua_gc(L, LUA_GCSETPAUSE, 55);
 	lua_gc(L, LUA_GCSETSTEPMUL, 260);
-
-	// // print -> print_serial
-	// lua_pushcfunction(L,lcf1_print);
-	// lua_setfield(L,LUA_ENVIRONINDEX,"print");
-	// assert(lua_gettop(L) - lc_nextra == 0);
 
 	// dofile just calls c_dofile
 	lua_getglobal(L, "c_dofile");
@@ -66,10 +62,14 @@ void l_bootstrap_init(lua_State* L){
 	lua_getglobal(L, "_c");
 	lua_setglobal(L, "crow");
 
+    // crowlib C extensions
+    l_crowlib_init(L);
+
 	// perform two full garbage collection cycles for full cleanup
 	lua_gc(L, LUA_GCCOLLECT, 1);
 	lua_gc(L, LUA_GCCOLLECT, 1);
 }
+
 
 int l_bootstrap_dofile(lua_State* L)
 {
@@ -105,6 +105,11 @@ fail:
     lua_pushnil(L);
     return 1;
 }
+
+
+
+
+
 
 /////////// private defns
 

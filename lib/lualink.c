@@ -29,8 +29,11 @@
 #include "stm32f7xx_hal.h"  // HAL_GetTick()
 #include "stm32f7xx_it.h"   // CPU_GetCount()
 
-// Lua libs wrapped in C-headers: Note the extra '.h'
-#include "l_bootstrap.h" // MUST LOAD THIS MANUALLY FIRST
+// Lua lib C implementations
+// as much low-level functionality is in here as possible
+// thus keeping the lua VM as free as possible
+#include "l_bootstrap.h"
+#include "l_crowlib.h"
 
 
 #define WATCHDOG_FREQ      0x100000 // ~1s how often we run the watchdog
@@ -776,6 +779,10 @@ static const struct luaL_Reg libCrow[]=
     , { "print_serial"     , _print_serial     }
     , { "tell"             , _print_tell       }
         // system
+    , { "justvolts"        , l_crowlib_justvolts }
+    , { "just12"           , l_crowlib_just12    }
+    , { "hztovolts"        , l_crowlib_hztovolts }
+        // crowlib
     , { "sys_bootloader"   , _bootloader       }
     , { "unique_id"        , _unique_id        }
     , { "time"             , _time             }
