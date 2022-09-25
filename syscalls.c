@@ -51,3 +51,19 @@ void* _sbrk(int incr)
 
     return (void*) prev_heap_end;
 }
+
+// empty syscall functions to quiet the compiler
+// perhaps we should actually implement them to make some stdlib stuff work?
+// perhaps we should add debug prints so we know if/when they're being called
+void _close(void){}
+void _fstat_r(void){}
+void _getpid_r(void){}
+void _gettimeofday_r(void){}
+void _isatty_r(void){}
+void _kill_r(void){}
+void _link_r(void){}
+void _lseek(void){}
+void _read(void){}
+void _open_r(void){}
+void _times_r(void){}
+void _unlink_r(void){}
