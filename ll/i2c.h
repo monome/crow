@@ -7,7 +7,11 @@
 //////////////////////////////////////////
 // hardware configuration
 
-#define I2C_TIMING  0xB042080B // see nucleof767 project for reasoning ~400kHz
+
+// these are from reference manual (p1232) but they do not give correct values
+// I2C_TIMINGR register
+#define I2C_TIMING_STABLE 0xD0421C0C // runs at 55kHz
+#define I2C_TIMING_SPEED  0xA0420B07 // runs at 320kHz
 
 #define I2Cx                            I2C1
 #define I2Cx_CLK_ENABLE()               __HAL_RCC_I2C1_CLK_ENABLE()
@@ -60,6 +64,8 @@ uint8_t I2C_is_boot( void );
 
 void I2C_SetPullups( uint8_t state );
 uint8_t I2C_GetPullups( void );
+
+void I2C_SetTimings( uint32_t mask );
 
 uint8_t I2C_GetAddress( void );
 void I2C_SetAddress( uint8_t address );
