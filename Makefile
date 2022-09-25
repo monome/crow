@@ -180,7 +180,8 @@ OBJS += $(addprefix $(LUAS)/,$(LUACORE_OBJS) $(LUALIB_OBJS) )
 OBJS += Startup.o
 
 # specific objects that require built dependencies (ii)
-$(OBJDIR)/lib/lualink.o: $(LUA_PP) $(BUILD_DIR)/ii_lualink.h
+$(OBJDIR)/lib/l_bootstrap.o: $(LUA_PP) $(BUILD_DIR)/ii_lualink.h
+# $(OBJDIR)/lib/lualink.o: $(LUA_PP) $(BUILD_DIR)/ii_lualink.h
 $(OBJDIR)/lib/ii.o: $(BUILD_DIR)/ii_c_layer.h
 
 # generate the build directory
