@@ -43,6 +43,8 @@ I2C_error_callback_t  error_action;
 I2C_State_t buf;
 uint8_t pullup_state = 0;
 
+uint32_t i2c_timings = I2C_TIMING_STABLE; // default timings
+
 
 //////////////////////////////
 // public definitions
@@ -62,7 +64,7 @@ uint8_t I2C_Init( uint8_t               address
     error_action   = error_callback;
 
     i2c_handle.Instance              = I2Cx;
-    i2c_handle.Init.Timing           = I2C_TIMING;
+    i2c_handle.Init.Timing           = i2c_timings;
     i2c_handle.Init.OwnAddress1      = address << 1; // correct MSB justification
     i2c_handle.Init.AddressingMode   = I2C_ADDRESSINGMODE_7BIT;
     i2c_handle.Init.DualAddressMode  = I2C_DUALADDRESS_DISABLE;
@@ -84,6 +86,20 @@ uint8_t I2C_Init( uint8_t               address
 void I2C_DeInit( void )
 {
     HAL_I2C_DeInit( &i2c_handle );
+}
+
+void I2C_SetTimings( uint32_t is_fast )
+{
+    I2C_DeInit();
+    i2c_timings = is_fast ? I2C_TIMING_SPEED : I2C_TIMING_STABLE; // override timings
+    if( lead_response != NULL ){
+        I2C_Init( I2C_GetAddress()
+                , lead_response
+                , follow_action
+                , follow_request
+                , error_action
+                );
+    }
 }
 
 uint8_t I2C_is_boot( void )
