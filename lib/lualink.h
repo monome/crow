@@ -13,6 +13,8 @@ struct lua_lib_locator{
     const bool stripped;
 };
 
+extern lua_State* L; // global access for 'reset-environment'
+
 extern volatile int CPU_count; // count from main.c
 
 lua_State* Lua_Init(void);
@@ -26,10 +28,11 @@ uint8_t Lua_eval( lua_State*     L
                 , const char*    chunkname
                 );
 void Lua_load_default_script( void );
+int Lua_call_usercode( lua_State* L, int nargs, int nresults );
 
 // Event enqueue wrappers
 extern void L_queue_asl_done( int id );
-extern void L_queue_metro( int id, int state );
+// extern void L_queue_metro( int id, int state );
 extern void L_queue_stream( int id, float state );
 extern void L_queue_change( int id, float state );
 extern void L_queue_window( int id, float window );

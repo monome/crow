@@ -34,6 +34,7 @@
 // thus keeping the lua VM as free as possible
 #include "l_bootstrap.h"
 #include "l_crowlib.h"
+#include "l_metro.h"
 
 
 #define WATCHDOG_FREQ      0x100000 // ~1s how often we run the watchdog
@@ -46,13 +47,13 @@
 // Private prototypes
 static void Lua_linkctolua( lua_State* L );
 static float Lua_check_memory( void );
-static int Lua_call_usercode( lua_State* L, int nargs, int nresults );
+// static int Lua_call_usercode( lua_State* L, int nargs, int nresults );
 static int Lua_handle_error( lua_State* L );
 static void timeouthook( lua_State* L, lua_Debug* ar );
 
 // Handler prototypes
 void L_handle_asl_done( event_t* e );
-void L_handle_metro( event_t* e );
+// void L_handle_metro( event_t* e );
 void L_handle_stream( event_t* e );
 void L_handle_change( event_t* e );
 void L_handle_ii_leadRx( event_t* e );;
@@ -823,6 +824,13 @@ static const struct luaL_Reg libCrow[]=
     , { "metro_start"      , _metro_start      }
     , { "metro_stop"       , _metro_stop       }
     , { "metro_set_time"   , _metro_set_time   }
+        // metro (ceified) -> update lua names by removing l_
+    , { "l_metro_free_all" , l_metro_free_all  }
+    , { "l_metro_init"     , l_metro_init      }
+    , { "l_metro_start"    , l_metro_start     }
+    , { "l_metro_stop"     , l_metro_stop      }
+    , { "l_metro__index"   , l_metro__index    }
+    , { "l_metro__newindex", l_metro__newindex }
         // random
     , { "random_float"     , _random_float     }
     , { "random_int"       , _random_int       }
@@ -937,7 +945,7 @@ static int Lua_handle_error( lua_State *L )
     return 1;
 }
 
-static int Lua_call_usercode( lua_State* L, int nargs, int nresults )
+int Lua_call_usercode( lua_State* L, int nargs, int nresults )
 {
     lua_sethook(L, timeouthook, LUA_MASKCOUNT, WATCHDOG_FREQ); // reset timeout hook
     watchdog = WATCHDOG_COUNT; // reset timeout hook counter
@@ -971,23 +979,23 @@ void L_handle_asl_done( event_t* e )
     }
 }
 
-void L_queue_metro( int id, int state )
-{
-    event_t e = { .handler = L_handle_metro
-                , .index.i = id
-                , .data.i  = state
-                };
-    event_post(&e);
-}
-void L_handle_metro( event_t* e )
-{
-    lua_getglobal(L, "metro_handler");
-    lua_pushinteger(L, e->index.i +1); // 1-ix'd
-    lua_pushinteger(L, e->data.i +1);  // 1-ix'd
-    if( Lua_call_usercode(L, 2, 0) != LUA_OK ){
-        lua_pop( L, 1 );
-    }
-}
+// void L_queue_metro( int id, int state )
+// {
+//     event_t e = { .handler = L_handle_metro
+//                 , .index.i = id
+//                 , .data.i  = state
+//                 };
+//     event_post(&e);
+// }
+// void L_handle_metro( event_t* e )
+// {
+//     lua_getglobal(L, "metro_handler");
+//     lua_pushinteger(L, e->index.i +1); // 1-ix'd
+//     lua_pushinteger(L, e->data.i +1);  // 1-ix'd
+//     if( Lua_call_usercode(L, 2, 0) != LUA_OK ){
+//         lua_pop( L, 1 );
+//     }
+// }
 
 void L_queue_stream( int id, float state )
 {
