@@ -252,7 +252,7 @@ int I2C_LeadTx( uint8_t  address
                     , data
                     , size
                     ) != HAL_OK ){
-                error |= 2;
+                error |= 2; // means i2c bus was busy
                 HAL_I2C_ListenCpltCallback( &i2c_handle ); // re-enable listen
             } else { buf.operation = OP_LEAD_TX; }
         );
@@ -436,6 +436,11 @@ void I2Cx_ER_IRQHandler( void )
     HAL_I2C_ER_IRQHandler( &i2c_handle );
 }
 
+// i think this can only call with 3 errors:
+// HAL_I2C_ERROR_BERR HAL_I2C_ERROR_OVR HAL_I2C_ERROR_ARLO
+// but perhaps also
+// HAL_I2C_ERROR_AF
+// I2C_ITError
 void HAL_I2C_ErrorCallback( I2C_HandleTypeDef* h )
 {
     if( h->ErrorCode == HAL_I2C_ERROR_AF ){
