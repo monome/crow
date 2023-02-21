@@ -820,9 +820,9 @@ static const struct luaL_Reg libCrow[]=
     , { "ii_set_add"       , _ii_address       }
     , { "ii_get_add"       , _ii_get_address   }
         // metro
-    , { "metro_start"      , _metro_start      }
-    , { "metro_stop"       , _metro_stop       }
-    , { "metro_set_time"   , _metro_set_time   }
+    // , { "metro_start"      , _metro_start      }
+    // , { "metro_stop"       , _metro_stop       }
+    // , { "metro_set_time"   , _metro_set_time   }
         // metro (ceified) -> update lua names by removing l_
     , { "l_metro_free_all" , l_metro_free_all  }
     , { "l_metro_init"     , l_metro_init      }
