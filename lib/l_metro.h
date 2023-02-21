@@ -7,7 +7,7 @@
 #include "../submodules/lua/src/lualib.h"
 
 // initialize the module itself
-int l_metrolib_init( lua_State *L );
+int l_metrolib_preinit( lua_State *L );
 
 // module actions
 // stops then re-initializes all metros to defaults

@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "l_crowlib.h"
+#include "l_metro.h"
 
 #include "lua/crowlib.lua.h"
 #include "lua/asl.lua.h"
@@ -51,6 +52,10 @@ void l_bootstrap_init(lua_State* L){
     // dofile just calls c_dofile
     lua_getglobal(L, "c_dofile");
     lua_setglobal(L, "dofile");
+
+    // pre-initialize any static C datastructures before loading the libraries
+    // these are lua c-funcs so can propagate errors upstream to lua env
+    l_metrolib_preinit(L);
 
     // TODO collect & implement much of crowlib here directly
     // _c = dofile('lua/crowlib.lua')

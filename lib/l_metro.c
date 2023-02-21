@@ -31,7 +31,12 @@ static void set_defaults(int ix);
 // public interface via lua
 
 // initialize the module itself
-int l_metrolib_init( lua_State *L ){
+int l_metrolib_preinit( lua_State *L ){
+    // initialize C-structs
+    for(int i=0; i<MAX_METROS; i++){
+        free_metro(i);
+    }
+
     // think of this as the executable pass through the lua file
     // all the fn-defs are done automatically, but any allocation is here
 
@@ -41,6 +46,11 @@ int l_metrolib_init( lua_State *L ){
 
     // place each metro table directly in the Metro table at it's index
     // this allows to skip a metamethod indirection & simplifies __index
+
+
+    // CURRENTLY WE DO IT WITH THE metro.lua FILE
+    // THIS CAN BE CEIFIED TO REDUCE RAM USAGE SOMEWHAT
+
     return 0;
 }
 
@@ -72,7 +82,7 @@ int l_metro_init( lua_State *L )
         // table: allocate & assign by field name
         // put object table on TOS
         lua_getglobal(L, "metro"); // get metro table
-        lua_pushinteger(L, obj->id+1); // FIXME off by one errors!!!
+        lua_pushinteger(L, obj->id+1); // lua is 1-based
         lua_gettable(L, -2); // leaves metro[n] table on TOS
 
         // check for event, time & count & set them in the table
@@ -83,26 +93,31 @@ int l_metro_init( lua_State *L )
                 Metro_set_time(obj->id, obj->time);
             }
         }
+        lua_settop(L, 3); // reset for next table lookup
         if(lua_getfield(L, 1, "count") == LUA_TNUMBER){
             obj->count = luaL_checkinteger(L,-1);
             Metro_set_count(obj->id, obj->count);
         }
+        lua_settop(L, 3); // reset for next table lookup
         if(lua_getfield(L, 1, "event") == LUA_TFUNCTION){
             //// lua stack:
-            // literal table
-            // metro global
-            // metro object (self)
-            // event function
+            // 1: parameter table from lua script
+            // 2: metro global object (ie metro itself)
+            // 3: metro object (self) (ie metro[n])
+            // 4: event function
             lua_pushstring(L,"event");
-            lua_rotate(L,lua_gettop(L)-1,1); // swap top 2 elements
-            lua_rawset(L,-3);
+            // 5: 'event' string
+            lua_rotate(L,4,1); // swap top 2 elements
+            // 4: 'event' string
+            // 5: event function
+            lua_rawset(L,3);
         }
         lua_copy(L,3,1); // copy self metro object to 1st stack placement
     } else {
         // up to 3 args: allocate & assign args to object
         // first get the metro[n] self object
         lua_getglobal(L, "metro"); // get metro table
-        lua_pushinteger(L, obj->id+1); // FIXME off by one errors!!!
+        lua_pushinteger(L, obj->id+1); // lua is 1-based
         lua_gettable(L, -2); // leaves metro[n] table on TOS
         int self_location = lua_gettop(L);
         if(nargs>=1){ // event
@@ -142,8 +157,8 @@ int l_metro_start( lua_State *L ){
         luaL_error(L, "Metro.start: no self provided");
         goto error;
     }
-    lua_getfield(L,1,"lud"); // push lightuserdata onto stack
-    Metro_obj* obj = (Metro_obj*)lua_topointer(L,-1); // grab pointer to C struct
+    lua_getfield(L,1,"id"); // push id of metro onto stack (1-based)
+    Metro_obj* obj = &metros[luaL_checkinteger(L,-1)-1]; // grab pointer to C struct. 0-based.
     lua_pop(L,1); // remove pointer from stack
 
     // apply optional args here
@@ -169,14 +184,15 @@ error:
     lua_settop(L,0);
     return 0;
 }
+
 int l_metro_stop( lua_State *L ){
     // args: self, ...
     if(!lua_istable(L,1)){
         luaL_error(L, "Metro.stop: no self provided");
         goto error;
     }
-    lua_getfield(L,1,"lud"); // push lightuserdata onto stack
-    Metro_obj* obj = (Metro_obj*)lua_topointer(L,-1); // grab pointer to C struct
+    lua_getfield(L,1,"id"); // push id of metro onto stack. 1-based
+    Metro_obj* obj = &metros[luaL_checkinteger(L,-1)-1]; // grab pointer to C struct. 0-based
     lua_pop(L,1); // remove pointer from stack
 
     Metro_stop(obj->id);
@@ -196,8 +212,8 @@ int l_metro__index( lua_State *L ){
         luaL_error(L, "Metro.__index: no self provided");
         goto error;
     }
-    lua_getfield(L,1,"lud"); // push lightuserdata onto stack
-    Metro_obj* obj = (Metro_obj*)lua_topointer(L,-1); // grab pointer to C struct
+    lua_getfield(L,1,"id"); // push id of metro onto stack. 1-based
+    Metro_obj* obj = &metros[luaL_checkinteger(L,-1)-1]; // grab pointer to C struct. 0-based
     lua_pop(L,1); // remove pointer from stack
 
     if(!lua_isstring(L,2)){
@@ -248,8 +264,8 @@ int l_metro__newindex( lua_State *L ){
         luaL_error(L, "Metro.__newindex: no self provided");
         goto error;
     }
-    lua_getfield(L,1,"lud"); // push lightuserdata onto stack
-    Metro_obj* obj = (Metro_obj*)lua_topointer(L,-1); // grab pointer to C struct
+    lua_getfield(L,1,"id"); // push id of metro onto stack. 1-based
+    Metro_obj* obj = &metros[luaL_checkinteger(L,-1)-1]; // grab pointer to C struct. 0-based
     lua_pop(L,1); // remove pointer from stack
 
     // decide which member is being updated
@@ -266,6 +282,10 @@ int l_metro__newindex( lua_State *L ){
             Metro_set_time(obj->id, obj->time);
         }
         break;}
+    case 's': // stage
+        obj->count = luaL_checkinteger(L,3);
+        Metro_set_stage(obj->id, obj->count);
+        break;
     case 'c': // count
         obj->count = luaL_checkinteger(L,3);
         Metro_set_count(obj->id, obj->count);
@@ -299,11 +319,11 @@ static void L_handle_metro( event_t* e )
 {
     Metro_obj* obj = &metros[e->index.i];
     lua_getglobal(L, "metro"); // get metro table
-    lua_pushinteger(L, obj->id+1); // FIXME off by one errors!!!
+    lua_pushinteger(L, obj->id+1); // lua is 1-based
     lua_gettable(L, 1); // leaves metro object at stack=2
     lua_getfield(L, -1, "event"); // push event fn onto TOS
     if(lua_isfunction(L,-1)){
-        lua_pushinteger(L,e->data.i +1); // OFF BY ONE?
+        lua_pushinteger(L,e->data.i);
         lua_call(L,1,0); // 1 arg, no return
     }
 }
