@@ -44,30 +44,30 @@ const struct lua_lib_locator Lua_libs[] =
 
 
 void l_bootstrap_init(lua_State* L){
-	// collectgarbage('setpause', 55)
-	lua_gc(L, LUA_GCSETPAUSE, 55);
-	lua_gc(L, LUA_GCSETSTEPMUL, 260);
+    // collectgarbage('setpause', 55)
+    lua_gc(L, LUA_GCSETPAUSE, 55);
+    lua_gc(L, LUA_GCSETSTEPMUL, 260);
 
-	// dofile just calls c_dofile
-	lua_getglobal(L, "c_dofile");
-	lua_setglobal(L, "dofile");
+    // dofile just calls c_dofile
+    lua_getglobal(L, "c_dofile");
+    lua_setglobal(L, "dofile");
 
-	// TODO collect & implement much of crowlib here directly
-	// _c = dofile('lua/crowlib.lua')
-	lua_pushliteral(L, "lua/crowlib.lua");
-	l_bootstrap_dofile(L); // hotrod without l_call
-	lua_setglobal(L, "_c");
+    // TODO collect & implement much of crowlib here directly
+    // _c = dofile('lua/crowlib.lua')
+    lua_pushliteral(L, "lua/crowlib.lua");
+    l_bootstrap_dofile(L); // hotrod without l_call
+    lua_setglobal(L, "_c");
 
-	// crow = _c
-	lua_getglobal(L, "_c");
-	lua_setglobal(L, "crow");
+    // crow = _c
+    lua_getglobal(L, "_c");
+    lua_setglobal(L, "crow");
 
     // crowlib C extensions
     l_crowlib_init(L);
 
-	// perform two full garbage collection cycles for full cleanup
-	lua_gc(L, LUA_GCCOLLECT, 1);
-	lua_gc(L, LUA_GCCOLLECT, 1);
+    // perform two full garbage collection cycles for full cleanup
+    lua_gc(L, LUA_GCCOLLECT, 1);
+    lua_gc(L, LUA_GCCOLLECT, 1);
 }
 
 
@@ -82,11 +82,11 @@ int l_bootstrap_dofile(lua_State* L)
     char cname[32]; // 32bytes is more than enough for any path
     int p=0; // pointer into cname
     for(int i=0; i<l_len; i++){
-    	switch(l_name[i]){
-    		case '/':{ cname[p++] = '_'; } break;
-    		case '.':{ cname[p++] = 0; } goto strcomplete;
-    		default:{ cname[p++] = l_name[i]; } break;
-    	}
+        switch(l_name[i]){
+            case '/':{ cname[p++] = '_'; } break;
+            case '.':{ cname[p++] = 0; } goto strcomplete;
+            default:{ cname[p++] = l_name[i]; } break;
+        }
     }
 strcomplete:
     lua_pop( L, 1 );

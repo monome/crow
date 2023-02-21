@@ -236,14 +236,199 @@ assert(#s1 == 3)
 local s1 = s{1,2,s{2,3}} -- nests only count as one
 assert(#s1 == 3)
 
+--- transformer tests
+-- simple function
+local sfn = s{1,2}:map(function(n) return n+1 end)
+-- for i=1,4 do print(sfn()) end
+assert(sfn() == 2)
+assert(sfn() == 3)
+assert(sfn() == 2)
+sfn:map() -- remove the transformer
+assert(sfn() == 2)
+assert(sfn() == 1)
+assert(sfn() == 2)
 
---[[
--- TODO copy test
+-- function with captured args
+local sfn = s{1,2}:map(function(n,arg) return n*arg end, 2)
+assert(sfn() == 2)
+assert(sfn() == 4)
+assert(sfn() == 2)
+assert(sfn() == 4)
 
--- TODO setdata tests
+-- function with captured sequins
+local sfn = s{0,3,6}:map(function(n,sq)
+        return n+sq()
+    end, s{0,12})
+assert(sfn() == 0)
+assert(sfn() == 15)
+assert(sfn() == 6)
+assert(sfn() == 12)
 
--- TODO transformer tests
+-- divide operator
+local sfn = s{0,12}/12
+-- for i=1,4 do print(sfn()) end
+assert(sfn() == 0)
+assert(sfn() == 1)
+assert(sfn() == 0)
 
--- TODO bake tests
+-- divide operator sequins
+local sfn = s{1,2}/s{1,2,3}
+-- for i=1,4 do print(sfn()) end
+assert(sfn() == 1)
+assert(sfn() == 1)
+assert(sfn() == 1/3)
+assert(sfn() == 2)
+assert(sfn() == 1/2)
+assert(sfn() == 2/3)
+assert(sfn() == 1)
 
-]]
+local sfn = s{1,2}+1
+assert(sfn() == 2)
+assert(sfn() == 3)
+assert(sfn() == 2)
+
+local sfn = s{1,2}-1
+assert(sfn() == 0)
+assert(sfn() == 1)
+assert(sfn() == 0)
+
+local sfn = s{1,2}*2
+assert(sfn() == 2)
+assert(sfn() == 4)
+assert(sfn() == 2)
+
+local sfn = s{0,3,4}%3
+assert(sfn() == 0)
+assert(sfn() == 0)
+assert(sfn() == 1)
+
+local sfn = s{1}+s{0,1}
+assert(sfn() == 1)
+assert(sfn() == 2)
+assert(sfn() == 1)
+
+local sfn = s{1}-s{0,1}
+assert(sfn() == 1)
+assert(sfn() == 0)
+assert(sfn() == 1)
+
+local sfn = s{1}*s{1,2}
+assert(sfn() == 1)
+assert(sfn() == 2)
+assert(sfn() == 1)
+
+local sfn = s{3}%s{1,2,3}
+assert(sfn() == 0)
+assert(sfn() == 1)
+assert(sfn() == 0)
+
+-- dumb equality assertion shim to print values if assertion fails
+function eq(testcase,expect)
+    if testcase ~= expect then
+        print('failed: got '..testcase)
+        print('   expected '..expect)
+    end
+end
+
+-- bake tests
+-- default bake length  == length of parent sequins
+local sfn = s{1,2}+s{0,0,1}
+local sbaked = sfn:bake() -- will produce list of length 2
+local sfn = s{1,2}+s{0,0,1} -- reset to ensure we're phase aligned
+-- FIXME transformer is not reset with :reset()
+-- sfn:reset() -- reset to ensure we're phase aligned
+eq(sfn(), sbaked())
+eq(sfn(), sbaked())
+eq(#sfn, #sbaked)
+
+-- explicit bake length
+local sfn = s{1,2}+s{0,0,1}
+local sbaked = sfn:bake(7)
+local sfn = s{1,2}+s{0,0,1} -- reset to ensure we're phase aligned
+-- FIXME transformer is not reset with :reset()
+-- sfn:reset() -- reset to ensure we're phase aligned
+eq(sfn(), sbaked())
+eq(sfn(), sbaked())
+eq(sfn(), sbaked())
+eq(sfn(), sbaked())
+eq(sfn(), sbaked())
+eq(sfn(), sbaked())
+eq(sfn(), sbaked())
+eq(#sbaked, 7)
+
+-- :reset() on a sequins transformer map
+local sfn = s{1}+s{0,1}
+eq(sfn(), 1)
+sfn:reset()
+eq(sfn(), 1)
+
+-- copy tests
+-- plain sequins
+local sog = s{1,2,3}
+local scp = sog:copy()
+for i=1,10 do eq(sog(), scp()) end
+
+-- nested sequins
+local sog = s{1,2,s{3,4}}
+local scp = sog:copy()
+for i=1,3 do eq(sog(), scp()) end
+
+-- nested sequins with flow-mod
+local sog = s{1,2,s{3,4}:every(2)}
+local scp = sog:copy()
+for i=1,10 do eq(sog(), scp()) end
+
+-- sequins with transformer
+local sog = s{1,2,3}+1
+local scp = sog:copy()
+for i=1,10 do eq(sog(), scp()) end
+
+
+-- setdata tests
+-- swap data, maintain index
+local sd = s{1,2}
+sd(); sd()
+eq(tostring(sd), 's[2]{1,2}')
+ix = sd.ix
+sd:settable{3,4}
+eq(ix, sd.ix)
+eq(tostring(sd), 's[2]{3,4}')
+
+-- swap data, maintain index, sequins input
+local sd = s{1,2}
+sd(); sd()
+eq(tostring(sd), 's[2]{1,2}')
+ix = sd.ix
+sd:settable(s{3,4})
+eq(ix, sd.ix)
+eq(tostring(sd), 's[2]{3,4}')
+
+-- swap nested data, maintain index
+local sd = s{1,s{2,3}}
+sd(); sd(); sd(); sd()
+eq(tostring(sd), 's[2]{1,s[2]{2,3}}')
+ix = sd.ix
+sd:settable{2,s{3,4}}
+eq(ix, sd.ix)
+eq(tostring(sd), 's[2]{2,s[2]{3,4}}')
+
+-- swap nested flow-mod (same type), maintain flow-index
+local sd = s{1,s{2,3}:every(2)}
+sd(); sd(); sd(); sd()
+eq(tostring(sd), 's[1]{1,s[1]{2,3}:e[2](2)}')
+sd:settable{1,s{2,3}:every(5)}
+eq(tostring(sd), 's[1]{1,s[1]{2,3}:e[2](5)}')
+
+-- swap nested flow-mod (new type), maintain flow-index
+local sd = s{1,s{2,3}:every(2)}
+sd(); sd(); sd(); sd()
+eq(tostring(sd), 's[1]{1,s[1]{2,3}:e[2](2)}')
+sd:settable{1,s{2,3}:count(5)}
+eq(tostring(sd), 's[1]{1,s[1]{2,3}:c[0](5)}')
+
+-- swap seq w/ transformer
+local sd = s{1}+s{2,3}
+sd(); sd();
+eq(tostring(sd), 's[1]{1}:map(fn,s[2]{2,3})')
+sd:settable(s{1}+s{3,4})
+eq(tostring(sd), 's[1]{1}:map(fn,s[2]{3,4})')

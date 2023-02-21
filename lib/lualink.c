@@ -36,7 +36,6 @@
 #include "l_crowlib.h"
 #include "l_metro.h"
 
-
 #define WATCHDOG_FREQ      0x100000 // ~1s how often we run the watchdog
 #define WATCHDOG_COUNT     2        // how many watchdogs before 'frozen'
 
