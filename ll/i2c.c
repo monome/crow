@@ -43,6 +43,8 @@ I2C_error_callback_t  error_action;
 I2C_State_t buf;
 uint8_t pullup_state = 0;
 
+uint32_t i2c_timings = I2C_TIMING_STABLE; // default timings
+
 
 //////////////////////////////
 // public definitions
@@ -62,7 +64,7 @@ uint8_t I2C_Init( uint8_t               address
     error_action   = error_callback;
 
     i2c_handle.Instance              = I2Cx;
-    i2c_handle.Init.Timing           = I2C_TIMING;
+    i2c_handle.Init.Timing           = i2c_timings;
     i2c_handle.Init.OwnAddress1      = address << 1; // correct MSB justification
     i2c_handle.Init.AddressingMode   = I2C_ADDRESSINGMODE_7BIT;
     i2c_handle.Init.DualAddressMode  = I2C_DUALADDRESS_DISABLE;
@@ -84,6 +86,20 @@ uint8_t I2C_Init( uint8_t               address
 void I2C_DeInit( void )
 {
     HAL_I2C_DeInit( &i2c_handle );
+}
+
+void I2C_SetTimings( uint32_t is_fast )
+{
+    I2C_DeInit();
+    i2c_timings = is_fast ? I2C_TIMING_SPEED : I2C_TIMING_STABLE; // override timings
+    if( lead_response != NULL ){
+        I2C_Init( I2C_GetAddress()
+                , lead_response
+                , follow_action
+                , follow_request
+                , error_action
+                );
+    }
 }
 
 uint8_t I2C_is_boot( void )
@@ -236,7 +252,7 @@ int I2C_LeadTx( uint8_t  address
                     , data
                     , size
                     ) != HAL_OK ){
-                error |= 2;
+                error |= 2; // means i2c bus was busy
                 HAL_I2C_ListenCpltCallback( &i2c_handle ); // re-enable listen
             } else { buf.operation = OP_LEAD_TX; }
         );
@@ -420,6 +436,11 @@ void I2Cx_ER_IRQHandler( void )
     HAL_I2C_ER_IRQHandler( &i2c_handle );
 }
 
+// i think this can only call with 3 errors:
+// HAL_I2C_ERROR_BERR HAL_I2C_ERROR_OVR HAL_I2C_ERROR_ARLO
+// but perhaps also
+// HAL_I2C_ERROR_AF
+// I2C_ITError
 void HAL_I2C_ErrorCallback( I2C_HandleTypeDef* h )
 {
     if( h->ErrorCode == HAL_I2C_ERROR_AF ){

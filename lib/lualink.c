@@ -24,50 +24,21 @@
 #include "../ll/adda.h"     // CAL_*()
 #include "../ll/cal_ll.h"   // CAL_LL_ActiveChannel()
 #include "../ll/system.h"   // getUID_Word()
+#include "../ll/i2c.h"      // I2C_SetTimings(u8)
 #include "lib/events.h"     // event_t event_post()
 #include "stm32f7xx_hal.h"  // HAL_GetTick()
 #include "stm32f7xx_it.h"   // CPU_GetCount()
 
-// Lua libs wrapped in C-headers: Note the extra '.h'
-#include "lua/bootstrap.lua.h" // MUST LOAD THIS MANUALLY FIRST
-#include "lua/crowlib.lua.h"
-#include "lua/asl.lua.h"
-#include "lua/asllib.lua.h"
-#include "lua/clock.lua.h"
-#include "lua/metro.lua.h"
-#include "lua/public.lua.h"
-#include "lua/input.lua.h"
-#include "lua/output.lua.h"
-#include "lua/ii.lua.h"
-#include "build/iihelp.lua.h"    // generated lua stub for loading i2c modules
-#include "lua/calibrate.lua.h"
-#include "lua/sequins.lua.h"
-#include "lua/quote.lua.h"
-#include "lua/timeline.lua.h"
+// Lua lib C implementations
+// as much low-level functionality is in here as possible
+// thus keeping the lua VM as free as possible
+#include "l_bootstrap.h"
+#include "l_crowlib.h"
 
-#include "build/ii_lualink.h" // generated C header for linking to lua
 
 #define WATCHDOG_FREQ      0x100000 // ~1s how often we run the watchdog
 #define WATCHDOG_COUNT     2        // how many watchdogs before 'frozen'
 
-// mark the 3rd arg 'false' if you need to debug that library
-const struct lua_lib_locator Lua_libs[] =
-    { { "lua_crowlib"   , lua_crowlib   , true}
-    , { "lua_asl"       , lua_asl       , true}
-    , { "lua_asllib"    , lua_asllib    , true}
-    , { "lua_clock"     , lua_clock     , true}
-    , { "lua_metro"     , lua_metro     , true}
-    , { "lua_input"     , lua_input     , true}
-    , { "lua_output"    , lua_output    , true}
-    , { "lua_public"    , lua_public    , true}
-    , { "lua_ii"        , lua_ii        , true}
-    , { "build_iihelp"  , build_iihelp  , true}
-    , { "lua_calibrate" , lua_calibrate , true}
-    , { "lua_sequins"   , lua_sequins   , true}
-    , { "lua_quote"     , lua_quote     , true}
-    , { "lua_timeline"  , lua_timeline  , true}
-    , { NULL            , NULL          , true}
-    };
 
 // Basic crow script
 #include "lua/First.lua.h"
@@ -109,10 +80,11 @@ lua_State* Lua_Init(void)
     L = luaL_newstate();
     luaL_openlibs(L);
     Lua_linkctolua(L);
-    Lua_eval(L, lua_bootstrap
-              , strlen(lua_bootstrap)
-              , "=lib"
-              ); // redefine dofile(), print(), load crowlib
+    l_bootstrap_init(L); // redefine dofile(), print(), load crowlib
+    // Lua_eval(L, lua_bootstrap
+    //           , strlen(lua_bootstrap)
+    //           , "=lib"
+    //           ); 
     return L;
 }
 
@@ -151,91 +123,6 @@ void Lua_DeInit(void)
 // to avoid shadowing similar-named extern functions in other modules
 // and also to distinguish from extern 'L_' functions.
 
-// this is a somewhat arbitrary size. must be big enough for the biggest library. 8kB was too small
-#define SIZED_STRING_LEN 0x4000 // (16kB)
-struct sized_string{
-    char data[SIZED_STRING_LEN];
-    int  len;
-};
-static int _writer(lua_State *L, const void *p, size_t sz, void *ud)
-{
-    UNUSED(L);
-    struct sized_string* chunkstr = ud; /// need explicit cast?
-    if(chunkstr->len + sz >= SIZED_STRING_LEN){
-        printf("chunkstr too small.\n");
-        return 1;
-    }
-    memcpy(&chunkstr->data[chunkstr->len], p, sz);
-    chunkstr->len += sz;
-    return 0;
-}
-static int _load_chunk(lua_State* L, const char* code, int strip)
-{
-    int retval = 0;
-    struct sized_string chunkstr = {.len = 0};
-    { // scope lua_State to destroy it asap
-        lua_State* LL=luaL_newstate();
-        if( !LL ){ printf("luaL_newstate failed\n"); return 1; }
-        if( luaL_loadstring(LL, code) ){
-            printf("loadstring error\n");
-            retval = 1;
-            goto close_LL;
-        }
-        if( lua_dump(LL, _writer, &chunkstr, strip) ){
-            printf("dump error\n");
-            retval = 1;
-            goto close_LL;
-        }
-close_LL:
-        lua_close(LL);
-    }
-    luaL_loadbuffer(L, chunkstr.data, chunkstr.len, chunkstr.data); // load our compiled chunk
-    return retval;
-}
-
-static int _open_lib( lua_State *L, const struct lua_lib_locator* lib, const char* name )
-{
-    uint8_t i = 0;
-    while( lib[i].addr_of_luacode != NULL ){
-        if( !strcmp( name, lib[i].name ) ){ // if the strings match
-            if( _load_chunk(L, lib[i].addr_of_luacode, lib[i].stripped) ){
-                printf("can't load library: %s\n", (char*)lib[i].name );
-                printf( "%s\n", (char*)lua_tostring( L, -1 ) );
-                lua_pop( L, 1 );
-                return -1; // error
-            }
-            if( lua_pcall(L, 0, LUA_MULTRET, 0) ){
-                printf("can't exec library: %s\n", (char*)lib[i].name );
-                printf( "%s\n", (char*)lua_tostring( L, -1 ) );
-                lua_pop( L, 1 );
-                return -1; // error
-            }
-            return 1; // table is left on the stack as retval
-        }
-        i++;
-    }
-    return 0; // not found
-}
-
-static int _dofile( lua_State *L )
-{
-    const char* l_name = luaL_checkstring(L, 1);
-    lua_pop( L, 1 );
-    switch( _open_lib( L, Lua_libs, l_name ) ){
-        case -1: goto fail;
-        case 1: return 1;
-        default: break;
-    }
-    switch( _open_lib( L, Lua_ii_libs, l_name ) ){
-        case -1: goto fail;
-        case 1: return 1;
-        default: break;
-    }
-    printf("can't open library: %s\n", (char*)l_name);
-fail:
-    lua_pushnil(L);
-    return 1;
-}
 static int _debug( lua_State *L )
 {
     const char* msg = luaL_checkstring(L, 1);
@@ -875,19 +762,32 @@ static int _pub_view_out( lua_State* L )
     return 0;
 }
 
+// i2c debug control
+static int _i2c_set_timings( lua_State *L )
+{
+    I2C_SetTimings( luaL_checkinteger(L, 1) );
+    lua_pop( L, 1 );
+    return 0;
+}
+
 
 // array of all the available functions
 static const struct luaL_Reg libCrow[]=
         // bootstrap
-    { { "c_dofile"         , _dofile           }
+    { { "c_dofile"         , l_bootstrap_dofile }
     , { "debug_usart"      , _debug            }
     , { "print_serial"     , _print_serial     }
     , { "tell"             , _print_tell       }
         // system
+    , { "justvolts"        , l_crowlib_justvolts }
+    , { "just12"           , l_crowlib_just12    }
+    , { "hztovolts"        , l_crowlib_hztovolts }
+        // crowlib
     , { "sys_bootloader"   , _bootloader       }
     , { "unique_id"        , _unique_id        }
     , { "time"             , _time             }
     , { "cputime"          , _cpu_time         }
+    , { "i2c_fastmode"     , _i2c_set_timings  }
     //, { "sys_cpu_load"     , _sys_cpu          }
         // io
     , { "get_state"        , _get_state        }
