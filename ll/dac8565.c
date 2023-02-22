@@ -40,9 +40,9 @@ void DAC_Init( uint16_t bsize, uint8_t chan_count )
     dac_i2s.Init.Standard     = I2S_STANDARD_PCM_SHORT;
     dac_i2s.Init.DataFormat   = I2S_DATAFORMAT_24B;
     dac_i2s.Init.MCLKOutput   = I2S_MCLKOUTPUT_ENABLE;
-    dac_i2s.Init.AudioFreq    = I2S_AUDIOFREQ_96K;
+    dac_i2s.Init.AudioFreq    = I2S_AUDIOFREQ_192K; // manipulates mclk to hit 48kHz on 4 chans
     dac_i2s.Init.CPOL         = I2S_CPOL_LOW;
-    dac_i2s.Init.ClockSource  = I2S_CLOCK_SYSCLK;
+    dac_i2s.Init.ClockSource  = I2S_CLOCK_PLL;
 
     if(HAL_I2S_Init(&dac_i2s) != HAL_OK){ printf("i2s_init\n"); }
 
@@ -180,8 +180,8 @@ void HAL_I2S_MspInit(I2S_HandleTypeDef *hi2s)
     // I2SCLK = f(PLLI2S clock output) = f(VCO clock) / PLLI2SR
     RCC_ExCLKInitStruct.PeriphClockSelection = RCC_PERIPHCLK_I2S;
     RCC_ExCLKInitStruct.I2sClockSelection = RCC_I2SCLKSOURCE_PLLI2S;
-    RCC_ExCLKInitStruct.PLLI2S.PLLI2SN = 384;
-    RCC_ExCLKInitStruct.PLLI2S.PLLI2SR = 2;
+    RCC_ExCLKInitStruct.PLLI2S.PLLI2SN = 384; // mul factor: 50~432
+    RCC_ExCLKInitStruct.PLLI2S.PLLI2SR = 2; // div factor: 2~7
     HAL_RCCEx_PeriphCLKConfig(&RCC_ExCLKInitStruct);
 
     // SPI/I2S & DMA
