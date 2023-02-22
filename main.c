@@ -9,6 +9,7 @@
 #include "lib/clock.h"
 #include "lib/caw.h"
 #include "lib/ii.h"
+#include "ll/i2c_pullups.h" // i2c_hw_pullups_init
 #include "ll/random.h"
 #include "lib/lualink.h"
 #include "lib/repl.h"
@@ -37,6 +38,8 @@ int main(void)
     clock_init( 100 ); // TODO how to pass it the timer?
     Caw_Init( max_timers-1 ); // use last timer
     CDC_clear_buffers();
+
+    i2c_hw_pullups_init(); // enable GPIO for v1.1 hardware pullups
     ii_init( II_CROW );
     Random_Init();
 
