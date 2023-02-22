@@ -45,6 +45,7 @@ int main(void)
     REPL_print_script_name();
     Lua_crowbegin();
 
+    uint32_t time_now = HAL_GetTick(); // for running a 1ms-interval tick
     while(1){
         CPU_count++;
         U_PrintNow();
@@ -67,7 +68,11 @@ int main(void)
             default: break; // 'C_none' does nothing
         }
         Random_Update();
-        clock_update();
+        if( last_tick != time_now ){ // called on 1ms interval
+            last_tick = time_now;
+            clock_update(time_now);
+            status_led_update(time_now);
+        }
         event_next(); // check/execute single event
         ii_leader_process();
         Caw_send_queued();

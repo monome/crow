@@ -72,30 +72,26 @@ void clock_init( int max_clocks )
 
 
 // TODO give clock it's own Timer to avoid this check & run in background
-void clock_update(void)
+// This function must only be called when time_now changes!
+void clock_update(uint32_t time_now)
 {
-    uint32_t time_now = HAL_GetTick();
-    if( last_tick != time_now ){ // next tick
-        last_tick = time_now;
+    clock_internal_run(time_now);
 
-        clock_internal_run(time_now);
+    // TODO check for events
+    // re-order the list whenever inserting new events
+    // so the check code can just look at the front of the list
+    // might need 2 separate (1 for sleep, 1 for sync)
 
-        // TODO check for events
-        // re-order the list whenever inserting new events
-        // so the check code can just look at the front of the list
-        // might need 2 separate (1 for sleep, 1 for sync)
+    // for now we just check every entry!
+    for( int i=0; i<clock_count; i++ ){
+        if( clock_pool[i].running ){
+            if( clock_pool[i].wakeup < time_now ){
+                // event!
+                // TODO pop from ordered list
+                L_queue_clock_resume( clock_pool[i].coro_id );
 
-        // for now we just check every entry!
-        for( int i=0; i<clock_count; i++ ){
-            if( clock_pool[i].running ){
-                if( clock_pool[i].wakeup < time_now ){
-                    // event!
-                    // TODO pop from ordered list
-                    L_queue_clock_resume( clock_pool[i].coro_id );
-
-                    // i think this is coro cancel?
-                    clock_pool[i].running = false;
-                }
+                // i think this is coro cancel?
+                clock_pool[i].running = false;
             }
         }
     }
