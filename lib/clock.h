@@ -11,8 +11,9 @@ typedef enum{ CLOCK_SOURCE_INTERNAL = 0
 
 void clock_init( int max_clocks );
 
-// FIXME just polling for changes rn
-void clock_update(void);
+// MUST ONLY BE CALLED WHEN time_now CHANGES
+// Designed to be called on a 1ms tick.
+void clock_update(uint32_t time_now);
 
 bool clock_schedule_resume_sleep( int coro_id, float seconds );
 bool clock_schedule_resume_sync( int coro_id, float beats );
