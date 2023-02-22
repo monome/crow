@@ -1,6 +1,7 @@
 #include "ll/system.h"
 #include "ll/debug_pin.h"
 #include "ll/debug_usart.h"
+#include "ll/status_led.h"
 #include "syscalls.c" // printf() redirection
 #include "lib/io.h"
 #include "lib/events.h"
@@ -45,7 +46,7 @@ int main(void)
     REPL_print_script_name();
     Lua_crowbegin();
 
-    uint32_t time_now = HAL_GetTick(); // for running a 1ms-interval tick
+    uint32_t last_tick = HAL_GetTick();
     while(1){
         CPU_count++;
         U_PrintNow();
@@ -68,10 +69,11 @@ int main(void)
             default: break; // 'C_none' does nothing
         }
         Random_Update();
+        uint32_t time_now = HAL_GetTick(); // for running a 1ms-interval tick
         if( last_tick != time_now ){ // called on 1ms interval
             last_tick = time_now;
             clock_update(time_now);
-            status_led_update(time_now);
+            status_led_tick(time_now);
         }
         event_next(); // check/execute single event
         ii_leader_process();

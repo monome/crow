@@ -39,8 +39,6 @@ static clock_source_t clock_source = CLOCK_SOURCE_INTERNAL;
 
 static clock_reference_t reference;
 
-static uint32_t last_tick = 0;
-
 
 /////////////////////////////////////////////
 // private declarations
@@ -63,7 +61,6 @@ void clock_init( int max_clocks )
 
     clock_set_source( CLOCK_SOURCE_INTERNAL );
     clock_update_reference(0, 0.5);
-    last_tick = HAL_GetTick();
 
     // start clock sources
     clock_internal_init();

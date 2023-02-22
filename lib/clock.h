@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stdint.h>
 
 typedef enum{ CLOCK_SOURCE_INTERNAL = 0
             , CLOCK_SOURCE_MIDI     = 1
