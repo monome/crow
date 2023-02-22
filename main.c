@@ -26,6 +26,10 @@ int main(void)
     // Debugging
     Debug_Pin_Init();
     Debug_USART_Init(); // ignored in TRACE mode
+    // User-readable status led
+    status_led_init();
+    status_led_fast(LED_SLOW); // slow blink until USB connection goes live
+    status_led_set(1); // set status to ON to show sign of life straight away
 
     printf("\n\nhi from crow!\n");
 
