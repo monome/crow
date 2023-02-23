@@ -17,6 +17,7 @@
 #include "lua/calibrate.lua.h"
 #include "lua/sequins.lua.h"
 #include "lua/quote.lua.h"
+#include "lua/timeline.lua.h"
 
 #include "build/ii_lualink.h" // generated C header for linking to lua
 
@@ -39,6 +40,7 @@ const struct lua_lib_locator Lua_libs[] =
     , { "lua_calibrate" , lua_calibrate , true}
     , { "lua_sequins"   , lua_sequins   , true}
     , { "lua_quote"     , lua_quote     , true}
+    , { "lua_timeline"  , lua_timeline  , true}
     , { NULL            , NULL          , true}
     };
 
