@@ -132,53 +132,6 @@ bool clock_schedule_resume_sleep( int coro_id, float seconds )
     return false;
 }
 
-// some helpers to cleanup sync
-static double zero_beat_time(void)
-{
-    // returns the absolute system_time seconds where the 'zero' was
-    // note: can probably be negative if clock has run a while, then tempo drastically decreased?
-    return reference.last_beat_time - ((double)reference.beat_duration * reference.beat);
-}
-static double time_to_beats(double seconds)
-{
-    // expects seconds since system boot
-    // returns which beat we're currently at. ie how beats since zero.
-    return (seconds - zero_beat_time()) * reference.beat_duration_inverse;
-}
-static double beats_to_time(double beats)
-{
-    return zero_beat_time() + (beats * (double)reference.beat_duration);
-}
-
-// bool clock_schedule_resume_sync( int coro_id, float beats )
-// {
-//     double current_time = clock_get_time_seconds(); // seconds since system boot
-//     double current_beat = time_to_beats(current_time); // current beat count, normalized to clock zero point
-
-//     double next_beat = (double)beats * floor(current_beat / (double)beats);
-//     // current_beat is always 0.002 more than the round-beat. next_beat is always 0 here
-//     printf("%f %f %f\n", current_time, current_beat, next_beat);
-//     double next_beat_time;
-//     do{
-//         next_beat += (double)beats;
-//         printf(" %f %f\n", next_beat, beats);
-//         next_beat_time = beats_to_time(next_beat);
-//     } while( next_beat_time - current_time
-//            // <= (double)reference.beat_duration * (double)beats / (double)2000.0 );
-//            <= (double)reference.beat_duration * (double)beats / (double)1000.0 );
-//         // i don't know why this value is 2000.0
-//         // seems like it should be 1000.0 to convert ms to seconds?
-//         // so i guess we have to divide by 2 for some reason...
-
-//         // i just changed it to 1000.0 and everything seems correct?
-
-//         // note: this fails when drastically increasing clock.tempo shortly after the beat at a slower tempo
-//     printf(" %f\n", next_beat_time);
-
-//     return clock_schedule_resume_sleep( coro_id
-//                                       , (float)(next_beat_time - current_time) );
-// }
-
 bool clock_schedule_resume_sync( int coro_id, float beats ){
     int i;
     if( (i = find_idle()) >= 0 ){
@@ -248,7 +201,7 @@ void clock_set_source( clock_source_t source )
 
 float clock_get_time_beats(void)
 {
-    return (float)( time_to_beats( clock_get_time_seconds()));
+    return (float)precise_beat_now;
 }
 
 double clock_get_time_seconds(void)
