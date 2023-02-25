@@ -703,6 +703,19 @@ static int _clock_schedule_sync( lua_State* L )
     lua_pop(L, 2);
     return 0;
 }
+static int _clock_schedule_beatsync( lua_State* L )
+{
+    int coro_id = (int)luaL_checkinteger(L, 1);
+    float beats = luaL_checknumber(L, 2); // FIXME i think the issue is FP rounding at high numbers
+
+    if (beats <= 0) {
+        L_queue_clock_resume(coro_id); // immediate callback
+    } else {
+        clock_schedule_resume_beatsync(coro_id, beats);
+    }
+    lua_pop(L, 2);
+    return 0;
+}
 static int _clock_get_time_beats( lua_State* L )
 {
     lua_pushnumber(L, clock_get_time_beats());
@@ -835,6 +848,7 @@ static const struct luaL_Reg libCrow[]=
     , { "clock_cancel"             , _clock_cancel             }
     , { "clock_schedule_sleep"     , _clock_schedule_sleep     }
     , { "clock_schedule_sync"      , _clock_schedule_sync      }
+    , { "clock_schedule_beat"      , _clock_schedule_beatsync  }
     , { "clock_get_time_beats"     , _clock_get_time_beats     }
     , { "clock_get_tempo"          , _clock_get_tempo          }
     , { "clock_set_source"         , _clock_set_source         }
