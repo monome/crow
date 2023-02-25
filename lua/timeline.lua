@@ -118,6 +118,9 @@ function TL:_loop(t)
                 self.z = dowait(self.t[i], self.z)
             end
         until(dopred(self.p or false))
+        -- if :times method exists, refresh the self.p predicate function
+        -- allows a completed TL.loop:times(n) timeline to be rerun in full
+        if self._times then TL:times(self._times) end
     end
     if not self.qd then TL.play(self) end
     return self
@@ -131,11 +134,9 @@ function TL:unless(pred)
     self.p = pred
     return self -- method chain
 end
-function TL:once()
-    self.p = true
-    return self -- method chain
-end
 function TL:times(n)
+    -- TODO capture n into self, so we can reset it
+    self._times = n
     self.p = function()
         n = n - 1
         return (n == 0) -- true at minimum count
