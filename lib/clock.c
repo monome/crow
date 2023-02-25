@@ -82,6 +82,7 @@ static double precision_beat_of_now(uint32_t time_now){
 }
 
 // This function must only be called when time_now changes!
+// TIME SENSITIVE. this function is run every 1ms, so optimize it for speed.
 void clock_update(uint32_t time_now)
 {
     // increments the beat count if we've crossed into the next beat
@@ -204,20 +205,9 @@ bool clock_schedule_resume_sync( int coro_id, float beats ){
     return false;
 }
 
+// this function directly sleeps for an amount of beats (not sync'd to the beat)
 bool clock_schedule_resume_beatsync( int coro_id, float beats ){
-    int i;
-    if( (i = find_idle()) >= 0 ){
-        clock_pool[i].coro_id     = coro_id;
-        clock_pool[i].syncing     = true;
-        double awaken = reference.beat + (double)beats;
-        // check we haven't already passed it in the sub-beat & add another step if we have
-        if(awaken <= precise_beat_now){
-            awaken += (double)beats;
-        }
-        clock_pool[i].beat_wakeup = awaken;
-        return true;
-    }
-    return false;
+    return clock_schedule_resume_sleep(coro_id, beats * reference.beat_duration);
 }
 
 void clock_update_reference(double beats, double beat_duration)
