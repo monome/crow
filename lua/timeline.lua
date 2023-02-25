@@ -160,7 +160,10 @@ function TL:_score(t)
         self.z = now + (lq - (now % lq)) -- calculate beat-zero
         for i=1,#self.t,2 do
             doalign(self.t[i], self.z)
-            if doact(self.t[i+1]) == 'reset' then goto _R end
+            if doact(self.t[i+1]) == 'reset' then
+                self.z = self.z + self.t[i] -- increment beat-zero by 'reset' marker
+                goto _R
+            end
         end
     end
     if not self.qd then TL.play(self) end
