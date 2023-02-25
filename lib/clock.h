@@ -18,6 +18,7 @@ void clock_update(uint32_t time_now);
 
 bool clock_schedule_resume_sleep( int coro_id, float seconds );
 bool clock_schedule_resume_sync( int coro_id, float beats );
+bool clock_schedule_resume_beatsync( int coro_id, float beats );
 void clock_update_reference( double beats, double beat_duration );
 void clock_update_reference_from( double beats, double beat_duration, clock_source_t source);
 void clock_start_from( clock_source_t source );

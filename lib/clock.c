@@ -12,15 +12,19 @@
 // private types
 
 typedef struct{
-    double beat;
-    double last_beat_time;
-    float  beat_duration;
+    // clock_update_reference is called every beat, so we're constantly updating beat & last_beat_time
+    double beat; // set in clock_update_reference(beat,_). this is the refence beat (ie. count since start)
+    double last_beat_time; // seconds_since_boot at last clock_update_reference() call
+    double beat_duration_inverse; // inverse of beat_duration
+    float  beat_duration; // seconds_per_beat (ie tempo)
 } clock_reference_t;
 
 typedef struct{
+    double   beat_wakeup;
     uint32_t wakeup;
     int      coro_id;
-    bool     running;
+    bool     running; // for clock.sleep
+    bool     syncing; // for clock.sync (usees beat_wakeup)
 } clock_thread_t;
 
 typedef struct{
@@ -39,6 +43,8 @@ static clock_source_t clock_source = CLOCK_SOURCE_INTERNAL;
 
 static clock_reference_t reference;
 
+// fp64 representation of beat count with a floating sub-beat count
+static double precise_beat_now = 0;
 
 /////////////////////////////////////////////
 // private declarations
@@ -57,38 +63,54 @@ void clock_init( int max_clocks )
     clock_pool = malloc( sizeof(clock_thread_t) * clock_count );
     for( int i=0; i<clock_count; i++ ){
         clock_pool[i].running = false;
+        clock_pool[i].syncing = false;
     }
 
     clock_set_source( CLOCK_SOURCE_INTERNAL );
-    clock_update_reference(0, 0.5);
+    clock_update_reference(0, 0.5); // set to zero beats, at 120bpm (0.5s/beat)
 
     // start clock sources
     clock_internal_init();
     clock_crow_init();
 }
 
+static double precision_beat_of_now(uint32_t time_now){
+    double now_seconds = (double)time_now * (double)0.001; // ms to seconds
+    double time_since_beat = now_seconds - reference.last_beat_time;
+    double beat_fraction = time_since_beat * reference.beat_duration_inverse;
+    return reference.beat + beat_fraction;
+}
 
-// TODO give clock it's own Timer to avoid this check & run in background
 // This function must only be called when time_now changes!
 void clock_update(uint32_t time_now)
 {
+    // increments the beat count if we've crossed into the next beat
     clock_internal_run(time_now);
+
+    // calculate the fp64 beat count for .syncing checks
+    precise_beat_now = precision_beat_of_now(time_now);
 
     // TODO check for events
     // re-order the list whenever inserting new events
     // so the check code can just look at the front of the list
-    // might need 2 separate (1 for sleep, 1 for sync)
 
     // for now we just check every entry!
     for( int i=0; i<clock_count; i++ ){
         if( clock_pool[i].running ){
-            if( clock_pool[i].wakeup < time_now ){
+            if( clock_pool[i].wakeup < time_now ){ // check for sleep events
                 // event!
                 // TODO pop from ordered list
                 L_queue_clock_resume( clock_pool[i].coro_id );
 
                 // i think this is coro cancel?
                 clock_pool[i].running = false;
+            }
+        } else if( clock_pool[i].syncing ){ // check for sync events
+            if( clock_pool[i].beat_wakeup < precise_beat_now ){
+                L_queue_clock_resume( clock_pool[i].coro_id );
+
+                // i think this is coro cancel?
+                clock_pool[i].syncing = false;
             }
         }
     }
@@ -112,42 +134,98 @@ bool clock_schedule_resume_sleep( int coro_id, float seconds )
 // some helpers to cleanup sync
 static double zero_beat_time(void)
 {
+    // returns the absolute system_time seconds where the 'zero' was
+    // note: can probably be negative if clock has run a while, then tempo drastically decreased?
     return reference.last_beat_time - ((double)reference.beat_duration * reference.beat);
 }
-static double time_to_beats(double time_ms)
+static double time_to_beats(double seconds)
 {
-    return (time_ms - zero_beat_time()) / (double)reference.beat_duration;
+    // expects seconds since system boot
+    // returns which beat we're currently at. ie how beats since zero.
+    return (seconds - zero_beat_time()) * reference.beat_duration_inverse;
 }
 static double beats_to_time(double beats)
 {
     return zero_beat_time() + (beats * (double)reference.beat_duration);
 }
 
-bool clock_schedule_resume_sync( int coro_id, float beats )
-{
-    double current_time = clock_get_time_seconds(); // 1ms steps
-    double current_beat = time_to_beats(current_time); // was 'this beat'
+// bool clock_schedule_resume_sync( int coro_id, float beats )
+// {
+//     double current_time = clock_get_time_seconds(); // seconds since system boot
+//     double current_beat = time_to_beats(current_time); // current beat count, normalized to clock zero point
 
-    double next_beat = (double)beats * floor(current_beat / (double)beats);
-    double next_beat_time;
-    do{
-        next_beat += (double)beats;
-        next_beat_time = beats_to_time(next_beat);
-    } while( next_beat_time - current_time
-           < (double)reference.beat_duration * (double)beats / (double)2000.0 );
-        // i don't know why this value is 2000.0
-        // seems like it should be 1000.0 to convert ms to seconds?
-        // so i guess we have to divide by 2 for some reason...
+//     double next_beat = (double)beats * floor(current_beat / (double)beats);
+//     // current_beat is always 0.002 more than the round-beat. next_beat is always 0 here
+//     printf("%f %f %f\n", current_time, current_beat, next_beat);
+//     double next_beat_time;
+//     do{
+//         next_beat += (double)beats;
+//         printf(" %f %f\n", next_beat, beats);
+//         next_beat_time = beats_to_time(next_beat);
+//     } while( next_beat_time - current_time
+//            // <= (double)reference.beat_duration * (double)beats / (double)2000.0 );
+//            <= (double)reference.beat_duration * (double)beats / (double)1000.0 );
+//         // i don't know why this value is 2000.0
+//         // seems like it should be 1000.0 to convert ms to seconds?
+//         // so i guess we have to divide by 2 for some reason...
 
-    return clock_schedule_resume_sleep( coro_id
-                                      , (float)(next_beat_time - current_time) );
+//         // i just changed it to 1000.0 and everything seems correct?
+
+//         // note: this fails when drastically increasing clock.tempo shortly after the beat at a slower tempo
+//     printf(" %f\n", next_beat_time);
+
+//     return clock_schedule_resume_sleep( coro_id
+//                                       , (float)(next_beat_time - current_time) );
+// }
+
+bool clock_schedule_resume_sync( int coro_id, float beats ){
+    int i;
+    if( (i = find_idle()) >= 0 ){
+        // TODO just mark the index as busy
+            // the following data should only be in the ordered list
+            // which should have a 'length' marker
+        double dbeats = beats;
+
+        // modulo sync time against base beat
+        double awaken = floor(reference.beat / dbeats);
+        awaken *= dbeats;
+        awaken += dbeats;
+
+        // check we haven't already passed it in the sub-beat & add another step if we have
+        if(awaken <= precise_beat_now){
+            awaken += dbeats;
+        }
+
+        clock_pool[i].coro_id     = coro_id;
+        clock_pool[i].syncing     = true;
+        clock_pool[i].beat_wakeup = awaken;
+        return true;
+    }
+    return false;
+}
+
+bool clock_schedule_resume_beatsync( int coro_id, float beats ){
+    int i;
+    if( (i = find_idle()) >= 0 ){
+        clock_pool[i].coro_id     = coro_id;
+        clock_pool[i].syncing     = true;
+        double awaken = reference.beat + (double)beats;
+        // check we haven't already passed it in the sub-beat & add another step if we have
+        if(awaken <= precise_beat_now){
+            awaken += (double)beats;
+        }
+        clock_pool[i].beat_wakeup = awaken;
+        return true;
+    }
+    return false;
 }
 
 void clock_update_reference(double beats, double beat_duration)
 {
-    reference.beat_duration  = beat_duration;
-    reference.last_beat_time = clock_get_time_seconds();
-    reference.beat           = beats;
+    reference.beat_duration         = beat_duration;
+    reference.beat_duration_inverse = (double)1.0 / (double)beat_duration; // for optimized precision_beat_of_now (called every ms)
+    reference.last_beat_time        = clock_get_time_seconds(); // seconds since system boot
+    reference.beat                  = beats;
 }
 
 void clock_update_reference_from(double beats, double beat_duration, clock_source_t source)
@@ -190,7 +268,7 @@ double clock_get_time_seconds(void)
 
 float clock_get_tempo(void)
 {
-    return 60.0 / reference.beat_duration;
+    return 60.0 * (float)reference.beat_duration_inverse;
 }
 
 void clock_cancel_coro( int coro_id )
@@ -217,7 +295,7 @@ static int find_idle(void)
 {
     // TODO optimize by starting search from last successful slot
     for( int i=0; i<clock_count; i++ ){
-        if( !clock_pool[i].running ){
+        if( !clock_pool[i].running && !clock_pool[i].syncing ){
             return i;
         }
     }
@@ -227,6 +305,7 @@ static int find_idle(void)
 static void clock_cancel( int index )
 {
     clock_pool[index].running = false;
+    clock_pool[index].syncing = false;
     clock_pool[index].coro_id = -1;
 }
 
@@ -234,8 +313,8 @@ static void clock_cancel( int index )
 /////////////////////////////////////////////////
 // in clock_internal.h
 
-static double internal_interval_seconds;
-static double internal_beat;
+static double internal_interval_seconds; // seconds. defined by internal BPM
+static double internal_beat; // set by clock_internal_start(beat,_). count of beats since 0
 
 void clock_internal_init(void)
 {
