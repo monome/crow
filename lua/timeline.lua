@@ -39,31 +39,27 @@ end
 
 
 -- helper fns
-local real = function(q)
+local realize = function(q)
     if s.is_sequins(q) then return q() else return q end
 end
 local apply = function(fn, ...) fn(...) end
 local bsleep = function(v) clk.sleep(clk.get_beat_sec()*v) end
 local isfn = function(f) return (type(f) == 'function') end
 
--- abstract fns that handle value realization & fn application
+-- abstract fns that handle value realizeization & fn application
 local doact = function(fn)
-    fn = real(fn)
+    fn = realize(fn)
     if type(fn) == 'string' then return fn -- strings are keywords
     elseif isfn(fn) then return fn() -- call it directly
     else -- table of fn & args
         local t = {} -- make a copy to avoid changing sequins
-        for i=1,#fn do t[i] = real(fn[i]) end
+        for i=1,#fn do t[i] = realize(fn[i]) end
         return apply(table.unpack(t))
     end
 end
 
--- UNUSED
--- local dosync = function(v) clk.sync(real(v)) end
-    -- FIXME dowait will gradually un-sync (need extended clocks)
-
 local dowait = function(d, z) -- duration, zero
-    local z = z+real(d)
+    local z = z+realize(d)
     clk.sync(z)
     return z
 end
@@ -71,20 +67,21 @@ end
 local doalign = function(b, z)
     local now = clk.get_beats()
     local ct = now - z -- zero-ref'd current time
-    b = real(b)
+    b = realize(b)
     if ct < b then bsleep(b-ct) end
 end
 
+-- like doalign, but in seconds rather than beats
 local doaligns = function(b, z)
-    b = real(b) -- timestamp to wait until
+    b = realize(b) -- timestamp to wait until
     if b > z then
-        bsleep(b-z) -- wait until the perfect moment
+        clk.sleep(b-z) -- wait until the perfect moment
         return b -- return current time
     else return z end -- otherwise return time now
 end
 
 local dopred = function(p)
-    p = real(p) -- realize sequins value
+    p = realize(p) -- realize sequins value
     if isfn(p) then return p() else return p end
 end
 
@@ -118,9 +115,6 @@ function TL:_loop(t)
                 self.z = dowait(self.t[i], self.z)
             end
         until(dopred(self.p or false))
-        -- if :times method exists, refresh the self.p predicate function
-        -- allows a completed TL.loop:times(n) timeline to be rerun in full
-        if self._times then TL:times(self._times) end
     end
     if not self.qd then TL.play(self) end
     return self
@@ -135,11 +129,10 @@ function TL:unless(pred)
     return self -- method chain
 end
 function TL:times(n)
-    -- TODO capture n into self, so we can reset it
     self._times = n
     self.p = function()
         n = n - 1
-        return (n == 0) -- true at minimum count
+        return (n <= 0) -- true at minimum count
     end
     return self -- method chain
 end
@@ -156,8 +149,8 @@ function TL:_score(t)
     self.fn = function()
         local now = clk.get_beats()
         local lq = self.lq
-        ::_R:: -- this tag will cause counter to reset
         self.z = now + (lq - (now % lq)) -- calculate beat-zero
+        ::_R:: -- NOTE: self.z must already be updated!
         for i=1,#self.t,2 do
             doalign(self.t[i], self.z)
             if doact(self.t[i+1]) == 'reset' then
@@ -171,13 +164,13 @@ function TL:_score(t)
 end
 
 
---- timed
+---real 
 -- standalone
-function TL.timed(t) return TL.new{}:timed(t) end
+function TL.real(t) return TL.new{}:real(t) end
 
 -- method version
-function TL:_timed(t)
-    self.mode = 'timed'
+function TL:_real(t)
+    self.mode = 'real'
     self.t = t -- capture table
     self.fn = function()
         clk.sync(self.lq) -- launch quantization
@@ -196,13 +189,21 @@ end
 --- post methods for operating on any tl object
 
 -- stop a playing timeline
+-- NOTE: doesn't destroy the timeline. allows it to be restarted with :play
 function TL:stop()
-    clk.cancel(self.coro)
-    self = {} -- explicitly destroy the table
+    if self.coro then -- check the coroutine exists (won't if not yet :play'd)
+        clk.cancel(self.coro)
+    end
 end
 
 -- play a queued timeline
-function TL:play() self.coro = clk.run(self.fn) end
+function TL:play()
+    self:stop() -- stop the timeline, and restart
+    if self._times then -- if has :times method, refresh the self.p pred-fn
+        self:times(self._times)
+    end
+    self.coro = clk.run(self.fn)
+end
 
 -- return count of loop repetitions inclusive
 function TL:iter() return self.i end
@@ -217,7 +218,7 @@ TL.mms = { stop   = TL.stop
          , once   = TL.once
          , loop   = TL._loop
          , score  = TL._score
-         , timed  = TL._timed
+         , real   = TL._real
          , play   = TL.play
          , iter   = TL.iter
          , hotswap= TL.hotswap
