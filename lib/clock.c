@@ -6,6 +6,7 @@
 
 #include "lualink.h"
 #include <stm32f7xx_hal.h> // HAL_GetTick
+#include "clock_ll.h" // linked list for clocks
 
 
 ///////////////////////////////
@@ -20,14 +21,6 @@ typedef struct{
 } clock_reference_t;
 
 typedef struct{
-    double   beat_wakeup;
-    uint32_t wakeup;
-    int      coro_id;
-    bool     running; // for clock.sleep
-    bool     syncing; // for clock.sync (usees beat_wakeup)
-} clock_thread_t;
-
-typedef struct{
     double wakeup;
     int    coro_id;
     bool   running;
@@ -36,8 +29,6 @@ typedef struct{
 ////////////////////////////////////
 // global data
 
-static int clock_count;
-static clock_thread_t* clock_pool;
 static clock_thread_HD_t internal; // for internal clocksource
 static clock_source_t clock_source = CLOCK_SOURCE_INTERNAL;
 
@@ -49,22 +40,14 @@ static double precise_beat_now = 0;
 /////////////////////////////////////////////
 // private declarations
 
-static int find_idle(void);
-static void clock_cancel( int index );
-
-void clock_internal_run(uint32_t ms);
+static void clock_internal_run(uint32_t ms);
 
 /////////////////////////////////////////////
 // public defs
 
 void clock_init( int max_clocks )
 {
-    clock_count = max_clocks;
-    clock_pool = malloc( sizeof(clock_thread_t) * clock_count );
-    for( int i=0; i<clock_count; i++ ){
-        clock_pool[i].running = false;
-        clock_pool[i].syncing = false;
-    }
+    ll_init(max_clocks); // init linked-list for managing clock threads
 
     clock_set_source( CLOCK_SOURCE_INTERNAL );
     clock_update_reference(0, 0.5); // set to zero beats, at 120bpm (0.5s/beat)
@@ -91,71 +74,45 @@ void clock_update(uint32_t time_now)
     // calculate the fp64 beat count for .syncing checks
     precise_beat_now = precision_beat_of_now(time_now);
 
-    // TODO check for events
-    // re-order the list whenever inserting new events
-    // so the check code can just look at the front of the list
-
-    // for now we just check every entry!
-    for( int i=0; i<clock_count; i++ ){
-        if( clock_pool[i].running ){
-            if( clock_pool[i].wakeup < time_now ){ // check for sleep events
-                // event!
-                // TODO pop from ordered list
-                L_queue_clock_resume( clock_pool[i].coro_id );
-
-                // i think this is coro cancel?
-                clock_pool[i].running = false;
-            }
-        } else if( clock_pool[i].syncing ){ // check for sync events
-            if( clock_pool[i].beat_wakeup < precise_beat_now ){
-                L_queue_clock_resume( clock_pool[i].coro_id );
-
-                // i think this is coro cancel?
-                clock_pool[i].syncing = false;
-            }
-        }
+    // TODO can we use <= for time comparison or does it create double-trigs?
+    // this should reduce latency by 1ms if it works.
+    double dtime_now = (double)time_now;
+sleep_next:
+    if(sleep_head // list is not empty
+    && sleep_head->wakeup < dtime_now){ // time to awaken
+        L_queue_clock_resume(sleep_head->coro_id); // event!
+        ll_insert_idle(ll_pop(&sleep_head)); // return to idle list
+        goto sleep_next; // check the next sleeper too!
+    }
+sync_next:
+    if(sync_head // list is not empty
+    && sync_head->wakeup < precise_beat_now){ // time to awaken
+        L_queue_clock_resume(sync_head->coro_id); // event!
+        ll_insert_idle(ll_pop(&sync_head)); // return to idle list
+        goto sync_next; // check the next syncer too!
     }
 }
 
 bool clock_schedule_resume_sleep( int coro_id, float seconds )
 {
-    int i;
-    if( (i = find_idle()) >= 0 ){
-        // TODO just mark the index as busy
-            // the following data should only be in the ordered list
-            // which should have a 'length' marker
-        clock_pool[i].coro_id  = coro_id;
-        clock_pool[i].running  = true;
-        clock_pool[i].wakeup   = HAL_GetTick() + (uint32_t)(seconds * 1000.0);
-        return true;
-    }
-    return false;
+    double wakeup = (double)HAL_GetTick() + (double)seconds * (double)1000.0;
+    return ll_insert_event(&sleep_head, coro_id, wakeup);
 }
 
 bool clock_schedule_resume_sync( int coro_id, float beats ){
-    int i;
-    if( (i = find_idle()) >= 0 ){
-        // TODO just mark the index as busy
-            // the following data should only be in the ordered list
-            // which should have a 'length' marker
-        double dbeats = beats;
+    double dbeats = beats;
 
-        // modulo sync time against base beat
-        double awaken = floor(reference.beat / dbeats);
-        awaken *= dbeats;
+    // modulo sync time against base beat
+    double awaken = floor(reference.beat / dbeats);
+    awaken *= dbeats;
+    awaken += dbeats;
+
+    // check we haven't already passed it in the sub-beat & add another step if we have
+    if(awaken <= precise_beat_now){
         awaken += dbeats;
-
-        // check we haven't already passed it in the sub-beat & add another step if we have
-        if(awaken <= precise_beat_now){
-            awaken += dbeats;
-        }
-
-        clock_pool[i].coro_id     = coro_id;
-        clock_pool[i].syncing     = true;
-        clock_pool[i].beat_wakeup = awaken;
-        return true;
     }
-    return false;
+
+    return ll_insert_event(&sync_head, coro_id, awaken);
 }
 
 // this function directly sleeps for an amount of beats (not sync'd to the beat)
@@ -216,40 +173,12 @@ float clock_get_tempo(void)
 
 void clock_cancel_coro( int coro_id )
 {
-    // TODO optimize search by looking through the 'active' list only
-    for( int i=0; i<clock_count; i++ ){
-        if( clock_pool[i].coro_id == coro_id ){
-            clock_cancel(i);
-        }
-    }
+    ll_remove_by_id(coro_id);
 }
 
 void clock_cancel_coro_all( void )
 {
-    for( int i=0; i<clock_count; i++ ){
-        clock_cancel(i);
-    }
-}
-
-////////////////////////////////////////////
-// private defs
-
-static int find_idle(void)
-{
-    // TODO optimize by starting search from last successful slot
-    for( int i=0; i<clock_count; i++ ){
-        if( !clock_pool[i].running && !clock_pool[i].syncing ){
-            return i;
-        }
-    }
-    return -1;
-}
-
-static void clock_cancel( int index )
-{
-    clock_pool[index].running = false;
-    clock_pool[index].syncing = false;
-    clock_pool[index].coro_id = -1;
+    ll_cleanup();
 }
 
 
@@ -301,12 +230,12 @@ void clock_internal_stop(void)
 // be quantized to the tick *before* it's absolute position.
 // this is important so that the beat division counter leads the userspace
 // sync() calls & ensures they don't double-trigger.
-void clock_internal_run(uint32_t ms)
+static void clock_internal_run(uint32_t ms)
 {
     static double error = 0.0; // track ms error across clock pulses
     if( internal.running ){
         double time_now = ms;
-        if( internal.wakeup < time_now ){
+        if( internal.wakeup < time_now ){ // TODO can this be <= for 1ms less latency?
             internal_beat += 1;
             clock_update_reference_from( internal_beat
                                        , internal_interval_seconds
