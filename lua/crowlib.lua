@@ -29,6 +29,7 @@ clock  = dofile('lua/clock.lua')
 sequins= dofile('lua/sequins.lua')
 quote  = dofile('lua/quote.lua')
 timeline = dofile('lua/timeline.lua')
+hotswap= dofile('lua/hotswap.lua')
 
 
 function C.reset()
