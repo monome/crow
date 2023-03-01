@@ -13,7 +13,7 @@ void status_led_init(void){
     GPIO_IS.Pull  = GPIO_NOPULL;
     GPIO_IS.Speed = GPIO_SPEED_LOW;
     GPIO_IS.Mode  = GPIO_MODE_OUTPUT_PP;
-	HAL_GPIO_Init(GPIOA, &GPIO_IS);
+    HAL_GPIO_Init(GPIOA, &GPIO_IS);
     status_led_set(1); // default to ON
 }
 
