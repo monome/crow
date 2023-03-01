@@ -173,6 +173,7 @@ LUA_SRC += lua/output.lua
 LUA_SRC += lua/public.lua
 LUA_SRC += lua/quote.lua
 LUA_SRC += lua/sequins.lua
+LUA_SRC += lua/timeline.lua
 LUA_SRC += $(BUILD_DIR)/iihelp.lua
 LUA_SRC += $(II_TARGET)
 
