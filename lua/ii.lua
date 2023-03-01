@@ -18,6 +18,11 @@ function ii.pullup( state )
     ii_pullup(state)
 end
 
+function ii.fastmode( state )
+    if state == true then state = 1 else state = 0 end
+    i2c_fastmode(state)
+end
+
 -- aliases to C functions
 ii.set_address = ii_set_add
 ii.get_address = ii_get_add

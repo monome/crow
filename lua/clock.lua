@@ -48,6 +48,10 @@ clock.sync = function(...)
   return coroutine.yield(1, ...)
 end
 
+clock.beat = function(...)
+  return coroutine.yield(2, ...)
+end
+
 clock.resume = function(coro_id, ...)
   local coro = clock.threads[coro_id]
 
@@ -65,12 +69,13 @@ clock.resume = function(coro_id, ...)
       print('error: ' .. mode)
     end
   else
-    -- not dead
-    if result and mode ~= nil then
+    if result then -- not dead
       if mode == 0 then -- SLEEP
         clock_schedule_sleep(coro_id, time)
       elseif mode == 1 then -- SYNC
         clock_schedule_sync(coro_id, time)
+      elseif mode == 2 then -- BEATSYNC
+        clock_schedule_beat(coro_id, time)
       end
     end
   end

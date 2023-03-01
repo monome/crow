@@ -61,6 +61,12 @@ do return
     , cmd = 0x4E
     , docs = 'Send Augustus Loop clock'
     }
+  --Looper
+  , {
+      name = 'lp_clear'
+    , cmd = 0x58
+    , docs = 'Clear target loop in Looper'
+    }
   --MIDI / select bus
   , { name = 'midi'
     , cmd = 0x4F
@@ -143,7 +149,7 @@ do return
              }
     }
   , { name = 'dual_algorithms'
-    , cmd = 0x61
+    , cmd = 0x62
     , docs = 'load dual mode algorithms'
     , args = { { 'algorithm_left', u8 }
              , { 'algorithm_right', u8 }
@@ -195,10 +201,11 @@ do return
     , args = { 'parameter', u8 }
     , retval = { 'value', s16 }
     }
-  , { name = 'al_state'
+  , { name = 'lp_state'
     , cmd = 0x59
+    , args = { 'loop', u8 }
     , retval = { 'state', u8 }
-    , docs = '0-based loop index'
+    , docs = 'Get target loop state in Looper, 0-based loop index'
     }
   , { name = 'dual_parameter'
     , cmd = 0x5A

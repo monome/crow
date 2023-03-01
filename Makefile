@@ -159,7 +159,21 @@ $(BUILD_DIR)/ii_lualink.h: $(II_SRC) util/ii_lualinker.lua | $(BUILD_DIR)
 ### destination sources
 
 # lua srcs: these get converted to bytecode strings wrapped in c-headers
-LUA_SRC  = $(wildcard lua/*.lua)
+# LUA_SRC  = $(wildcard lua/*.lua)
+LUA_SRC += lua/asl.lua
+LUA_SRC += lua/asllib.lua
+LUA_SRC += lua/calibrate.lua
+LUA_SRC += lua/clock.lua
+LUA_SRC += lua/crowlib.lua
+LUA_SRC += lua/First.lua
+LUA_SRC += lua/ii.lua
+LUA_SRC += lua/input.lua
+LUA_SRC += lua/metro.lua
+LUA_SRC += lua/output.lua
+LUA_SRC += lua/public.lua
+LUA_SRC += lua/quote.lua
+LUA_SRC += lua/sequins.lua
+LUA_SRC += lua/timeline.lua
 LUA_SRC += $(BUILD_DIR)/iihelp.lua
 LUA_SRC += $(II_TARGET)
 
@@ -180,7 +194,8 @@ OBJS += $(addprefix $(LUAS)/,$(LUACORE_OBJS) $(LUALIB_OBJS) )
 OBJS += Startup.o
 
 # specific objects that require built dependencies (ii)
-$(OBJDIR)/lib/lualink.o: $(LUA_PP) $(BUILD_DIR)/ii_lualink.h
+$(OBJDIR)/lib/l_bootstrap.o: $(LUA_PP) $(BUILD_DIR)/ii_lualink.h
+# $(OBJDIR)/lib/lualink.o: $(LUA_PP) $(BUILD_DIR)/ii_lualink.h
 $(OBJDIR)/lib/ii.o: $(BUILD_DIR)/ii_c_layer.h
 
 # generate the build directory

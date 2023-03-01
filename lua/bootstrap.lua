@@ -1,3 +1,11 @@
+--- DEPRECATED!!
+--- NOT INCLUDED IN BINARY
+
+
+
+
+
+
 --- Bootstrap Lua by redefining standard library functions
 -- dofile() and print() need hardware specific implementations
 -- call this before any other lua code
