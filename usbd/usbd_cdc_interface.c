@@ -100,6 +100,7 @@ void CDC_clear_buffers( void )
     USBD_CDC_SetTxBuffer(&USBD_Device, UserTxBuffer, 0);
 }
 
+#include "../ll/status_led.h" // increase LED blink speed when USB connected
 int timerdelay = 0;
 /* Private functions ---------------------------------------------------------*/
 static int8_t CDC_Itf_Init(void)
@@ -117,6 +118,7 @@ static int8_t CDC_Itf_Init(void)
     //TODO add lua callback when USB connects/disconnects
     //     also provide a flag to check that status
     printf("USB_Init\n");
+    status_led_fast(LED_FAST);
 
     return (USBD_OK);
 }
@@ -125,6 +127,7 @@ static int8_t CDC_Itf_DeInit(void)
 {
     Timer_Stop( timer_index );
     printf("USB_DeInit\n");
+    status_led_fast(LED_SLOW);
     return (USBD_OK);
 }
 

@@ -4,6 +4,7 @@
 #include <stdio.h>
 
 #include "../usbd/usbd_main.h"
+#include "../ll/status_led.h" // for blinking led when tx/rx data
 
 #define USB_RX_BUFFER 2048
 static char reader[USB_RX_BUFFER];
@@ -26,6 +27,7 @@ void Caw_send_raw( uint8_t* buf, uint32_t len )
     BLOCK_IRQS(
         USB_tx_enqueue( buf, len );
     );
+    status_led_xor(); // blink status light
 }
 
 void Caw_printf( char* text, ... )
@@ -42,6 +44,7 @@ void Caw_printf( char* text, ... )
         USB_tx_enqueue( (uint8_t*)b, len );
         USB_tx_enqueue( (uint8_t*)newline, 2 );
     );
+    status_led_xor(); // blink status light
 }
 
 // luachunk expects a \0 terminated string
@@ -52,6 +55,7 @@ void Caw_send_luachunk( char* text )
         USB_tx_enqueue( (uint8_t*)text, strlen(text) );
         USB_tx_enqueue( (uint8_t*)newline, 2 );
     );
+    status_led_xor(); // blink status light
 }
 
 void Caw_stream_constchar( const char* stream )
@@ -67,6 +71,7 @@ void Caw_stream_constchar( const char* stream )
         // here's the remainder that didn't fit
         queued_ptr = stream + space;
     }
+    status_led_xor(); // blink status light
 }
 
 void Caw_send_queued( void )
@@ -88,6 +93,7 @@ void Caw_send_luaerror( char* error_msg )
         USB_tx_enqueue( (uint8_t*)error_msg, strlen(error_msg) );
         USB_tx_enqueue( (uint8_t*)newline, 2 );
     );
+    status_led_xor(); // blink status light
 }
 
 void Caw_send_value( uint8_t type, float value )
@@ -187,6 +193,7 @@ C_cmd_t Caw_try_receive( void )
         if( !multiline
          && _packet_complete( &reader[pReader-1] ) ){
             retcmd = C_repl;
+            status_led_xor(); // blink status light
             goto exit;
         }
     exit:
