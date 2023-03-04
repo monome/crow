@@ -91,9 +91,11 @@ end
 
 -- launch quantization to lock to a clock.sync
 function TL.launch(q) return TL.new{lq = q} end
+function TL:_launch(q) self.lq = q; return self end
 
 -- stops auto-play
 function TL.queue() return TL.new{qd = true} end
+function TL:_queue() self.qd = true; return self end
 
 
 --- loop
@@ -222,6 +224,8 @@ TL.mms = { stop   = TL.stop
          , play   = TL.play
          , iter   = TL.iter
          , hotswap= TL.hotswap
+         , launch = TL._launch
+         , queue  = TL._queue
          }
 TL.__index = TL.mms
 
