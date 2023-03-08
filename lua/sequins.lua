@@ -57,11 +57,13 @@ function S:setdata(t)
 
             if dst[1] then -- already have a transformer
                 dst[1] = src[1] -- copy function
-                for k,v in ipairs(src[2]) do
-                     if S.is_sequins(v) and S.is_sequins(dst[2][k]) then
-                        dst[2][k]:settable(v) -- recurse nested sequins
-                    else
-                        dst[2][k] = v -- copy piecemeal
+                if src[2] then
+                    for k,v in ipairs(src[2]) do
+                         if S.is_sequins(v) and dst[2] and S.is_sequins(dst[2][k]) then
+                            dst[2][k]:settable(v) -- recurse nested sequins
+                        else
+                            dst[2][k] = v -- copy piecemeal
+                        end
                     end
                 end
             end
