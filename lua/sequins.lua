@@ -66,6 +66,9 @@ function S:setdata(t)
                         end
                     end
                 end
+            elseif src[1] then -- no existing transformer, so we just pull in the new one
+                print'new transformer'
+                self.fun = t.fun
             end
         end
 
