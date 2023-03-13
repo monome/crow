@@ -3,7 +3,7 @@
 local S = {}
 
 -- convert a string to a table of chars
-function totable(t)
+local function totable(t)
     if type(t) == 'string' then
         local tmp = {}
         t:gsub('.', function(c) table.insert(tmp,c) end)
