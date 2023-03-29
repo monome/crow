@@ -171,7 +171,10 @@ uint8_t ii_leader_enqueue_bytes( uint8_t  address
 
 void ii_leader_process( void )
 {
+    static bool retrying = false; // flag to monitor if this is a retry
+
     if( !I2C_is_ready() ){ return; } // I2C lib is busy
+
     int ix = queue_front(l_qix);
     if( ix < 0 ){ return; } // queue is empty!
     ii_q_t* q = &l_iq[ix];
@@ -187,7 +190,7 @@ void ii_leader_process( void )
                       )) ){
             if( error & 0x6 ){ error_action( 1 ); }
             printf("leadRx failed %i\n",error);
-            return; // EARLY RETURN. DOESN'T POP QUEUE. WILL RETRY
+            goto retry; // attempt retry, or abandon
         }
     } else {
         if( (error = I2C_LeadTx( q->address
@@ -196,10 +199,21 @@ void ii_leader_process( void )
                       )) ){
             if( error & 2 ){ error_action( 1 ); }
             printf("leadTx failed %i\n",error);
-            return; // EARLY RETURN. DOESN'T POP QUEUE. WILL RETRY
+            goto retry; // attempt retry, or abandon
         }
     }
-    queue_dequeue(l_qix); // pop the value as it was used
+    queue_dequeue(l_qix); // pop the value from queue as it was successfully used
+    return;
+
+retry:
+    if(retrying){
+        retrying = false;
+        queue_dequeue(l_qix); // pop the value, abandoning this message
+    } else {
+        retrying = true;
+        // DON'T POP QUEUE. we'll try it next time
+    }
+    return; 
 }
 
 

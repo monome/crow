@@ -777,8 +777,14 @@ static int _pub_view_out( lua_State* L )
 // i2c debug control
 static int _i2c_set_timings( lua_State *L )
 {
-    I2C_SetTimings( luaL_checkinteger(L, 1) );
-    lua_pop( L, 1 );
+    uint32_t state = 0;
+    switch(lua_type(L, 1)){
+        case LUA_TSTRING: state = 2; break; // CLASSIC MODE
+        case LUA_TBOOLEAN: state = lua_toboolean(L, 1); break;
+        default: state = lua_tointeger(L, 1); break;
+    }
+    I2C_SetTimings(state);
+    lua_pop(L, 1);
     return 0;
 }
 
