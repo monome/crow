@@ -12,6 +12,7 @@ LUAS=submodules/lua/src
 BOOTLOADER=submodules/dfu-stm32f7
 BUILD_DIR := build
 PRJ_DIR=crow
+LUAC_CROSS=util/luac.cross
 
 CC=arm-none-eabi-gcc
 LD=arm-none-eabi-gcc
@@ -141,19 +142,19 @@ $(II_TARGET): util/ii_lua_module.lua
 
 $(BUILD_DIR)/ii_%.lua: $(II_SRCD)/%.lua util/ii_lua_module.lua | $(BUILD_DIR)
 	@lua util/ii_lua_module.lua $< $@
-	@echo lua $@
+	@echo "ii-lua-module $< -> $@"
 
 $(BUILD_DIR)/iihelp.lua: $(II_SRC) util/ii_lua_help.lua | $(BUILD_DIR)
 	@lua util/ii_lua_help.lua $(II_SRCD) $@
-	@echo lua $@
+	@echo "ii-lua-help $@"
 
 $(BUILD_DIR)/ii_c_layer.h: $(II_SRC) util/ii_c_layer.lua | $(BUILD_DIR)
 	@lua util/ii_c_layer.lua $(II_SRCD) $@
-	@echo lua $@
+	@echo "ii-c-layer $@"
 
 $(BUILD_DIR)/ii_lualink.h: $(II_SRC) util/ii_lualinker.lua | $(BUILD_DIR)
 	@lua util/ii_lualinker.lua $(II_SRCD) $@
-	@echo lua $@
+	@echo "ii-lualinker $@"
 
 
 ### destination sources
@@ -165,6 +166,7 @@ LUA_SRC += $(II_TARGET)
 
 LUA_PP = $(LUA_SRC:%.lua=%.lua.h)
 LUA_PP: $(LUA_SRC)
+	@echo "pre-compiling lua sources to bytecode wrapped in c headers"
 
 LUACORE_OBJS=	lapi.o lcode.o lctype.o ldebug.o ldo.o ldump.o lfunc.o lgc.o llex.o \
 		lmem.o lobject.o lopcodes.o lparser.o lstate.o lstring.o ltable.o \
@@ -285,10 +287,16 @@ zip: $(BIN) $(TARGET).dfu
 	@echo f2l $< "->" $@
 	@$(FENNEL) --compile $< > $@
 
-%.lua.h: %.lua util/l2h.lua
-	@luac -p $<
-	@echo l2h $< "->" $@
-	@lua util/l2h.lua $<
+# %.lua.h: %.lua util/l2h.lua
+# 	@luac -p $<
+# 	@echo l2h $< "->" $@
+# 	@lua util/l2h.lua $<
+
+%.lua.h: %.lua
+	@echo l2h $< "->" $(addprefix $(BUILD_DIR)/, $(notdir $@))
+	@xxd -i $< $(addprefix $(BUILD_DIR)/, $(notdir $@))
+	@sed -i 's/unsigned int/const unsigned int/g' $(addprefix $(BUILD_DIR)/, $(notdir $@))
+# 	@lua util/l2h.lua $<
 
 Startup.o: $(STARTUP)
 	@$(CC) $(CFLAGS) -c $< -o $@
