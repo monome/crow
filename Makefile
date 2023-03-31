@@ -287,20 +287,18 @@ zip: $(BIN) $(TARGET).dfu
 	@echo f2l $< "->" $@
 	@$(FENNEL) --compile $< > $@
 
-# %.lua.h: %.lua util/l2h.lua
-# 	@luac -p $<
-# 	@echo l2h $< "->" $@
-# 	@lua util/l2h.lua $<
-
-# 	$(addprefix $(BUILD_DIR)/, $(notdir $(subst .lua,.lc,$<)))
+# a bunch of gnarly make-functions to massage the intermediate stage filenames
+# everything goes into /build now, and we have to save output of LUAC_CROSS into
+# named files for (xxd -i) to build include files with valid names
+# could be avoided by a more complicated pass in (sed), but this was easier
+# 1. cross-compile all .lua files into .lc bytecode for stm32-arm-cortex-m7 format
+# 2. wrap the .lc binary files into .h headers with auto-generated names
+# 3. add const qualifiers to headers to satisfy C99 struct initializer requirement
 %.lua.h: %.lua
 	@echo l2h $< "->" $(addprefix $(BUILD_DIR)/, $(notdir $(subst .lua.h,.h,$@)))
 	@$(LUAC_CROSS) -s -o $(addprefix $(BUILD_DIR)/, $(notdir $(subst .lua,.lc,$<))) $<
-
 	@xxd -i $(addprefix $(BUILD_DIR)/, $(notdir $(subst .lua,.lc,$<))) $(addprefix $(BUILD_DIR)/, $(notdir $(subst .lua.h,.h,$@)))
 	@sed -i 's/unsigned int/const unsigned int/g' $(addprefix $(BUILD_DIR)/, $(notdir $(subst .lua.h,.h,$@)))
-# 	@xxd -i $< $(addprefix $(BUILD_DIR)/, $(notdir $@))
-# 	@lua util/l2h.lua $<
 
 Startup.o: $(STARTUP)
 	@$(CC) $(CFLAGS) -c $< -o $@
