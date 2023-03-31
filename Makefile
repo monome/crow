@@ -12,7 +12,7 @@ LUAS=submodules/lua/src
 BOOTLOADER=submodules/dfu-stm32f7
 BUILD_DIR := build
 PRJ_DIR=crow
-LUAC_CROSS=util/luac.cross
+LUAC_CROSS=util/luacc
 
 CC=arm-none-eabi-gcc
 LD=arm-none-eabi-gcc
@@ -292,10 +292,14 @@ zip: $(BIN) $(TARGET).dfu
 # 	@echo l2h $< "->" $@
 # 	@lua util/l2h.lua $<
 
+# 	$(addprefix $(BUILD_DIR)/, $(notdir $(subst .lua,.lc,$<)))
 %.lua.h: %.lua
-	@echo l2h $< "->" $(addprefix $(BUILD_DIR)/, $(notdir $@))
-	@xxd -i $< $(addprefix $(BUILD_DIR)/, $(notdir $@))
-	@sed -i 's/unsigned int/const unsigned int/g' $(addprefix $(BUILD_DIR)/, $(notdir $@))
+	@echo l2h $< "->" $(addprefix $(BUILD_DIR)/, $(notdir $(subst .lua.h,.h,$@)))
+	@$(LUAC_CROSS) -s -o $(addprefix $(BUILD_DIR)/, $(notdir $(subst .lua,.lc,$<))) $<
+
+	@xxd -i $(addprefix $(BUILD_DIR)/, $(notdir $(subst .lua,.lc,$<))) $(addprefix $(BUILD_DIR)/, $(notdir $(subst .lua.h,.h,$@)))
+	@sed -i 's/unsigned int/const unsigned int/g' $(addprefix $(BUILD_DIR)/, $(notdir $(subst .lua.h,.h,$@)))
+# 	@xxd -i $< $(addprefix $(BUILD_DIR)/, $(notdir $@))
 # 	@lua util/l2h.lua $<
 
 Startup.o: $(STARTUP)

@@ -6,13 +6,13 @@ function make_lualink(files)
             .. '#pragma once\n\n'
             .. '#include \"lib/lualink.h\" // struct lua_lib_locator\n\n'
     for _,f in ipairs(files) do
-        ll = ll .. '#include \"build/ii_' .. f.lua_name .. '.lua.h\"\n'
+        ll = ll .. '#include \"build/ii_' .. f.lua_name .. '.h\"\n'
     end
     ll = ll .. '\n'
             .. 'const struct lua_lib_locator Lua_ii_libs[] = {\n'
     for _,f in ipairs(files) do
         local name = 'build_ii_' .. f.lua_name
-        ll = ll .. '\t{ \"' .. name .. '\", ' .. name .. '_lua, true, ' .. name .. '_lua_len' .. '},\n'
+        ll = ll .. '\t{ \"' .. name .. '\", ' .. name .. '_lc, true, ' .. name .. '_lc_len' .. '},\n'
     end
     ll = ll .. '\t{ NULL, NULL } };\n'
     return ll
