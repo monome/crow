@@ -196,6 +196,8 @@ OBJS = $(SRC:%.c=$(OBJDIR)/%.o)
 OBJS += $(addprefix $(LUAS)/,$(LUACORE_OBJS) $(LUALIB_OBJS) )
 OBJS += Startup.o
 
+$(OBJS): $(LUA_PP)
+
 # specific objects that require built dependencies (ii)
 $(OBJDIR)/lib/l_bootstrap.o: $(LUA_PP) $(BUILD_DIR)/ii_lualink.h
 # $(OBJDIR)/lib/lualink.o: $(LUA_PP) $(BUILD_DIR)/ii_lualink.h
@@ -310,7 +312,8 @@ zip: $(BIN) $(TARGET).dfu
 # 1. cross-compile all .lua files into .lc bytecode for stm32-arm-cortex-m7 format
 # 2. wrap the .lc binary files into .h headers with auto-generated names
 # 3. add const qualifiers to headers to satisfy C99 struct initializer requirement
-%.lua.h: %.lua
+
+%.lua.h: %.lua $(BUILD_DIR)
 	@echo l2h $< "->" $(addprefix $(BUILD_DIR)/, $(notdir $(subst .lua.h,.h,$@)))
 	@$(LUAC_CROSS) -s -o $(addprefix $(BUILD_DIR)/, $(notdir $(subst .lua,.lc,$<))) $<
 	@xxd -i $(addprefix $(BUILD_DIR)/, $(notdir $(subst .lua,.lc,$<))) $(addprefix $(BUILD_DIR)/, $(notdir $(subst .lua.h,.h,$@)))
