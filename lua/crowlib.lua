@@ -5,7 +5,7 @@ print = function(...)
     local printResult = args[1]
     if arg_len > 1 then
         for i=2,arg_len do
-            printResult = printResult .. '\t' .. tostring(args[i])
+            printResult = string.format('%s\t%s', printResult, tostring(args[i]))
         end
     end
     print_serial(tostring(printResult))
@@ -128,29 +128,29 @@ end
 
 
 --- Syntax extensions
-function closure_if_table( f )
-    local _f = f
-    return function( ... )
-            if ... == nil then
-                return _f()
-            elseif type( ... ) == 'table' then
-                local args = ...
-                debug_usart('table')
-                return function() return _f( table.unpack(args) ) end
-            else return _f( ... ) end
-        end
-end
--- these functions are overloaded with the table->closure functionality
-wrapped_fns = { 'math.random'
-              , 'math.min'
-              , 'math.max'
-              }
--- this hack is required to change the identifier (eg math.random) itself(?)
-for _,fn in ipairs( wrapped_fns ) do
-    load( string.format('%s=closure_if_table(%s)',fn,fn))()
-    -- below is original version that didn't work. nb: wrapped_fns was fns not strs
-    -- fn = closure_if_table( fn ) -- this *doesn't* redirect the identifier
-end
+-- function closure_if_table( f )
+--     local _f = f
+--     return function( ... )
+--             if ... == nil then
+--                 return _f()
+--             elseif type( ... ) == 'table' then
+--                 local args = ...
+--                 debug_usart('table')
+--                 return function() return _f( table.unpack(args) ) end
+--             else return _f( ... ) end
+--         end
+-- end
+-- -- these functions are overloaded with the table->closure functionality
+-- wrapped_fns = { 'math.random'
+--               , 'math.min'
+--               , 'math.max'
+--               }
+-- -- this hack is required to change the identifier (eg math.random) itself(?)
+-- for _,fn in ipairs( wrapped_fns ) do
+--     load( string.format('%s=closure_if_table(%s)',fn,fn))()
+--     -- below is original version that didn't work. nb: wrapped_fns was fns not strs
+--     -- fn = closure_if_table( fn ) -- this *doesn't* redirect the identifier
+-- end
 
 
 --- Delay execution of a function
