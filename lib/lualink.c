@@ -84,6 +84,17 @@ lua_State* Lua_Init(void)
     return L;
 }
 
+lua_State* Lua_ReInit_Environment(lua_State* L){
+    // clear user-created globals
+    luaL_dostring(L, "for k,_ in pairs(_user) do\n"
+                        "_G[k] = nil\n"
+                     "end\n"
+                     "_G._user = {}\n");
+    lua_gc(L, LUA_GCCOLLECT, 1);
+    lua_gc(L, LUA_GCCOLLECT, 1);
+    return L;
+}
+
 lua_State* Lua_Reset( void )
 {
     printf("Lua_Reset\n");
@@ -91,13 +102,14 @@ lua_State* Lua_Reset( void )
     for( int i=0; i<2; i++ ){
         Detect_none( Detect_ix_to_p(i) );
     }
-    for( int i=0; i<4; i++ ){
-        S_toward( i, 0.0, 0.0, SHAPE_Linear, NULL );
-    }
+    // for( int i=0; i<4; i++ ){
+    //     S_toward( i, 0.0, 0.0, SHAPE_Linear, NULL );
+    // }
     events_clear();
-    clock_cancel_coro_all();
-    Lua_DeInit();
-    return Lua_Init();
+    // clock_cancel_coro_all();
+    return Lua_ReInit_Environment(L);
+    // Lua_DeInit();
+    // return Lua_Init();
 }
 
 void Lua_load_default_script( void )

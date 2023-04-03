@@ -69,6 +69,16 @@ void l_bootstrap_init(lua_State* L){
     // crowlib C extensions
     l_crowlib_init(L);
 
+    // track all user-created globals 
+    luaL_dostring(L,
+        "_user={}\n"
+        "local function trace(t,k,v)\n"
+            "_user[k]=true\n"
+            "rawset(t,k,v)\n"
+        "end\n"
+        "setmetatable(_G,{ __newindex = trace })\n"
+        );
+
     // perform two full garbage collection cycles for full cleanup
     lua_full_gc(L);
 }
