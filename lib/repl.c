@@ -18,7 +18,7 @@ typedef enum{ REPL_normal
 // global variables
 lua_State*  Lua;
 L_repl_mode repl_mode = REPL_normal;
-char*       new_script;
+char        new_script[USER_SCRIPT_SIZE]; // static alloc avoids malloc failures
 uint16_t    new_script_len;
 static bool running_from_mem;
 static char running_script_name[64];
@@ -48,7 +48,6 @@ void REPL_init( lua_State* lua )
                 printf("failed to load user script\n");
                 Caw_send_luachunk("failed to load user script");
             }
-            free(new_script);
             break;
         }
         case USERSCRIPT_Clear:
@@ -97,7 +96,6 @@ void REPL_upload( int flash )
         } else {
             Caw_send_luachunk("User script evaluation failed.");
         }
-        free(new_script);
     }
     repl_mode = REPL_normal;
 }
@@ -194,7 +192,6 @@ static void REPL_receive_script( char* buf, uint32_t len, ErrorHandler_t errfn )
     if( new_script_len + len >= USER_SCRIPT_SIZE ){
         Caw_send_luachunk("!ERROR! Script is too long.");
         repl_mode = REPL_discard;
-        free(new_script);
     } else {
         memcpy( &new_script[new_script_len], buf, len );
         new_script_len += len;
@@ -203,12 +200,6 @@ static void REPL_receive_script( char* buf, uint32_t len, ErrorHandler_t errfn )
 
 static bool REPL_new_script_buffer( uint32_t len )
 {
-    new_script = calloc( sizeof(char), len);
-    if( new_script == NULL ){
-        printf("malloc failed. REPL\n");
-        Caw_send_luachunk("!ERROR! Out of memory.");
-        return false;
-    }
     new_script_len = 0; // reset counter as the buffer is empty
     return true;
 }

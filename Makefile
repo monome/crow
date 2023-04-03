@@ -12,6 +12,7 @@ LUAS=submodules/lua/src
 BOOTLOADER=submodules/dfu-stm32f7
 BUILD_DIR := build
 PRJ_DIR=crow
+LUAC_CROSS=util/luacc
 
 CC=arm-none-eabi-gcc
 LD=arm-none-eabi-gcc
@@ -53,7 +54,8 @@ CFLAGS += $(MCFLAGS)
 CFLAGS += $(OPTIMIZE)
 CFLAGS += $(DEFS) -I. -I./ $(STM32_INCLUDES)
 CFLAGS += -fsingle-precision-constant -Wdouble-promotion
-CFLAGS += -DLUA_32BITS -DLUA_COMPAT_5_2
+CFLAGS += -DLUA_32BITS
+# CFLAGS += -DLUA_32BITS -DLUA_COMPAT_5_2
 CFLAGS += -fno-common
 CFLAGS += -DVERSION=\"$(GIT_VERSION)\"
 CFLAGS += -ffunction-sections -fdata-sections # provides majority of LTO binary size reduction
@@ -141,19 +143,19 @@ $(II_TARGET): util/ii_lua_module.lua
 
 $(BUILD_DIR)/ii_%.lua: $(II_SRCD)/%.lua util/ii_lua_module.lua | $(BUILD_DIR)
 	@lua util/ii_lua_module.lua $< $@
-	@echo lua $@
+	@echo "ii-lua-module $< -> $@"
 
 $(BUILD_DIR)/iihelp.lua: $(II_SRC) util/ii_lua_help.lua | $(BUILD_DIR)
 	@lua util/ii_lua_help.lua $(II_SRCD) $@
-	@echo lua $@
+	@echo "ii-lua-help $@"
 
 $(BUILD_DIR)/ii_c_layer.h: $(II_SRC) util/ii_c_layer.lua | $(BUILD_DIR)
 	@lua util/ii_c_layer.lua $(II_SRCD) $@
-	@echo lua $@
+	@echo "ii-c-layer $@"
 
 $(BUILD_DIR)/ii_lualink.h: $(II_SRC) util/ii_lualinker.lua | $(BUILD_DIR)
 	@lua util/ii_lualinker.lua $(II_SRCD) $@
-	@echo lua $@
+	@echo "ii-lualinker $@"
 
 
 ### destination sources
@@ -180,6 +182,7 @@ LUA_SRC += $(II_TARGET)
 
 LUA_PP = $(LUA_SRC:%.lua=%.lua.h)
 LUA_PP: $(LUA_SRC)
+	@echo "pre-compiling lua sources to bytecode wrapped in c headers"
 
 LUACORE_OBJS=	lapi.o lcode.o lctype.o ldebug.o ldo.o ldump.o lfunc.o lgc.o llex.o \
 		lmem.o lobject.o lopcodes.o lparser.o lstate.o lstring.o ltable.o \
@@ -193,6 +196,8 @@ OBJDIR = .
 OBJS = $(SRC:%.c=$(OBJDIR)/%.o)
 OBJS += $(addprefix $(LUAS)/,$(LUACORE_OBJS) $(LUALIB_OBJS) )
 OBJS += Startup.o
+
+$(OBJS): $(LUA_PP)
 
 # specific objects that require built dependencies (ii)
 $(OBJDIR)/lib/l_bootstrap.o: $(LUA_PP) $(BUILD_DIR)/ii_lualink.h
@@ -301,10 +306,19 @@ zip: $(BIN) $(TARGET).dfu
 	@echo f2l $< "->" $@
 	@$(FENNEL) --compile $< > $@
 
-%.lua.h: %.lua util/l2h.lua
-	@luac -p $<
-	@echo l2h $< "->" $@
-	@lua util/l2h.lua $<
+# a bunch of gnarly make-functions to massage the intermediate stage filenames
+# everything goes into /build now, and we have to save output of LUAC_CROSS into
+# named files for (xxd -i) to build include files with valid names
+# could be avoided by a more complicated pass in (sed), but this was easier
+# 1. cross-compile all .lua files into .lc bytecode for stm32-arm-cortex-m7 format
+# 2. wrap the .lc binary files into .h headers with auto-generated names
+# 3. add const qualifiers to headers to satisfy C99 struct initializer requirement
+
+%.lua.h: %.lua $(BUILD_DIR)
+	@echo l2h $< "->" $(addprefix $(BUILD_DIR)/, $(notdir $(subst .lua.h,.h,$@)))
+	@$(LUAC_CROSS) -s -o $(addprefix $(BUILD_DIR)/, $(notdir $(subst .lua,.lc,$<))) $<
+	@xxd -i $(addprefix $(BUILD_DIR)/, $(notdir $(subst .lua,.lc,$<))) $(addprefix $(BUILD_DIR)/, $(notdir $(subst .lua.h,.h,$@)))
+	@sed -i 's/unsigned int/const unsigned int/g' $(addprefix $(BUILD_DIR)/, $(notdir $(subst .lua.h,.h,$@)))
 
 Startup.o: $(STARTUP)
 	@$(CC) $(CFLAGS) -c $< -o $@

@@ -9,8 +9,9 @@
 typedef void (*ErrorHandler_t)(char* error_message);
 struct lua_lib_locator{
     const char* name;
-    const char* addr_of_luacode;
+    const unsigned char* addr_of_luacode;
     const bool stripped;
+    const unsigned int len;
 };
 
 extern volatile int CPU_count; // count from main.c

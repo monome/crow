@@ -39,8 +39,9 @@
 #define WATCHDOG_FREQ      0x100000 // ~1s how often we run the watchdog
 #define WATCHDOG_COUNT     2        // how many watchdogs before 'frozen'
 
+
 // Basic crow script
-#include "lua/First.lua.h"
+#include "build/First.h"
 
 // Private prototypes
 static void Lua_linkctolua( lua_State* L );
@@ -80,10 +81,17 @@ lua_State* Lua_Init(void)
     luaL_openlibs(L);
     Lua_linkctolua(L);
     l_bootstrap_init(L); // redefine dofile(), print(), load crowlib
-    // Lua_eval(L, lua_bootstrap
-    //           , strlen(lua_bootstrap)
-    //           , "=lib"
-    //           ); 
+    return L;
+}
+
+lua_State* Lua_ReInit_Environment(lua_State* L){
+    // clear user-created globals
+    luaL_dostring(L, "for k,_ in pairs(_user) do\n"
+                        "_G[k] = nil\n"
+                     "end\n"
+                     "_G._user = {}\n");
+    lua_gc(L, LUA_GCCOLLECT, 1);
+    lua_gc(L, LUA_GCCOLLECT, 1);
     return L;
 }
 
@@ -99,14 +107,15 @@ lua_State* Lua_Reset( void )
     }
     events_clear();
     clock_cancel_coro_all();
-    Lua_DeInit();
-    return Lua_Init();
+    return Lua_ReInit_Environment(L);
+    // Lua_DeInit();
+    // return Lua_Init();
 }
 
 void Lua_load_default_script( void )
 {
-    Lua_eval(L, lua_First
-              , strlen(lua_First)
+    Lua_eval(L, (const char*)build_First_lc
+              , build_First_lc_len
               , "=First.lua"
               );
 }
