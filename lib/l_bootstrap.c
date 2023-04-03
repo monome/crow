@@ -4,46 +4,46 @@
 
 #include "l_crowlib.h"
 
-#include "lua/crowlib.lua.h"
-#include "lua/asl.lua.h"
-#include "lua/asllib.lua.h"
-#include "lua/clock.lua.h"
-#include "lua/metro.lua.h"
-#include "lua/public.lua.h"
-#include "lua/input.lua.h"
-#include "lua/output.lua.h"
-#include "lua/ii.lua.h"
-#include "build/iihelp.lua.h"    // generated lua stub for loading i2c modules
-#include "lua/calibrate.lua.h"
-#include "lua/sequins.lua.h"
-#include "lua/quote.lua.h"
-#include "lua/timeline.lua.h"
-#include "lua/hotswap.lua.h"
+// Lua libs wrapped in C-headers
+#include "build/crowlib.h"
+#include "build/asl.h"
+#include "build/asllib.h"
+#include "build/clock.h"
+#include "build/metro.h"
+#include "build/public.h"
+#include "build/input.h"
+#include "build/output.h"
+#include "build/ii.h"
+#include "build/iihelp.h"    // generated lua stub for loading i2c modules
+#include "build/calibrate.h"
+#include "build/sequins.h"
+#include "build/quote.h"
+#include "build/timeline.h"
+#include "build/hotswap.h"
 
 #include "build/ii_lualink.h" // generated C header for linking to lua
 
-static int _writer(lua_State *L, const void *p, size_t sz, void *ud);
-static int _load_chunk(lua_State* L, const char* code, int strip);
 static int _open_lib( lua_State *L, const struct lua_lib_locator* lib, const char* name );
+static void lua_full_gc(lua_State* L);
 
 // mark the 3rd arg 'false' if you need to debug that library
 const struct lua_lib_locator Lua_libs[] =
-    { { "lua_crowlib"   , lua_crowlib   , true}
-    , { "lua_asl"       , lua_asl       , true}
-    , { "lua_asllib"    , lua_asllib    , true}
-    , { "lua_clock"     , lua_clock     , true}
-    , { "lua_metro"     , lua_metro     , true}
-    , { "lua_input"     , lua_input     , true}
-    , { "lua_output"    , lua_output    , true}
-    , { "lua_public"    , lua_public    , true}
-    , { "lua_ii"        , lua_ii        , true}
-    , { "build_iihelp"  , build_iihelp  , true}
-    , { "lua_calibrate" , lua_calibrate , true}
-    , { "lua_sequins"   , lua_sequins   , true}
-    , { "lua_quote"     , lua_quote     , true}
-    , { "lua_timeline"  , lua_timeline  , true}
-    , { "lua_hotswap"   , lua_hotswap   , true}
-    , { NULL            , NULL          , true}
+    { { "lua_crowlib"   , build_crowlib_lc   , true, build_crowlib_lc_len}
+    , { "lua_asl"       , build_asl_lc       , true, build_asl_lc_len}
+    , { "lua_asllib"    , build_asllib_lc    , true, build_asllib_lc_len}
+    , { "lua_clock"     , build_clock_lc     , true, build_clock_lc_len}
+    , { "lua_metro"     , build_metro_lc     , true, build_metro_lc_len}
+    , { "lua_input"     , build_input_lc     , true, build_input_lc_len}
+    , { "lua_output"    , build_output_lc    , true, build_output_lc_len}
+    , { "lua_public"    , build_public_lc    , true, build_public_lc_len}
+    , { "lua_ii"        , build_ii_lc        , true, build_ii_lc_len}
+    , { "build_iihelp"  , build_iihelp_lc    , true, build_iihelp_lc_len}
+    , { "lua_calibrate" , build_calibrate_lc , true, build_calibrate_lc_len}
+    , { "lua_sequins"   , build_sequins_lc   , true, build_sequins_lc_len}
+    , { "lua_quote"     , build_quote_lc     , true, build_quote_lc_len}
+    , { "lua_timeline"  , build_timeline_lc  , true, build_timeline_lc_len}
+    , { "lua_hotswap"   , build_hotswap_lc   , true, build_hotswap_lc_len}
+    , { NULL            , NULL               , true, 0}
     };
 
 
@@ -69,9 +69,18 @@ void l_bootstrap_init(lua_State* L){
     // crowlib C extensions
     l_crowlib_init(L);
 
+    // track all user-created globals 
+    luaL_dostring(L,
+        "_user={}\n"
+        "local function trace(t,k,v)\n"
+            "_user[k]=true\n"
+            "rawset(t,k,v)\n"
+        "end\n"
+        "setmetatable(_G,{ __newindex = trace })\n"
+        );
+
     // perform two full garbage collection cycles for full cleanup
-    lua_gc(L, LUA_GCCOLLECT, 1);
-    lua_gc(L, LUA_GCCOLLECT, 1);
+    lua_full_gc(L);
 }
 
 
@@ -92,19 +101,22 @@ int l_bootstrap_dofile(lua_State* L)
             default:{ cname[p++] = l_name[i]; } break;
         }
     }
+    // goto fail; // no match was found, so error out (silently?)
+
 strcomplete:
     lua_pop( L, 1 );
     switch( _open_lib( L, Lua_libs, cname ) ){
         case -1: goto fail;
-        case 1: return 1;
+        case 1: lua_full_gc(L); return 1;
         default: break;
     }
     switch( _open_lib( L, Lua_ii_libs, cname ) ){
         case -1: goto fail;
-        case 1: return 1;
+        case 1: lua_full_gc(L); return 1;
         default: break;
     }
     printf("can't open library: %s\n", (char*)cname);
+
 fail:
     lua_pushnil(L);
     return 1;
@@ -117,58 +129,14 @@ fail:
 
 /////////// private defns
 
-// this is a somewhat arbitrary size. must be big enough for the biggest library. 8kB was too small
-#define SIZED_STRING_LEN 0x4000 // (16kB)
-struct sized_string{
-    char data[SIZED_STRING_LEN];
-    int  len;
-};
-
-#define UNUSED(x) (void)(sizeof(x))
-static int _writer(lua_State *L, const void *p, size_t sz, void *ud)
-{
-    UNUSED(L);
-    struct sized_string* chunkstr = ud; /// need explicit cast?
-    if(chunkstr->len + sz >= SIZED_STRING_LEN){
-        printf("chunkstr too small.\n");
-        return 1;
-    }
-    memcpy(&chunkstr->data[chunkstr->len], p, sz);
-    chunkstr->len += sz;
-    return 0;
-}
-#undef UNUSED
-
-static int _load_chunk(lua_State* L, const char* code, int strip)
-{
-    int retval = 0;
-    struct sized_string chunkstr = {.len = 0};
-    { // scope lua_State to destroy it asap
-        lua_State* LL=luaL_newstate();
-        if( !LL ){ printf("luaL_newstate failed\n"); return 1; }
-        if( luaL_loadstring(LL, code) ){
-            printf("loadstring error\n");
-            retval = 1;
-            goto close_LL;
-        }
-        if( lua_dump(LL, _writer, &chunkstr, strip) ){
-            printf("dump error\n");
-            retval = 1;
-            goto close_LL;
-        }
-close_LL:
-        lua_close(LL);
-    }
-    luaL_loadbuffer(L, chunkstr.data, chunkstr.len, chunkstr.data); // load our compiled chunk
-    return retval;
-}
-
 static int _open_lib( lua_State *L, const struct lua_lib_locator* lib, const char* name )
 {
     uint8_t i = 0;
     while( lib[i].addr_of_luacode != NULL ){
         if( !strcmp( name, lib[i].name ) ){ // if the strings match
-            if( _load_chunk(L, lib[i].addr_of_luacode, lib[i].stripped) ){
+            if( luaL_loadbuffer(L, (const char*)lib[i].addr_of_luacode
+                                 , lib[i].len
+                                 , lib[i].name) ){
                 printf("can't load library: %s\n", (char*)lib[i].name );
                 printf( "%s\n", (char*)lua_tostring( L, -1 ) );
                 lua_pop( L, 1 );
@@ -185,4 +153,9 @@ static int _open_lib( lua_State *L, const struct lua_lib_locator* lib, const cha
         i++;
     }
     return 0; // not found
+}
+
+static void lua_full_gc(lua_State* L){
+    lua_gc(L, LUA_GCCOLLECT, 1);
+    lua_gc(L, LUA_GCCOLLECT, 1);
 }
