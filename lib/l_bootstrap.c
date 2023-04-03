@@ -136,7 +136,7 @@ static int _open_lib( lua_State *L, const struct lua_lib_locator* lib, const cha
         if( !strcmp( name, lib[i].name ) ){ // if the strings match
             if( luaL_loadbuffer(L, (const char*)lib[i].addr_of_luacode
                                  , lib[i].len
-                                 , (const char*)lib[i].addr_of_luacode) ){
+                                 , lib[i].name) ){
                 printf("can't load library: %s\n", (char*)lib[i].name );
                 printf( "%s\n", (char*)lua_tostring( L, -1 ) );
                 lua_pop( L, 1 );
