@@ -102,11 +102,11 @@ lua_State* Lua_Reset( void )
     for( int i=0; i<2; i++ ){
         Detect_none( Detect_ix_to_p(i) );
     }
-    // for( int i=0; i<4; i++ ){
-    //     S_toward( i, 0.0, 0.0, SHAPE_Linear, NULL );
-    // }
+    for( int i=0; i<4; i++ ){
+        S_toward( i, 0.0, 0.0, SHAPE_Linear, NULL );
+    }
     events_clear();
-    // clock_cancel_coro_all();
+    clock_cancel_coro_all();
     return Lua_ReInit_Environment(L);
     // Lua_DeInit();
     // return Lua_Init();
