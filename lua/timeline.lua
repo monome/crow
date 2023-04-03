@@ -2,6 +2,7 @@
 -- hotrod some clock & sequins structures for rapid playability
 
 --- globals are available on crow, otherwise require for norns
+local require = require or function() end
 local s = sequins or require 'lib/sequins'
 local clk = clock or require 'clock'
 
