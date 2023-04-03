@@ -54,7 +54,8 @@ CFLAGS += $(MCFLAGS)
 CFLAGS += $(OPTIMIZE)
 CFLAGS += $(DEFS) -I. -I./ $(STM32_INCLUDES)
 CFLAGS += -fsingle-precision-constant -Wdouble-promotion
-CFLAGS += -DLUA_32BITS -DLUA_COMPAT_5_2
+CFLAGS += -DLUA_32BITS
+# CFLAGS += -DLUA_32BITS -DLUA_COMPAT_5_2
 CFLAGS += -fno-common
 CFLAGS += -DVERSION=\"$(GIT_VERSION)\"
 CFLAGS += -ffunction-sections -fdata-sections # provides majority of LTO binary size reduction
