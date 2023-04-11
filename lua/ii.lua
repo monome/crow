@@ -3,37 +3,15 @@
 
 local ii = {}
 
-ii.is = dofile('build/iihelp.lua')
-
-function ii.help()
-    ii_list_modules()
-end
-
-function ii.m_help( address )
-    ii_list_commands( address )
-end
-
-function ii.pullup( state )
-    if state == true then state = 1 else state = 0 end
-    ii_pullup(state)
-end
-
 -- implemented in lualink.c
+ii.help = ii_list_modules
+ii.m_help = ii_list_commands
+ii.pullup = ii_pullup
 ii.fastmode = i2c_fastmode
--- function ii.fastmode( state )
-
---     if state == true then state = 1 else state = 0 end
---     i2c_fastmode(state)
--- end
-
--- aliases to C functions
 ii.set_address = ii_set_add
 ii.get_address = ii_get_add
 ii.set = ii_lead
-
-function ii.raw( address, bytes, rx_len )
-    ii_lead_bytes( address, bytes, rx_len or 0 )
-end
+ii.raw = ii_lead_bytes
 
 function ii.get( address, cmd, ... )
     if not cmd then print'param not found'
@@ -78,15 +56,21 @@ ii.self =
              , [8+128]='query3'
              }
     }
+
 function ii.reset_events()
-    ii.self.call1  = function(a) ii.self.call{a} end
-    ii.self.call2  = function(a,a2) ii.self.call{a,a2} end
-    ii.self.call3  = function(a,a2,a3) ii.self.call{a,a2,a3} end
-    ii.self.call4  = function(a,a2,a3,a4) ii.self.call{a,a2,a3,a4} end
-    ii.self.query0 = function() return ii.self.query{} end
-    ii.self.query1 = function(a) return ii.self.query{a} end
-    ii.self.query2 = function(a,a2) return ii.self.query{a,a2} end
-    ii.self.query3 = function(a,a2,a3) return ii.self.query{a,a2,a3} end
+    -- the 8 variable-arity fns funnel through these shared fns
+    -- double-indirection seems unnecessary. not sure why?
+    ii.self._call  = function(...) ii.self.call{...} end
+    ii.self._query = function(...) return ii.self.query{...} end
+
+    ii.self.call1  = ii.self._call
+    ii.self.call2  = ii.self._call
+    ii.self.call3  = ii.self._call
+    ii.self.call4  = ii.self._call
+    ii.self.query0 = ii.self._query
+    ii.self.query1 = ii.self._query
+    ii.self.query2 = ii.self._query
+    ii.self.query3 = ii.self._query
 
     -- all the individual call/queries forward to these 2 user fns
     ii.self.call = function(args) print('call'..#args) end

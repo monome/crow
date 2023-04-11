@@ -512,8 +512,14 @@ static int _ii_list_commands( lua_State *L )
 
 static int _ii_pullup( lua_State *L )
 {
-    ii_set_pullups( luaL_checkinteger(L, 1) );
-    lua_pop(L, 1);
+    int state = 0;
+    if(lua_isboolean(L, 1)){
+        state = lua_toboolean(L, 1);
+    } else {
+        state = luaL_checkinteger(L, 1);
+    }
+    ii_set_pullups(!!state); // coerce to 0/1
+    lua_settop(L, 0);
     return 0;
 }
 
@@ -537,11 +543,14 @@ static int _ii_lead( lua_State *L )
 static int _ii_lead_bytes( lua_State *L )
 {
     int nargs = lua_gettop(L);
-    if( nargs != 3 ) return 0;
+    uint8_t rx_len = 0; // if no length provided, assume 0
+    if(nargs < 2 || nargs > 3){ return 0; }
+    if(nargs == 3){ // explict length provided
+        rx_len = (uint8_t)luaL_checkinteger(L, 3);
+    }
     uint8_t address = luaL_checkinteger(L, 1);
     size_t len;
     uint8_t *data = (uint8_t *)luaL_checklstring(L, 2, &len);
-    uint8_t rx_len = (uint8_t)luaL_checkinteger(L, 3);
     if( ii_leader_enqueue_bytes( address
                                , data
                                , (uint8_t)len
