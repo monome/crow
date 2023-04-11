@@ -60,6 +60,10 @@ void l_bootstrap_init(lua_State* L){
     // _c = dofile('lua/crowlib.lua')
     lua_pushliteral(L, "lua/crowlib.lua");
     l_bootstrap_dofile(L); // hotrod without l_call
+    lua_settop(L, 0);
+
+    // _c = {}
+    lua_newtable(L);
     lua_setglobal(L, "_c");
 
     // crow = _c

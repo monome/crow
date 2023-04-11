@@ -97,7 +97,7 @@ void I2C_SetTimings( uint32_t is_fast )
     I2C_DeInit();
     // update to custom speed, else fallback to stable timing
     if(is_fast > 0xF){
-        printf("setting i2c timing to 0x%x\n\r", is_fast);
+        printf("setting i2c timing to 0x%x\n\r", (unsigned int)is_fast);
         i2c_timings = is_fast;
     } else {
         switch(is_fast){ case 1:  i2c_timings = I2C_TIMING_SPEED; break;
@@ -456,14 +456,14 @@ void I2Cx_ER_IRQHandler( void )
 // I2C_ITError
 void HAL_I2C_ErrorCallback( I2C_HandleTypeDef* h )
 {
-    printf("I2C_ERROR_");
-    switch( h->ErrorCode ){
-        case HAL_I2C_ERROR_BERR: printf("BERR\n"); break;
-        case HAL_I2C_ERROR_OVR:  printf("OVR\n"); break;
-        case HAL_I2C_ERROR_ARLO: printf("ARLO\n"); break;
-        case HAL_I2C_ERROR_AF:   printf("AF\n"); break;
-        default: printf("unknown!\n"); break;
-    }
+    // printf("I2C_ERROR_");
+    // switch( h->ErrorCode ){
+    //     case HAL_I2C_ERROR_BERR: printf("BERR\n"); break;
+    //     case HAL_I2C_ERROR_OVR:  printf("OVR\n"); break;
+    //     case HAL_I2C_ERROR_ARLO: printf("ARLO\n"); break;
+    //     case HAL_I2C_ERROR_AF:   printf("AF\n"); break;
+    //     default: printf("unknown!\n"); break;
+    // }
     if( h->ErrorCode == HAL_I2C_ERROR_AF ){
         (*error_action)( 0 );
     } else {

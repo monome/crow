@@ -20,7 +20,6 @@
 #include "lib/metro.h"      // metro_start() metro_stop() metro_set_time()
 #include "lib/clock.h"      // clock_*()
 #include "lib/io.h"         // IO_GetADC()
-#include "../ll/random.h"   // Random_Get()
 #include "../ll/adda.h"     // CAL_*()
 #include "../ll/cal_ll.h"   // CAL_LL_ActiveChannel()
 #include "../ll/system.h"   // getUID_Word()
@@ -615,21 +614,6 @@ static int _metro_set_time( lua_State* L )
     return 0;
 }
 
-static int _random_float( lua_State* L )
-{
-    lua_pushnumber( L, Random_Float() );
-    return 1;
-}
-
-static int _random_int( lua_State* L )
-{
-    int r = Random_Int( luaL_checknumber(L, 1)
-                      , luaL_checknumber(L, 2) );
-    lua_pop(L, 2);
-    lua_pushinteger( L, r);
-    return 1;
-}
-
 static int _calibrate_source( lua_State* L )
 {
     int chan = -1;
@@ -817,9 +801,9 @@ static const struct luaL_Reg libCrow[]=
     , { "i2c_fastmode"     , _i2c_set_timings  }
     //, { "sys_cpu_load"     , _sys_cpu          }
         // io
-    , { "get_state"        , _get_state        }
+    // , { "get_state"        , _get_state        }
     , { "set_output_scale" , _set_scale        }
-    , { "io_get_input"     , _io_get_input     }
+    // , { "io_get_input"     , _io_get_input     }
     , { "set_input_none"   , _set_input_none   }
     , { "set_input_stream" , _set_input_stream }
     , { "set_input_change" , _set_input_change }
@@ -850,9 +834,6 @@ static const struct luaL_Reg libCrow[]=
     , { "metro_start"      , _metro_start      }
     , { "metro_stop"       , _metro_stop       }
     , { "metro_set_time"   , _metro_set_time   }
-        // random
-    , { "random_float"     , _random_float     }
-    , { "random_int"       , _random_int       }
         // calibration
     , { "calibrate_source" , _calibrate_source }
     , { "calibrate_get"    , _calibrate_get    }
@@ -990,13 +971,16 @@ void L_queue_asl_done( int id )
                 };
     event_post(&e);
 }
+
+// forward directly to output[e->index.i].done()
 void L_handle_asl_done( event_t* e )
 {
-    lua_getglobal(L, "asl_done_handler");
+    lua_getglobal(L, "output"); // @1
     lua_pushinteger(L, e->index.i + 1); // 1-ix'd
-    if( Lua_call_usercode(L, 1, 0) != LUA_OK ){
-        lua_pop( L, 1 );
-    }
+    lua_gettable(L, 1); // @2
+    lua_getfield(L, 2, "done");
+    Lua_call_usercode(L, 0, 0); // lua_call with timeout hook
+    lua_settop(L, 0);
 }
 
 void L_queue_metro( int id, int state )

@@ -83,7 +83,9 @@ static void MPU_Config(void)
 
     // Configure the MPU attributes as WT for SRAM
     mpu.Enable           = MPU_REGION_ENABLE;
-    mpu.BaseAddress      = 0x20020000;
+    // mpu.Enable           = MPU_REGION_DISABLE;
+    // mpu.BaseAddress      = 0x20020000;
+    mpu.BaseAddress      = 0x20000000;
     mpu.Size             = MPU_REGION_SIZE_256KB;
     mpu.AccessPermission = MPU_REGION_FULL_ACCESS;
     mpu.IsBufferable     = MPU_ACCESS_NOT_BUFFERABLE;
