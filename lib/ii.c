@@ -332,7 +332,7 @@ static void error_action( int error_code )
 {
     switch( error_code ){
         case 0: // Ack Failed
-            printf("I2C_ERROR_AF\n"); // means can't find device
+            // printf("I2C_ERROR_AF\n"); // means can't find device
             // TODO make this a global variable which can be checked by user
             // becomes a basic way to ask "was the message received"
             break;
