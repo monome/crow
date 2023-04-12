@@ -28,6 +28,7 @@ end
 -- hardcoded for now
 -- TODO AUTOGENERATE THIS
 ii.jf = ii.new('jf')
+ii.wtape = ii.new('wtape')
 
 ----------------------------
 -- basic ii functionality

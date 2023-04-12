@@ -19,6 +19,8 @@ static const ii_mod_cmds_t ii_mod_jf_cmds[] =
     {{.cmd = 1, .name = "trigger"}
     ,{.cmd = 4, .name = "transpose"}
     ,{.cmd = 14, .name = "address"}
+    ,{.cmd = 145, .name = "ramp"}
+    ,{.cmd = 147, .name = "fm"}
     };
 // data for each module
 static ii_box_t ii_box_jf =
@@ -26,10 +28,45 @@ static ii_box_t ii_box_jf =
     , .name          = "jf"
     , .addresses     = {112,117}
     , .commands      = ii_mod_jf_cmds
-    , .command_count = 3
+    , .command_count = 5
     };
+
+
+
+
+
+
+// wtape not working
+    // try ansible as we know it should work properly.
+// i can also revert to 4.0 and see if wtape works
+
+
+
+
+
+
+
+
+
+static const ii_mod_cmds_t ii_mod_wtape_cmds[] =
+    {{.cmd = 2, .name = "play"}
+    ,{.cmd = 129, .name = "record"}
+    };
+// data for each module
+static ii_box_t ii_box_wtape =
+    { .addr          = 113 // this is dynamic!
+    , .name          = "wtape"
+    , .addresses     = {113,114}
+    , .commands      = ii_mod_wtape_cmds
+    , .command_count = 2
+    };
+
 // list of all module structs
-static ii_box_t* ii_mods[] = {&ii_box_jf};
+static ii_box_t* ii_mods[] =
+    { &ii_box_jf
+    , &ii_box_wtape
+    };
+static int ii_mod_count = 2;
 
 ////////////////////////////////////////////////
 // global vars
@@ -43,46 +80,60 @@ static ii_box_t* active_box = NULL;
 // search functions
 // peer into the generated structures
 
-
-////////////////////////////////////////////////
-// TODO /////////////////////////////////////////////
-
 static ii_box_t* find_mod_struct_by_address(uint8_t addr){
-    return &ii_box_jf; // FIXME
+    // TODO searching manually for now
+    // in future i can add a static table of addresses for direct lookup
+    for(int i=0; i<ii_mod_count; i++){
+        uint8_t* addrs = ii_mods[i]->addresses;
+        for(int a=0; a<II_MAX_ADDRESSES; a++){
+            if(addrs[a] == addr){
+                return ii_mods[i];
+            }
+        }
+    }
+    return NULL; // FIXME
 }
 
 static ii_box_t* find_mod_struct_by_name(const char* name, size_t len){
-    // TODO string search of tables
-    return &ii_box_jf; // FIXME
+    for(int i=0; i<ii_mod_count; i++){
+        if(strcmp(ii_mods[i]->name, name) == 0){
+            return ii_mods[i];
+        }
+    }
+    return NULL;
 }
 
 static const char* find_cmd_name(ii_box_t* box, uint8_t cmd){
-    // FIXME return the string-name of the cmd in the provided wrapper
-    // will only be for getters so start search at end and work backward
-    return "ramp";
+    // this fn is used to create userspace callbacks (ie from getters)
+    // search backward as getters are 2nd half of command list
+    const ii_mod_cmds_t* cmds = box->commands;
+    for(int i=box->command_count-1; i>=0; i--){
+        if(cmds[i].cmd == cmd){
+            return cmds[i].name;
+        }
+    }
+    return NULL;
 }
 
 static int query_to_cmd(ii_box_t* box, const char* str){
-    // lookup in *wrapper from *str to it's cmd id.
-    return 145; // FIXME hard-coded .get('ramp')
+    // search backward as getters are 2nd half of command list
+    const ii_mod_cmds_t* cmds = box->commands;
+    for(int i=box->command_count-1; i>=0; i--){
+        if(strcmp(cmds[i].name, str) == 0){
+            return cmds[i].cmd;
+        }
+    }
+    return 0xFF;
 }
-
-
-////////////////////////////////////
-// completed!
 
 static int string_to_cmd(ii_box_t* box, const char* str){
     const ii_mod_cmds_t* cmds = box->commands;
-    int i=0;
-    uint8_t cmd = 0xFF;
-    while(i < box->command_count){
+    for(int i=0; i<box->command_count; i++){
         if(strcmp(cmds[i].name, str) == 0){
-            cmd = cmds[i].cmd;
-            break;
+            return cmds[i].cmd;
         }
-        i++;
     }
-    return cmd; // FIXME hard-coded .trigger
+    return 0xFF;
 }
 
 static ii_box_t* find_mod_struct_from_table(lua_State* L, int self_stack_index){
@@ -106,6 +157,7 @@ static int find_addr_ix(ii_box_t* box, int addr_now){
 
 
 ////////////////////////////////////////////////
+// handle overloaded ii.mod[n] syntax to choose one of a range of devices
 
 static int l_ii_setaddress( lua_State* L ){
     uint8_t addr_ix = (uint8_t)luaL_checkinteger(L, 2) - 1; // lua is 1-based
@@ -158,7 +210,10 @@ static int __index_event( lua_State* L ){
 
 static int __index_get( lua_State* L ){
     // lua: ii_lead with check on validity of cmd
-    int query_cmd = query_to_cmd(active_box, luaL_checkstring(L, 1));
+    const char* cmd_str = luaL_checkstring(L, 1);
+    int query_cmd = query_to_cmd(active_box, cmd_str);
+    if(query_cmd == 0xFF)
+        return luaL_error(L, "getter not found for '%s'", cmd_str);
     // this should select a cmd struct so we can arity check
     float data[4] = {0,0,0,0}; // always zero out data
 // TODO lookup number of args & arity check
@@ -236,9 +291,14 @@ static int l_ii_cmd_from_ix( lua_State* L ){
     uint8_t cmd = luaL_checkinteger(L, 2);
     lua_settop(L,0);
     ii_box_t* box = find_mod_struct_by_address(addr);
+    if(box == NULL)
+        return luaL_error(L, "couldn't find address");
     lua_pushstring(L, box->name);
-    lua_pushstring(L, find_cmd_name(box, cmd)); // replace addr with struct*
-    lua_pushinteger(L, find_addr_ix(box, addr)); // FIXME get real address
+    const char* cmd_name = find_cmd_name(box, cmd);
+    if(cmd_name == NULL)
+        return luaL_error(L, "couldn't find cmd");
+    lua_pushstring(L, cmd_name);
+    lua_pushinteger(L, find_addr_ix(box, addr));
     return 3;
 }
 
