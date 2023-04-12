@@ -3,6 +3,35 @@
 
 local ii = {}
 
+----------------------------
+-- per-module setup
+ii.new_mt = {
+    -- note: .event is handled in C unless defined in lua
+    -- if __index returns nil, then it calls C handler w self
+    -- no __newindex protection as we want it freely writable
+    __index = function(self,ix)
+        -- handle ii.mod[id] syntax for duplicate devices
+        if type(ix)=='number' then
+            return c_ii_setaddress(self, ix)
+        end
+        -- look up all other funcs
+        return c_ii_index(self, ix)
+    end
+}
+
+function ii.new(name)
+    -- TODO don't save string name, but pointer to C struct
+    -- speeds up ii_field_lookup
+    return setmetatable({_name = name}, ii.new_mt)
+end
+
+-- hardcoded for now
+-- TODO AUTOGENERATE THIS
+ii.jf = ii.new('jf')
+
+----------------------------
+-- basic ii functionality
+
 -- implemented in lualink.c
 ii.help = ii_list_modules
 ii.m_help = ii_list_commands
@@ -10,24 +39,25 @@ ii.pullup = ii_pullup
 ii.fastmode = i2c_fastmode
 ii.set_address = ii_set_add
 ii.get_address = ii_get_add
-ii.set = ii_lead
 ii.raw = ii_lead_bytes
 
+-- to be deprecated
+ii.set = ii_lead
+
+-- to be deprecated
 function ii.get( address, cmd, ... )
     if not cmd then print'param not found'
     else ii_lead( address, cmd, ... ) end
 end
 
 function ii_LeadRx_handler( addr, cmd, _arg, data )
-    if ii.event_raw(addr, cmd, data, arg) then return end
-    local name, ix = ii.is.lookup(addr)
-    if name ~= nil then
-        local rx_event = { name   = ii[name].e[cmd]
-                         , device = ix or 1
-                         , arg    = _arg
-                         }
-        ii[name].event(rx_event, data)
-    end
+    if ii.event_raw(addr, cmd, data, _arg) then return end
+    local dev, name, addrix = c_ii_cmd(addr,cmd)
+    local rx_event = { name   = name
+                     , device = addrix
+                     , arg    = _arg
+                     }
+    ii[dev].event(rx_event, data)
 end
 
 function ii.e( name, event, ... )
@@ -93,13 +123,11 @@ end
 --- METAMETHODS
 ii.__index = function( self, ix )
     if ix == 'address' then return ii.get_address() end
-    local e = rawget(ii.is, ix) -- avoids openlib() in case of .help
-    if e ~= nil then return e
-    else print'not found. try ii.help()' end
+    print'not found. try ii.help()'
 end
 ii.__newindex = function( self, ix, v )
     if ix == 'address' then ii.set_address(v)
-    else rawset(self, ix, v) end
+    else rawset(self, ix, v) end -- FIXME prob don't want this?
 end
 setmetatable(ii, ii)
 

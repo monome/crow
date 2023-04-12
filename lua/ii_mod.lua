@@ -58,36 +58,3 @@ function c_ii_setaddress(name, ix)
     end
     return self
 end
-
--- goal is to share a single metatable for all ii devices
--- avoid duplication bloat
-ii.new_mt = {
-    -- note: .event is handled in C unless defined in lua
-    -- if __index returns nil, then it calls C handler w self
-    -- no __newindex protection as we want it freely writable
-    __index = function(self,ix)
-        -- handle ii.mod[id] syntax for duplicate devices
-        if type(ix)=='number' then
-            return c_ii_setaddress(self, ix)
-        end
-        -- look up all other funcs
-        return c_ii_index(self.name, ix)
-    end
-}
-
-function ii.new(name)
-    -- TODO don't save string name, but pointer to C struct
-    -- speeds up ii_field_lookup
-    return setmetatable({_name = name}, ii.new_mt)
-end
-
-ii = {jf   = ii.new('jf')
-     ,kria = ii.new('kria')}
-
--- no longer does any module lookup
--- each entry has a tiny table baked in
--- using a shared metatable for lookup
-ii.__index = function( self, ix )
-    if ix == 'address' then return ii.get_address()
-    else print'not found. try ii.help()' end
-end

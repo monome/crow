@@ -2,7 +2,8 @@
 
 #include <math.h>
 
-#include "l_bootstrap.h" 	    // l_bootstrap_dofile
+#include "l_bootstrap.h" 	// l_bootstrap_dofile
+#include "l_ii_mod.h"       // l_ii_mod_preload
 #include "../ll/random.h"   // Random_Get()
 #include "lib/ii.h"         // ii_*()
 #include "lib/ashapes.h"    // AShaper_get_state
@@ -46,7 +47,11 @@ void l_crowlib_init(lua_State* L){
 	_load_lib(L, "asl", "asl");
 	_load_lib(L, "asllib", "asllib");
 	_load_lib(L, "metro", "metro");
+
+    // load C funcs into lua env first
+    l_ii_mod_preload(L);
 	_load_lib(L, "ii", "ii");
+
 	_load_lib(L, "calibrate", "cal");
 	_load_lib(L, "public", "public");
 	_load_lib(L, "clock", "clock");
