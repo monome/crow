@@ -49,7 +49,7 @@ OPTIMIZE       = -O2
 
 CFLAGS += -std=c99
 CFLAGS += -Wall
-CFLAGS += -Wno-unused-function
+CFLAGS += -Wno-unused-function -Wno-unused-value
 CFLAGS += $(MCFLAGS)
 CFLAGS += $(OPTIMIZE)
 CFLAGS += $(DEFS) -I. -I./ $(STM32_INCLUDES)
@@ -208,6 +208,7 @@ $(OBJS): $(LUA_PP)
 $(OBJDIR)/lib/l_bootstrap.o: $(LUA_PP) #$(BUILD_DIR)/ii_lualink.h
 # $(OBJDIR)/lib/lualink.o: $(LUA_PP) $(BUILD_DIR)/ii_lualink.h
 $(OBJDIR)/lib/ii.o: $(BUILD_DIR)/ii_c_layer.h
+$(OBJDIR)/lib/l_ii_mod.o: $(BUILD_DIR)/ii_mod_gen.h
 
 # generate the build directory
 $(BUILD_DIR):
