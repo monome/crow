@@ -1,6 +1,7 @@
 #include "l_bootstrap.h"
 
 #include <string.h>
+#include <stdbool.h>
 
 #include "l_crowlib.h"
 
@@ -14,14 +15,21 @@
 #include "build/input.h"
 #include "build/output.h"
 #include "build/ii.h"
-#include "build/iihelp.h"    // generated lua stub for loading i2c modules
+// #include "build/iihelp.h"    // generated lua stub for loading i2c modules
 #include "build/calibrate.h"
 #include "build/sequins.h"
 #include "build/quote.h"
 #include "build/timeline.h"
 #include "build/hotswap.h"
 
-#include "build/ii_lualink.h" // generated C header for linking to lua
+// #include "build/ii_lualink.h" // generated C header for linking to lua
+
+struct lua_lib_locator{
+    const char* name;
+    const unsigned char* addr_of_luacode;
+    const bool stripped;
+    const unsigned int len;
+};
 
 static int _open_lib( lua_State *L, const struct lua_lib_locator* lib, const char* name );
 static void lua_full_gc(lua_State* L);
@@ -37,7 +45,7 @@ const struct lua_lib_locator Lua_libs[] =
     , { "lua_output"    , build_output_lc    , true, build_output_lc_len}
     , { "lua_public"    , build_public_lc    , true, build_public_lc_len}
     , { "lua_ii"        , build_ii_lc        , true, build_ii_lc_len}
-    , { "build_iihelp"  , build_iihelp_lc    , true, build_iihelp_lc_len}
+    // , { "build_iihelp"  , build_iihelp_lc    , true, build_iihelp_lc_len}
     , { "lua_calibrate" , build_calibrate_lc , true, build_calibrate_lc_len}
     , { "lua_sequins"   , build_sequins_lc   , true, build_sequins_lc_len}
     , { "lua_quote"     , build_quote_lc     , true, build_quote_lc_len}
@@ -114,11 +122,11 @@ strcomplete:
         case 1: lua_full_gc(L); return 1;
         default: break;
     }
-    switch( _open_lib( L, Lua_ii_libs, cname ) ){
-        case -1: goto fail;
-        case 1: lua_full_gc(L); return 1;
-        default: break;
-    }
+    // switch( _open_lib( L, Lua_ii_libs, cname ) ){
+    //     case -1: goto fail;
+    //     case 1: lua_full_gc(L); return 1;
+    //     default: break;
+    // }
     printf("can't open library: %s\n", (char*)cname);
 
 fail:

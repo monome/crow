@@ -19,16 +19,16 @@ ii.new_mt = {
     end
 }
 
-function ii.new(name)
+function ii.newmod(name)
     -- TODO don't save string name, but pointer to C struct
     -- speeds up ii_field_lookup
     return setmetatable({_name = name}, ii.new_mt)
 end
 
--- hardcoded for now
--- TODO AUTOGENERATE THIS
-ii.jf = ii.new('jf')
-ii.wtape = ii.new('wtape')
+-- loads all ii devices (generated from ii descriptors)
+-- uses ii.newmod and ii.new_mt
+-- eg: ii.jf, ii.ansible
+c_ii_load(ii)
 
 ----------------------------
 -- basic ii functionality

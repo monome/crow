@@ -137,25 +137,30 @@ FNL_PP = $(FNL_SRC:%.fnl=%.lua)
 # i2c descriptors
 II_SRCD = lua/ii
 II_SRC = $(wildcard $(II_SRCD)/*.lua)
-II_TARGET = $(addprefix $(BUILD_DIR)/ii_, $(notdir $(II_SRC)))
+# II_TARGET = $(addprefix $(BUILD_DIR)/ii_, $(notdir $(II_SRC)))
 
-$(II_TARGET): util/ii_lua_module.lua
+# $(II_TARGET): util/ii_lua_module.lua
 
-$(BUILD_DIR)/ii_%.lua: $(II_SRCD)/%.lua util/ii_lua_module.lua | $(BUILD_DIR)
-	@lua util/ii_lua_module.lua $< $@
-	@echo "ii-lua-module $< -> $@"
+# $(BUILD_DIR)/ii_%.lua: $(II_SRCD)/%.lua util/ii_lua_module.lua | $(BUILD_DIR)
+# 	@lua util/ii_lua_module.lua $< $@
+# 	@echo "ii-lua-module $< -> $@"
 
-$(BUILD_DIR)/iihelp.lua: $(II_SRC) util/ii_lua_help.lua | $(BUILD_DIR)
-	@lua util/ii_lua_help.lua $(II_SRCD) $@
-	@echo "ii-lua-help $@"
+# $(BUILD_DIR)/iihelp.lua: $(II_SRC) util/ii_lua_help.lua | $(BUILD_DIR)
+# 	@lua util/ii_lua_help.lua $(II_SRCD) $@
+# 	@echo "ii-lua-help $@"
 
 $(BUILD_DIR)/ii_c_layer.h: $(II_SRC) util/ii_c_layer.lua | $(BUILD_DIR)
 	@lua util/ii_c_layer.lua $(II_SRCD) $@
 	@echo "ii-c-layer $@"
 
-$(BUILD_DIR)/ii_lualink.h: $(II_SRC) util/ii_lualinker.lua | $(BUILD_DIR)
-	@lua util/ii_lualinker.lua $(II_SRCD) $@
-	@echo "ii-lualinker $@"
+$(BUILD_DIR)/ii_mod_gen.h: $(II_SRC) util/ii_mod_gen.lua | $(BUILD_DIR)
+	@lua util/ii_mod_gen.lua $(II_SRCD) $@
+	@echo "ii-mod-gen $@"
+
+
+# $(BUILD_DIR)/ii_lualink.h: $(II_SRC) util/ii_lualinker.lua | $(BUILD_DIR)
+# 	@lua util/ii_lualinker.lua $(II_SRCD) $@
+# 	@echo "ii-lualinker $@"
 
 
 ### destination sources
@@ -177,8 +182,8 @@ LUA_SRC += lua/quote.lua
 LUA_SRC += lua/sequins.lua
 LUA_SRC += lua/timeline.lua
 LUA_SRC += lua/hotswap.lua
-LUA_SRC += $(BUILD_DIR)/iihelp.lua
-LUA_SRC += $(II_TARGET)
+# LUA_SRC += $(BUILD_DIR)/iihelp.lua
+# LUA_SRC += $(II_TARGET)
 
 LUA_PP = $(LUA_SRC:%.lua=%.lua.h)
 LUA_PP: $(LUA_SRC)
@@ -200,7 +205,7 @@ OBJS += Startup.o
 $(OBJS): $(LUA_PP)
 
 # specific objects that require built dependencies (ii)
-$(OBJDIR)/lib/l_bootstrap.o: $(LUA_PP) $(BUILD_DIR)/ii_lualink.h
+$(OBJDIR)/lib/l_bootstrap.o: $(LUA_PP) #$(BUILD_DIR)/ii_lualink.h
 # $(OBJDIR)/lib/lualink.o: $(LUA_PP) $(BUILD_DIR)/ii_lualink.h
 $(OBJDIR)/lib/ii.o: $(BUILD_DIR)/ii_c_layer.h
 
