@@ -211,7 +211,11 @@ static char* REPL_script_name_from_mem( char* dest, char* src, int max_len )
     char* linebreak = strchr( src, '\n' );
     int len = linebreak ? (int)(linebreak - src) : max_len;
     if( len >= max_len ){ len = max_len - 1; }
+// disable this warning bc we take care to null terminate our string
+// *dest is a static 64byte array, so there's always room for it
+#pragma GCC diagnostic ignored "-Wstringop-truncation"
     strncpy( dest, src, len );
+#pragma GCC diagnostic pop
     dest[len] = '\0';
     return dest;
 }

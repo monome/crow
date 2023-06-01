@@ -127,8 +127,11 @@ static C_cmd_t _find_cmd( char* str, uint32_t len )
     return C_none;
 }
 
-static uint8_t _is_multiline( char* first_char )
+static uint8_t _is_multiline( char* first_char, uint32_t len )
 {
+    // need at least 3 chars to be a valid multiline sequence
+    if(len < 3){ return 0; }
+    // buffer must lead with the backticks
     if( *first_char++ == '`' ){
         if( *first_char++ == '`' ){
             if( *first_char == '`' ){ return 1; }
@@ -161,7 +164,7 @@ C_cmd_t Caw_try_receive( void )
             retcmd = C_none;  // no action
             goto exit;
         }
-        if( _is_multiline( (char*)buf ) ){
+        if( _is_multiline( (char*)buf, len ) ){
             multiline ^= 1;
             if(!multiline){
                 retcmd = C_repl;
@@ -176,7 +179,7 @@ C_cmd_t Caw_try_receive( void )
                 }
             }
         }
-        if( pReader + len > USB_RX_BUFFER ){ // overflow protection
+        if( (pReader + len) >= USB_RX_BUFFER ){ // overflow protection
             pReader = 0;
             Caw_send_luachunk("!chunk too long!");
             printf("!chunk too long!\n");

@@ -229,14 +229,15 @@ static void USB_Timer_Callback( int count )
 // on interrupt add to the queue
 static int8_t CDC_Itf_Receive( uint8_t* buf, uint32_t *len )
 {
-    if( (UserRxDataLen + *len) >= APP_RX_DATA_SIZE ){
-        *len = APP_RX_DATA_SIZE - UserRxDataLen; // stop buffer overflow
+    uint32_t length = *len;
+    if( (UserRxDataLen + length) >= APP_RX_DATA_SIZE ){
+        length = APP_RX_DATA_SIZE - UserRxDataLen; // stop buffer overflow
     }
     memcpy( &UserRxBuffer[UserRxDataLen]
           , buf
-          , *len
+          , length
           );
-    UserRxDataLen += *len;
+    UserRxDataLen += length;
     return USBD_OK;
 }
 
