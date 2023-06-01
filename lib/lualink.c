@@ -812,7 +812,7 @@ static const struct luaL_Reg libCrow[]=
         // io
     // , { "get_state"        , _get_state        }
     , { "set_output_scale" , _set_scale        }
-    // , { "io_get_input"     , _io_get_input     }
+    , { "io_get_input"     , _io_get_input     }
     , { "set_input_none"   , _set_input_none   }
     , { "set_input_stream" , _set_input_stream }
     , { "set_input_change" , _set_input_change }
