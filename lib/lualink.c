@@ -20,7 +20,6 @@
 #include "lib/metro.h"      // metro_start() metro_stop() metro_set_time()
 #include "lib/clock.h"      // clock_*()
 #include "lib/io.h"         // IO_GetADC()
-#include "../ll/random.h"   // Random_Get()
 #include "../ll/adda.h"     // CAL_*()
 #include "../ll/cal_ll.h"   // CAL_LL_ActiveChannel()
 #include "../ll/system.h"   // getUID_Word()
@@ -513,8 +512,14 @@ static int _ii_list_commands( lua_State *L )
 
 static int _ii_pullup( lua_State *L )
 {
-    ii_set_pullups( luaL_checkinteger(L, 1) );
-    lua_pop(L, 1);
+    int state = 0;
+    if(lua_isboolean(L, 1)){
+        state = lua_toboolean(L, 1);
+    } else {
+        state = luaL_checkinteger(L, 1);
+    }
+    ii_set_pullups(!!state); // coerce to 0/1
+    lua_settop(L, 0);
     return 0;
 }
 
@@ -538,11 +543,14 @@ static int _ii_lead( lua_State *L )
 static int _ii_lead_bytes( lua_State *L )
 {
     int nargs = lua_gettop(L);
-    if( nargs != 3 ) return 0;
+    uint8_t rx_len = 0; // if no length provided, assume 0
+    if(nargs < 2 || nargs > 3){ return 0; }
+    if(nargs == 3){ // explict length provided
+        rx_len = (uint8_t)luaL_checkinteger(L, 3);
+    }
     uint8_t address = luaL_checkinteger(L, 1);
     size_t len;
     uint8_t *data = (uint8_t *)luaL_checklstring(L, 2, &len);
-    uint8_t rx_len = (uint8_t)luaL_checkinteger(L, 3);
     if( ii_leader_enqueue_bytes( address
                                , data
                                , (uint8_t)len
@@ -613,21 +621,6 @@ static int _metro_set_time( lua_State* L )
 
     lua_settop(L, 0);
     return 0;
-}
-
-static int _random_float( lua_State* L )
-{
-    lua_pushnumber( L, Random_Float() );
-    return 1;
-}
-
-static int _random_int( lua_State* L )
-{
-    int r = Random_Int( luaL_checknumber(L, 1)
-                      , luaL_checknumber(L, 2) );
-    lua_pop(L, 2);
-    lua_pushinteger( L, r);
-    return 1;
 }
 
 static int _calibrate_source( lua_State* L )
@@ -786,8 +779,14 @@ static int _pub_view_out( lua_State* L )
 // i2c debug control
 static int _i2c_set_timings( lua_State *L )
 {
-    I2C_SetTimings( luaL_checkinteger(L, 1) );
-    lua_pop( L, 1 );
+    uint32_t state = 0;
+    switch(lua_type(L, 1)){
+        case LUA_TSTRING: state = 2; break; // CLASSIC MODE
+        case LUA_TBOOLEAN: state = lua_toboolean(L, 1); break;
+        default: state = lua_tointeger(L, 1); break;
+    }
+    I2C_SetTimings(state);
+    lua_pop(L, 1);
     return 0;
 }
 
@@ -811,9 +810,9 @@ static const struct luaL_Reg libCrow[]=
     , { "i2c_fastmode"     , _i2c_set_timings  }
     //, { "sys_cpu_load"     , _sys_cpu          }
         // io
-    , { "get_state"        , _get_state        }
+    // , { "get_state"        , _get_state        }
     , { "set_output_scale" , _set_scale        }
-    , { "io_get_input"     , _io_get_input     }
+    // , { "io_get_input"     , _io_get_input     }
     , { "set_input_none"   , _set_input_none   }
     , { "set_input_stream" , _set_input_stream }
     , { "set_input_change" , _set_input_change }
@@ -844,9 +843,6 @@ static const struct luaL_Reg libCrow[]=
     , { "metro_start"      , _metro_start      }
     , { "metro_stop"       , _metro_stop       }
     , { "metro_set_time"   , _metro_set_time   }
-        // random
-    , { "random_float"     , _random_float     }
-    , { "random_int"       , _random_int       }
         // calibration
     , { "calibrate_source" , _calibrate_source }
     , { "calibrate_get"    , _calibrate_get    }
@@ -984,13 +980,16 @@ void L_queue_asl_done( int id )
                 };
     event_post(&e);
 }
+
+// forward directly to output[e->index.i].done()
 void L_handle_asl_done( event_t* e )
 {
-    lua_getglobal(L, "asl_done_handler");
+    lua_getglobal(L, "output"); // @1
     lua_pushinteger(L, e->index.i + 1); // 1-ix'd
-    if( Lua_call_usercode(L, 1, 0) != LUA_OK ){
-        lua_pop( L, 1 );
-    }
+    lua_gettable(L, 1); // @2
+    lua_getfield(L, 2, "done");
+    Lua_call_usercode(L, 0, 0); // lua_call with timeout hook
+    lua_settop(L, 0);
 }
 
 void L_queue_metro( int id, int state )

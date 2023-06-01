@@ -10,8 +10,14 @@
 
 // these are from reference manual (p1232) but they do not give correct values
 // I2C_TIMINGR register
-#define I2C_TIMING_STABLE 0xD0421C0C // runs at 55kHz
-#define I2C_TIMING_SPEED  0xA0420B07 // runs at 320kHz
+// original v4.0.1 timings
+// #define I2C_TIMING_STABLE  0xD0421C0C // runs at 55kHz
+// #define I2C_TIMING_SPEED   0xA0420B07 // runs at 320kHz
+// new v4.0.2 after much research of i2c & setting up a high-cap setup
+#define I2C_TIMING_STABLE  0xA0411626 // 97~148kHz depending on bus capacitance
+#define I2C_TIMING_SPEED   0x60440B13 // 165~350kHz depending on bus capacitance
+#define I2C_TIMING_CLASSIC 0xB042080B // old timings for regression testing
+  // 157~320kHz for classic mode.
 
 #define I2Cx                            I2C1
 #define I2Cx_CLK_ENABLE()               __HAL_RCC_I2C1_CLK_ENABLE()

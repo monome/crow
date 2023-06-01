@@ -33,17 +33,17 @@ typedef struct{
 ///////////////////////////////////////
 // global vars & objects
 
-I2C_HandleTypeDef i2c_handle;
+static I2C_HandleTypeDef i2c_handle;
 
-I2C_lead_callback_t   lead_response;
-I2C_follow_callback_t follow_action;
-I2C_follow_callback_t follow_request;
-I2C_error_callback_t  error_action;
+static I2C_lead_callback_t   lead_response;
+static I2C_follow_callback_t follow_action;
+static I2C_follow_callback_t follow_request;
+static I2C_error_callback_t  error_action;
 
-I2C_State_t buf;
-uint8_t pullup_state = 0;
+static I2C_State_t buf;
+static uint8_t pullup_state = 1;
 
-uint32_t i2c_timings = I2C_TIMING_STABLE; // default timings
+static uint32_t i2c_timings = I2C_TIMING_STABLE; // default timings
 
 
 //////////////////////////////
@@ -88,10 +88,23 @@ void I2C_DeInit( void )
     HAL_I2C_DeInit( &i2c_handle );
 }
 
+// 0: slow mode
+// 1: fast mode
+// 2: classic mode (use old timings from v3.1)
+// anything higher than 16 is treated as a raw timing value for experimentation
 void I2C_SetTimings( uint32_t is_fast )
 {
     I2C_DeInit();
-    i2c_timings = is_fast ? I2C_TIMING_SPEED : I2C_TIMING_STABLE; // override timings
+    // update to custom speed, else fallback to stable timing
+    if(is_fast > 0xF){
+        printf("setting i2c timing to 0x%x\n\r", (unsigned int)is_fast);
+        i2c_timings = is_fast;
+    } else {
+        switch(is_fast){ case 1:  i2c_timings = I2C_TIMING_SPEED; break;
+                         case 2:  i2c_timings = I2C_TIMING_CLASSIC; break;
+                         default: i2c_timings = I2C_TIMING_STABLE; break; }
+    }
+    // re-init the i2c driver in order to activate new timings.
     if( lead_response != NULL ){
         I2C_Init( I2C_GetAddress()
                 , lead_response
@@ -136,7 +149,7 @@ void HAL_I2C_MspInit( I2C_HandleTypeDef* h )
     gpio.Pin       = I2Cx_SCL_PIN
                    | I2Cx_SDA_PIN;
     gpio.Mode      = GPIO_MODE_AF_OD;
-    gpio.Pull      = GPIO_NOPULL;
+    gpio.Pull      = (pullup_state) ? GPIO_PULLUP : GPIO_NOPULL;
     gpio.Speed     = GPIO_SPEED_FREQ_HIGH;
     gpio.Alternate = I2Cx_SCL_SDA_AF;
     HAL_GPIO_Init( I2Cx_SCL_GPIO_PORT, &gpio );
@@ -174,7 +187,7 @@ void I2C_SetPullups( uint8_t state )
     gpio.Pin       = I2Cx_SCL_PIN
                    | I2Cx_SDA_PIN;
     gpio.Mode      = GPIO_MODE_AF_OD;
-    gpio.Pull      = (state) ? GPIO_PULLUP : GPIO_NOPULL;
+    gpio.Pull      = (pullup_state) ? GPIO_PULLUP : GPIO_NOPULL;
     gpio.Speed     = GPIO_SPEED_FREQ_HIGH;
     gpio.Alternate = I2Cx_SCL_SDA_AF;
 
@@ -443,14 +456,14 @@ void I2Cx_ER_IRQHandler( void )
 // I2C_ITError
 void HAL_I2C_ErrorCallback( I2C_HandleTypeDef* h )
 {
-    printf("I2C_ERROR_");
-    switch( h->ErrorCode ){
-        case HAL_I2C_ERROR_BERR: printf("BERR\n"); break;
-        case HAL_I2C_ERROR_OVR:  printf("OVR\n"); break;
-        case HAL_I2C_ERROR_ARLO: printf("ARLO\n"); break;
-        case HAL_I2C_ERROR_AF:   printf("AF\n"); break;
-        default: printf("unknown!\n"); break;
-    }
+    // printf("I2C_ERROR_");
+    // switch( h->ErrorCode ){
+    //     case HAL_I2C_ERROR_BERR: printf("BERR\n"); break;
+    //     case HAL_I2C_ERROR_OVR:  printf("OVR\n"); break;
+    //     case HAL_I2C_ERROR_ARLO: printf("ARLO\n"); break;
+    //     case HAL_I2C_ERROR_AF:   printf("AF\n"); break;
+    //     default: printf("unknown!\n"); break;
+    // }
     if( h->ErrorCode == HAL_I2C_ERROR_AF ){
         (*error_action)( 0 );
     } else {

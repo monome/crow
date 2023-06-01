@@ -30,8 +30,6 @@ DEFS = -DUSE_STDPERIPH_DRIVER -DSTM32F7XX -DARM_MATH_CM7 -DHSE_VALUE=8000000
 DEFS += -DSTM32F722xx -DUSE_HAL_DRIVER
 STARTUP = $(CUBE)/CMSIS/Device/ST/STM32F7xx/Source/Templates/gcc/startup_stm32f722xx.s
 
-# MCFLAGS = -march=armv4e-m -mthumb 
-# MCFLAGS = -mthumb -march=armv4e-m -mfloat-abi=hard -mfpu=fpv4-sp-d16
 MCFLAGS = -mthumb -march=armv7e-m -mfloat-abi=hard -mfpu=fpv4-sp-d16
 
 STM32_INCLUDES = \
@@ -49,13 +47,12 @@ OPTIMIZE       = -O2
 
 CFLAGS += -std=c99
 CFLAGS += -Wall
-CFLAGS += -Wno-unused-function
+CFLAGS += -Wno-unused-function -Wno-unused-value
 CFLAGS += $(MCFLAGS)
 CFLAGS += $(OPTIMIZE)
 CFLAGS += $(DEFS) -I. -I./ $(STM32_INCLUDES)
 CFLAGS += -fsingle-precision-constant -Wdouble-promotion
 CFLAGS += -DLUA_32BITS
-# CFLAGS += -DLUA_32BITS -DLUA_COMPAT_5_2
 CFLAGS += -fno-common
 CFLAGS += -DVERSION=\"$(GIT_VERSION)\"
 CFLAGS += -ffunction-sections -fdata-sections # provides majority of LTO binary size reduction
@@ -129,39 +126,25 @@ all: $(TARGET).hex $(BIN)
 
 # fennel script conversion to lua
 FNL_SRC = $(wildcard lua/*.fnl) \
-#FNL_SRC  = $(wildcard util/*.fnl) \
-
 
 FNL_PP = $(FNL_SRC:%.fnl=%.lua)
 
 # i2c descriptors
 II_SRCD = lua/ii
 II_SRC = $(wildcard $(II_SRCD)/*.lua)
-II_TARGET = $(addprefix $(BUILD_DIR)/ii_, $(notdir $(II_SRC)))
-
-$(II_TARGET): util/ii_lua_module.lua
-
-$(BUILD_DIR)/ii_%.lua: $(II_SRCD)/%.lua util/ii_lua_module.lua | $(BUILD_DIR)
-	@lua util/ii_lua_module.lua $< $@
-	@echo "ii-lua-module $< -> $@"
-
-$(BUILD_DIR)/iihelp.lua: $(II_SRC) util/ii_lua_help.lua | $(BUILD_DIR)
-	@lua util/ii_lua_help.lua $(II_SRCD) $@
-	@echo "ii-lua-help $@"
 
 $(BUILD_DIR)/ii_c_layer.h: $(II_SRC) util/ii_c_layer.lua | $(BUILD_DIR)
 	@lua util/ii_c_layer.lua $(II_SRCD) $@
 	@echo "ii-c-layer $@"
 
-$(BUILD_DIR)/ii_lualink.h: $(II_SRC) util/ii_lualinker.lua | $(BUILD_DIR)
-	@lua util/ii_lualinker.lua $(II_SRCD) $@
-	@echo "ii-lualinker $@"
+$(BUILD_DIR)/ii_mod_gen.h: $(II_SRC) util/ii_mod_gen.lua | $(BUILD_DIR)
+	@lua util/ii_mod_gen.lua $(II_SRCD) $@
+	@echo "ii-mod-gen $@"
 
 
 ### destination sources
 
 # lua srcs: these get converted to bytecode strings wrapped in c-headers
-# LUA_SRC  = $(wildcard lua/*.lua)
 LUA_SRC += lua/asl.lua
 LUA_SRC += lua/asllib.lua
 LUA_SRC += lua/calibrate.lua
@@ -177,8 +160,6 @@ LUA_SRC += lua/quote.lua
 LUA_SRC += lua/sequins.lua
 LUA_SRC += lua/timeline.lua
 LUA_SRC += lua/hotswap.lua
-LUA_SRC += $(BUILD_DIR)/iihelp.lua
-LUA_SRC += $(II_TARGET)
 
 LUA_PP = $(LUA_SRC:%.lua=%.lua.h)
 LUA_PP: $(LUA_SRC)
@@ -200,9 +181,9 @@ OBJS += Startup.o
 $(OBJS): $(LUA_PP)
 
 # specific objects that require built dependencies (ii)
-$(OBJDIR)/lib/l_bootstrap.o: $(LUA_PP) $(BUILD_DIR)/ii_lualink.h
-# $(OBJDIR)/lib/lualink.o: $(LUA_PP) $(BUILD_DIR)/ii_lualink.h
+$(OBJDIR)/lib/l_bootstrap.o: $(LUA_PP) #$(BUILD_DIR)/ii_lualink.h
 $(OBJDIR)/lib/ii.o: $(BUILD_DIR)/ii_c_layer.h
+$(OBJDIR)/lib/l_ii_mod.o: $(BUILD_DIR)/ii_mod_gen.h
 
 # generate the build directory
 $(BUILD_DIR):
@@ -232,7 +213,6 @@ tests:
 
 # include all DEP files in the makefile
 # will rebuild elements if dependent C headers are changed
-# FIXME: currently causes compiler warning due to missing .lua.h files
 -include $(DEP)
 
 $(TARGET).hex: $(EXECUTABLE)
@@ -259,7 +239,6 @@ flash: $(BIN)
 
 debug:
 	make flash TRACE=1
-	#st-flash write $(BIN) 0x08020000
 	stlink-trace -c 216
 
 dfu: $(BIN)
@@ -272,7 +251,6 @@ dfureset:
 
 pydfu: $(TARGET).dfu $(BIN)
 	@python3 util/pydfu.py -u $<
-# 	@python3 util/pydfu.py --vid 0x0483 --pid 0xDF11 -u $<
 
 $(TARGET).dfu: $(BIN)
 	python3 util/dfu.py -D 0x0483:0xDF11 -b 0x08020000:$^ $@
