@@ -118,7 +118,7 @@ function output_offset(n)
 
     local past = cal.output[n].offset -- capture past offset
     local new = gnd                   -- determine new offset
-    new = new * cal.output[n].scale
+    new = new / cal.output[n].scale   -- account for scale being applied already
     new = past - new                  -- account for past offset
 
     -- move toward solution
