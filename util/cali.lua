@@ -18,7 +18,7 @@
 
 -- settings
 local AUTOSTART   = true  -- if false, you can calibrate by typing: calibrate()
-local ALWAYS_TEST = false -- if true, the test() function will autorun after calibrate()
+local ALWAYS_TEST = true -- if true, the test() function will autorun after calibrate()
 
 -- debug: use when working on this script
 local AUTOSAVE    = true  -- set false while debugging to reduce flash write cycles
