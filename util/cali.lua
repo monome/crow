@@ -44,10 +44,11 @@ end
 
 -- specifically tuned for minimal standard deviation across multiple calls
 -- see: util/adda-measurement.lua for methodology
+-- settling time increased for out[3]. limit ~12ms. 20ms for safety
 function read_avg(chan)
     local reps = 256
     local sum = 0
-    clock.sleep(0.004) -- input & output settling time (plus 50% margin)
+    clock.sleep(0.02) -- input & output settling time
     for i=1,reps do
         sum = sum + input[chan].volts -- accumulate readings
         clock.sleep(0.001)
@@ -55,8 +56,14 @@ function read_avg(chan)
     return sum / reps -- average
 end
 
+function xvolts(ch, v)
+    for n=1,4 do
+        output[n].volts = n==ch and v or 0
+    end
+end
+
 function sample(t)
-    if t.volts then output[t.source].volts = t.volts end -- set source voltage
+    if t.volts then xvolts(t.source, t.volts) end -- set source voltage exclusively
     cal.source(t.source) -- select source
     return read_avg(t.input)
 end
