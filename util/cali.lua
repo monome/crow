@@ -168,6 +168,10 @@ function test()
         -- ensure there's no cable remaining from calibration
         await_input(1)
 
+        local pass = true -- assume true unless we see an error
+        local failmsgs = {}
+        -- 30, 3, 5, 12, 30
+
         print'\nvoltage listed to the nearest millivolt'
         print'error amounts listed in cents beneath the readings'
         print'  expect:   -2.5    0.0    2.5    5.0    7.5\n'
@@ -175,29 +179,43 @@ function test()
         -- input 1
         local gnd  = sample{input=1, source='gnd'}
         local vref = sample{input=1, source='2v5'}
+        local gnd_err  = find_error_in_cents(gnd, 0)
+        local vref_err = find_error_in_cents(vref, 2.5)
         print(string.format('input[1]           % 01.3f % 01.3f',gnd, vref))
-        print(string.format('              % 7d % 7d'
-             ,find_error_in_cents(gnd, 0)
-             ,find_error_in_cents(vref, 2.5)))
+        print(string.format('              % 7d % 7d',gnd_err,vref_err))
+        if math.abs(gnd_err) > 3 then pass = false end
+        if math.abs(vref_err) > 3 then pass = false end
 
         -- input 2
-        local gnd  = sample{input=2, source='gnd'}
+        gnd = sample{input=2, source='gnd'}
+        gnd_err = find_error_in_cents(gnd, 0)
         print(string.format('input[2]           % 01.3f', gnd))
-        print(string.format('              % 7d'
-             ,find_error_in_cents(gnd, 0)))
+        print(string.format('              % 7d',gnd_err))
+        if math.abs(gnd_err) > 3 then pass = false end
 
         for n=1,4 do
-            local V = {-2.5, 0, 2.5, 5, 7.5}
+            local V = {-2.5, 0, 2.5,  5, 7.5} -- test voltages
+            local E = {  30, 3,   5, 12,  30} -- allowable cents error at each voltage
             local t = {} -- test results
             local e = {} -- error calculation in cents
             for k,v in ipairs(V) do
                 t[k] = sample{input=1, source=n, volts = v}
                 e[k] = find_error_in_cents(t[k], v)
+                if math.abs(e[k]) > E[k] then
+                    pass = false
+                    table.insert(failmsgs, 'output['..n..'] @'..v..'V out of range')
+                end
             end
             print(string.format('output[%i]   % 01.3f % 01.3f % 01.3f % 01.3f % 01.3f',n
                  ,t[1],t[2],t[3],t[4],t[5]))
             print(string.format('       % 7d % 7d % 7d % 7d % 7d'
                  ,e[1],e[2],e[3],e[4],e[5]))
+        end
+        if pass then
+            print('\n---- PASS ----')
+        else
+            print('\n!!!! FAIL !!!!')
+            print(table.concat(failmsgs, ", "))
         end
     end)
 end
