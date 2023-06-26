@@ -140,6 +140,7 @@ function await_input(n)
         else print '\nconnect output[1] -> input[2]' end
 
         while sample{input=n, source=1, volts=-3} > -2 do
+            tell('stream',n,input[n].volts)
             clock.sleep(0.1)
         end
         print'ok!'
