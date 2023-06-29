@@ -89,6 +89,9 @@ lua_State* Lua_ReInit_Environment(lua_State* L){
                         "_G[k] = nil\n"
                      "end\n"
                      "_G._user = {}\n");
+    // init() has to be manually reset to the void function
+    l_crowlib_emptyinit(L);
+    // cleanup memory to get back to a blank slate
     lua_gc(L, LUA_GCCOLLECT, 1);
     lua_gc(L, LUA_GCCOLLECT, 1);
     return L;
@@ -106,6 +109,9 @@ lua_State* Lua_Reset( void )
     }
     events_clear();
     clock_cancel_coro_all();
+
+
+    // delete all user globals
     return Lua_ReInit_Environment(L);
     // Lua_DeInit();
     // return Lua_Init();

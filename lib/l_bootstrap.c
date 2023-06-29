@@ -64,7 +64,7 @@ void l_bootstrap_init(lua_State* L){
     lua_getglobal(L, "c_dofile");
     lua_setglobal(L, "dofile");
 
-    // TODO collect & implement much of crowlib here directly
+    // crowlib.lua now only contains our print() definition
     // _c = dofile('lua/crowlib.lua')
     lua_pushliteral(L, "lua/crowlib.lua");
     l_bootstrap_dofile(L); // hotrod without l_call

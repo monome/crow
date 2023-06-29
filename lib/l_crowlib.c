@@ -91,7 +91,7 @@ void l_crowlib_init(lua_State* L){
 	// for chan = 1, #input do
 	//   input[chan] = Input.new( chan )
 	// end
-	lua_createtable(L, 2, 0); // 4 array elements
+	lua_createtable(L, 2, 0); // 2 array elements
 	lua_setglobal(L, "input"); // -> @0
 
 	lua_getglobal(L, "input"); // @1
@@ -108,7 +108,7 @@ void l_crowlib_init(lua_State* L){
 	lua_settop(L, 0);
 
 
-	//////// output / asl
+	//////// output (asl)
 
 	// -- Output
 	// output = {1,2,3,4}
@@ -185,9 +185,13 @@ void l_crowlib_init(lua_State* L){
 					        "end)\n"
 					"end\n");
 
-	//////// empty init
-	lua_pushcfunction(L, _lua_void_function);
-	lua_setglobal(L, "init");
+    l_crowlib_emptyinit(L);
+}
+
+void l_crowlib_emptyinit(lua_State* L){
+    //////// do-nothing init fn
+    lua_pushcfunction(L, _lua_void_function);
+    lua_setglobal(L, "init");
 }
 
 
