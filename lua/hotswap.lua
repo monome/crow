@@ -9,6 +9,10 @@ local HS = {
     _reg = {} -- a place to register updateable sequins
 }
 
+HS.cleanup = function()
+    HS._reg = {}
+end
+
 -- to add support for a new type you need: 
 -- 1) add an elseif predicate for capturing the type
 -- 2) give the type a single character identifier

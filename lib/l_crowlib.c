@@ -19,7 +19,6 @@ static int _ii_follow_reset( lua_State* L );
 static int _random_arity_n( lua_State* L );
 static int _tell_get_out( lua_State* L );
 static int _tell_get_cv( lua_State* L );
-static int _crow_reset( lua_State* L );
 static int _lua_void_function( lua_State* L );
 static int _delay( lua_State* L );
 
@@ -40,6 +39,10 @@ static void _load_lib(lua_State* L, char* filename, char* luaname){
 // called after crowlib lua file is loaded
 // here we add any additional globals and such
 void l_crowlib_init(lua_State* L){
+
+    //////// create a nop function
+    lua_pushcfunction(L, _lua_void_function);
+    lua_setglobal(L, "nop_fn");
 
 	//////// load all libraries
 	_load_lib(L, "input", "Input");
@@ -63,7 +66,7 @@ void l_crowlib_init(lua_State* L){
 
 	//////// crow.reset
     lua_getglobal(L, "crow"); // @1
-    lua_pushcfunction(L, _crow_reset);
+    lua_pushcfunction(L, l_crowlib_crow_reset);
     lua_setfield(L, 1, "reset");
     lua_settop(L, 0);
 
@@ -189,15 +192,13 @@ void l_crowlib_init(lua_State* L){
 }
 
 void l_crowlib_emptyinit(lua_State* L){
-    //////// do-nothing init fn
-    lua_pushcfunction(L, _lua_void_function);
+    //////// set init() to a NOP
+    lua_getglobal(L, "nop_fn");
     lua_setglobal(L, "init");
 }
 
 
-/////// static declarations
-
-static int _crow_reset( lua_State* L ){
+int l_crowlib_crow_reset( lua_State* L ){
 	printf("crow.reset()\n\r");
 
     lua_getglobal(L, "input"); // @1
@@ -225,17 +226,17 @@ static int _crow_reset( lua_State* L ){
 
         // output[n].slew = 0
         lua_pushnumber(L, 0.0); // @3
-        lua_setfield(L, 2, "slew"); // pops 'none' -> @2
+        lua_setfield(L, 2, "slew"); // pops 'slew' -> @2
         // output[n].volts = 0
         lua_pushnumber(L, 0.0); // @3
-        lua_setfield(L, 2, "volts"); // pops 'none' -> @2
+        lua_setfield(L, 2, "volts"); // pops 'volts' -> @2
         // output[n].scale('none')
         lua_getfield(L, 2, "scale");
         lua_pushstring(L, "none");
         lua_call(L, 1, 0);
         // output[n].done = function() end
-        lua_pushcfunction(L, _lua_void_function); // @3
-        lua_setfield(L, 2, "done"); // pops 'none' -> @2
+        lua_getglobal(L, "nop_fn"); // @3
+        lua_setfield(L, 2, "done"); // pops nop_fn -> @2
         // output[n]:clock('none')
         lua_getfield(L, 2, "clock"); // @3
         lua_pushvalue(L, 2); // @4 copy of output[n]
@@ -276,9 +277,17 @@ static int _crow_reset( lua_State* L ){
     lua_call(L, 0, 0);
     lua_settop(L, 0);
 
+    // hotswap.cleanup()
+    lua_getglobal(L, "hotswap"); // @1
+    lua_getfield(L, 1, "cleanup");
+    lua_call(L, 0, 0);
+    lua_settop(L, 0);
+
     return 0;
 }
 
+
+/////// static declarations
 
 // Just Intonation calculators
 // included in lualink.c as global lua functions

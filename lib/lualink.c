@@ -100,6 +100,8 @@ lua_State* Lua_ReInit_Environment(lua_State* L){
 lua_State* Lua_Reset( void )
 {
     printf("Lua_Reset\n");
+
+    // cleanup any C-based event generators
     Metro_stop_all();
     for( int i=0; i<2; i++ ){
         Detect_none( Detect_ix_to_p(i) );
@@ -110,11 +112,12 @@ lua_State* Lua_Reset( void )
     events_clear();
     clock_cancel_coro_all();
 
+    // set all crowlib modules to default states / callbacks
+    l_crowlib_crow_reset(L);
 
-    // delete all user globals
+    // delete all user globals, but keep overall Lua env
+    // we do this to avoid memory fragmentation when resetting env
     return Lua_ReInit_Environment(L);
-    // Lua_DeInit();
-    // return Lua_Init();
 }
 
 void Lua_load_default_script( void )
