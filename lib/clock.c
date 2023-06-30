@@ -108,7 +108,8 @@ bool clock_schedule_resume_sync( int coro_id, float beats ){
     awaken += dbeats;
 
     // check we haven't already passed it in the sub-beat & add another step if we have
-    if(awaken <= precise_beat_now){
+    // we have to loop because fractional beats values may occur >2 times within a beat
+    while(awaken <= precise_beat_now){
         awaken += dbeats;
     }
 
