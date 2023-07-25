@@ -1,5 +1,7 @@
 local Output = {}
 
+Output.outputs = {1,2,3,4}
+
 function Output.new( chan )
     local o = { channel = chan
               , level   = 5.0
@@ -13,8 +15,16 @@ function Output.new( chan )
               , clock_div = 1
               , ckcoro  = false -- clock coroutine
               }
-    return setmetatable( o, Output )
+    setmetatable( o, Output )
+    o:reset_events()
+    Output.outputs[chan] = o -- save reference for callback engine
+    return o
 end
+
+function Output:reset_events()
+    self.receive = function(v) _c.tell('output',self.channel,v) end
+end
+
 
 function Output.clock(self, div)
     if type(div) == 'string' then -- 'off' or 'none' will cancel a running output clock
@@ -45,6 +55,8 @@ Output.__newindex = function(self, ix, val)
         self.asl:action()
     elseif ix == 'scale' then
         set_output_scale(self.channel, self.ji and just12(val) or val)
+    else
+        return rawset(self,ix,val) -- allows 'receive' handler to be written
     end
 end
 
@@ -65,6 +77,10 @@ Output.__index = function(self, ix)
             set_output_scale(self.channel, table.unpack(args))
         end
     elseif ix == 'dyn' then return self.asl.dyn
+    elseif ix == 'query' then
+        return function() soutput_handler(self.channel,LL_get_state(self.channel)) end
+    elseif ix == 'reset_events' then
+        return function() Output.reset_events(self) end
     end
 end
 
@@ -77,5 +93,7 @@ end
 
 
 setmetatable(Output, Output) -- capture the metamethods
+
+function soutput_handler(ch, v) Output.outputs[ch].receive(v) end
 
 return Output

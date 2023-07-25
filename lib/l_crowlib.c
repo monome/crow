@@ -242,6 +242,11 @@ int l_crowlib_crow_reset( lua_State* L ){
         lua_pushvalue(L, 2); // @4 copy of output[n]
         lua_pushstring(L, "none");
         lua_call(L, 2, 0);
+
+        // output[n].reset_events(output[n]) -- aka void method call
+        lua_getfield(L, 2, "reset_events"); // @3
+        lua_pushvalue(L, 2); // @4 copy of output[n]
+        lua_call(L, 1, 0);
 	}
 	lua_settop(L, 0);
 

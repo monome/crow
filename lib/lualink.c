@@ -819,7 +819,7 @@ static const struct luaL_Reg libCrow[]=
     , { "i2c_fastmode"     , _i2c_set_timings  }
     //, { "sys_cpu_load"     , _sys_cpu          }
         // io
-    // , { "get_state"        , _get_state        }
+    , { "get_state"        , _get_state        }
     , { "set_output_scale" , _set_scale        }
     , { "io_get_input"     , _io_get_input     }
     , { "set_input_none"   , _set_input_none   }
