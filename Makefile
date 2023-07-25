@@ -56,6 +56,7 @@ CFLAGS += -DLUA_32BITS
 CFLAGS += -fno-common
 CFLAGS += -DVERSION=\"$(GIT_VERSION)\"
 CFLAGS += -ffunction-sections -fdata-sections # provides majority of LTO binary size reduction
+CFLAGS += -DLUA_COMPAT_MATHLIB
 
 # debugger: choose between uart (=0) & swtrace(=1). latter requires hardware mod
 TRACE ?= 0
