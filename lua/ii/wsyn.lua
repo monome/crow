@@ -96,6 +96,12 @@ do return
     , get  = true
     , args = { 'count' , s8 }
     }
+  , { name = 'transpose'
+    , cmd  = 17
+    , docs = 'transpose all incoming pitch data by a static v8 level'
+    , get  = true
+    , args = { 'octaves' , s16V }
+    }
   }
 , getters =
   { { name = 'fm_ratio'
