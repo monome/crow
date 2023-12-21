@@ -41,21 +41,43 @@ void system_print_identity(void)
 }
 
 // private definitions
+/**
+  * @brief  System Clock Configuration
+  *         The system Clock is configured as follow : 
+  *            System Clock source            = PLL (HSE)
+  *            SYSCLK(Hz)                     = 216000000
+  *            HCLK(Hz)                       = 216000000
+  *            AHB Prescaler                  = 1
+  *            APB1 Prescaler                 = 4
+  *            APB2 Prescaler                 = 2
+  *            HSE Frequency(Hz)              = 25000000
+  *            PLL_M                          = 25
+  *            PLL_N                          = 432
+  *            PLL_P                          = 2
+  *            PLL_Q                          = 9
+  *            PLL_R                          = 7
+  *            VDD(V)                         = 3.3
+  *            Main regulator output voltage  = Scale1 mode
+  *            Flash Latency(WS)              = 7
+  * @param  None
+  * @retval None
+  */
 static void Sys_Clk_Config(void)
 {
     __HAL_RCC_PWR_CLK_ENABLE();
 
-    __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE2);
+    __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
     static RCC_OscInitTypeDef osc;
     osc.OscillatorType = RCC_OSCILLATORTYPE_HSE;
     osc.HSEState       = RCC_HSE_ON;
     osc.PLL.PLLState   = RCC_PLL_ON;
     osc.PLL.PLLSource  = RCC_PLLSOURCE_HSE;
-    osc.PLL.PLLM       = 8;
+    osc.PLL.PLLM       = 25;
     osc.PLL.PLLN       = 432;
     osc.PLL.PLLP       = RCC_PLLP_DIV2;
     osc.PLL.PLLQ       = 9;
+    osc.PLL.PLLR       = 7;
     if(HAL_RCC_OscConfig(&osc) != HAL_OK){ Error_Handler(); }
 
     if(HAL_PWREx_EnableOverDrive() != HAL_OK) { Error_Handler(); }
@@ -86,7 +108,7 @@ static void MPU_Config(void)
     // mpu.Enable           = MPU_REGION_DISABLE;
     // mpu.BaseAddress      = 0x20020000;
     mpu.BaseAddress      = 0x20000000;
-    mpu.Size             = MPU_REGION_SIZE_256KB;
+    mpu.Size             = MPU_REGION_SIZE_512KB;
     mpu.AccessPermission = MPU_REGION_FULL_ACCESS;
     mpu.IsBufferable     = MPU_ACCESS_NOT_BUFFERABLE;
     mpu.IsCacheable      = MPU_ACCESS_CACHEABLE;
@@ -115,7 +137,7 @@ static void Error_Handler(void)
 
 unsigned int getUID_Word( unsigned int offset )
 {
-    const uint32_t base = 0x1FF07A10;
+    const uint32_t base = 0x1FF0F420;
     //return (uint32_t)(READ_REG(*((uint32_t*)(UID_BASE + offset))));
     //return (uint32_t)(READ_REG(UID_BASE + offset));
     uint32_t* x = (uint32_t*)(base + offset);

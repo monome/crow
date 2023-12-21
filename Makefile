@@ -26,11 +26,11 @@ FENNEL=fennel
 # BIN=$(CP) -O ihex 
 BIN = $(TARGET).bin
 
-DEFS = -DUSE_STDPERIPH_DRIVER -DSTM32F7XX -DARM_MATH_CM7 -DHSE_VALUE=8000000
-DEFS += -DSTM32F722xx -DUSE_HAL_DRIVER
-STARTUP = $(CUBE)/CMSIS/Device/ST/STM32F7xx/Source/Templates/gcc/startup_stm32f722xx.s
+DEFS = -DUSE_STDPERIPH_DRIVER -DSTM32F7XX -DARM_MATH_CM7 -DHSE_VALUE=25000000
+DEFS += -DSTM32F7xx -DUSE_HAL_DRIVER
+STARTUP = $(CUBE)/CMSIS/Device/ST/STM32F7xx/Source/Templates/gcc/startup_stm32f767xx.s
 
-MCFLAGS = -mthumb -march=armv7e-m -mfloat-abi=hard -mfpu=fpv4-sp-d16
+MCFLAGS = -mthumb -march=armv7e-m -mfloat-abi=hard -mfpu=fpv5-d16
 
 STM32_INCLUDES = \
 	-I$(WRLIB)/ \
@@ -232,18 +232,17 @@ $(BIN): $(EXECUTABLE)
 	@echo "symbol table: $@.dmp"
 	@echo "Release: "$(R)
 	@$(GETSIZE) $(BIN) | grep 'Size'
-	@echo "        ^ must be less than 384kB (384,000)"
-	# 512kb -64kb(bootloader) -128kb(scripts)
+	@echo "        ^ must be less than 1MB (1,024,000)"
 
 flash: $(BIN)
-	st-flash write $(BIN) 0x08020000
+	st-flash write $(BIN) 0x08000000
 
 debug:
 	make flash TRACE=1
 	stlink-trace -c 216
 
 dfu: $(BIN)
-	sudo dfu-util -a 0 -s 0x08020000 -R -D $(BIN) -d ,0483:df11
+	sudo dfu-util -a 0 -s 0x08000000 -R -D $(BIN) -d ,0483:df11
 
 dfureset:
 	@stty -F /dev/ttyACM0 raw speed 115200
@@ -254,7 +253,7 @@ pydfu: $(TARGET).dfu $(BIN)
 	@python3 util/pydfu.py -u $<
 
 $(TARGET).dfu: $(BIN)
-	python3 util/dfu.py -D 0x0483:0xDF11 -b 0x08020000:$^ $@
+	python3 util/dfu.py -D 0x0483:0xDF11 -b 0x08000000:$^ $@
 
 boot:
 	cd $(BOOTLOADER) && \
@@ -303,20 +302,8 @@ Startup.o: $(STARTUP)
 	@$(CC) $(CFLAGS) -c $< -o $@
 	@echo $@
 
-wav: fsk-wav
-
-fsk-wav: $(BIN)
-	export PYTHONPATH=$$PYTHONPATH:'.' && \
-	cd .. && python stm-audio-bootloader/fsk/encoder.py \
-		-s 48000 -b 16 -n 8 -z 4 -p 256 -g 16384 -k 1800 \
-		$(PRJ_DIR)/$(BIN)
-
 erase:
 	st-flash erase
-
-norns:
-	lua util/ii_norns_actions.lua lua/ii/ $(NORNS_DIR)/lua/core/crow/ii_actions.lua
-	lua util/ii_norns_events.lua lua/ii/ $(NORNS_DIR)/lua/core/crow/ii_events.lua
 
 .PHONY: clean
 clean:

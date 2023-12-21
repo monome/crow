@@ -55,9 +55,13 @@
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/
 // TODO: BIG NOTE: THIS IS REQUIRED FOR F722! FAILS W F756 or other device_id!!
-#define         DEVICE_ID1          (0x1FF07A10)
-#define         DEVICE_ID2          (0x1FF07A14)
-#define         DEVICE_ID3          (0x1FF07A18)
+// #define         DEVICE_ID1          (0x1FF07A10)
+// #define         DEVICE_ID2          (0x1FF07A14)
+// #define         DEVICE_ID3          (0x1FF07A18)
+// these values for f769
+#define         DEVICE_ID1          (0x1FFF7A10)
+#define         DEVICE_ID2          (0x1FFF7A14)
+#define         DEVICE_ID3          (0x1FFF7A18)
 
 #define  USB_SIZ_STRING_SERIAL       0x1A
 /* Exported macro ------------------------------------------------------------*/

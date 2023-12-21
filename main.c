@@ -26,25 +26,28 @@ int main(void)
 
     // Debugging
     Debug_Pin_Init();
-    Debug_USART_Init(); // ignored in TRACE mode
+    //Debug_USART_Init(); // ignored in TRACE mode
     // User-readable status led
     status_led_init();
     status_led_fast(LED_SLOW); // slow blink until USB connection goes live
     status_led_set(1); // set status to ON to show sign of life straight away
 
-    printf("\n\nhi from crow!\n");
+    printf("\n\nhi from test platform!\n");
 
     // Drivers
     int max_timers = Timer_Init();
-    IO_Init( max_timers-2 ); // use second-last timer
-    IO_Start(); // must start IO before running lua init() script
+    // IO_Init( max_timers-2 ); // use second-last timer
+    // IO_Start(); // must start IO before running lua init() script
     events_init();
     Metro_Init( max_timers-2 ); // reserve 2 timers for USB & ADC
     clock_init( 100 ); // TODO how to pass it the timer?
+    
+    status_led_set(0); // set status to ON to show sign of life straight away
+
     Caw_Init( max_timers-1 ); // use last timer
     CDC_clear_buffers();
 
-    i2c_hw_pullups_init(); // enable GPIO for v1.1 hardware pullups
+    // i2c_hw_pullups_init(); // enable GPIO for v1.1 hardware pullups
     ii_init( II_CROW );
     Random_Init();
 
@@ -54,6 +57,7 @@ int main(void)
     Lua_crowbegin();
 
     uint32_t last_tick = HAL_GetTick();
+    int a = 0;
     while(1){
         CPU_count++;
         U_PrintNow();
@@ -62,7 +66,7 @@ int main(void)
                                          , Caw_get_read_len()
                                          , Caw_send_luaerror
                                          ); break;
-            case C_boot:        bootloader_enter(); break;
+            case C_boot:        bootloader_enter(); break; // BROKEN ON TEST PLATFORM
             case C_startupload: REPL_begin_upload(); break;
             case C_endupload:   REPL_upload(0); break;
             case C_flashupload: REPL_upload(1); break;
@@ -85,5 +89,7 @@ int main(void)
         event_next(); // check/execute single event
         ii_leader_process();
         Caw_send_queued();
+        Debug_Pin_Set(!a);
+        a ^= 1;
     }
 }

@@ -31,7 +31,7 @@
 ENTRY(Reset_Handler)
 
 /* Highest address of the user mode stack */
-_estack = 0x20040000;    /* end of 256K RAM */
+_estack = 0x20080000;    /* end of 512K RAM */
 
 /* Generate a link error if heap and stack don't fit into RAM */
 _Min_Heap_Size = 0x200;      /* required amount of heap  */
@@ -41,8 +41,8 @@ _Min_Stack_Size = 0x10000; /* required amount of stack */
 MEMORY
 {
   /* FLASH (rx)      : ORIGIN = 0x00200000, LENGTH = 512K */ /* ITCM interface */
-  FLASH (rx)      : ORIGIN = 0x08020000, LENGTH = 384K /* AXIM interface */
-  RAM (xrw)       : ORIGIN = 0x20000000, LENGTH = 256K
+  FLASH (rx)      : ORIGIN = 0x08000000, LENGTH = 1024K /* AXIM interface. prob actually 2MB*/
+  RAM (xrw)       : ORIGIN = 0x20000000, LENGTH = 512K
   /* MEMORY_B1 (rx)  : ORIGIN = 0x60000000, LENGTH = 0K */
   /* CCMRAM (rw)     : ORIGIN = 0x10000000, LENGTH = 64K */
 }
