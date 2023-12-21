@@ -26,13 +26,15 @@ int main(void)
 
     // Debugging
     Debug_Pin_Init();
-    //Debug_USART_Init(); // ignored in TRACE mode
+    Debug_USART_Init(); // ignored in TRACE mode
     // User-readable status led
     status_led_init();
     status_led_fast(LED_SLOW); // slow blink until USB connection goes live
     status_led_set(1); // set status to ON to show sign of life straight away
+    Debug_Pin_Set(1);
 
     printf("\n\nhi from test platform!\n");
+    Debug_Pin_Set(0);
 
     // Drivers
     int max_timers = Timer_Init();
@@ -41,7 +43,7 @@ int main(void)
     events_init();
     Metro_Init( max_timers-2 ); // reserve 2 timers for USB & ADC
     clock_init( 100 ); // TODO how to pass it the timer?
-    
+
     status_led_set(0); // set status to ON to show sign of life straight away
 
     Caw_Init( max_timers-1 ); // use last timer
