@@ -19,6 +19,8 @@
 #include "lib/flash.h" // Flash_clear_user_script()
 #include "stm32f7xx_it.h" // CPU_count;
 
+#include "ll/tp.h" // test platform specifics
+
 
 int main(void)
 {
@@ -31,10 +33,11 @@ int main(void)
     status_led_init();
     status_led_fast(LED_SLOW); // slow blink until USB connection goes live
     status_led_set(1); // set status to ON to show sign of life straight away
-    Debug_Pin_Set(1);
 
     printf("\n\nhi from test platform!\n");
-    Debug_Pin_Set(0);
+
+    // LL hardware control (test platform specific)
+    TP_Init();
 
     // Drivers
     int max_timers = Timer_Init();

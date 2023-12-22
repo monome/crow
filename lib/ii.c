@@ -97,7 +97,7 @@ const char* ii_list_cmds( uint8_t address ){
     return ii_list_commands(address);
 }
 void ii_set_pullups( uint8_t state ){
-    i2c_hw_pullups(state); // v1.1 HW pullups (3k3)
+    //i2c_hw_pullups(state); // v1.1 HW pullups (3k3)
     I2C_SetPullups(state); // internal uC pullups
 }
 uint8_t ii_get_address( void ){

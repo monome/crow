@@ -10,6 +10,10 @@
 #include "lib/caw.h"        // Caw_printf()
 #include "lib/io.h"         // IO_GetADC()
 
+// lua extensions for test platform
+#include "l_test.h"
+
+
 #define L_CL_MIDDLEC 		(261.63f)
 #define L_CL_MIDDLEC_INV 	(1.0f/L_CL_MIDDLEC)
 #define L_CL_JIVOLT 		(1.0f/logf(2.f))
@@ -62,6 +66,9 @@ void l_crowlib_init(lua_State* L){
 	_load_lib(L, "quote", "quote");
 	_load_lib(L, "timeline", "timeline");
 	_load_lib(L, "hotswap", "hotswap");
+
+    // load test platform functions
+    l_test_preload(L);
 
 
 	//////// crow.reset
