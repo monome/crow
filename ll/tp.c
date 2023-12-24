@@ -10,6 +10,7 @@ static void init_cherry(void);
 static void init_dacmux1(void);
 static void init_dacmux2(void);
 static void init_jack_dir(void);
+static void init_adcmux(void);
 
 static GPIO_InitTypeDef g;
 void TP_Init(void){
@@ -22,9 +23,6 @@ void TP_Init(void){
 
     init_power12();
     init_hub();
-    TP_hub(1); // enable to make sure we're not competing with hw pullup
-        // can change this in future after uC firmware is complete
-        // uC chooses when to activate the HUB (prob just want always on)
 
     init_dout();
     init_module_id();
@@ -34,11 +32,27 @@ void TP_Init(void){
     init_dacmux1();
     init_dacmux2();
     init_jack_dir();
-    // pins in order of EN, S0, S1, S2
-    // DACMUX1 output (4): A6, A7, C5, C4
-    // DACMUX2 output (4): B1, B2, E8, E7
-    // JACKMUX output (2): C14, C13
-    // ADCMUX output (4): D3, D4, D5, D6
+    init_adcmux();
+
+
+    // default states
+    TP_power12(0); // DUT power is disabled
+    TP_hub(1); // enable to make sure we're not competing with hw pullup
+        // can change this in future after uC firmware is complete
+        // uC chooses when to activate the HUB (prob just want always on)
+    for(int i=0; i<5; i++){
+        TP_dout(i, 0); // disable digital outputs
+    }
+    for(int i=0; i<2; i++){
+        TP_debug_led(i, 0); // disable leds
+    }
+    // disable all MUXes to make sure DUT is isolated when power goes high
+    TP_dac_mux_1(-1);
+    TP_dac_mux_2(-1);
+    TP_jack_direction(-1);
+    TP_adc_mux_1(-1);
+
+
 
     // ADCs
     // ADC1_In0: A0
@@ -231,5 +245,24 @@ void TP_jack_direction(int select){
             HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, 1);
             break;
         default: break;
+    }
+}
+
+// ADCMUX output (4): D3, D4, D5, D6
+static void init_adcmux(void){
+    g.Mode  = GPIO_MODE_OUTPUT_PP;
+    g.Pull  = GPIO_NOPULL;
+    g.Speed = GPIO_SPEED_FAST;
+    g.Pin   = GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_6;
+    HAL_GPIO_Init(GPIOD, &g);
+}
+void TP_adc_mux_1(int chan){
+    if(chan < 0){
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_3, 0); // disable
+    } else if(chan < 8){
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_3, 1); // enable
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_4, chan & 0b1);
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_5, (chan & 0b10)>>1);
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_6, (chan & 0b100)>>2);
     }
 }

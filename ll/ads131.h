@@ -2,6 +2,7 @@
 
 #include <stm32f7xx.h>
 #include "interrupts.h" // ADC_IRQPriority
+/*
 
 // Defs for MCLK pin, using hardware timer
 #define TIMa                             TIM2
@@ -120,3 +121,5 @@ void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi);
 
 void HAL_SPI_MspInit(SPI_HandleTypeDef *hspi);
 void HAL_SPI_MspDeInit(SPI_HandleTypeDef *hspi);
+
+*/

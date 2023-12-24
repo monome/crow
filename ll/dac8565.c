@@ -1,4 +1,4 @@
-#include "dac8565.h"
+/*#include "dac8565.h"
 
 #include <stdio.h>
 #include "stdlib.h" // malloc()
@@ -52,11 +52,11 @@ void DAC_Init( uint16_t bsize, uint8_t chan_count )
     HAL_GPIO_WritePin( I2Sx_NRST_GPIO_PORT, I2Sx_NRST_PIN, 1 );
 }
 
-/* Initialize the DMA buffer to contain required metadata
- * Each channel is initialized with its relevant SPI command
- * The last channel latches all the new values to the outputs
- *
- * */
+// Initialize the DMA buffer to contain required metadata
+// Each channel is initialized with its relevant SPI command
+// The last channel latches all the new values to the outputs
+//
+//
 void DAC_Start(void)
 {
     // prepare SPI packet metadata
@@ -104,10 +104,10 @@ int32_t lim_i32_u16( int32_t v )
     return (v > (int32_t)(uint16_t)0xFFFF) ? 0xFFFF : (v < (int32_t)0) ? 0 : v;
 }
 
-/* Does all the work converting a generic representation into serial packets
- * Convert floats (representing volts) to u16 representation
- * Interleave a block of each channel into a stream
- * */
+// does all the work converting a generic representation into serial packets
+// convert floats (representing volts) to u16 representation
+// Interleave a block of each channel into a stream
+
 void DAC_PickleBlock( uint32_t* dac_pickle_ptr
                     , float*    unpickled_data
                     , uint16_t  bsize
@@ -280,3 +280,5 @@ void I2Sx_IRQHandler(void)
 {
     HAL_I2S_IRQHandler(&dac_i2s);
 }
+
+*/

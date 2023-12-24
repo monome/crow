@@ -1,5 +1,7 @@
 #include "ads131.h"
 
+/*
+
 #include <stm32f7xx_hal.h>
 #include <stdio.h>
 
@@ -517,3 +519,5 @@ void SPIa_IRQHandler(void)
 {
     HAL_SPI_IRQHandler(&adc_spi);
 }
+
+*/
