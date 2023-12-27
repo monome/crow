@@ -266,3 +266,8 @@ void TP_adc_mux_1(int chan){
         HAL_GPIO_WritePin(GPIOD, GPIO_PIN_6, (chan & 0b100)>>2);
     }
 }
+
+#include "dac108.h"
+void TP_dac(int chan, float value){
+    dac108_send(chan-1, value);
+}

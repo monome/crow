@@ -13,10 +13,11 @@ void DAC_PickleBlock( uint16_t* dac_pickle_ptr
                     , uint16_t  bsize
                     );
 
-void DAC_I2S_MspInit(I2S_HandleTypeDef *hi2s);
-void DAC_I2S_MspDeInit(I2S_HandleTypeDef *hi2s);
-
-
+// direct mode output
+// channel is 0-7
+// float is -1.0 ~ 1.0 (maps to full range depending on output)
+void dac108_immediatemode(void);
+void dac108_send(int channel, float val);
 
 // new
 void HAL_SAI_MspInit(SAI_HandleTypeDef *hsai);

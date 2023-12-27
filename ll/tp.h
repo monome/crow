@@ -17,6 +17,8 @@ void TP_jack_direction(int select);
 
 void TP_adc_mux_1(int chan); // controlled by ADC driver
 
+void TP_dac(int chan, float value);
+
 /////////////////////////////////
 // read on demand
 

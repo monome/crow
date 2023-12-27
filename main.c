@@ -20,6 +20,7 @@
 #include "stm32f7xx_it.h" // CPU_count;
 
 #include "ll/tp.h" // test platform specifics
+#include "ll/dac108.h"
 
 
 int main(void)
@@ -42,7 +43,12 @@ int main(void)
     // Drivers
     int max_timers = Timer_Init();
     IO_Init( max_timers-2 ); // use second-last timer
-    IO_Start(); // must start IO before running lua init() script
+
+// NOTE: can't get DAC working on DMA, so just using direct-mode w fn-calls
+// will need to fix this when we get to frequency-counting & signal generation
+// but not required until working on TS.
+    // IO_Start(); // must start IO before running lua init() script
+
     events_init();
     Metro_Init( max_timers-2 ); // reserve 2 timers for USB & ADC
     clock_init( 100 ); // TODO how to pass it the timer?
@@ -60,6 +66,9 @@ int main(void)
 
     REPL_print_script_name();
     Lua_crowbegin();
+
+    dac108_immediatemode(); // tell DAC to immediately update outputs on received data
+
 
     uint32_t last_tick = HAL_GetTick();
     int a = 0;

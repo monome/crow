@@ -21,9 +21,11 @@ float dac_calibrated_scalar[DAC_CHANNELSS];
 
 static void sai_start_transmit(uint16_t* hwords, uint16_t count);
 static void sai_init(void);
+static void sai_init_directmode(void);
 
 void DAC_Init(uint16_t bsize, uint8_t chan_count){
-    sai_init();
+    // sai_init();
+    sai_init_directmode();
 
     // Create the sample buffer for DMA transfer
     samp_count = DAC_BUFFER_COUNT * bsize * chan_count; // 512
@@ -48,7 +50,7 @@ void DAC_Start(void){
             samples[i] = chan_mod<<12; // sets channel select bits
         }
     }
-    sai_start_transmit(samples, samp_count);
+    // sai_start_transmit(samples, samp_count);
 }
 
 void DAC_CalibrateScalar( uint8_t channel, float scale ){
@@ -133,6 +135,58 @@ static void sai_init(void){
     hsai_a.Init.FirstBit          = SAI_FIRSTBIT_MSB;
     hsai_a.Init.ClockStrobing     = SAI_CLOCKSTROBING_RISINGEDGE; // CONFIRM
 
+    hsai_a.FrameInit.FrameLength          = 17; // ie data length plus 1 bit for FS sync pulse
+    hsai_a.FrameInit.ActiveFrameLength    = 1;
+    hsai_a.FrameInit.FSDefinition         = SAI_FS_STARTFRAME;
+    hsai_a.FrameInit.FSPolarity           = SAI_FS_ACTIVE_HIGH;
+    hsai_a.FrameInit.FSOffset             = SAI_FS_BEFOREFIRSTBIT;
+
+    hsai_a.SlotInit.FirstBitOffset    = 0; // maybe 1?
+    hsai_a.SlotInit.SlotSize          = SAI_SLOTSIZE_16B;
+    hsai_a.SlotInit.SlotNumber        = 1; // ie. only 1 chip in sequence
+    hsai_a.SlotInit.SlotActive        = SAI_SLOTACTIVE_0; // each DAC chan needs it's own frame!
+
+    if(HAL_SAI_Init(&hsai_a)){
+        printf("sai init failed\n\r");
+        return;
+    }
+
+    // Enable SAI to generate clock used by audio driver
+    __HAL_SAI_ENABLE(&hsai_a);
+}
+
+static void sai_init_directmode(void){
+    RCC_PeriphCLKInitTypeDef rcc;
+    rcc.PeriphClockSelection    = RCC_PERIPHCLK_SAI1;
+    rcc.Sai1ClockSelection      = RCC_SAI1CLKSOURCE_PLLSAI;
+
+    // here we configure for 3.072MHz
+    // ie 8 channels, 16bits, 24kHz sample rate
+    rcc.PLLSAI.PLLSAIN          = 384;
+    rcc.PLLSAI.PLLSAIQ          = 5;
+    rcc.PLLSAIDivQ              = 25;
+    // see @ciel/tools/sai_pll_calculator.lua to configure
+
+    HAL_RCCEx_PeriphCLKConfig(&rcc);
+
+    // Initialize SAI
+    __HAL_SAI_RESET_HANDLE_STATE(&hsai_a);
+
+    // block A
+    hsai_a.Instance = SAI1_Block_A; // TODO follow instance
+    __HAL_SAI_DISABLE(&hsai_a);
+    hsai_a.Init.AudioMode         = SAI_MODEMASTER_TX;
+    hsai_a.Init.Synchro           = SAI_ASYNCHRONOUS;
+    hsai_a.Init.SynchroExt        = SAI_SYNCEXT_DISABLE;
+    hsai_a.Init.OutputDrive       = SAI_OUTPUTDRIVE_ENABLE;
+    hsai_a.Init.NoDivider         = SAI_MASTERDIVIDER_DISABLE;
+    hsai_a.Init.FIFOThreshold     = SAI_FIFOTHRESHOLD_1QF;
+    hsai_a.Init.AudioFrequency    = SAI_AUDIO_FREQUENCY_48K; // _48K or _96K or _192K
+    hsai_a.Init.Protocol          = SAI_FREE_PROTOCOL;
+    hsai_a.Init.DataSize          = SAI_DATASIZE_16;
+    hsai_a.Init.FirstBit          = SAI_FIRSTBIT_MSB;
+    hsai_a.Init.ClockStrobing     = SAI_CLOCKSTROBING_RISINGEDGE; // CONFIRM
+
     hsai_a.FrameInit.FrameLength          = 17; // was 33 for 32 vals
     hsai_a.FrameInit.ActiveFrameLength    = 1; // 1 ?
     hsai_a.FrameInit.FSDefinition         = SAI_FS_STARTFRAME;
@@ -141,11 +195,8 @@ static void sai_init(void){
 
     hsai_a.SlotInit.FirstBitOffset    = 0;
     hsai_a.SlotInit.SlotSize          = SAI_SLOTSIZE_16B;
-    hsai_a.SlotInit.SlotNumber        = 8;
-    hsai_a.SlotInit.SlotActive        = SAI_SLOTACTIVE_0 | SAI_SLOTACTIVE_1
-                                      | SAI_SLOTACTIVE_2 | SAI_SLOTACTIVE_3
-                                      | SAI_SLOTACTIVE_4 | SAI_SLOTACTIVE_5
-                                      | SAI_SLOTACTIVE_6 | SAI_SLOTACTIVE_7;
+    hsai_a.SlotInit.SlotNumber        = 1;
+    hsai_a.SlotInit.SlotActive        = SAI_SLOTACTIVE_0;
 
     if(HAL_SAI_Init(&hsai_a)){
         printf("sai init failed\n\r");
@@ -163,7 +214,7 @@ void HAL_SAI_MspInit(SAI_HandleTypeDef *hsai)
     GPIO_Init.Pull  = GPIO_PULLUP;
     GPIO_Init.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
 
-    __HAL_RCC_DMA2_CLK_ENABLE();
+    // __HAL_RCC_DMA2_CLK_ENABLE();
     __HAL_RCC_SAI1_CLK_ENABLE(); // RCC
     __HAL_RCC_GPIOE_CLK_ENABLE();
     GPIO_Init.Alternate     = GPIO_AF6_SAI1;
@@ -178,6 +229,7 @@ void HAL_SAI_MspInit(SAI_HandleTypeDef *hsai)
 
     // Configure DMA used for SAI1_A
     // d2.s3.c0 // alternates: 2.1.0, 2.3.0, 2.6.10
+    /*
     hdma_tx_a.Init.Channel                = DMA_CHANNEL_0;
     hdma_tx_a.Init.Direction              = DMA_MEMORY_TO_PERIPH;
     hdma_tx_a.Init.PeriphInc              = DMA_PINC_DISABLE;
@@ -211,12 +263,13 @@ void HAL_SAI_MspInit(SAI_HandleTypeDef *hsai)
                         , 1
                         );
     HAL_NVIC_EnableIRQ( DMA2_Stream3_IRQn );
+    */
 }
 
 void sai_start_transmit(uint16_t* hwords, uint16_t count){
-    if(HAL_SAI_Transmit_DMA(&hsai_a, (uint8_t*)hwords, count)){
-        printf("sai transmit fail.\n\r");
-    }
+    // if(HAL_SAI_Transmit_DMA(&hsai_a, (uint8_t*)hwords, count)){
+    //     printf("sai transmit fail.\n\r");
+    // }
 }
 
 
@@ -258,3 +311,23 @@ void HAL_SAI_ErrorCallback(SAI_HandleTypeDef *hsai){
     printf("sai error 0x%x\n\r", hsai->ErrorCode);
 }
 
+static const uint16_t write_through_mode = 0b1001000000000000;
+static uint16_t dac_data = 0;
+void dac108_immediatemode(void){
+    dac_data = write_through_mode;
+    if( HAL_OK != HAL_SAI_Transmit(&hsai_a, (uint8_t*)&dac_data, 1, 0x100) ){
+        printf("imm mode fail\n\r");
+    }
+}
+
+// channel is 0-7
+// float is 0.0 ~ 1.0 (maps to full range depending on output)
+void dac108_send(int channel, float val){
+    dac_data = (channel&7) << 12;
+    val += 1.0; // 0 ~ 2
+    val *= 2047.0; // 0 ~ 4095 (12bits)
+    dac_data |= ((uint16_t)val) & 0xFFF;
+    if( HAL_OK != HAL_SAI_Transmit(&hsai_a, (uint8_t*)&dac_data, 1, 0x100) ){
+        printf("dac send fail\n\r");
+    }
+}
