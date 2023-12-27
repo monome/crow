@@ -2,17 +2,17 @@
 
 #include "stm32f7xx.h"
 
-// 16kB calibration
-#define CALIBRATION_LOCATION 0x0800C000
-#define CALIBRATION_SECTOR   FLASH_SECTOR_3
-#define CALIBRATION_SIZE     (0x4000 - 4)
+// 16kB calibration -> using 256kB
+#define CALIBRATION_LOCATION 0x08180000
+#define CALIBRATION_SECTOR   FLASH_SECTOR_10 // UNUSED
+#define CALIBRATION_SIZE     (0x40000 - 4)
 
-// 64kB user script
-#define USER_SCRIPT_LOCATION 0x08010000
-#define USER_SCRIPT_SECTOR   FLASH_SECTOR_4
+// 64kB user script -> using 256kB
+#define USER_SCRIPT_LOCATION 0x081C0000
+#define USER_SCRIPT_SECTOR   FLASH_SECTOR_11
 //#define USER_SCRIPT_SIZE     (0x10000 - 4)
 // #define USER_SCRIPT_SIZE     (0x2000 - 4) // 8kB up to v2.1
-#define USER_SCRIPT_SIZE     (0x4000 - 4) // 16kB v3.0+
+#define USER_SCRIPT_SIZE     (0x40000 - 4) // 16kB v3.0+
 
 typedef enum { FLASH_Status_Init  = 0
              , FLASH_Status_Saved = 1

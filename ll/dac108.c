@@ -15,7 +15,7 @@ uint16_t* samples = NULL;
 
 #define DAC_ZERO_VOLTS      ((uint16_t)(((uint32_t)0xFFFF * 2)/3))
 #define DAC_V_TO_U16        ((float)(65535.0 / 15.0))
-#define DAC_CHANNELSS 4
+#define DAC_CHANNELSS 8
 float dac_calibrated_offset[DAC_CHANNELSS];
 float dac_calibrated_scalar[DAC_CHANNELSS];
 
@@ -26,15 +26,16 @@ void DAC_Init(uint16_t bsize, uint8_t chan_count){
     sai_init();
 
     // Create the sample buffer for DMA transfer
-    samp_count = DAC_BUFFER_COUNT * bsize * chan_count;
-    samples = malloc( sizeof(uint16_t) * samp_count );
-    for( int i=0; i<samp_count; i++ ){ samples[i] = 0; } // unnecessary
+    samp_count = DAC_BUFFER_COUNT * bsize * chan_count; // 512
+    printf("samp_count %x\n\r", samp_count);
+    samples = malloc( sizeof(uint16_t) * samp_count ); // 1k
     if(samples == NULL){ printf("!DAC_buffer\n"); }
+    for( int i=0; i<samp_count; i++ ){ samples[i] = 0; } // unnecessary
 
-    for( int j=0; j<DAC_CHANNELSS; j++ ){
-        dac_calibrated_offset[j] = 0.0;
-        dac_calibrated_scalar[j] = DAC_V_TO_U16;
-    }
+    // for( int j=0; j<DAC_CHANNELSS; j++ ){
+    //     dac_calibrated_offset[j] = 0.0;
+    //     dac_calibrated_scalar[j] = DAC_V_TO_U16;
+    // }
 }
 
 void DAC_Start(void){
@@ -132,7 +133,7 @@ static void sai_init(void){
     hsai_a.Init.FirstBit          = SAI_FIRSTBIT_MSB;
     hsai_a.Init.ClockStrobing     = SAI_CLOCKSTROBING_RISINGEDGE; // CONFIRM
 
-    hsai_a.FrameInit.FrameLength          = 8; // was 33 for 32 vals
+    hsai_a.FrameInit.FrameLength          = 17; // was 33 for 32 vals
     hsai_a.FrameInit.ActiveFrameLength    = 1; // 1 ?
     hsai_a.FrameInit.FSDefinition         = SAI_FS_STARTFRAME;
     hsai_a.FrameInit.FSPolarity           = SAI_FS_ACTIVE_HIGH;
@@ -141,9 +142,13 @@ static void sai_init(void){
     hsai_a.SlotInit.FirstBitOffset    = 0;
     hsai_a.SlotInit.SlotSize          = SAI_SLOTSIZE_16B;
     hsai_a.SlotInit.SlotNumber        = 8;
-    hsai_a.SlotInit.SlotActive        = SAI_SLOTACTIVE_ALL;
+    hsai_a.SlotInit.SlotActive        = SAI_SLOTACTIVE_0 | SAI_SLOTACTIVE_1
+                                      | SAI_SLOTACTIVE_2 | SAI_SLOTACTIVE_3
+                                      | SAI_SLOTACTIVE_4 | SAI_SLOTACTIVE_5
+                                      | SAI_SLOTACTIVE_6 | SAI_SLOTACTIVE_7;
 
     if(HAL_SAI_Init(&hsai_a)){
+        printf("sai init failed\n\r");
         return;
     }
 
@@ -182,7 +187,7 @@ void HAL_SAI_MspInit(SAI_HandleTypeDef *hsai)
     hdma_tx_a.Init.Mode                   = DMA_CIRCULAR;
     hdma_tx_a.Init.Priority               = DMA_PRIORITY_HIGH;
     hdma_tx_a.Init.FIFOMode               = DMA_FIFOMODE_DISABLE;
-    hdma_tx_a.Init.FIFOThreshold          = DMA_FIFO_THRESHOLD_FULL;
+    hdma_tx_a.Init.FIFOThreshold          = DMA_FIFO_THRESHOLD_1QUARTERFULL;
     hdma_tx_a.Init.MemBurst               = DMA_MBURST_SINGLE;
     hdma_tx_a.Init.PeriphBurst            = DMA_PBURST_SINGLE;
 
@@ -199,11 +204,18 @@ void HAL_SAI_MspInit(SAI_HandleTypeDef *hsai)
         // debug(&debug, "HAL_DMA_Init failed");
         return;
     }
+
+    // Codec request triggers transfer & new frame calc
+    HAL_NVIC_SetPriority( DMA2_Stream3_IRQn
+                        , DAC_IRQPriority
+                        , 1
+                        );
+    HAL_NVIC_EnableIRQ( DMA2_Stream3_IRQn );
 }
 
 void sai_start_transmit(uint16_t* hwords, uint16_t count){
     if(HAL_SAI_Transmit_DMA(&hsai_a, (uint8_t*)hwords, count)){
-        ;
+        printf("sai transmit fail.\n\r");
     }
 }
 
@@ -212,6 +224,9 @@ void sai_start_transmit(uint16_t* hwords, uint16_t count){
 // DMA triggered by codec requesting more ADC!
 void DMA2_Stream3_IRQHandler(void){
     HAL_DMA_IRQHandler(&hdma_tx_a);
+    if(hdma_tx_a.ErrorCode != HAL_OK){
+        printf("sai dma err: 0x%0x\n\r", hdma_tx_a.ErrorCode);
+    }
 }
 
 static void callback(int offset){
@@ -222,7 +237,13 @@ static void callback(int offset){
     // float out[b_size2];
     // codec_to_floats( in, &in[b_size], &inBuff[offset2], b_size );
 // FIXME ONLY ONE OF THE NEXT 2 FUNS
+
     ADDA_BlockProcess( samples );
+
+
+
+
+
     // (*block_process_fn)( out
     //                    , in // treat ins as zeroes (unused)
     //                    , b_size
@@ -233,5 +254,7 @@ static void callback(int offset){
 
 void HAL_SAI_TxHalfCpltCallback(SAI_HandleTypeDef *hsai){ callback(0); }
 void HAL_SAI_TxCpltCallback(SAI_HandleTypeDef *hsai){ callback(1); }
-
+void HAL_SAI_ErrorCallback(SAI_HandleTypeDef *hsai){
+    printf("sai error 0x%x\n\r", hsai->ErrorCode);
+}
 

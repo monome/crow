@@ -39,7 +39,7 @@ typedef struct{
     float shaped; // current shaped output voltage
 } Slope_t;
 
-#define SLOPE_CHANNELS 4
+#define SLOPE_CHANNELS 8
 
 // refactor for dynamic SLOPE_CHANNELS
 // refactor for dynamic SAMPLE_RATE

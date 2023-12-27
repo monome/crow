@@ -41,8 +41,8 @@ int main(void)
 
     // Drivers
     int max_timers = Timer_Init();
-    // IO_Init( max_timers-2 ); // use second-last timer
-    // IO_Start(); // must start IO before running lua init() script
+    IO_Init( max_timers-2 ); // use second-last timer
+    IO_Start(); // must start IO before running lua init() script
     events_init();
     Metro_Init( max_timers-2 ); // reserve 2 timers for USB & ADC
     clock_init( 100 ); // TODO how to pass it the timer?
