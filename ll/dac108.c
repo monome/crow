@@ -278,7 +278,8 @@ void sai_start_transmit(uint16_t* hwords, uint16_t count){
 void DMA2_Stream3_IRQHandler(void){
     HAL_DMA_IRQHandler(&hdma_tx_a);
     if(hdma_tx_a.ErrorCode != HAL_OK){
-        printf("sai dma err: 0x%0x\n\r", hdma_tx_a.ErrorCode);
+        // printf("sai dma err: 0x%0x\n\r", hdma_tx_a.ErrorCode);
+        printf("sai dma err\n\r");
     }
 }
 
@@ -308,7 +309,8 @@ static void callback(int offset){
 void HAL_SAI_TxHalfCpltCallback(SAI_HandleTypeDef *hsai){ callback(0); }
 void HAL_SAI_TxCpltCallback(SAI_HandleTypeDef *hsai){ callback(1); }
 void HAL_SAI_ErrorCallback(SAI_HandleTypeDef *hsai){
-    printf("sai error 0x%x\n\r", hsai->ErrorCode);
+    // printf("sai error 0x%x\n\r", hsai->ErrorCode);
+    printf("sai error");
 }
 
 static const uint16_t write_through_mode = 0b1001000000000000;

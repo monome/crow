@@ -42,7 +42,8 @@ void ADC_Init(void)
     }
 
     // Channel configuration
-    sConfig.SamplingTime = ADC_SAMPLETIME_480CYCLES;
+    // sConfig.SamplingTime = ADC_SAMPLETIME_480CYCLES;
+    sConfig.SamplingTime = ADC_SAMPLETIME_144CYCLES;
     sConfig.Offset       = 0;
 
     sConfig.Channel      = ADC_CHANNEL_0;
@@ -70,7 +71,6 @@ void ADC_Init(void)
 }
 
 static void start_conversion(int offset){
-    TP_adc_mux_1(mchan);
     if( HAL_ADC_Start_DMA( &AdcHandle
                          , (uint32_t*)&adc_raw[offset*ADC_CHANNELS]
                          , ADC_CHANNELS 
@@ -145,13 +145,21 @@ void DMA2_Stream4_IRQHandler(void){
     HAL_DMA_IRQHandler(AdcHandle.DMA_Handle);
 }
 
+// trying this to see if MUX switching & settling time is an issue
+static int burn = 0;
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* AdcHandle){
-    // advance MUX
-    mchan++;
-    mchan &= 0x7; // wrap to 8 channels
+    if(burn){
+        burn = 0;
+    } else {
+        burn = 1;
+        // advance MUX
+        mchan++;
+        mchan %= 8;
+        TP_adc_mux_1(mchan);
+    }
+    start_conversion(mchan);
 
     // start next conversion
-    start_conversion(mchan);
     // printf("adc conv complete\n\r");
 }
 void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc){

@@ -248,12 +248,12 @@ void TP_jack_direction(int select){
     }
 }
 
-// ADCMUX output (4): D3, D4, D5, D6
+// ADCMUX output (4): D3, D4, D6, D5
 static void init_adcmux(void){
     g.Mode  = GPIO_MODE_OUTPUT_PP;
     g.Pull  = GPIO_NOPULL;
     g.Speed = GPIO_SPEED_FAST;
-    g.Pin   = GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_6;
+    g.Pin   = GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_6 | GPIO_PIN_5;
     HAL_GPIO_Init(GPIOD, &g);
 }
 void TP_adc_mux_1(int chan){
@@ -262,8 +262,8 @@ void TP_adc_mux_1(int chan){
     } else if(chan < 8){
         HAL_GPIO_WritePin(GPIOD, GPIO_PIN_3, 1); // enable
         HAL_GPIO_WritePin(GPIOD, GPIO_PIN_4, chan & 0b1);
-        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_5, (chan & 0b10)>>1);
-        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_6, (chan & 0b100)>>2);
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_6, (chan & 0b10)>>1);
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_5, (chan & 0b100)>>2);
     }
 }
 
@@ -274,35 +274,35 @@ void TP_dac(int chan, float value){
 
 #include "adc.h"
 static const int adc_lookup[] = {
-    5, // adc0 = jack
-    37, // adc1
-    32,
+    4, // adc0 = jack
+    36, // adc1
+    31,
+    26,
+    21,
+    17, // 5
+    12,
+    7,
+    2,
+    37,
+    32, // 10
     27,
     22,
     18,
     13,
-    8,
+    8, // 15
     3,
     38,
     33,
     28,
-    23,
+    23, // 20
     19,
     14,
     9,
     4,
-    39,
+    39, // 25
     34,
     29,
-    24,
-    20,
-    15,
-    10,
-    5,
-    40,
-    35,
-    30,
-    25, // adc28
+    24, // adc28
 // TODO allow string lookup for these
     0, // 29 = +i_DUT // 1.1107
     5, // 30 = -i_DUT // 0.550
@@ -317,14 +317,34 @@ float TP_adc(int chan){
         return -6.66; // BAD CHANNEL
     } else if(chan >= 29){ // power channel
         float a = ADC_get(adc_lookup[chan]); // lua is 1-based
+        switch(chan){
+            case 29: case 30: // i_DUT // 1V = 100mA
+                a = 100 * 3*(a/4095.0); // convert to real voltage, then 100x to mA
+                break;
+            case 31: case 32: // i_PTC -> actually trying to return measured resistance of PTC
+                a = (3*(a/4095.0) / 3.69697) // calculate real v-drop across PTC
+                        / (0.1 * 3*((a-2)/4095.0)); // divide it by measured current (in amps)
+                break;
+            case 33: case 34: // +/-12V (absolute)
+                a = 5 * 3*(a/4095.0); // convert to real voltage, then mult by 5
+                break;
+            default: break;
+        }
         // TODO convert to human-readable form
         return a;
     } else { // regular channel
-        return ADC_get(adc_lookup[chan]); // lua is 1-based
+        float a = ADC_get(adc_lookup[chan]);
+        a = 3.0 * a/4095.0; // actual measured voltage on pin
+        a -= 1.5; // convert to +/- 1v5
+        a *= -6.666667; // convert to +/- 10V (and invert)
+        return a; // lua is 1-based
     }
 }
 
 /* PIN MAPPINGS for ADC buffer
+
+ACTUALLY!! must subtract one from all of these indices
+the lookup table above is corrected for this
 
 1 +CURRENT_DUT (internal TP + DUT consumption)
 6 -CURRENT_DUT (internal TP + DUT consumption)
