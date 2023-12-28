@@ -63,6 +63,12 @@ static int l_tp_dac(lua_State* L){
     return 0;
 }
 
+static int l_tp_adc_get(lua_State* L){
+    int index = luaL_checkinteger(L, 1);
+    lua_pushnumber( L, TP_adc(index) );
+    return 1;
+}
+
 // array of all the available functions
 static const struct luaL_Reg lib_test[]=
     { { "tp_power12"       , l_tp_power12       }
@@ -75,6 +81,7 @@ static const struct luaL_Reg lib_test[]=
     , { "tp_dacmux2"       , l_tp_dac_mux_2     }
     , { "tp_jack_dir"      , l_tp_jack_direction}
     , { "tp_dac"           , l_tp_dac           }
+    , { "tp_adc"           , l_tp_adc_get       }
     , { NULL               , NULL               }
     };
 

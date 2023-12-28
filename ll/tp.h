@@ -35,3 +35,4 @@ int TP_cherry_state(int index);
 
 /////////////////////////////////
 // read dynamically
+float TP_adc(int chan);

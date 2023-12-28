@@ -78,6 +78,7 @@ SRC = main.c \
 	stm32f7xx_it.c \
 	system_stm32f7xx.c \
 	$(HALS)/stm32f7xx_hal.c \
+	$(HALS)/stm32f7xx_hal_adc.c \
 	$(HALS)/stm32f7xx_hal_cortex.c \
 	$(HALS)/stm32f7xx_hal_rcc.c \
 	$(HALS)/stm32f7xx_hal_rcc_ex.c \

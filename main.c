@@ -21,6 +21,7 @@
 
 #include "ll/tp.h" // test platform specifics
 #include "ll/dac108.h"
+#include "ll/adc.h"
 
 
 int main(void)
@@ -48,6 +49,8 @@ int main(void)
 // will need to fix this when we get to frequency-counting & signal generation
 // but not required until working on TS.
     // IO_Start(); // must start IO before running lua init() script
+
+    ADC_Init();
 
     events_init();
     Metro_Init( max_timers-2 ); // reserve 2 timers for USB & ADC

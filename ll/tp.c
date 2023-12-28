@@ -271,3 +271,98 @@ void TP_adc_mux_1(int chan){
 void TP_dac(int chan, float value){
     dac108_send(chan-1, value);
 }
+
+#include "adc.h"
+static const int adc_lookup[] = {
+    5, // adc0 = jack
+    37, // adc1
+    32,
+    27,
+    22,
+    18,
+    13,
+    8,
+    3,
+    38,
+    33,
+    28,
+    23,
+    19,
+    14,
+    9,
+    4,
+    39,
+    34,
+    29,
+    24,
+    20,
+    15,
+    10,
+    5,
+    40,
+    35,
+    30,
+    25, // adc28
+// TODO allow string lookup for these
+    0, // 29 = +i_DUT // 1.1107
+    5, // 30 = -i_DUT // 0.550
+    10, // 31 = +i_PTC // 1.107
+    15, // 32 = -i_PTC // 0.183
+    20, // 33 = +12V // 2.4
+    25 // 34 = -12V // 2.42
+};
+float TP_adc(int chan){
+    // TODO map requested channel to memory-channel (many holes in the adc array)
+    if(chan<0 || chan > 34){
+        return -6.66; // BAD CHANNEL
+    } else if(chan >= 29){ // power channel
+        float a = ADC_get(adc_lookup[chan]); // lua is 1-based
+        // TODO convert to human-readable form
+        return a;
+    } else { // regular channel
+        return ADC_get(adc_lookup[chan]); // lua is 1-based
+    }
+}
+
+/* PIN MAPPINGS for ADC buffer
+
+1 +CURRENT_DUT (internal TP + DUT consumption)
+6 -CURRENT_DUT (internal TP + DUT consumption)
+11 +CURRENT_PTC (Vdrop across PTC)
+16 -CURRENT_PTC (Vdrop across PTC)
+21 +12V (+2v4 scaled) -> actual output voltage (check for droop)
+26 -12V (+2v4 scaled) -> actual output voltage (check for droop)
+
+22 ADC4
+27 ADC3
+32 ADC2
+37 ADC1
+
+3 ADC8
+8 ADC7
+13 ADC6
+18 ADC5
+23 ADC12
+28 ADC11
+33 ADC10
+38 ADC9
+
+4 ADC16
+9 ADC15
+14 ADC14
+19 ADC13
+24 ADC20
+29 ADC19
+34 ADC18
+39 ADC17
+
+5 ADC24 / IN JACK
+10 ADC23
+15 ADC22
+20 ADC21
+25 ADC28
+30 ADC27
+35 ADC26
+40 ADC25
+
+*/
