@@ -98,6 +98,11 @@ do return
     , docs = 'Set i2c address to *index* (default)1 or 2'
     , args = { 'index', s8 }
     }
+  , { name = 'test_mode'
+    , cmd  = 22
+    , docs = 'factory test mode.'
+    , args = { 'is_active', s8 }
+    }
   }
 , getters =
   { { name = 'speed'
@@ -134,6 +139,11 @@ do return
     , cmd  = 21 + get_offset
     , docs = 'knob + cv for INTONE parameter'
     , retval = { 'volts', s16V }
+    }
+  , { name = 'test'
+    , cmd  = 22 + get_offset
+    , docs = 'factory test inquiries'
+    , retval = { 'value', s16 }
     }
   }
 }
