@@ -143,6 +143,7 @@ do return
   , { name = 'test'
     , cmd  = 22 + get_offset
     , docs = 'factory test inquiries'
+    , args = { 'id', s8 }
     , retval = { 'value', s16 }
     }
   }
