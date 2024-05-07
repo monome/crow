@@ -125,11 +125,11 @@ void l_crowlib_init(lua_State* L){
 	// for chan = 1, #output do
 	// 	 output[chan] = Output.new( chan )
 	// end
-	lua_createtable(L, 4, 0); // 4 array elements
+	lua_createtable(L, 8, 0); // 8 array elements
 	lua_setglobal(L, "output"); // -> @0
 
 	lua_getglobal(L, "output"); // @1
-	for(int i=1; i<=4; i++){
+	for(int i=1; i<=8; i++){
 		lua_getglobal(L, "Output"); // @2
 		lua_getfield(L, 2, "new"); // Output.new @3
 		lua_pushinteger(L, i); // push the key
@@ -226,7 +226,7 @@ int l_crowlib_crow_reset( lua_State* L ){
     lua_settop(L, 0);
 
     lua_getglobal(L, "output"); // @1
-	for(int i=1; i<=4; i++){
+	for(int i=1; i<=8; i++){
         lua_settop(L, 1); // _G.output is TOS @1
 		lua_pushinteger(L, i); // @2
 		lua_gettable(L, 1); // replace @2 with: output[n]

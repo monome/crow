@@ -5,6 +5,7 @@ static void init_hub(void);
 static void init_dout(void);
 static void init_module_id(void);
 static void init_debug_leds(void);
+static void init_cherry_leds(void);
 static void init_cherry(void);
 
 static void init_dacmux1(void);
@@ -27,6 +28,7 @@ void TP_Init(void){
     init_dout();
     init_module_id();
     init_debug_leds();
+    init_cherry_leds();
     init_cherry();
 
     init_dacmux1();
@@ -45,6 +47,7 @@ void TP_Init(void){
     }
     for(int i=0; i<2; i++){
         TP_debug_led(i, 0); // disable leds
+        TP_cherry_led(i, 0); // disable leds
     }
     // disable all MUXes to make sure DUT is isolated when power goes high
     TP_dac_mux_1(-1);
@@ -159,6 +162,23 @@ void TP_debug_led(int index, int state){
     }
 }
 
+// Cherry LEDs C6, C7
+static void init_cherry_leds(void){
+    g.Pin   = GPIO_PIN_6 | GPIO_PIN_7;
+    g.Mode  = GPIO_MODE_OUTPUT_PP;
+    g.Pull  = GPIO_NOPULL;
+    g.Speed = GPIO_SPEED_LOW;
+    HAL_GPIO_Init(GPIOC, &g);
+}
+void TP_cherry_led(int index, int state){
+    state = !!state;
+    if(index == 0){
+        HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, state);
+    } else if(index == 1){
+        HAL_GPIO_WritePin(GPIOC, GPIO_PIN_7, state);
+    }
+}
+
 // Cherry switches (2): D14, D15
 static void init_cherry(void){
     g.Mode  = GPIO_MODE_INPUT;
@@ -269,7 +289,7 @@ void TP_adc_mux_1(int chan){
 
 #include "dac108.h"
 void TP_dac(int chan, float value){
-    dac108_send(chan-1, value);
+    // dac108_send(chan-1, value);
 }
 
 #include "adc.h"

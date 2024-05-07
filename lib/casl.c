@@ -14,7 +14,7 @@
 // dynamics should be available for SHAPEs (though not mutables)
 // switch to a pooled memory store to enable more complex ASLs to borrow memory from cheap ones
 
-#define SELVES_COUNT 4
+#define SELVES_COUNT 8
 static Casl* _selves[SELVES_COUNT];
 
 

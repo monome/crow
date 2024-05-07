@@ -3,7 +3,7 @@
 #include <stdint.h>
 
 // need an Init() fn. send SR as an argument
-#define SAMPLE_RATE 48000
+#define SAMPLE_RATE 22500
 #define iSAMPLE_RATE (1.0/(float)SAMPLE_RATE)
 #define SAMPLES_PER_MS ((float)SAMPLE_RATE/1000.0)
 

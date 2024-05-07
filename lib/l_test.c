@@ -33,6 +33,13 @@ static int l_tp_debug_led(lua_State* L){
     return 0;
 }
 
+static int l_tp_cherry_led(lua_State* L){
+    TP_cherry_led( luaL_checkinteger(L, 1)
+                 , luaL_checkinteger(L, 2) );
+    lua_settop(L, 0);
+    return 0;
+}
+
 static int l_tp_cherry_state(lua_State* L){
     int index = luaL_checkinteger(L, 1);
     lua_pushinteger( L, TP_cherry_state(index) );
@@ -76,6 +83,7 @@ static const struct luaL_Reg lib_test[]=
     , { "tp_dout"          , l_tp_dout          }
     , { "tp_get_module_id" , l_tp_get_module_id }
     , { "tp_debug_led"     , l_tp_debug_led     }
+    , { "tp_cherry_led"    , l_tp_cherry_led    }
     , { "tp_cherry_state"  , l_tp_cherry_state  }
     , { "tp_dacmux1"       , l_tp_dac_mux_1     }
     , { "tp_dacmux2"       , l_tp_dac_mux_2     }

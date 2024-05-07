@@ -1,6 +1,6 @@
 local Output = {}
 
-Output.outputs = {1,2,3,4}
+Output.outputs = {1,2,3,4,5,6,7,8}
 
 function Output.new( chan )
     local o = { channel = chan

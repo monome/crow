@@ -46,8 +46,9 @@ void ADDA_Start( void )
     DAC_Start();
 }
 
+#include "tp.h"
 static IO_block_t b = { .size = ADDA_BLOCK_SIZE };
-void ADDA_BlockProcess( uint16_t* dac_pickle_ptr )
+void ADDA_BlockProcess( uint32_t* dac_pickle_ptr )
 {
     // ADC_UnpickleBlock( b.in[0]
     //                  , ADDA_BLOCK_SIZE
@@ -57,6 +58,7 @@ void ADDA_BlockProcess( uint16_t* dac_pickle_ptr )
                    , b.out[0]
                    , ADDA_BLOCK_SIZE
                    );
+    TP_debug_led(1, 0);
 }
 
 float ADDA_GetADCValue( uint8_t channel )

@@ -7,69 +7,77 @@
 #include "adda.h"   // ADDA_BlockProcess()
 #include "wrMath.h" // lim_f()
 
+
+#include "tp.h" // debugging
+
 #define DAC_BUFFER_COUNT 2 // ping-pong
 
 // pointer to the malloc()d buffer from DAC_Init()
 uint16_t  samp_count = 0;
-uint16_t* samples = NULL;
+uint32_t* samples = NULL;
 
-#define DAC_ZERO_VOLTS      ((uint16_t)(((uint32_t)0xFFFF * 2)/3))
-#define DAC_V_TO_U16        ((float)(65535.0 / 15.0))
+// #define DAC_ZERO_VOLTS      ((uint16_t)(((uint32_t)0xFFFF * 2)/3))
+// #define DAC_V_TO_U16        ((float)(65535.0 / 15.0))
+#define DAC_ZERO_VOLTS      ((uint16_t)0x7FF)
+#define DAC_V_TO_U16        ((float)(4095.0 / 10.0))
 #define DAC_CHANNELSS 8
 float dac_calibrated_offset[DAC_CHANNELSS];
 float dac_calibrated_scalar[DAC_CHANNELSS];
 
-static void sai_start_transmit(uint16_t* hwords, uint16_t count);
+static const uint16_t write_through_mode = 0b1001000000000000;
+
+static void sai_start_transmit(uint32_t* hwords, uint16_t count);
 static void sai_init(void);
-static void sai_init_directmode(void);
 
 void DAC_Init(uint16_t bsize, uint8_t chan_count){
-    // sai_init();
-    sai_init_directmode();
+    sai_init();
 
     // Create the sample buffer for DMA transfer
     samp_count = DAC_BUFFER_COUNT * bsize * chan_count; // 512
     printf("samp_count %x\n\r", samp_count);
     samples = malloc( sizeof(uint16_t) * samp_count ); // 1k
     if(samples == NULL){ printf("!DAC_buffer\n"); }
-    for( int i=0; i<samp_count; i++ ){ samples[i] = 0; } // unnecessary
+    // for( int i=0; i<samp_count; i++ ){ samples[i] = 0; } // unnecessary
 
-    // for( int j=0; j<DAC_CHANNELSS; j++ ){
-    //     dac_calibrated_offset[j] = 0.0;
-    //     dac_calibrated_scalar[j] = DAC_V_TO_U16;
-    // }
+    for( int j=0; j<DAC_CHANNELSS; j++ ){
+        dac_calibrated_offset[j] = 0.0;
+        dac_calibrated_scalar[j] = DAC_V_TO_U16;
+    }
 }
 
 void DAC_Start(void){
-    for(int i=0; i++; i<samp_count){ // double-buffered
+    for(int i=0; i<samp_count; i++){ // double-buffered
         // NB: we add 1 to i, so we start the loop on second channel
-        int chan_mod = (i+1) & (8-1); // channel modulo 8, running 1-7, then 0.
-        if(chan_mod == 0){ // chan 0
-            samples[i] = 0b1011 << 12; // sets chan 1 & updates all outputs
-        } else { // chans 1-7
-            samples[i] = chan_mod<<12; // sets channel select bits
-        }
+        // int chan_mod = (i+1) & (8-1); // channel modulo 8, running 1-7, then 0.
+        // if(chan_mod == 0){ // chan 0
+        //     samples[i] = 0b1011 << 12; // sets chan 1 & updates all outputs
+        // } else { // chans 1-7
+        //     samples[i] = chan_mod<<12; // sets channel select bits
+        // }
+        samples[i] = write_through_mode;
     }
-    // sai_start_transmit(samples, samp_count);
+    sai_start_transmit(samples, samp_count>>1);
 }
 
 void DAC_CalibrateScalar( uint8_t channel, float scale ){
-    dac_calibrated_scalar[channel] = DAC_V_TO_U16 * scale;
+    // dac_calibrated_scalar[channel] = DAC_V_TO_U16 * scale;
 }
 
 void DAC_CalibrateOffset( uint8_t channel, float volts ){
-    dac_calibrated_offset[channel] = volts;
+    // dac_calibrated_offset[channel] = volts;
 }
 
-int32_t lim_i32_u16( int32_t v ){
-    return (v > (int32_t)(uint16_t)0xFFFF) ? 0xFFFF : (v < (int32_t)0) ? 0 : v;
+uint16_t lim_i32_u12( int32_t v ){
+    return (uint16_t)((v > 0xfff) ? 0xfff : (v < 0) ? 0 : v);
 }
 
 /* Does all the work converting a generic representation into serial packets
  * Convert floats (representing volts) to u16 representation
  * Interleave a block of each channel into a stream
  * */
-void DAC_PickleBlock( uint16_t* dac_pickle_ptr
+// unpickled_data is arranged as blocks of bsize, * chan count
+// pickled data needs to be interleaved sample-by-sample across all channels
+void DAC_PickleBlock( uint32_t* dac_pickle_ptr
                     , float*    unpickled_data
                     , uint16_t  bsize
                     )
@@ -82,20 +90,34 @@ void DAC_PickleBlock( uint16_t* dac_pickle_ptr
     //             , bsize
     //             );
     // }
-    // for( uint8_t j=0; j<4; j++ ){
-    //     mul_vf_f( &(unpickled_data[j*bsize])
-    //             , dac_calibrated_scalar[j] // scale volts up to u16
-    //             , bsize
-    //             );
-    // }
-    
-    for(int i=0; i<ADDA_DAC_CHAN_COUNT * bsize; i++){
+    for( int j=0; j<ADDA_DAC_CHAN_COUNT; j++ ){
+        mul_vf_f( &(unpickled_data[j*bsize])
+                , dac_calibrated_scalar[j] // scale volts up to u12. 409.5 per octave
+                , bsize
+                );
+    }
+
+    // +/-5v lfo -> +/-2048.f
+    // uint16_t vv = lim_i32_u12((int32_t)(DAC_ZERO_VOLTS - unpickled_data[0]));
+    // vv |= (7<<12);
+    // uint16_t* dpp = (uint16_t*)dac_pickle_ptr;
+    for(int i=0; i<(ADDA_DAC_CHAN_COUNT * bsize); i++){
+        // 0chan + 0
+        // 1chan + 0
+        // ...
+        // 0chan + 1
         // ? = weird scan through the buffer to interleave channels
-        int block_index = (i*bsize);
-        int b_mod = block_index % ADDA_DAC_CHAN_COUNT;
-        int b_div = block_index / ADDA_DAC_CHAN_COUNT;
-        *dac_pickle_ptr = lim_i32_u16((int32_t)((1.0 + unpickled_data[b_mod + b_div]) * 16384.0)); // _ = scale from float representation up to integers for casting
-        dac_pickle_ptr++;
+        int b_chan = i % ADDA_DAC_CHAN_COUNT;
+        int b_samp = i / ADDA_DAC_CHAN_COUNT;
+        // DAC_ZERO_VOLTS = 0x7ff (2047)
+        // dac_pickle_ptr[i] = vv | (b_chan << 12);
+        // dac_pickle_ptr[i] = vv;
+        dac_pickle_ptr[i] = lim_i32_u12((int32_t)(DAC_ZERO_VOLTS - unpickled_data[b_samp + bsize*b_chan]));
+        dac_pickle_ptr[i] |= b_chan << 12;
+        // dac_pickle_ptr[i] <<= 16;
+        // *dpp = lim_i32_u12((int32_t)(DAC_ZERO_VOLTS - unpickled_data[b_samp + bsize*b_chan]));
+        // *dpp |= b_chan << 12;
+        // dpp++;
     }
 }
 
@@ -109,8 +131,10 @@ static void sai_init(void){
     rcc.Sai1ClockSelection      = RCC_SAI1CLKSOURCE_PLLSAI;
 
     // here we configure for 3.072MHz
-    // ie 8 channels, 16bits, 24kHz sample rate
-    rcc.PLLSAI.PLLSAIN          = 384;
+    // ie 8 channels, 17bits, 22.5kHz sample rate
+    // rcc.PLLSAI.PLLSAIN          = 384;
+    // rcc.PLLSAI.PLLSAIN          = 192;
+    rcc.PLLSAI.PLLSAIN          = 96;
     rcc.PLLSAI.PLLSAIQ          = 5;
     rcc.PLLSAIDivQ              = 25;
     // see @ciel/tools/sai_pll_calculator.lua to configure
@@ -136,67 +160,15 @@ static void sai_init(void){
     hsai_a.Init.ClockStrobing     = SAI_CLOCKSTROBING_RISINGEDGE; // CONFIRM
 
     hsai_a.FrameInit.FrameLength          = 17; // ie data length plus 1 bit for FS sync pulse
-    hsai_a.FrameInit.ActiveFrameLength    = 1;
+    hsai_a.FrameInit.ActiveFrameLength    = 16;
     hsai_a.FrameInit.FSDefinition         = SAI_FS_STARTFRAME;
-    hsai_a.FrameInit.FSPolarity           = SAI_FS_ACTIVE_HIGH;
-    hsai_a.FrameInit.FSOffset             = SAI_FS_BEFOREFIRSTBIT;
+    hsai_a.FrameInit.FSPolarity           = SAI_FS_ACTIVE_LOW;
+    hsai_a.FrameInit.FSOffset             = SAI_FS_BEFOREFIRSTBIT; // SAI_FS_FIRSTBIT
 
     hsai_a.SlotInit.FirstBitOffset    = 0; // maybe 1?
     hsai_a.SlotInit.SlotSize          = SAI_SLOTSIZE_16B;
     hsai_a.SlotInit.SlotNumber        = 1; // ie. only 1 chip in sequence
     hsai_a.SlotInit.SlotActive        = SAI_SLOTACTIVE_0; // each DAC chan needs it's own frame!
-
-    if(HAL_SAI_Init(&hsai_a)){
-        printf("sai init failed\n\r");
-        return;
-    }
-
-    // Enable SAI to generate clock used by audio driver
-    __HAL_SAI_ENABLE(&hsai_a);
-}
-
-static void sai_init_directmode(void){
-    RCC_PeriphCLKInitTypeDef rcc;
-    rcc.PeriphClockSelection    = RCC_PERIPHCLK_SAI1;
-    rcc.Sai1ClockSelection      = RCC_SAI1CLKSOURCE_PLLSAI;
-
-    // here we configure for 3.072MHz
-    // ie 8 channels, 16bits, 24kHz sample rate
-    rcc.PLLSAI.PLLSAIN          = 384;
-    rcc.PLLSAI.PLLSAIQ          = 5;
-    rcc.PLLSAIDivQ              = 25;
-    // see @ciel/tools/sai_pll_calculator.lua to configure
-
-    HAL_RCCEx_PeriphCLKConfig(&rcc);
-
-    // Initialize SAI
-    __HAL_SAI_RESET_HANDLE_STATE(&hsai_a);
-
-    // block A
-    hsai_a.Instance = SAI1_Block_A; // TODO follow instance
-    __HAL_SAI_DISABLE(&hsai_a);
-    hsai_a.Init.AudioMode         = SAI_MODEMASTER_TX;
-    hsai_a.Init.Synchro           = SAI_ASYNCHRONOUS;
-    hsai_a.Init.SynchroExt        = SAI_SYNCEXT_DISABLE;
-    hsai_a.Init.OutputDrive       = SAI_OUTPUTDRIVE_ENABLE;
-    hsai_a.Init.NoDivider         = SAI_MASTERDIVIDER_DISABLE;
-    hsai_a.Init.FIFOThreshold     = SAI_FIFOTHRESHOLD_1QF;
-    hsai_a.Init.AudioFrequency    = SAI_AUDIO_FREQUENCY_48K; // _48K or _96K or _192K
-    hsai_a.Init.Protocol          = SAI_FREE_PROTOCOL;
-    hsai_a.Init.DataSize          = SAI_DATASIZE_16;
-    hsai_a.Init.FirstBit          = SAI_FIRSTBIT_MSB;
-    hsai_a.Init.ClockStrobing     = SAI_CLOCKSTROBING_RISINGEDGE; // CONFIRM
-
-    hsai_a.FrameInit.FrameLength          = 17; // was 33 for 32 vals
-    hsai_a.FrameInit.ActiveFrameLength    = 1; // 1 ?
-    hsai_a.FrameInit.FSDefinition         = SAI_FS_STARTFRAME;
-    hsai_a.FrameInit.FSPolarity           = SAI_FS_ACTIVE_HIGH;
-    hsai_a.FrameInit.FSOffset             = SAI_FS_BEFOREFIRSTBIT;
-
-    hsai_a.SlotInit.FirstBitOffset    = 0;
-    hsai_a.SlotInit.SlotSize          = SAI_SLOTSIZE_16B;
-    hsai_a.SlotInit.SlotNumber        = 1;
-    hsai_a.SlotInit.SlotActive        = SAI_SLOTACTIVE_0;
 
     if(HAL_SAI_Init(&hsai_a)){
         printf("sai init failed\n\r");
@@ -214,7 +186,7 @@ void HAL_SAI_MspInit(SAI_HandleTypeDef *hsai)
     GPIO_Init.Pull  = GPIO_PULLUP;
     GPIO_Init.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
 
-    // __HAL_RCC_DMA2_CLK_ENABLE();
+    __HAL_RCC_DMA2_CLK_ENABLE();
     __HAL_RCC_SAI1_CLK_ENABLE(); // RCC
     __HAL_RCC_GPIOE_CLK_ENABLE();
     GPIO_Init.Alternate     = GPIO_AF6_SAI1;
@@ -229,17 +201,17 @@ void HAL_SAI_MspInit(SAI_HandleTypeDef *hsai)
 
     // Configure DMA used for SAI1_A
     // d2.s3.c0 // alternates: 2.1.0, 2.3.0, 2.6.10
-    /*
     hdma_tx_a.Init.Channel                = DMA_CHANNEL_0;
     hdma_tx_a.Init.Direction              = DMA_MEMORY_TO_PERIPH;
     hdma_tx_a.Init.PeriphInc              = DMA_PINC_DISABLE;
     hdma_tx_a.Init.MemInc                 = DMA_MINC_ENABLE;
     hdma_tx_a.Init.PeriphDataAlignment    = DMA_PDATAALIGN_HALFWORD;
-    hdma_tx_a.Init.MemDataAlignment       = DMA_MDATAALIGN_HALFWORD;
+    // hdma_tx_a.Init.MemDataAlignment       = DMA_MDATAALIGN_HALFWORD;
+    hdma_tx_a.Init.MemDataAlignment       = DMA_MDATAALIGN_WORD;
     hdma_tx_a.Init.Mode                   = DMA_CIRCULAR;
     hdma_tx_a.Init.Priority               = DMA_PRIORITY_HIGH;
     hdma_tx_a.Init.FIFOMode               = DMA_FIFOMODE_DISABLE;
-    hdma_tx_a.Init.FIFOThreshold          = DMA_FIFO_THRESHOLD_1QUARTERFULL;
+    hdma_tx_a.Init.FIFOThreshold          = DMA_FIFO_THRESHOLD_HALFFULL;
     hdma_tx_a.Init.MemBurst               = DMA_MBURST_SINGLE;
     hdma_tx_a.Init.PeriphBurst            = DMA_PBURST_SINGLE;
 
@@ -263,19 +235,21 @@ void HAL_SAI_MspInit(SAI_HandleTypeDef *hsai)
                         , 1
                         );
     HAL_NVIC_EnableIRQ( DMA2_Stream3_IRQn );
-    */
 }
 
-void sai_start_transmit(uint16_t* hwords, uint16_t count){
-    // if(HAL_SAI_Transmit_DMA(&hsai_a, (uint8_t*)hwords, count)){
-    //     printf("sai transmit fail.\n\r");
-    // }
+void sai_start_transmit(uint32_t* hwords, uint16_t count){
+    if(HAL_SAI_Transmit_DMA(&hsai_a, (uint8_t*)hwords, count)){
+        printf("sai transmit fail.\n\r");
+    }
 }
 
 
 
+// static int status = 0;
 // DMA triggered by codec requesting more ADC!
 void DMA2_Stream3_IRQHandler(void){
+    // status ^= 1;
+    // TP_debug_led(0, status);
     HAL_DMA_IRQHandler(&hdma_tx_a);
     if(hdma_tx_a.ErrorCode != HAL_OK){
         // printf("sai dma err: 0x%0x\n\r", hdma_tx_a.ErrorCode);
@@ -292,7 +266,8 @@ static void callback(int offset){
     // codec_to_floats( in, &in[b_size], &inBuff[offset2], b_size );
 // FIXME ONLY ONE OF THE NEXT 2 FUNS
 
-    ADDA_BlockProcess( samples );
+    TP_debug_led(1, 1);
+    ADDA_BlockProcess( (offset==1) ? &samples[samp_count>>1] : samples );
 
 
 
@@ -311,25 +286,4 @@ void HAL_SAI_TxCpltCallback(SAI_HandleTypeDef *hsai){ callback(1); }
 void HAL_SAI_ErrorCallback(SAI_HandleTypeDef *hsai){
     // printf("sai error 0x%x\n\r", hsai->ErrorCode);
     printf("sai error");
-}
-
-static const uint16_t write_through_mode = 0b1001000000000000;
-static uint16_t dac_data = 0;
-void dac108_immediatemode(void){
-    dac_data = write_through_mode;
-    if( HAL_OK != HAL_SAI_Transmit(&hsai_a, (uint8_t*)&dac_data, 1, 0x100) ){
-        printf("imm mode fail\n\r");
-    }
-}
-
-// channel is 0-7
-// float is 0.0 ~ 1.0 (maps to full range depending on output)
-void dac108_send(int channel, float val){
-    dac_data = (channel&7) << 12;
-    val += 1.0; // 0 ~ 2
-    val *= 2047.0; // 0 ~ 4095 (12bits)
-    dac_data |= ((uint16_t)val) & 0xFFF;
-    if( HAL_OK != HAL_SAI_Transmit(&hsai_a, (uint8_t*)&dac_data, 1, 0x100) ){
-        printf("dac send fail\n\r");
-    }
 }

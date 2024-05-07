@@ -9,7 +9,8 @@ void TP_Init(void);
 void TP_power12(int state);
 void TP_hub(int state);
 void TP_dout(int index, int state); // 0-5
-void TP_debug_led(int index, int state);
+void TP_debug_led(int index, int state); // 0/1, 0/1
+void TP_cherry_led(int index, int state); // 0/1, 0/1
 
 void TP_dac_mux_1(int chan);
 void TP_dac_mux_2(int chan);

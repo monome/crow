@@ -8,16 +8,10 @@ void DAC_Start(void);
 
 void DAC_CalibrateScalar( uint8_t channel, float scale );
 void DAC_CalibrateOffset( uint8_t channel, float volts );
-void DAC_PickleBlock( uint16_t* dac_pickle_ptr
+void DAC_PickleBlock( uint32_t* dac_pickle_ptr
                     , float*    unpickled_data
                     , uint16_t  bsize
                     );
-
-// direct mode output
-// channel is 0-7
-// float is -1.0 ~ 1.0 (maps to full range depending on output)
-void dac108_immediatemode(void);
-void dac108_send(int channel, float val);
 
 // new
 void HAL_SAI_MspInit(SAI_HandleTypeDef *hsai);

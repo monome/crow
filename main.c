@@ -45,10 +45,7 @@ int main(void)
     int max_timers = Timer_Init();
     IO_Init( max_timers-2 ); // use second-last timer
 
-// NOTE: can't get DAC working on DMA, so just using direct-mode w fn-calls
-// will need to fix this when we get to frequency-counting & signal generation
-// but not required until working on TS.
-    // IO_Start(); // must start IO before running lua init() script
+    IO_Start(); // must start IO before running lua init() script
 
     ADC_Init();
 
@@ -69,9 +66,6 @@ int main(void)
 
     REPL_print_script_name();
     Lua_crowbegin();
-
-    dac108_immediatemode(); // tell DAC to immediately update outputs on received data
-
 
     uint32_t last_tick = HAL_GetTick();
     int a = 0;

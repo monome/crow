@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include "stm32f7xx_hal.h"     // HAL_Delay()
 
-#include "../ll/adda.h"        // _Init(), _Start(), _GetADCValue(), IO_block_t
 #include "slopes.h"            // S_init(), S_step_v()
 #include "ashapes.h"           // AShaper_init(), AShaper_v()
 #include "detect.h"            // Detect_init(), Detect(), Detect_ix_to_p()
@@ -39,10 +38,10 @@ void IO_Start( void )
 // DSP process
 IO_block_t* IO_BlockProcess( IO_block_t* b )
 {
-    for( int j=0; j<IN_CHANNELS; j++ ){
-        Detect_t* d = Detect_ix_to_p(j);
-        (*d->modefn)( d, b->in[j][b->size-1] );
-    }
+    // for( int j=0; j<IN_CHANNELS; j++ ){
+    //     Detect_t* d = Detect_ix_to_p(j);
+    //     (*d->modefn)( d, b->in[j][b->size-1] );
+    // }
     for( int j=0; j<SLOPE_CHANNELS; j++ ){
         S_step_v( j
                 , b->out[j]
@@ -55,7 +54,7 @@ IO_block_t* IO_BlockProcess( IO_block_t* b )
                  , b->size
                  );
     }
-    public_update();
+    // public_update();
     return b;
 }
 float IO_GetADC( uint8_t channel )

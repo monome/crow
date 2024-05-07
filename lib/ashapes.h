@@ -4,7 +4,7 @@
 
 #define MAX_DIV_LIST_LEN 24
 
-#define ASHAPER_CHANNELS 4
+#define ASHAPER_CHANNELS 8
 
 typedef struct{
     int    index;
