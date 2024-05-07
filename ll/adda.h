@@ -2,8 +2,8 @@
 
 #include <stm32f7xx.h>
 
-#define ADDA_BLOCK_SIZE     32
-#define ADDA_DAC_CHAN_COUNT 4
+#define ADDA_BLOCK_SIZE     2 // 32
+#define ADDA_DAC_CHAN_COUNT 8
 #define ADDA_ADC_CHAN_COUNT 2
 
 typedef struct{

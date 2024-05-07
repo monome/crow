@@ -34,11 +34,7 @@ void USB_CDC_DeInit(void)
 
 extern PCD_HandleTypeDef hpcd;
 
-#ifdef USE_USB_FS
 void OTG_FS_IRQHandler(void)
-#else
-void OTG_HS_IRQHandler(void)
-#endif
 {
     HAL_PCD_IRQHandler(&hpcd);
 }

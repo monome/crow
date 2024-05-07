@@ -4,8 +4,8 @@
 
 #include "str_buffer.h"
 
-USART_HandleTypeDef handusart;
-str_buffer_t* str_buf;
+static USART_HandleTypeDef handusart;
+static str_buffer_t* str_buf;
 
 #ifdef RELEASE
 void Debug_USART_Init(void){ return; }

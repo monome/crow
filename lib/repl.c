@@ -1,5 +1,6 @@
 #include "repl.h"
 
+/*
 #include <stdlib.h> // malloc(), free()
 #include <string.h> // memcpy()
 #include <stdbool.h>
@@ -219,3 +220,5 @@ static char* REPL_script_name_from_mem( char* dest, char* src, int max_len )
     dest[len] = '\0';
     return dest;
 }
+
+*/

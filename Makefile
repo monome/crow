@@ -27,10 +27,11 @@ FENNEL=fennel
 BIN = $(TARGET).bin
 
 DEFS = -DUSE_STDPERIPH_DRIVER -DSTM32F7XX -DARM_MATH_CM7 -DHSE_VALUE=8000000
-DEFS += -DSTM32F722xx -DUSE_HAL_DRIVER
-STARTUP = $(CUBE)/CMSIS/Device/ST/STM32F7xx/Source/Templates/gcc/startup_stm32f722xx.s
+DEFS += -DSTM32F767xx -DUSE_HAL_DRIVER
+STARTUP = $(CUBE)/CMSIS/Device/ST/STM32F7xx/Source/Templates/gcc/startup_stm32f767xx.s
 
-MCFLAGS = -mthumb -march=armv7e-m -mfloat-abi=hard -mfpu=fpv4-sp-d16
+# MCFLAGS = -mthumb -march=armv7e-m -mfloat-abi=hard -mfpu=fpv4-sp-d16
+MCFLAGS = -mthumb -march=armv7e-m -mfloat-abi=hard -mfpu=fpv5-d16
 
 STM32_INCLUDES = \
 	-I$(WRLIB)/ \
@@ -93,13 +94,26 @@ SRC = main.c \
 	$(HALS)/stm32f7xx_hal_pwr.c \
 	$(HALS)/stm32f7xx_hal_pwr_ex.c \
 	$(HALS)/stm32f7xx_hal_rng.c \
+	$(HALS)/stm32f7xx_hal_sai.c \
 	$(HALS)/stm32f7xx_hal_spi.c \
 	$(HALS)/stm32f7xx_hal_tim.c \
 	$(HALS)/stm32f7xx_hal_tim_ex.c \
 	$(HALS)/stm32f7xx_hal_uart.c \
 	$(HALS)/stm32f7xx_hal_usart.c \
 	$(HALS)/stm32f7xx_ll_usb.c \
-	$(wildcard lib/*.c) \
+	lib/ashapes.c \
+	lib/bootloader.c \
+	lib/casl.c \
+	lib/caw.c \
+	lib/clock_ll.c \
+	lib/detect.c \
+	lib/events.c \
+	lib/flash.c \
+	lib/ftrack.c \
+	lib/io.c \
+	lib/metro.c \
+	lib/shapes.c \
+	lib/slopes.c \
 	$(wildcard ll/*.c) \
 	$(wildcard usbd/*.c) \
 	$(USBD)/Core/Src/usbd_core.c \
@@ -176,10 +190,10 @@ LUALIB_OBJS=	lauxlib.o lbaselib.o lbitlib.o lcorolib.o ldblib.o liolib.o \
 # build the objects from c source
 OBJDIR = .
 OBJS = $(SRC:%.c=$(OBJDIR)/%.o)
-OBJS += $(addprefix $(LUAS)/,$(LUACORE_OBJS) $(LUALIB_OBJS) )
+# OBJS += $(addprefix $(LUAS)/,$(LUACORE_OBJS) $(LUALIB_OBJS) )
 OBJS += Startup.o
 
-$(OBJS): $(LUA_PP)
+# $(OBJS): $(LUA_PP)
 
 # specific objects that require built dependencies (ii)
 $(OBJDIR)/lib/l_bootstrap.o: $(LUA_PP) #$(BUILD_DIR)/ii_lualink.h
@@ -236,14 +250,14 @@ $(BIN): $(EXECUTABLE)
 	# 512kb -64kb(bootloader) -128kb(scripts)
 
 flash: $(BIN)
-	st-flash write $(BIN) 0x08020000
+	st-flash write $(BIN) 0x08000000
 
 debug:
 	make flash TRACE=1
 	stlink-trace -c 216
 
 dfu: $(BIN)
-	sudo dfu-util -a 0 -s 0x08020000 -R -D $(BIN) -d ,0483:df11
+	sudo dfu-util -a 0 -s 0x08000000 -R -D $(BIN) -d ,0483:df11
 
 dfureset:
 	@stty -F /dev/ttyACM0 raw speed 115200
@@ -254,7 +268,7 @@ pydfu: $(TARGET).dfu $(BIN)
 	@python3 util/pydfu.py -u $<
 
 $(TARGET).dfu: $(BIN)
-	python3 util/dfu.py -D 0x0483:0xDF11 -b 0x08020000:$^ $@
+	python3 util/dfu.py -D 0x0483:0xDF11 -b 0x08000000:$^ $@
 
 boot:
 	cd $(BOOTLOADER) && \

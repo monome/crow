@@ -3,9 +3,9 @@
 #include <stm32f7xx.h>
 
 // lua_State*
-#include "../submodules/lua/src/lua.h"
-#include "../submodules/lua/src/lauxlib.h"
-#include "../submodules/lua/src/lualib.h"
+// #include "../submodules/lua/src/lua.h"
+// #include "../submodules/lua/src/lauxlib.h"
+// #include "../submodules/lua/src/lualib.h"
 
 #include "lualink.h" // ErrorHandler_t, Lua_eval(), Lua_load_default_script()
 

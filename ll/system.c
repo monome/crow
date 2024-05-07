@@ -45,7 +45,7 @@ static void Sys_Clk_Config(void)
 {
     __HAL_RCC_PWR_CLK_ENABLE();
 
-    __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE2);
+    __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
     static RCC_OscInitTypeDef osc;
     osc.OscillatorType = RCC_OSCILLATORTYPE_HSE;
@@ -56,6 +56,7 @@ static void Sys_Clk_Config(void)
     osc.PLL.PLLN       = 432;
     osc.PLL.PLLP       = RCC_PLLP_DIV2;
     osc.PLL.PLLQ       = 9;
+    osc.PLL.PLLR       = 7;
     if(HAL_RCC_OscConfig(&osc) != HAL_OK){ Error_Handler(); }
 
     if(HAL_PWREx_EnableOverDrive() != HAL_OK) { Error_Handler(); }
@@ -84,8 +85,8 @@ static void MPU_Config(void)
     // Configure the MPU attributes as WT for SRAM
     mpu.Enable           = MPU_REGION_ENABLE;
     // mpu.Enable           = MPU_REGION_DISABLE;
-    // mpu.BaseAddress      = 0x20020000;
-    mpu.BaseAddress      = 0x20000000;
+    mpu.BaseAddress      = 0x20020000;
+    // mpu.BaseAddress      = 0x20000000;
     mpu.Size             = MPU_REGION_SIZE_256KB;
     mpu.AccessPermission = MPU_REGION_FULL_ACCESS;
     mpu.IsBufferable     = MPU_ACCESS_NOT_BUFFERABLE;
@@ -98,6 +99,24 @@ static void MPU_Config(void)
     HAL_MPU_ConfigRegion(&mpu);
 
     HAL_MPU_Enable(MPU_PRIVILEGED_DEFAULT);
+
+    // // Configure the MPU attributes as WT for SRAM
+    // mpu.Enable           = MPU_REGION_ENABLE;
+    // // mpu.Enable           = MPU_REGION_DISABLE;
+    // // mpu.BaseAddress      = 0x20020000;
+    // mpu.BaseAddress      = 0x20000000;
+    // mpu.Size             = MPU_REGION_SIZE_256KB;
+    // mpu.AccessPermission = MPU_REGION_FULL_ACCESS;
+    // mpu.IsBufferable     = MPU_ACCESS_NOT_BUFFERABLE;
+    // mpu.IsCacheable      = MPU_ACCESS_CACHEABLE;
+    // mpu.IsShareable      = MPU_ACCESS_SHAREABLE;
+    // mpu.Number           = MPU_REGION_NUMBER0;
+    // mpu.TypeExtField     = MPU_TEX_LEVEL0;
+    // mpu.SubRegionDisable = 0x00;
+    // mpu.DisableExec      = MPU_INSTRUCTION_ACCESS_ENABLE;
+    // HAL_MPU_ConfigRegion(&mpu);
+
+    // HAL_MPU_Enable(MPU_PRIVILEGED_DEFAULT);
 }
 
 static void CPU_CACHE_Enable(void)
@@ -115,7 +134,8 @@ static void Error_Handler(void)
 
 unsigned int getUID_Word( unsigned int offset )
 {
-    const uint32_t base = 0x1FF07A10;
+    // const uint32_t base = 0x1FF07A10;
+    const uint32_t base = 0x1FF0F420;
     //return (uint32_t)(READ_REG(*((uint32_t*)(UID_BASE + offset))));
     //return (uint32_t)(READ_REG(UID_BASE + offset));
     uint32_t* x = (uint32_t*)(base + offset);
