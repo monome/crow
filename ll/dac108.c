@@ -98,26 +98,11 @@ void DAC_PickleBlock( uint32_t* dac_pickle_ptr
     }
 
     // +/-5v lfo -> +/-2048.f
-    // uint16_t vv = lim_i32_u12((int32_t)(DAC_ZERO_VOLTS - unpickled_data[0]));
-    // vv |= (7<<12);
-    // uint16_t* dpp = (uint16_t*)dac_pickle_ptr;
     for(int i=0; i<(ADDA_DAC_CHAN_COUNT * bsize); i++){
-        // 0chan + 0
-        // 1chan + 0
-        // ...
-        // 0chan + 1
-        // ? = weird scan through the buffer to interleave channels
         int b_chan = i % ADDA_DAC_CHAN_COUNT;
         int b_samp = i / ADDA_DAC_CHAN_COUNT;
-        // DAC_ZERO_VOLTS = 0x7ff (2047)
-        // dac_pickle_ptr[i] = vv | (b_chan << 12);
-        // dac_pickle_ptr[i] = vv;
         dac_pickle_ptr[i] = lim_i32_u12((int32_t)(DAC_ZERO_VOLTS - unpickled_data[b_samp + bsize*b_chan]));
         dac_pickle_ptr[i] |= b_chan << 12;
-        // dac_pickle_ptr[i] <<= 16;
-        // *dpp = lim_i32_u12((int32_t)(DAC_ZERO_VOLTS - unpickled_data[b_samp + bsize*b_chan]));
-        // *dpp |= b_chan << 12;
-        // dpp++;
     }
 }
 
@@ -160,9 +145,9 @@ static void sai_init(void){
     hsai_a.Init.ClockStrobing     = SAI_CLOCKSTROBING_RISINGEDGE; // CONFIRM
 
     hsai_a.FrameInit.FrameLength          = 17; // ie data length plus 1 bit for FS sync pulse
-    hsai_a.FrameInit.ActiveFrameLength    = 16;
+    hsai_a.FrameInit.ActiveFrameLength    = 1;
     hsai_a.FrameInit.FSDefinition         = SAI_FS_STARTFRAME;
-    hsai_a.FrameInit.FSPolarity           = SAI_FS_ACTIVE_LOW;
+    hsai_a.FrameInit.FSPolarity           = SAI_FS_ACTIVE_HIGH;
     hsai_a.FrameInit.FSOffset             = SAI_FS_BEFOREFIRSTBIT; // SAI_FS_FIRSTBIT
 
     hsai_a.SlotInit.FirstBitOffset    = 0; // maybe 1?
@@ -205,8 +190,7 @@ void HAL_SAI_MspInit(SAI_HandleTypeDef *hsai)
     hdma_tx_a.Init.Direction              = DMA_MEMORY_TO_PERIPH;
     hdma_tx_a.Init.PeriphInc              = DMA_PINC_DISABLE;
     hdma_tx_a.Init.MemInc                 = DMA_MINC_ENABLE;
-    hdma_tx_a.Init.PeriphDataAlignment    = DMA_PDATAALIGN_HALFWORD;
-    // hdma_tx_a.Init.MemDataAlignment       = DMA_MDATAALIGN_HALFWORD;
+    hdma_tx_a.Init.PeriphDataAlignment    = DMA_PDATAALIGN_WORD;
     hdma_tx_a.Init.MemDataAlignment       = DMA_MDATAALIGN_WORD;
     hdma_tx_a.Init.Mode                   = DMA_CIRCULAR;
     hdma_tx_a.Init.Priority               = DMA_PRIORITY_HIGH;
@@ -268,9 +252,6 @@ static void callback(int offset){
 
     TP_debug_led(1, 1);
     ADDA_BlockProcess( (offset==1) ? &samples[samp_count>>1] : samples );
-
-
-
 
 
     // (*block_process_fn)( out
