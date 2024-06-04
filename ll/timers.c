@@ -4,6 +4,7 @@
 #include <stdio.h>
 
 #include "interrupts.h"
+#include "../lib/caw.h"
 
 #define MAX_LL_TIMERS 11 // tell caller how many timers can be allocated
 

@@ -19,6 +19,12 @@
 #include "lib/flash.h" // Flash_clear_user_script()
 #include "stm32f7xx_it.h" // CPU_count;
 
+#include "lib/midi.h"
+#include "ll/uart.h"
+
+static Uart uart_rx;
+static Uart uart_tx;
+static Midi midi;
 
 int main(void)
 {
@@ -27,29 +33,35 @@ int main(void)
     // Debugging
     Debug_Pin_Init();
     Debug_Pin_Set(0,1);
-    Debug_USART_Init(); // ignored in TRACE mode
+    // Debug_USART_Init(); // ignored in TRACE mode
     // User-readable status led
-    // status_led_init();
+    status_led_init();
     // status_led_fast(LED_SLOW); // slow blink until USB connection goes live
     // status_led_set(1); // set status to ON to show sign of life straight away
 
     printf("\n\nhi from crow!\n\r");
-    
-        U_PrintNow();
+
+    // MIDI
+    // pass initialized uart handlers to midi system
+    MIDI_init(&midi, UART_init(&uart_tx, UART_Tx, UART8, "E1"));
+    // setup midi reception uart
+    UART_init(&uart_rx, UART_Rx, UART5, "B8");
+    // redirect uart interrupts to midi system
+    UART_set_callback(&uart_rx, MIDI_get_callback(&midi));
 
     // Drivers
     int max_timers = Timer_Init();
-    IO_Init( max_timers-2 ); // use second-last timer
-    IO_Start(); // must start IO before running lua init() script
-    events_init();
-    Metro_Init( max_timers-2 ); // reserve 2 timers for USB & ADC
+    // IO_Init( max_timers-2 ); // use second-last timer
+    // IO_Start(); // must start IO before running lua init() script
+    // events_init();
+    // Metro_Init( max_timers-2 ); // reserve 2 timers for USB & ADC
     // clock_init( 100 ); // TODO how to pass it the timer?
     Caw_Init( max_timers-1 ); // use last timer
     CDC_clear_buffers();
 
     // i2c_hw_pullups_init(); // enable GPIO for v1.1 hardware pullups
     // ii_init( II_CROW );
-    Random_Init();
+    // Random_Init();
 
     // REPL_init( Lua_Init() );
 
@@ -59,6 +71,7 @@ int main(void)
     uint32_t last_tick = HAL_GetTick();
     int saw = 0;
     int g_state = 0;
+    int counter = 0;
     while(1){
         CPU_count++;
 
@@ -68,10 +81,14 @@ int main(void)
             Debug_Pin_Set(1, g_state);
             g_state ^= 1;
             // Caw_printf("hi\n\r");
+            // Caw_printf("%i\n\r",counter++);
+            uint8_t midi_msg[3] = {0x90, 0x3c, 0x64};
+            MIDI_transmit(&midi, midi_msg, 3);
         }
 
-        U_PrintNow();
-        Caw_try_receive();
+        // U_PrintNow();
+        Caw_try_receive(); // something is broken in the receiver :/
+            // prob something to do with the different chip?
         // switch( Caw_try_receive() ){ // true on pressing 'enter'
         //     case C_repl:        REPL_eval( Caw_get_read()
         //                                  , Caw_get_read_len()
@@ -90,14 +107,16 @@ int main(void)
         //     case C_loadFirst:   REPL_default_script(); break;
         //     default: break; // 'C_none' does nothing
         // }
-        Random_Update();
-        uint32_t time_now = HAL_GetTick(); // for running a 1ms-interval tick
-        if( last_tick != time_now ){ // called on 1ms interval
-            last_tick = time_now;
-            // clock_update(time_now);
-            status_led_tick(time_now);
-        }
-        event_next(); // check/execute single event
+        // Random_Update();
+
+        // uint32_t time_now = HAL_GetTick(); // for running a 1ms-interval tick
+        // if( last_tick != time_now ){ // called on 1ms interval
+        //     last_tick = time_now;
+        //     // clock_update(time_now);
+        //     status_led_tick(time_now);
+        // }
+
+        // event_next(); // check/execute single event
         // ii_leader_process();
         Caw_send_queued();
     }

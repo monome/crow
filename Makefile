@@ -114,6 +114,7 @@ SRC = main.c \
 	lib/metro.c \
 	lib/shapes.c \
 	lib/slopes.c \
+	lib/midi.c \
 	$(wildcard ll/*.c) \
 	$(wildcard usbd/*.c) \
 	$(USBD)/Core/Src/usbd_core.c \

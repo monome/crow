@@ -82,22 +82,60 @@ static void MPU_Config(void)
 
     HAL_MPU_Disable();
 
-    // Configure the MPU attributes as WT for SRAM
+/*
+    // disable speculative access to unused memory region
     mpu.Enable           = MPU_REGION_ENABLE;
-    // mpu.Enable           = MPU_REGION_DISABLE;
-    mpu.BaseAddress      = 0x20020000;
-    // mpu.BaseAddress      = 0x20000000;
-    mpu.Size             = MPU_REGION_SIZE_256KB;
-    mpu.AccessPermission = MPU_REGION_FULL_ACCESS;
-    mpu.IsBufferable     = MPU_ACCESS_NOT_BUFFERABLE;
-    mpu.IsCacheable      = MPU_ACCESS_CACHEABLE;
-    mpu.IsShareable      = MPU_ACCESS_SHAREABLE;
     mpu.Number           = MPU_REGION_NUMBER0;
+    mpu.BaseAddress      = 0;
+    mpu.Size             = MPU_REGION_SIZE_4GB;
+    mpu.SubRegionDisable = 0x87;
     mpu.TypeExtField     = MPU_TEX_LEVEL0;
+    mpu.AccessPermission = MPU_REGION_NO_ACCESS;
+    mpu.DisableExec      = MPU_INSTRUCTION_ACCESS_DISABLE;
+    mpu.IsShareable      = MPU_ACCESS_SHAREABLE;
+    mpu.IsCacheable      = MPU_ACCESS_NOT_CACHEABLE;
+    mpu.IsBufferable     = MPU_ACCESS_NOT_BUFFERABLE;
+    HAL_MPU_ConfigRegion(&mpu);
+    */
+
+    // disable speculative access to unused memory region
+    mpu.Enable           = MPU_REGION_ENABLE;
+    mpu.Number           = MPU_REGION_NUMBER1;
+    mpu.BaseAddress      = 0x20000000;
+    mpu.Size             = MPU_REGION_SIZE_512KB;
     mpu.SubRegionDisable = 0x00;
+    mpu.TypeExtField     = MPU_TEX_LEVEL0;
+    mpu.AccessPermission = MPU_REGION_FULL_ACCESS;
     mpu.DisableExec      = MPU_INSTRUCTION_ACCESS_ENABLE;
+    mpu.IsShareable      = MPU_ACCESS_SHAREABLE;
+    mpu.IsCacheable      = MPU_ACCESS_CACHEABLE;
+    mpu.IsBufferable     = MPU_ACCESS_BUFFERABLE;
     HAL_MPU_ConfigRegion(&mpu);
 
+/*
+    // very conservative (no cache) to try and crush bug
+    mpu.Enable           = MPU_REGION_ENABLE;
+    mpu.Number           = MPU_REGION_NUMBER1;
+    // mpu.BaseAddress      = 0x20020000;
+    mpu.BaseAddress      = 0x20000000;
+    mpu.Size             = MPU_REGION_SIZE_512KB;
+    mpu.SubRegionDisable = 0x07;
+
+    // 2 options for normal mode with writeback approach
+    // no write allocate: tex=0, cachable & bufferable, sharable optional
+    // write & read allocate: tex=1, cachable & bufferable, shareable optional
+
+    // best practice is to place dma buffers at a specific location & set that region only as shareable
+    // then the remainder of ram can stay as cachable
+
+    mpu.TypeExtField     = MPU_TEX_LEVEL0;
+    mpu.AccessPermission = MPU_REGION_FULL_ACCESS;
+    mpu.DisableExec      = MPU_INSTRUCTION_ACCESS_ENABLE;
+    mpu.IsShareable      = MPU_ACCESS_NOT_SHAREABLE; // shareable essentially disables cache
+    mpu.IsCacheable      = MPU_ACCESS_NOT_CACHEABLE;
+    mpu.IsBufferable     = MPU_ACCESS_NOT_BUFFERABLE;
+    // HAL_MPU_ConfigRegion(&mpu);
+*/
     HAL_MPU_Enable(MPU_PRIVILEGED_DEFAULT);
 
     // // Configure the MPU attributes as WT for SRAM
