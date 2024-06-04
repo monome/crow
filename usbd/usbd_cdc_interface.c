@@ -80,7 +80,6 @@ static uint8_t UserTxBuffer[APP_TX_DATA_SIZE];
 static uint32_t UserTxDataLen  = 0;
 static uint32_t UserRxDataLen  = 0;
 
-// static TIM_HandleTypeDef  USBTimHandle;
 int timer_index;
 
 extern USBD_HandleTypeDef  USBD_Device;

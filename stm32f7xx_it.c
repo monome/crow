@@ -1,6 +1,7 @@
 #include "stm32f7xx_it.h"
 
 #include "stm32f7xx_hal.h" // HAL_IncTick
+#include "ll/debug_pin.h"
 
 volatile int CPU_count = 0;
 
@@ -31,6 +32,8 @@ int CPU_GetCount( void )
 #include "ll/debug_usart.h" // U_PrintNow
 
 static void error( char* msg ){
+    Debug_Error_state();
+
     printf("%s\n", msg);
     U_PrintNow();
     while(1);
@@ -49,6 +52,7 @@ void PendSV_Handler(void){ error("!PendSV"); }
 //   prvGetRegistersFromStack().
 void HardFault_Handler(void)
 {
+    Debug_Error_state();
     __asm volatile
     (
         " tst lr, #4                                                \n"

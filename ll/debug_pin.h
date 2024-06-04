@@ -14,3 +14,5 @@ void Debug_Pin_Set(int chan, int state );
 #define DBG_P_PIN_B         GPIO_PIN_13
 #define DBG_P_PIN_R         GPIO_PIN_14
 #define DBG_P_PIN_G         GPIO_PIN_15
+
+void Debug_Error_state(void);

@@ -19,3 +19,9 @@ void Debug_Pin_Set(int chan, int state ){
         case 2: HAL_GPIO_WritePin( DBG_P_GPIO, DBG_P_PIN_B, state ); break;
     }
 }
+
+void Debug_Error_state(void){
+    Debug_Pin_Set(0, 0);
+    Debug_Pin_Set(1, 0);
+    Debug_Pin_Set(2, 1);
+}

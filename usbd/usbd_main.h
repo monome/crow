@@ -8,9 +8,9 @@
 
 #define USE_USB_FS
 
+extern USBD_HandleTypeDef USBD_Device;
+
 void USB_CDC_Init(int timer_index);
 void USB_CDC_DeInit(void);
 
 void OTG_FS_IRQHandler(void);
-
-void TIMu_IRQHandler(void);

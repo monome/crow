@@ -40,9 +40,11 @@
 // Setup functions & DMA/IT Handlers
 void Debug_USART_Init(void);
 void Debug_USART_DeInit(void);
+
 void USARTx_DMA_TX_IRQHandler(void);
 void HAL_USART_TxCpltCallback(USART_HandleTypeDef *husart);
 void USARTx_IRQHandler(void);
+void HAL_USART_ErrorCallback( USART_HandleTypeDef *husart );
 
 // Communication Fns
 void U_PrintNow(void);

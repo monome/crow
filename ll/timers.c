@@ -15,6 +15,8 @@ typedef struct{
     TIM_CLK_ENABLE_t    CLK_ENABLE;
 } Timer_setup_t;
 
+static void Timer_Restart(int ix);
+
 // function wrappers over HAL macros
 // TODO add TIM1 & TIM8. use different HAL functions
 //static void TIM1_CLK_EN(){  __HAL_RCC_TIM1_CLK_ENABLE  }
@@ -52,7 +54,6 @@ static const Timer_setup_t _timer[]=
 static TIM_HandleTypeDef TimHandle[MAX_LL_TIMERS];
 static Timer_Callback_t callback[MAX_LL_TIMERS];
 
-// FIXME have to manually index the following
 void TIM3_IRQHandler(               void ){ HAL_TIM_IRQHandler( &(TimHandle[0]) ); }
 void TIM4_IRQHandler(               void ){ HAL_TIM_IRQHandler( &(TimHandle[1]) ); }
 void TIM5_IRQHandler(               void ){ HAL_TIM_IRQHandler( &(TimHandle[2]) ); }
@@ -106,6 +107,16 @@ void HAL_TIM_PeriodElapsedCallback( TIM_HandleTypeDef *htim )
     }
 }
 
+void HAL_TIM_ErrorCallback(TIM_HandleTypeDef* htim){
+    Caw_printf("TIM error\n\r");
+    for( int i=(MAX_LL_TIMERS-1); i>=0; i-- ){
+        if( htim == &(TimHandle[i]) ){
+            Timer_Restart(i);
+            return;
+        }
+    }
+}
+
 void Timer_Set_Params( int ix, float seconds )
 {
     //FIXME limited to max~20s (p=0xFFFF & ps=0xFFFF)
@@ -145,6 +156,17 @@ void Timer_Start( int ix, Timer_Callback_t cb )
     );
     if( err != HAL_OK ){
         printf("Timer_Start(%i) failed\n", ix);
+    }
+}
+
+static void Timer_Restart(int ix){
+    /// TODO need to reinit the timers?
+    uint8_t err;
+    BLOCK_IRQS(
+        err = HAL_TIM_Base_Start_IT( &(TimHandle[ix]) );
+    );
+    if( err != HAL_OK ){
+        printf("Timer_Restart(%i) failed\n", ix);
     }
 }
 

@@ -38,10 +38,3 @@ void OTG_FS_IRQHandler(void)
 {
     HAL_PCD_IRQHandler(&hpcd);
 }
-
-extern TIM_HandleTypeDef USBTimHandle;
-
-void TIMu_IRQHandler(void)
-{
-    HAL_TIM_IRQHandler(&USBTimHandle);
-}

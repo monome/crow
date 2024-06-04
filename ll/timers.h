@@ -51,6 +51,7 @@ void Timer_Priority( int ix, int priority_level );
 
 // public declarations of hal lib functions
 void HAL_TIM_PeriodElapsedCallback( TIM_HandleTypeDef *htim );
+void HAL_TIM_ErrorCallback(TIM_HandleTypeDef* htim);
 
 void TIM3_IRQHandler(               void );
 void TIM4_IRQHandler(               void );
@@ -63,3 +64,4 @@ void TIM1_TRG_COM_TIM11_IRQHandler( void );
 void TIM8_BRK_TIM12_IRQHandler(     void );
 void TIM8_UP_TIM13_IRQHandler(      void );
 void TIM8_TRG_COM_TIM14_IRQHandler( void );
+
