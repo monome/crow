@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stm32f7xx.h>
+
 // backend to the lib/metro.c functions
 
 // TIMER
@@ -46,3 +48,18 @@ void Timer_Start( int ix, Timer_Callback_t cb );
 void Timer_Stop( int ix );
 void Timer_Set_Params( int ix, float seconds );
 void Timer_Priority( int ix, int priority_level );
+
+// public declarations of hal lib functions
+void HAL_TIM_PeriodElapsedCallback( TIM_HandleTypeDef *htim );
+
+void TIM3_IRQHandler(               void );
+void TIM4_IRQHandler(               void );
+void TIM5_IRQHandler(               void );
+void TIM6_DAC_IRQHandler(           void );
+void TIM7_IRQHandler(               void );
+void TIM1_BRK_TIM9_IRQHandler(      void );
+void TIM1_UP_TIM10_IRQHandler(      void );
+void TIM1_TRG_COM_TIM11_IRQHandler( void );
+void TIM8_BRK_TIM12_IRQHandler(     void );
+void TIM8_UP_TIM13_IRQHandler(      void );
+void TIM8_TRG_COM_TIM14_IRQHandler( void );

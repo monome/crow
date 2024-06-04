@@ -60,6 +60,8 @@ void Caw_send_luachunk( char* text )
 
 void Caw_stream_constchar( const char* stream )
 {
+    if(stream == NULL) return;
+    
     size_t len = strlen(stream);
     size_t space = USB_tx_space();
     if( len < (space-2) ){ // leave space for newline

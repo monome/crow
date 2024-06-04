@@ -1,6 +1,5 @@
 #include "timers.h"
 
-#include <stm32f7xx.h>
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -33,7 +32,7 @@ static void TIM12_CLK_EN(){ __HAL_RCC_TIM12_CLK_ENABLE(); }
 static void TIM13_CLK_EN(){ __HAL_RCC_TIM13_CLK_ENABLE(); }
 static void TIM14_CLK_EN(){ __HAL_RCC_TIM14_CLK_ENABLE(); }
 
-const Timer_setup_t _timer[]=
+static const Timer_setup_t _timer[]=
     { //{ TIM1  , TIM1_IRQn               , TIM1_CLK_EN  }
     //, { TIM2  , TIM2_IRQn               , TIM2_CLK_EN  }
       { TIM3  , TIM3_IRQn               , TIM3_CLK_EN  }
@@ -50,8 +49,8 @@ const Timer_setup_t _timer[]=
     , { TIM14 , TIM8_TRG_COM_TIM14_IRQn , TIM14_CLK_EN }
     };
 
-TIM_HandleTypeDef TimHandle[MAX_LL_TIMERS];
-Timer_Callback_t callback[MAX_LL_TIMERS];
+static TIM_HandleTypeDef TimHandle[MAX_LL_TIMERS];
+static Timer_Callback_t callback[MAX_LL_TIMERS];
 
 // FIXME have to manually index the following
 void TIM3_IRQHandler(               void ){ HAL_TIM_IRQHandler( &(TimHandle[0]) ); }
