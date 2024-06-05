@@ -54,14 +54,14 @@ static void Sys_Clk_Config(void)
     osc.PLL.PLLSource  = RCC_PLLSOURCE_HSE;
     osc.PLL.PLLM       = 8;
     // osc.PLL.PLLN       = 432; // 216MHz, reuqires Scale1 + Overdrive
-    // osc.PLL.PLLN       = 360; // 180MHz, Scale1 No-OD, or Scale2+OD
-    osc.PLL.PLLN       = 336; // 168MHz, Scale2 No-OD
+    osc.PLL.PLLN       = 336; // 180MHz, Scale1 No-OD, or Scale2+OD
+    // osc.PLL.PLLN       = 336; // 168MHz, Scale2 No-OD
     osc.PLL.PLLP       = RCC_PLLP_DIV2;
-    osc.PLL.PLLQ       = 9;
-    osc.PLL.PLLR       = 7;
+    osc.PLL.PLLQ       = 7;
+    osc.PLL.PLLR       = 2;
     if(HAL_RCC_OscConfig(&osc) != HAL_OK){ Error_Handler(); }
 
-    // if(HAL_PWREx_EnableOverDrive() != HAL_OK) { Error_Handler(); }
+    if(HAL_PWREx_EnableOverDrive() != HAL_OK) { Error_Handler(); }
 
     static RCC_ClkInitTypeDef clk;
     clk.ClockType      = RCC_CLOCKTYPE_SYSCLK
@@ -71,8 +71,8 @@ static void Sys_Clk_Config(void)
                        ;
     clk.SYSCLKSource   = RCC_SYSCLKSOURCE_PLLCLK;
     clk.AHBCLKDivider  = RCC_SYSCLK_DIV1;
-    clk.APB1CLKDivider = RCC_HCLK_DIV2;
-    clk.APB2CLKDivider = RCC_HCLK_DIV1;
+    clk.APB1CLKDivider = RCC_HCLK_DIV4;
+    clk.APB2CLKDivider = RCC_HCLK_DIV2;
     if(HAL_RCC_ClockConfig(&clk, FLASH_LATENCY_7) != HAL_OK){
         Error_Handler();
     }
