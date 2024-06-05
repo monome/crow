@@ -45,7 +45,7 @@ static void Sys_Clk_Config(void)
 {
     __HAL_RCC_PWR_CLK_ENABLE();
 
-    __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+    __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE2);
 
     static RCC_OscInitTypeDef osc;
     osc.OscillatorType = RCC_OSCILLATORTYPE_HSE;
@@ -53,13 +53,15 @@ static void Sys_Clk_Config(void)
     osc.PLL.PLLState   = RCC_PLL_ON;
     osc.PLL.PLLSource  = RCC_PLLSOURCE_HSE;
     osc.PLL.PLLM       = 8;
-    osc.PLL.PLLN       = 432;
+    // osc.PLL.PLLN       = 432; // 216MHz, reuqires Scale1 + Overdrive
+    // osc.PLL.PLLN       = 360; // 180MHz, Scale1 No-OD, or Scale2+OD
+    osc.PLL.PLLN       = 336; // 168MHz, Scale2 No-OD
     osc.PLL.PLLP       = RCC_PLLP_DIV2;
     osc.PLL.PLLQ       = 9;
     osc.PLL.PLLR       = 7;
     if(HAL_RCC_OscConfig(&osc) != HAL_OK){ Error_Handler(); }
 
-    if(HAL_PWREx_EnableOverDrive() != HAL_OK) { Error_Handler(); }
+    // if(HAL_PWREx_EnableOverDrive() != HAL_OK) { Error_Handler(); }
 
     static RCC_ClkInitTypeDef clk;
     clk.ClockType      = RCC_CLOCKTYPE_SYSCLK
