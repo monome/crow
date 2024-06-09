@@ -47,6 +47,10 @@ static void Sys_Clk_Config(void)
 
     __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE2);
 
+// USE CUBE MX Clock Configuration to set all of this!
+// Currently using 168MHz core clock to reduce power dissipation in +3v3 regulator
+// Will need to adjust PLLQ (for USB clock) when increasing clock with a better reg.
+
     static RCC_OscInitTypeDef osc;
     osc.OscillatorType = RCC_OSCILLATORTYPE_HSE;
     osc.HSEState       = RCC_HSE_ON;

@@ -60,17 +60,24 @@
 /* Common Config */
 #define USBD_MAX_NUM_INTERFACES               1
 #define USBD_MAX_NUM_CONFIGURATION            1
-#define USBD_MAX_STR_DESC_SIZ                 0x100
+#define USBD_MAX_STR_DESC_SIZ                 0x100 // could be 512 (0x200)
 #define USBD_SELF_POWERED                     1
 #define USBD_DEBUG_LEVEL                      0
 
 /* Exported macro ------------------------------------------------------------*/
 /* Memory management macros */   
 void* malloc1( size_t size ); // like calloc, but sets to ones (??!?!?!)
+//#define USBD_malloc         (uint32_t *)USBD_static_malloc
 #define USBD_malloc               malloc1
+// #define USBD_free           USBD_static_free
 #define USBD_free                 free
 #define USBD_memset               memset
 #define USBD_memcpy               memcpy
+
+/* For footprint reasons and since only one allocation is handled in the MIDI class
+   driver, the malloc/free is changed into a static allocation method */
+// void *USBD_static_malloc(uint32_t size);
+// void USBD_static_free(void *p);
     
 /* DEBUG macros */
 #if (USBD_DEBUG_LEVEL > 0U)

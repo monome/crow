@@ -15,11 +15,13 @@
 #include "lib/lualink.h"
 // #include "lib/repl.h"
 #include "usbd/usbd_cdc_interface.h" // CDC_main_init()
+#include "usbh/usbh_main.h"
 #include "lib/bootloader.h" // bootloader_enter(), bootloader_restart()
 #include "lib/flash.h" // Flash_clear_user_script()
 #include "stm32f7xx_it.h" // CPU_count;
 
 #include "lib/midi.h"
+// #include "lib/mhost.h"
 #include "ll/uart.h"
 
 static Uart uart_rx;
@@ -59,6 +61,10 @@ int main(void)
     Caw_Init( max_timers-1 ); // use last timer
     CDC_clear_buffers();
 
+    // MIDI Host
+    // MHost_Init();
+    USBHost_Init();
+
     // i2c_hw_pullups_init(); // enable GPIO for v1.1 hardware pullups
     // ii_init( II_CROW );
     // Random_Init();
@@ -68,22 +74,48 @@ int main(void)
     // REPL_print_script_name();
     // Lua_crowbegin();
 
+// TODO startup animation
+    // here we run the power sequence to spread out current spikes when enabling
+    // setup the leds first so we can draw a nice animation while things get going
+    // mostly just doing this to get a predictable state before enabling USB Host
+    // HAL_Delay(1000);
+
+    // Enable USB Host power
+    // MHost_Power(1);
+
+
+
     uint32_t last_tick = HAL_GetTick();
     int saw = 0;
     int g_state = 0;
     int counter = 0;
+    int once = 1;
     while(1){
         CPU_count++;
 
         saw++;
-        saw &= 0xfffff;
-        if(saw == 0x7ffff){
+        saw &= 0x3ffff;
+        if(saw == 0x1ffff){
             Debug_Pin_Set(1, g_state);
             g_state ^= 1;
-            // Caw_printf("hi\n\r");
-            // Caw_printf("%i\n\r",counter++);
+
             uint8_t midi_msg[3] = {0x90, 0x3c, 0x64};
             MIDI_transmit(&midi, midi_msg, 3);
+
+            if(once){
+                once = 0;
+
+                // char crow_msg[32];
+                // sprintf(crow_msg, "output[1].volts = %i\n\r", counter++);
+                // sprintf(crow_msg, "^^v\n\r", counter++);
+                // if(counter > 10) counter = 0;
+                // USBHost_Send(crow_msg, strlen(crow_msg)+1);
+            }
+            // char crow_msg[64];
+            // snprintf(crow_msg, 64, "print(time())\n\r");
+            // char* crow_msg = "^^v\n\r";
+            char* crow_msg = "print('hi')\n\r";
+            USBHost_Send((unsigned char*)crow_msg, strlen(crow_msg));
         }
 
         // U_PrintNow();
@@ -119,5 +151,22 @@ int main(void)
         // event_next(); // check/execute single event
         // ii_leader_process();
         Caw_send_queued();
+
+        if( USBHost_BG_Task() ){ // data is ready to be used
+            uint8_t* buf;
+            size_t len = USBHost_Get_Received(&buf);
+            len = len > 100 ? 100 : len;
+            char crow_msg[100];
+            /*
+            for(int i=0; i<len; i++){
+                sprintf(&crow_msg[i*3], "%2x ", buf[i]);
+                // we overwrite each NULL char with next set
+                // last call leaves trailing NULL
+            }
+            */
+            // sprintf(&crow_msg[len*3], "\n\r");
+            snprintf(crow_msg, len, buf);
+            Caw_printf("C:%s\n\r", crow_msg);
+        }
     }
 }

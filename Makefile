@@ -6,6 +6,7 @@ GIT_VERSION := $(shell git describe --tags)
 CUBE=submodules/STM32CubeF7_Drivers
 HALS=$(CUBE)/STM32F7xx_HAL_Driver/Src
 USBD=submodules/STM32CubeF7_USB/STM32_USB_Device_Library
+USBH=submodules/STM32CubeF7_USB/STM32_USB_Host_Library
 WRLIB=submodules/wrLib
 WRDSP=submodules/wrDsp
 LUAS=submodules/lua/src
@@ -43,6 +44,9 @@ STM32_INCLUDES = \
 	-Iusbd/ \
 	-I$(USBD)/Class/CDC/Inc/ \
 	-I$(USBD)/Core/Inc/ \
+	-Iusbh/ \
+	-I$(USBH)/Class/CDC/Inc/ \
+	-I$(USBH)/Core/Inc/ \
 
 OPTIMIZE       = -O2
 
@@ -72,7 +76,9 @@ ifeq ($(R), 1)
 	#CFLAGS += -flto # broken in debug mode. provides a small LTO binary size reduction
 endif
 
-LDFLAGS = -Wl,-T,stm32_flash.ld,-flto,-gc-sections
+# LDFLAGS = -Wl,-T,stm32_flash.ld,-flto,-gc-sections
+
+LDFLAGS = -Wl,-T,stm32_flash.ld,-gc-sections
 LIBS = -lm -lc -lnosys
 
 SRC = main.c \
@@ -91,6 +97,7 @@ SRC = main.c \
 	$(HALS)/stm32f7xx_hal_dma2d.c \
 	$(HALS)/stm32f7xx_hal_pcd.c \
 	$(HALS)/stm32f7xx_hal_pcd_ex.c \
+	$(HALS)/stm32f7xx_hal_hcd.c \
 	$(HALS)/stm32f7xx_hal_pwr.c \
 	$(HALS)/stm32f7xx_hal_pwr_ex.c \
 	$(HALS)/stm32f7xx_hal_rng.c \
@@ -115,12 +122,19 @@ SRC = main.c \
 	lib/shapes.c \
 	lib/slopes.c \
 	lib/midi.c \
+	lib/mhost.c \
 	$(wildcard ll/*.c) \
 	$(wildcard usbd/*.c) \
 	$(USBD)/Core/Src/usbd_core.c \
 	$(USBD)/Core/Src/usbd_ctlreq.c \
 	$(USBD)/Core/Src/usbd_ioreq.c \
 	$(USBD)/Class/CDC/Src/usbd_cdc.c \
+	$(wildcard usbh/*.c) \
+	$(USBH)/Core/Src/usbh_core.c \
+	$(USBH)/Core/Src/usbh_ctlreq.c \
+	$(USBH)/Core/Src/usbh_ioreq.c \
+	$(USBH)/Core/Src/usbh_pipes.c \
+	$(USBH)/Class/CDC/Src/usbh_cdc.c \
 	$(WRLIB)/str_buffer.c \
 	$(WRLIB)/wrConvert.c \
 	$(WRLIB)/wrMath.c \
