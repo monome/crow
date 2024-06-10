@@ -3,7 +3,8 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "../usbd/usbd_main.h"
+// #include "../usbd/usbd_main.h"
+#include "usbd_cdc_acm_if.h"
 #include "../ll/status_led.h" // for blinking led when tx/rx data
 
 #define USB_RX_BUFFER 2048
@@ -14,18 +15,20 @@ static const char* queued_ptr = NULL;
 void Caw_Init( int timer_index )
 {
     for( int i=0; i<USB_RX_BUFFER; i++ ){ reader[i] = 0; }
-    USB_CDC_Init( timer_index );
+    // USB_CDC_Init( timer_index );
+    // CDC_Init(0);
 }
 
 void Caw_DeInit( void )
 {
-    USB_CDC_DeInit();
+    // USB_CDC_DeInit();
+    // CDC_DeInit(0);
 }
 
 void Caw_send_raw( uint8_t* buf, uint32_t len )
 {
     BLOCK_IRQS(
-        USB_tx_enqueue( buf, len );
+        CDC_Transmit_Enqueue(0, buf, len );
     );
     status_led_xor(); // blink status light
 }
@@ -41,8 +44,8 @@ void Caw_printf( char* text, ... )
 
     const uint8_t newline[] = "\n\r";
     BLOCK_IRQS(
-        USB_tx_enqueue( (uint8_t*)b, len );
-        USB_tx_enqueue( (uint8_t*)newline, 2 );
+        CDC_Transmit_Enqueue(0, (uint8_t*)b, len );
+        CDC_Transmit_Enqueue(0, (uint8_t*)newline, 2 );
     );
     status_led_xor(); // blink status light
 }
@@ -52,8 +55,8 @@ void Caw_send_luachunk( char* text )
 {
     const uint8_t newline[] = "\n\r";
     BLOCK_IRQS(
-        USB_tx_enqueue( (uint8_t*)text, strlen(text) );
-        USB_tx_enqueue( (uint8_t*)newline, 2 );
+        CDC_Transmit_Enqueue(0, (uint8_t*)text, strlen(text) );
+        CDC_Transmit_Enqueue(0, (uint8_t*)newline, 2 );
     );
     status_led_xor(); // blink status light
 }
@@ -63,7 +66,7 @@ void Caw_stream_constchar( const char* stream )
     if(stream == NULL) return;
     
     size_t len = strlen(stream);
-    size_t space = USB_tx_space();
+    size_t space = CDC_Transmit_Space();
     if( len < (space-2) ){ // leave space for newline
         Caw_send_luachunk( (char*)stream ); // send it normally
     } else {
@@ -79,7 +82,7 @@ void Caw_stream_constchar( const char* stream )
 void Caw_send_queued( void )
 {
     if( queued_ptr != NULL
-     && USB_tx_is_ready() ){
+     && CDC_Transmit_Is_Ready() ){
         const char* p = queued_ptr; // copy
         queued_ptr = NULL; // clear before calling
         Caw_stream_constchar( p ); // may reinstate queued_ptr
@@ -91,9 +94,9 @@ void Caw_send_luaerror( char* error_msg )
     const uint8_t leader[] = "\\";
     const uint8_t newline[] = "\n\r";
     BLOCK_IRQS(
-        USB_tx_enqueue( (uint8_t*)leader, 1 );
-        USB_tx_enqueue( (uint8_t*)error_msg, strlen(error_msg) );
-        USB_tx_enqueue( (uint8_t*)newline, 2 );
+        CDC_Transmit_Enqueue(0, (uint8_t*)leader, 1 );
+        CDC_Transmit_Enqueue(0, (uint8_t*)error_msg, strlen(error_msg) );
+        CDC_Transmit_Enqueue(0, (uint8_t*)newline, 2 );
     );
     status_led_xor(); // blink status light
 }
@@ -158,7 +161,7 @@ C_cmd_t Caw_try_receive( void )
 
     C_cmd_t retcmd = C_none; // if nothing to dequeue do nothing
 
-    if( USB_rx_dequeue_LOCK( &buf, &len ) ){
+    if( CDC_Receive_Dequeue_LOCK(0, &buf, &len ) ){
         retcmd = _find_cmd( (char*)buf, len ); // check for a system command
         if( retcmd != C_none ){ goto exit; } // sys command received, so skip ahead
         if( *buf == '\e' ){ // escape key
@@ -202,7 +205,7 @@ C_cmd_t Caw_try_receive( void )
             goto exit;
         }
     exit:
-        USB_rx_dequeue_UNLOCK();
+        CDC_Receive_Dequeue_UNLOCK(0);
     }
     return retcmd;
 }

@@ -1,3 +1,5 @@
+#include "main.h"
+
 #include "ll/system.h"
 #include "ll/debug_pin.h"
 #include "ll/debug_usart.h"
@@ -14,11 +16,15 @@
 #include "ll/random.h"
 #include "lib/lualink.h"
 // #include "lib/repl.h"
-#include "usbd/usbd_cdc_interface.h" // CDC_main_init()
+// #include "usbd/usbd_cdc_interface.h" // CDC_main_init()
 #include "usbh/usbh_main.h"
 #include "lib/bootloader.h" // bootloader_enter(), bootloader_restart()
 #include "lib/flash.h" // Flash_clear_user_script()
 #include "stm32f7xx_it.h" // CPU_count;
+
+// new USB composite device setup
+#include "lib/usb_otg.h"
+#include "usb_device.h"
 
 #include "lib/midi.h"
 // #include "lib/mhost.h"
@@ -59,7 +65,12 @@ int main(void)
     // Metro_Init( max_timers-2 ); // reserve 2 timers for USB & ADC
     // clock_init( 100 ); // TODO how to pass it the timer?
     Caw_Init( max_timers-1 ); // use last timer
-    CDC_clear_buffers();
+    // CDC_clear_buffers();
+
+    // new usb composite device
+    MX_USB_OTG_FS_PCD_Init();
+    MX_USB_DEVICE_Init();
+
 
     // MIDI Host
     // MHost_Init();
@@ -169,4 +180,11 @@ int main(void)
             Caw_printf("C:%s\n\r", crow_msg);
         }
     }
+}
+
+void Error_Handler(void)
+{
+    printf("Error Handler\n");
+    U_PrintNow();
+    while(1){;;}
 }

@@ -14,6 +14,7 @@ BOOTLOADER=submodules/dfu-stm32f7
 BUILD_DIR := build
 PRJ_DIR=crow
 LUAC_CROSS=util/luacc
+USBD_COMPOSITE=Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE
 
 CC=arm-none-eabi-gcc
 LD=arm-none-eabi-gcc
@@ -41,12 +42,18 @@ STM32_INCLUDES = \
 	-I$(CUBE)/CMSIS/Include/ \
 	-I$(CUBE)/STM32F7xx_HAL_Driver/Inc/ \
 	-I/usr/local/include/ \
-	-Iusbd/ \
-	-I$(USBD)/Class/CDC/Inc/ \
-	-I$(USBD)/Core/Inc/ \
+	-I$(USBD_COMPOSITE)/App/ \
+	-I$(USBD_COMPOSITE)/Class/CDC_ACM/Inc/ \
+	-I$(USBD_COMPOSITE)/Class/COMPOSITE/Inc/ \
+	-I$(USBD_COMPOSITE)/Class/MSC/Inc/ \
+	-I$(USBD_COMPOSITE)/Core/Inc/ \
+	-I$(USBD_COMPOSITE)/Target/ \
 	-Iusbh/ \
 	-I$(USBH)/Class/CDC/Inc/ \
 	-I$(USBH)/Core/Inc/ \
+# 	-Iusbd/ \
+# 	-I$(USBD)/Class/CDC/Inc/ \
+# 	-I$(USBD)/Core/Inc/ \
 
 OPTIMIZE       = -O2
 
@@ -124,11 +131,15 @@ SRC = main.c \
 	lib/midi.c \
 	lib/mhost.c \
 	$(wildcard ll/*.c) \
-	$(wildcard usbd/*.c) \
-	$(USBD)/Core/Src/usbd_core.c \
-	$(USBD)/Core/Src/usbd_ctlreq.c \
-	$(USBD)/Core/Src/usbd_ioreq.c \
-	$(USBD)/Class/CDC/Src/usbd_cdc.c \
+	$(USBD_COMPOSITE)/App/usb_device.c \
+	$(USBD_COMPOSITE)/App/usbd_cdc_acm_if.c \
+	$(USBD_COMPOSITE)/App/usbd_desc.c \
+	$(USBD_COMPOSITE)/App/usbd_msc_if.c \
+	$(wildcard $(USBD_COMPOSITE)/Class/CDC_ACM/Src/*.c) \
+	$(wildcard $(USBD_COMPOSITE)/Class/COMPOSITE/Src/*.c) \
+	$(wildcard $(USBD_COMPOSITE)/Class/MSC/Src/*.c) \
+	$(wildcard $(USBD_COMPOSITE)/Core/Src/*.c) \
+	$(wildcard $(USBD_COMPOSITE)/Target/*.c) \
 	$(wildcard usbh/*.c) \
 	$(USBH)/Core/Src/usbh_core.c \
 	$(USBH)/Core/Src/usbh_ctlreq.c \
@@ -142,6 +153,11 @@ SRC = main.c \
 	$(WRLIB)/wrQueue.c \
 	$(WRDSP)/wrBlocks.c \
 	$(WRDSP)/wrFilter.c \
+# 	$(wildcard usbd/*.c) \
+# 	$(USBD)/Core/Src/usbd_core.c \
+# 	$(USBD)/Core/Src/usbd_ctlreq.c \
+# 	$(USBD)/Core/Src/usbd_ioreq.c \
+# 	$(USBD)/Class/CDC/Src/usbd_cdc.c \
 
 
 # lua tests

@@ -4,12 +4,13 @@
 #include <stm32f7xx_hal.h>
 #include <stdio.h>
 
+#include "main.h"
+
 #include "ll/debug_usart.h" // U_PrintNow()
 #include "lib/caw.h" // Caw_send_luachunk()
 
 // private declarations
 static void Sys_Clk_Config(void);
-static void Error_Handler(void);
 static void MPU_Config(void);
 static void CPU_CACHE_Enable(void);
 
@@ -167,13 +168,6 @@ static void CPU_CACHE_Enable(void)
 {
     SCB_EnableICache();
     SCB_EnableDCache();
-}
-
-static void Error_Handler(void)
-{
-    printf("Error Handler\n");
-    U_PrintNow();
-    while(1){;;}
 }
 
 unsigned int getUID_Word( unsigned int offset )
