@@ -90,6 +90,12 @@ void MX_USB_DEVICE_Init(void){
     Error_Handler();
   }
 #endif
+#if (USBD_USE_PRNTR == 1)
+  if (USBD_MIDI_RegisterInterface(&hUsbDevice, &USBD_MIDI_fops) != USBD_OK)
+  {
+    Error_Handler();
+  }
+#endif
     // printf("usbd_start\n\r");
     // U_PrintNow();
   if (USBD_Start(&hUsbDevice) != USBD_OK)

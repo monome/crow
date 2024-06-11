@@ -58,6 +58,7 @@ extern "C" {
 #define USBD_USE_MSC                 _USBD_USE_MSC
 #define USBD_USE_DFU                 _USBD_USE_DFU
 #define USBD_USE_PRNTR               _USBD_USE_PRNTR
+#define USBD_USE_MIDI                _USBD_USE_MIDI
 
 #define STM32F1_DEVICE               _STM32F1_DEVICE
 
@@ -96,6 +97,9 @@ extern "C" {
 #endif
 #if(USBD_USE_PRNTR == 1)
 #include "usbd_printer_if.h"
+#endif
+#if(USBD_USE_MIDI == 1)
+#include "usbd_midi_if.h"
 #endif
 
 /**

@@ -46,6 +46,7 @@ STM32_INCLUDES = \
 	-I$(USBD_COMPOSITE)/Class/CDC_ACM/Inc/ \
 	-I$(USBD_COMPOSITE)/Class/COMPOSITE/Inc/ \
 	-I$(USBD_COMPOSITE)/Class/MSC/Inc/ \
+	-I$(USBD_COMPOSITE)/Class/MIDI/Inc/ \
 	-I$(USBD_COMPOSITE)/Core/Inc/ \
 	-I$(USBD_COMPOSITE)/Target/ \
 	-Iusbh/ \
@@ -139,6 +140,7 @@ SRC = main.c \
 	$(wildcard $(USBD_COMPOSITE)/Class/CDC_ACM/Src/*.c) \
 	$(wildcard $(USBD_COMPOSITE)/Class/COMPOSITE/Src/*.c) \
 	$(wildcard $(USBD_COMPOSITE)/Class/MSC/Src/*.c) \
+	$(wildcard $(USBD_COMPOSITE)/Class/MIDI/Src/*.c) \
 	$(wildcard $(USBD_COMPOSITE)/Core/Src/*.c) \
 	$(wildcard $(USBD_COMPOSITE)/Target/*.c) \
 	$(wildcard usbh/*.c) \

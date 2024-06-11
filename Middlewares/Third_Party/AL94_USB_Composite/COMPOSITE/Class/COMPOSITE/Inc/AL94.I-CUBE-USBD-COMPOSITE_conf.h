@@ -64,13 +64,16 @@
 #define _USBD_USE_UVC      false
 
 /*---------- _USBD_USE_MSC  -----------*/
-#define _USBD_USE_MSC      true
+#define _USBD_USE_MSC      false
 
 /*---------- _USBD_USE_DFU  -----------*/
 #define _USBD_USE_DFU      false
 
 /*---------- _USBD_USE_PRNTR  -----------*/
 #define _USBD_USE_PRNTR      false
+
+/*---------- _USBD_USE_MIDI  -----------*/
+#define _USBD_USE_MIDI      true
 
 /*---------- _STM32F1_DEVICE  -----------*/
 #define _STM32F1_DEVICE      false

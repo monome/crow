@@ -157,6 +157,9 @@ typedef struct USBD_COMPOSITE_CFG_DESC_t
 #if (USBD_USE_CDC_ACM == 1)
   uint8_t USBD_CDC_ACM_DESC[USB_CDC_CONFIG_DESC_SIZ - 0x09];
 #endif
+#if (USBD_USE_MIDI == 1)
+  uint8_t USBD_MIDI_DESC[USB_MIDI_CONFIG_DESC_SIZE - 0x09];
+#endif
 
 } __PACKED USBD_COMPOSITE_CFG_DESC_t;
 
@@ -237,6 +240,9 @@ static uint8_t USBD_COMPOSITE_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 #if (USBD_USE_PRNTR == 1)
   USBD_PRNT.Init(pdev, cfgidx);
 #endif
+#if (USBD_USE_MIDI == 1)
+  USBD_MIDI.Init(pdev, cfgidx);
+#endif
 
   return (uint8_t)USBD_OK;
 }
@@ -285,6 +291,9 @@ static uint8_t USBD_COMPOSITE_DeInit(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 #endif
 #if (USBD_USE_PRNTR == 1)
   USBD_PRNT.DeInit(pdev, cfgidx);
+#endif
+#if (USBD_USE_MIDI == 1)
+  USBD_MIDI.DeInit(pdev, cfgidx);
 #endif
 
   return (uint8_t)USBD_OK;
@@ -375,6 +384,12 @@ static uint8_t USBD_COMPOSITE_Setup(USBD_HandleTypeDef *pdev,
     USBD_PRNT.Setup(pdev, req);
   }
 #endif
+#if (USBD_USE_MIDI == 1)
+  if (LOBYTE(req->wIndex) == MIDI_ITF_NBR)
+  {
+    USBD_MIDI.Setup(pdev, req);
+  }
+#endif
 
   return USBD_FAIL;
 }
@@ -455,6 +470,12 @@ static uint8_t USBD_COMPOSITE_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
     USBD_PRNT.DataIn(pdev, epnum);
   }
 #endif
+#if (USBD_USE_MIDI == 1)
+  if (epnum == (MIDI_EPIN_ADDR & 0x7F))
+  {
+    USBD_MIDI.DataIn(pdev, epnum);
+  }
+#endif
 
   return USBD_FAIL;
 }
@@ -498,6 +519,8 @@ static uint8_t USBD_COMPOSITE_EP0_RxReady(USBD_HandleTypeDef *pdev)
 #endif
 #if (USBD_USE_PRNTR == 1)
 #endif
+#if (USBD_USE_MIDI == 1)
+#endif
 
   return (uint8_t)USBD_OK;
 }
@@ -536,6 +559,8 @@ static uint8_t USBD_COMPOSITE_EP0_TxReady(USBD_HandleTypeDef *pdev)
   USBD_DFU.EP0_TxSent(pdev);
 #endif
 #if (USBD_USE_PRNTR == 1)
+#endif
+#if (USBD_USE_MIDI == 1)
 #endif
 
   return (uint8_t)USBD_OK;
@@ -576,6 +601,8 @@ static uint8_t USBD_COMPOSITE_SOF(USBD_HandleTypeDef *pdev)
   USBD_DFU.SOF(pdev);
 #endif
 #if (USBD_USE_PRNTR == 1)
+#endif
+#if (USBD_USE_MIDI == 1)
 #endif
 
   return (uint8_t)USBD_OK;
@@ -622,6 +649,8 @@ static uint8_t USBD_COMPOSITE_IsoINIncomplete(USBD_HandleTypeDef *pdev, uint8_t 
 #endif
 #if (USBD_USE_PRNTR == 1)
 #endif
+#if (USBD_USE_MIDI == 1)
+#endif
 
   return (uint8_t)USBD_OK;
 }
@@ -662,6 +691,8 @@ static uint8_t USBD_COMPOSITE_IsoOutIncomplete(USBD_HandleTypeDef *pdev, uint8_t
 #if (USBD_USE_DFU == 1)
 #endif
 #if (USBD_USE_PRNTR == 1)
+#endif
+#if (USBD_USE_MIDI == 1)
 #endif
 
   return (uint8_t)USBD_OK;
@@ -730,7 +761,12 @@ static uint8_t USBD_COMPOSITE_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
     USBD_PRNT.DataOut(pdev, epnum);
   }
 #endif
-
+#if (USBD_USE_MIDI == 1)
+  if (epnum == MIDI_EPOUT_ADDR)
+  {
+    USBD_MIDI.DataOut(pdev, epnum);
+  }
+#endif
   return USBD_FAIL;
 }
 
@@ -878,6 +914,12 @@ static uint8_t *USBD_COMPOSITE_GetUsrStringDesc(USBD_HandleTypeDef *pdev, uint8_
     if (index == PRINTER_STR_DESC_IDX)
     {
       USBD_GetString((uint8_t *)PRNT_STR_DESC, USBD_StrDesc, length);
+    }
+#endif
+#if (USBD_USE_MIDI == 1)
+    if (index == MIDI_STR_DESC_IDX)
+    {
+      USBD_GetString((uint8_t *)MIDI_STR_DESC, USBD_StrDesc, length);
     }
 #endif
     return USBD_StrDesc;
@@ -1115,6 +1157,21 @@ void USBD_COMPOSITE_Mount_Class(void)
   out_ep_track += 1 * USBD_CDC_ACM_COUNT;
   interface_no_track += 2 * USBD_CDC_ACM_COUNT;
   USBD_Track_String_Index += USBD_CDC_ACM_COUNT;
+#endif
+
+#if (USBD_USE_MIDI == 1)
+  ptr = USBD_MIDI.GetFSConfigDescriptor(&len);
+  USBD_Update_MIDI_DESC(ptr, interface_no_track, in_ep_track, out_ep_track, USBD_Track_String_Index);
+  memcpy(USBD_COMPOSITE_FSCfgDesc.USBD_MIDI_DESC, ptr + 0x09, len - 0x09);
+
+  ptr = USBD_MIDI.GetHSConfigDescriptor(&len);
+  USBD_Update_MIDI_DESC(ptr, interface_no_track, in_ep_track, out_ep_track, USBD_Track_String_Index);
+  memcpy(USBD_COMPOSITE_HSCfgDesc.USBD_MIDI_DESC, ptr + 0x09, len - 0x09);
+
+  in_ep_track += 1;
+  out_ep_track += 1;
+  interface_no_track += 1;
+  USBD_Track_String_Index += 1;
 #endif
 
   uint16_t CFG_SIZE = sizeof(USBD_COMPOSITE_CFG_DESC_t);

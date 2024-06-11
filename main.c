@@ -129,7 +129,7 @@ int main(void)
             // char* crow_msg = "^^v\n\r";
             char* crow_msg = "print('hi')\n\r";
             USBHost_Send((unsigned char*)crow_msg, strlen(crow_msg));
-            Caw_printf("hi\n\r");
+            // Caw_printf("hi\n\r");
         }
 
         U_PrintNow();

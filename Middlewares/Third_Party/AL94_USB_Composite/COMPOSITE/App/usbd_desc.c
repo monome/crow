@@ -71,9 +71,9 @@
 #else
 #define USBD_PID                      21156 // 0x52A4
 #endif
-#define USBD_PRODUCT_STRING           "Crown: vcp + msc"
+#define USBD_PRODUCT_STRING           "Crown: vcp + midi"
 #define USBD_CONFIGURATION_STRING     "CONFIGURATION 0"
-#define USBD_INTERFACE_STRING         "Composite Interface"
+#define USBD_INTERFACE_STRING         "Composite VCP+MIDI Interface"
 
 /* USER CODE BEGIN PRIVATE_DEFINES */
 
