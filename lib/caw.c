@@ -17,6 +17,7 @@ void Caw_Init( int timer_index )
     for( int i=0; i<USB_RX_BUFFER; i++ ){ reader[i] = 0; }
     // USB_CDC_Init( timer_index );
     // CDC_Init(0);
+    CDC_Set_Timer_Index(timer_index);
 }
 
 void Caw_DeInit( void )

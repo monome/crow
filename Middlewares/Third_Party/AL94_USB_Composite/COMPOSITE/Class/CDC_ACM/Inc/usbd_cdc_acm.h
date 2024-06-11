@@ -145,6 +145,9 @@ extern "C" {
 
   extern uint8_t CDC_STR_DESC_IDX[NUMBER_OF_CDC];
 
+
+  extern USBD_CDC_ACM_HandleTypeDef CDC_ACM_Class_Data[NUMBER_OF_CDC];
+
   /**
   * @}
   */

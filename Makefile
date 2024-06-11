@@ -130,6 +130,7 @@ SRC = main.c \
 	lib/slopes.c \
 	lib/midi.c \
 	lib/mhost.c \
+	lib/usb_otg.c \
 	$(wildcard ll/*.c) \
 	$(USBD_COMPOSITE)/App/usb_device.c \
 	$(USBD_COMPOSITE)/App/usbd_cdc_acm_if.c \

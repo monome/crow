@@ -890,6 +890,7 @@ static uint8_t *USBD_COMPOSITE_GetUsrStringDesc(USBD_HandleTypeDef *pdev, uint8_
 }
 #endif
 
+#include "ll/debug_usart.h"
 void USBD_COMPOSITE_Mount_Class(void)
 {
   uint16_t len = 0;

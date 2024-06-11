@@ -1,6 +1,7 @@
 #include "usb_otg.h"
 
 #include "../ll/system.h"
+#include "ll/debug_usart.h"
 
 PCD_HandleTypeDef hpcd_USB_OTG_FS;
 
@@ -68,4 +69,8 @@ void HAL_PCD_MspDeInit(PCD_HandleTypeDef* pcdHandle){
 
     HAL_NVIC_DisableIRQ(OTG_FS_IRQn);
   }
+}
+
+void OTG_FS_IRQHandler(void){
+  HAL_PCD_IRQHandler(&hpcd_USB_OTG_FS);
 }

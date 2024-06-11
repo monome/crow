@@ -1,104 +1,14 @@
-/* USER CODE BEGIN Header */
-/**
-  ******************************************************************************
-  * @file           : usbd_cdc_if.c
-  * @version        : v2.0_Cube
-  * @brief          : Usb device for Virtual Com Port.
-  ******************************************************************************
-  * @attention
-  *
-  * <h2><center>&copy; Copyright (c) 2020 STMicroelectronics.
-  * All rights reserved.</center></h2>
-  *
-  * This software component is licensed by ST under Ultimate Liberty license
-  * SLA0044, the "License"; You may not use this file except in compliance with
-  * the License. You may obtain a copy of the License at:
-  *                             www.st.com/SLA0044
-  *
-  ******************************************************************************
-  */
-/* USER CODE END Header */
-
-/* Includes ------------------------------------------------------------------*/
 #include "usbd_cdc_acm_if.h"
+#include "usbd_cdc_acm.h"
 #include "ll/timers.h"
 #include "usbd_conf.h"
-
-/* USER CODE BEGIN INCLUDE */
-//#include "usart.h"
-//#include "tim.h"
-/* USER CODE END INCLUDE */
-
-/* Private typedef -----------------------------------------------------------*/
-/* Private define ------------------------------------------------------------*/
-/* Private macro -------------------------------------------------------------*/
-
-/* USER CODE BEGIN PV */
-/* Private variables ---------------------------------------------------------*/
-
-/* USER CODE END PV */
-
-/** @addtogroup STM32_USB_OTG_DEVICE_LIBRARY
-  * @brief Usb device library.
-  * @{
-  */
-
-/** @addtogroup USBD_CDC_IF
-  * @{
-  */
-
-/** @defgroup USBD_CDC_IF_Private_TypesDefinitions USBD_CDC_IF_Private_TypesDefinitions
-  * @brief Private types.
-  * @{
-  */
-
-/* USER CODE BEGIN PRIVATE_TYPES */
-
-/* USER CODE END PRIVATE_TYPES */
-
-/**
-  * @}
-  */
-
-/** @defgroup USBD_CDC_IF_Private_Defines USBD_CDC_IF_Private_Defines
-  * @brief Private defines.
-  * @{
-  */
-
-/* USER CODE BEGIN PRIVATE_DEFINES */
-/* USER CODE END PRIVATE_DEFINES */
-
-/**
-  * @}
-  */
-
-/** @defgroup USBD_CDC_IF_Private_Macros USBD_CDC_IF_Private_Macros
-  * @brief Private macros.
-  * @{
-  */
-
-/* USER CODE BEGIN PRIVATE_MACRO */
-
-/* USER CODE END PRIVATE_MACRO */
-
-/**
-  * @}
-  */
-
-/** @defgroup USBD_CDC_IF_Private_Variables USBD_CDC_IF_Private_Variables
-  * @brief Private variables.
-  * @{
-  */
-
-/* USER CODE BEGIN PRIVATE_VARIABLES */
+#include "ll/interrupts.h"
 
 #define APP_RX_DATA_SIZE 128
 #define APP_TX_DATA_SIZE 128
+#define CONNECTION_DELAY  500 // millisecond delay before sending buffer after connect
 
-/** RX buffer for USB */
 uint8_t RX_Buffer[NUMBER_OF_CDC][APP_RX_DATA_SIZE];
-
-/** TX buffer for USB, RX buffer for UART */
 uint8_t TX_Buffer[NUMBER_OF_CDC][APP_TX_DATA_SIZE];
 
 USBD_CDC_ACM_LineCodingTypeDef Line_Coding[NUMBER_OF_CDC];
@@ -106,31 +16,9 @@ USBD_CDC_ACM_LineCodingTypeDef Line_Coding[NUMBER_OF_CDC];
 uint32_t Write_Index[NUMBER_OF_CDC]; /* keep track of received data over UART */
 uint32_t Read_Index[NUMBER_OF_CDC];  /* keep track of sent data to USB */
 
-/* USER CODE END PRIVATE_VARIABLES */
-
-/**
-  * @}
-  */
-
-/** @defgroup USBD_CDC_IF_Exported_Variables USBD_CDC_IF_Exported_Variables
-  * @brief Public variables.
-  * @{
-  */
+static int timer_index = -1;
 
 extern USBD_HandleTypeDef hUsbDevice;
-
-/* USER CODE BEGIN EXPORTED_VARIABLES */
-
-/* USER CODE END EXPORTED_VARIABLES */
-
-/**
-  * @}
-  */
-
-/** @defgroup USBD_CDC_IF_Private_FunctionPrototypes USBD_CDC_IF_Private_FunctionPrototypes
-  * @brief Private functions declaration.
-  * @{
-  */
 
 static int8_t CDC_Init(uint8_t cdc_ch);
 static int8_t CDC_DeInit(uint8_t cdc_ch);
@@ -138,140 +26,7 @@ static int8_t CDC_Control(uint8_t cdc_ch, uint8_t cmd, uint8_t *pbuf, uint16_t l
 static int8_t CDC_Receive(uint8_t cdc_ch, uint8_t *pbuf, uint32_t *Len);
 static int8_t CDC_TransmitCplt(uint8_t cdc_ch, uint8_t *Buf, uint32_t *Len, uint8_t epnum);
 
-/* USER CODE BEGIN PRIVATE_FUNCTIONS_DECLARATION */
-//UART_HandleTypeDef *CDC_CH_To_UART_Handle(uint8_t cdc_ch)
-//{
-//  UART_HandleTypeDef *handle = NULL;
-//
-//  if (cdc_ch == 0)
-//  {
-//    handle = &huart1;
-//  }
-//#if (0)
-//  else if (cdc_ch == 1)
-//  {
-//    handle = &huart2;
-//  }
-//  else if (cdc_ch == 2)
-//  {
-//    handle = &huart3;
-//  }
-//#endif
-//  return handle;
-//}
-//
-//uint8_t UART_Handle_TO_CDC_CH(UART_HandleTypeDef *handle)
-//{
-//  uint8_t cdc_ch = 0;
-//
-//  if (handle == &huart1)
-//  {
-//    cdc_ch = 0;
-//  }
-//#if (0)
-//  else if (handle == &huart2)
-//  {
-//    cdc_ch = 1;
-//  }
-//  else if (handle == &huart3)
-//  {
-//    cdc_ch = 2;
-//  }
-//#endif
-//  return cdc_ch;
-//}
-//
-//void Change_UART_Setting(uint8_t cdc_ch)
-//{
-//  UART_HandleTypeDef *handle = CDC_CH_To_UART_Handle(cdc_ch);
-//
-//  if (HAL_UART_DeInit(handle) != HAL_OK)
-//  {
-//    /* Initialization Error */
-//    Error_Handler();
-//  }
-//  /* set the Stop bit */
-//  switch (Line_Coding[cdc_ch].format)
-//  {
-//  case 0:
-//    handle->Init.StopBits = UART_STOPBITS_1;
-//    break;
-//  case 2:
-//    handle->Init.StopBits = UART_STOPBITS_2;
-//    break;
-//  default:
-//    handle->Init.StopBits = UART_STOPBITS_1;
-//    break;
-//  }
-//
-//  /* set the parity bit*/
-//  switch (Line_Coding[cdc_ch].paritytype)
-//  {
-//  case 0:
-//    handle->Init.Parity = UART_PARITY_NONE;
-//    break;
-//  case 1:
-//    handle->Init.Parity = UART_PARITY_ODD;
-//    break;
-//  case 2:
-//    handle->Init.Parity = UART_PARITY_EVEN;
-//    break;
-//  default:
-//    handle->Init.Parity = UART_PARITY_NONE;
-//    break;
-//  }
-//
-//  /*set the data type : only 8bits and 9bits is supported */
-//  switch (Line_Coding[cdc_ch].datatype)
-//  {
-//  case 0x07:
-//    /* With this configuration a parity (Even or Odd) must be set */
-//    handle->Init.WordLength = UART_WORDLENGTH_8B;
-//    break;
-//  case 0x08:
-//    if (handle->Init.Parity == UART_PARITY_NONE)
-//    {
-//      handle->Init.WordLength = UART_WORDLENGTH_8B;
-//    }
-//    else
-//    {
-//      handle->Init.WordLength = UART_WORDLENGTH_9B;
-//    }
-//
-//    break;
-//  default:
-//    handle->Init.WordLength = UART_WORDLENGTH_8B;
-//    break;
-//  }
-//
-//  if (Line_Coding[cdc_ch].bitrate == 0)
-//  {
-//    Line_Coding[cdc_ch].bitrate = 115200;
-//  }
-//
-//  handle->Init.BaudRate = Line_Coding[cdc_ch].bitrate;
-//  handle->Init.HwFlowCtl = UART_HWCONTROL_NONE;
-//  handle->Init.Mode = UART_MODE_TX_RX;
-//  handle->Init.OverSampling = UART_OVERSAMPLING_16;
-//
-//  if (HAL_UART_Init(handle) != HAL_OK)
-//  {
-//    /* Initialization Error */
-//    Error_Handler();
-//  }
-//
-//  /** rx for uart and tx buffer of usb */
-//  if (HAL_UART_Receive_IT(handle, TX_Buffer[cdc_ch], 1) != HAL_OK)
-//  {
-//    /* Transfer error in reception process */
-//    Error_Handler();
-//  }
-//}
-/* USER CODE END PRIVATE_FUNCTIONS_DECLARATION */
-
-/**
-  * @}
-  */
+static void USB_Timer_Callback(int count);
 
 USBD_CDC_ACM_ItfTypeDef USBD_CDC_ACM_fops = {CDC_Init,
                                              CDC_DeInit,
@@ -279,77 +34,64 @@ USBD_CDC_ACM_ItfTypeDef USBD_CDC_ACM_fops = {CDC_Init,
                                              CDC_Receive,
                                              CDC_TransmitCplt};
 
-/* Private functions ---------------------------------------------------------*/
-/**
-  * @brief  Initializes the CDC media low layer over the FS USB IP
-  * @retval USBD_OK if all operations are OK else USBD_FAIL
-  */
-static int8_t CDC_Init(uint8_t cdc_ch)
-{
-  /* USER CODE BEGIN 3 */
-
-  /* ##-1- Set Application Buffers */
+#include "ll/status_led.h" // increase LED blink speed when USB connected
+static int timerdelay = 0;
+static int8_t CDC_Init(uint8_t cdc_ch){
   USBD_CDC_SetRxBuffer(cdc_ch, &hUsbDevice, RX_Buffer[cdc_ch]);
 
-  //  /*##-2- Start the TIM Base generation in interrupt mode ####################*/
-  //  /* Start Channel1 */
-  //  if (HAL_TIM_Base_Start_IT(&htim4) != HAL_OK)
-  //  {
-  //    /* Starting Error */
-  //    Error_Handler();
-  //  }
+  // set the timerdelay, so the TIM can be started but *not* send for
+  // the first 100ms to solve ECHO issue on norns. see #137
+  timerdelay = CONNECTION_DELAY / CDC_POLLING_INTERVAL;
+
+  if(timer_index >= 0){
+    Timer_Set_Params( timer_index, CDC_POLLING_INTERVAL/1000.0 );
+    Timer_Priority( timer_index, USB_IRQPriority );
+    Timer_Start( timer_index, &USB_Timer_Callback );
+  } else {
+    printf("ERROR: timer-index not set\n\r");
+  }
+
+  printf("USB_CDC_Init\n");
+  status_led_fast(LED_FAST);
 
   return (USBD_OK);
-  /* USER CODE END 3 */
 }
 
-/**
-  * @brief  DeInitializes the CDC media low layer
-  * @retval USBD_OK if all operations are OK else USBD_FAIL
-  */
-static int8_t CDC_DeInit(uint8_t cdc_ch)
-{
-  /* USER CODE BEGIN 4 */
-  /* DeInitialize the UART peripheral */
-  //  if (HAL_UART_DeInit(CDC_CH_To_UART_Handle(cdc_ch)) != HAL_OK)
-  //  {
-  //    /* Initialization Error */
-  //    Error_Handler();
-  //  }
+static int8_t CDC_DeInit(uint8_t cdc_ch){
+  Timer_Stop( timer_index );
+  printf("USB_DeInit\n");
+  status_led_fast(LED_SLOW);
   return (USBD_OK);
-  /* USER CODE END 4 */
 }
 
-/**
-  * @brief  Manage the CDC class requests
-  * @param  cmd: Command code
-  * @param  pbuf: Buffer containing command data (request parameters)
-  * @param  length: Number of data to be sent (in bytes)
-  * @retval Result of the operation: USBD_OK if all operations are OK else USBD_FAIL
-  */
-static int8_t CDC_Control(uint8_t cdc_ch, uint8_t cmd, uint8_t *pbuf, uint16_t length)
-{
-  /* USER CODE BEGIN 5 */
-  switch (cmd)
-  {
+void CDC_Set_Timer_Index(int tix){
+  timer_index = tix;
+}
+
+void CDC_clear_buffers(void){
+  for( int i=0; i<APP_RX_DATA_SIZE; i++ ){ RX_Buffer[0][i] = 0; }
+  for( int i=0; i<APP_TX_DATA_SIZE; i++ ){ TX_Buffer[0][i] = 0; }
+  Write_Index[0]  = 0;
+  Read_Index[0]  = 0;
+  USBD_CDC_SetRxBuffer(0, &hUsbDevice, RX_Buffer[0]);
+  USBD_CDC_SetTxBuffer(0, &hUsbDevice, TX_Buffer[0], 0);
+}
+
+static int8_t CDC_Control(uint8_t cdc_ch, uint8_t cmd, uint8_t *pbuf, uint16_t length){
+  switch (cmd){
   case CDC_SEND_ENCAPSULATED_COMMAND:
-
     break;
 
   case CDC_GET_ENCAPSULATED_RESPONSE:
-
     break;
 
   case CDC_SET_COMM_FEATURE:
-
     break;
 
   case CDC_GET_COMM_FEATURE:
-
     break;
 
   case CDC_CLEAR_COMM_FEATURE:
-
     break;
 
     /*******************************************************************************/
@@ -390,11 +132,9 @@ static int8_t CDC_Control(uint8_t cdc_ch, uint8_t cmd, uint8_t *pbuf, uint16_t l
     break;
 
   case CDC_SET_CONTROL_LINE_STATE:
-
     break;
 
   case CDC_SEND_BREAK:
-
     break;
 
   default:
@@ -402,76 +142,62 @@ static int8_t CDC_Control(uint8_t cdc_ch, uint8_t cmd, uint8_t *pbuf, uint16_t l
   }
 
   return (USBD_OK);
-  /* USER CODE END 5 */
 }
 
-/**
-  * @brief  Data received over USB OUT endpoint are sent over CDC interface
-  *         through this function.
-  *
-  *         @note
-  *         This function will issue a NAK packet on any OUT packet received on
-  *         USB endpoint until exiting this function. If you exit this function
-  *         before transfer is complete on CDC interface (ie. using DMA controller)
-  *         it will result in receiving more data while previous ones are still
-  *         not sent.
-  *
-  * @param  Buf: Buffer of data to be received
-  * @param  Len: Number of data received (in bytes)
-  * @retval Result of the operation: USBD_OK if all operations are OK else USBD_FAIL
-  */
-static int8_t CDC_Receive(uint8_t cdc_ch, uint8_t *Buf, uint32_t *Len)
-{
-  /* USER CODE BEGIN 6 */
+static int8_t CDC_Receive(uint8_t cdc_ch, uint8_t *Buf, uint32_t *Len){
+  uint32_t length = *Len;
+  if( (Write_Index[cdc_ch] + length) >= APP_RX_DATA_SIZE ){
+      length = APP_RX_DATA_SIZE - Write_Index[cdc_ch]; // stop buffer overflow
+  }
+  memcpy( &RX_Buffer[cdc_ch][Write_Index[cdc_ch]]
+        , Buf
+        , length
+        );
+  Write_Index[cdc_ch] += length;
+  return USBD_OK;
   //HAL_UART_Transmit_DMA(CDC_CH_To_UART_Handle(cdc_ch), Buf, *Len);
-  CDC_Transmit(cdc_ch, Buf, *Len); // echo back on same channel
+  // CDC_Transmit(cdc_ch, Buf, *Len); // echo back on same channel
 
-  USBD_CDC_SetRxBuffer(cdc_ch, &hUsbDevice, &Buf[0]);
-  USBD_CDC_ReceivePacket(cdc_ch, &hUsbDevice);
-  return (USBD_OK);
-  /* USER CODE END 6 */
+  // USBD_CDC_SetRxBuffer(cdc_ch, &hUsbDevice, &Buf[0]);
+  // USBD_CDC_ReceivePacket(cdc_ch, &hUsbDevice);
+  // return (USBD_OK);
 }
 
-/**
-  * @brief  CDC_TransmitCplt_FS
-  *         Data transmited callback
-  *
-  *         @note
-  *         This function is IN transfer complete callback used to inform user that
-  *         the submitted Data is successfully sent over USB.
-  *
-  * @param  Buf: Buffer of data to be received
-  * @param  Len: Number of data received (in bytes)
-  * @retval Result of the operation: USBD_OK if all operations are OK else USBD_FAIL
-  */
-static int8_t CDC_TransmitCplt(uint8_t cdc_ch, uint8_t *Buf, uint32_t *Len, uint8_t epnum)
-{
+static int8_t CDC_TransmitCplt(uint8_t cdc_ch, uint8_t *Buf, uint32_t *Len, uint8_t epnum){
+  // TODO. use this to rotate circular buffer etc.
   return (USBD_OK);
 }
 
 uint8_t CDC_Transmit_Enqueue(uint8_t ch, uint8_t *Buf, uint16_t Len){
-  // TODO
+  // WARNING: UserTxDataLen having room doesn't necessarily mean
+  // the buffer is junk data. There can still be an ongoing transfer
+  // using the end of the buffer (usually just the last few bytes).
+  // Check USB_tx_is_ready()==1 if you need to be sure no data is lost.
+  // especially if *streaming* data to the CDC.
+  if( (Read_Index[ch] + Len) >= APP_TX_DATA_SIZE ){
+      Len = APP_TX_DATA_SIZE - Read_Index[ch]; // stop buffer overflow
+  }
+  if( Len == 0 ){
+      // FIXME? Likely means we're trying to TX when no usb device connected
+      //printf("TxBuf full\n"); // TODO memcpy will still run (can rm this warning)
+  }
+  memcpy( &TX_Buffer[ch][Read_Index[ch]]
+        , Buf
+        , Len
+        );
+  Read_Index[ch] += Len;
+
   return 0;
 }
 
-/**
-  * @brief  CDC_Transmit
-  *         Data to send over USB IN endpoint are sent over CDC interface
-  *         through this function.
-  *         @note
-  *
-  *
-  * @param  Buf: Buffer of data to be sent
-  * @param  Len: Number of data to be sent (in bytes)
-  * @retval USBD_OK if all operations are OK else USBD_FAIL or USBD_BUSY
-  */
-uint8_t CDC_Transmit(uint8_t ch, uint8_t *Buf, uint16_t Len)
-{
+// UNUSED!!!
+uint8_t CDC_Transmit(uint8_t ch, uint8_t *Buf, uint16_t Len){
   uint8_t result = USBD_OK;
-  /* USER CODE BEGIN 7 */
+
   extern USBD_CDC_ACM_HandleTypeDef CDC_ACM_Class_Data[];
   USBD_CDC_ACM_HandleTypeDef *hcdc = NULL;
   hcdc = &CDC_ACM_Class_Data[ch];
+
   if (hcdc->TxState != 0)
   {
     return USBD_BUSY;
@@ -483,22 +209,61 @@ uint8_t CDC_Transmit(uint8_t ch, uint8_t *Buf, uint16_t Len)
 }
 
 int CDC_Transmit_Is_Ready(void){
-  // TODO
-  return 1;
+  extern USBD_CDC_ACM_HandleTypeDef CDC_ACM_Class_Data[];
+  USBD_CDC_ACM_HandleTypeDef *hcdc = NULL;
+  hcdc = &CDC_ACM_Class_Data[0];
+
+  return (Read_Index[0] == 0)  // ensure the bufer is empty
+      && (hcdc->TxState == 0); // CDC has finished active tx
 }
 
 size_t CDC_Transmit_Space(void){
-  // TODO
-  return 0x40;
+  return (size_t)(APP_TX_DATA_SIZE - Read_Index[0]);
 }
 
 int CDC_Receive_Dequeue_LOCK(uint8_t ch, uint8_t** buf, uint32_t* len){
-  // TODO
-  return 1;
+  if(Write_Index[ch]){ // non-zero means data is present
+    *buf = RX_Buffer[ch];
+    *len = Write_Index[ch];
+    Write_Index[ch] = 0; // reset rx array
+    return 1;
+  }
+  return 0; 
 }
 
 void CDC_Receive_Dequeue_UNLOCK(uint8_t ch){
-  // TODO
+  if(!Write_Index[ch]){ // zero means data has been processed
+// uint32_t old_primask = __get_PRIMASK();
+// __disable_irq();
+    USBD_CDC_ReceivePacket(ch, &hUsbDevice); // Receive the next packet
+// __set_PRIMASK( old_primask );
+  } else {
+    printf("data in rx_queue means something's wrong.\n");
+  }
+}
+
+// interrupt sends out any queued data
+static void USB_Timer_Callback(int count){
+    // here we NOP the first 100ms of timer clicks
+    // see PR #137. solves ECHO issue on norns.
+    if( timerdelay ){ timerdelay--; return; }
+    if(Read_Index[0]){
+        if( Read_Index[0] >= APP_TX_DATA_SIZE ){
+            //printf("overflow %i\n",(int)Read_Index[0]);
+            Read_Index[0] = APP_TX_DATA_SIZE;
+        }
+        USBD_CDC_SetTxBuffer( 0, &hUsbDevice
+                            , TX_Buffer[0]
+                            , Read_Index[0] 
+                            );
+        int error = USBD_OK;
+        if( (error = USBD_CDC_TransmitPacket(0, &hUsbDevice)) ){
+            // This means the buffer is full & hasn't been read
+            printf("CDC_tx failed %i\n", error);
+        } else {
+            Read_Index[0] = 0; // only clear data if no error
+        }
+    }
 }
 
 /* USER CODE BEGIN PRIVATE_FUNCTIONS_IMPLEMENTATION */

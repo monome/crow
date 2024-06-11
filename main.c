@@ -41,13 +41,14 @@ int main(void)
     // Debugging
     Debug_Pin_Init();
     Debug_Pin_Set(0,1);
-    // Debug_USART_Init(); // ignored in TRACE mode
+    Debug_USART_Init(); // ignored in TRACE mode
     // User-readable status led
     status_led_init();
     // status_led_fast(LED_SLOW); // slow blink until USB connection goes live
     // status_led_set(1); // set status to ON to show sign of life straight away
 
     printf("\n\nhi from crow!\n\r");
+    // U_PrintNow();
 
     // MIDI
     // pass initialized uart handlers to midi system
@@ -69,8 +70,9 @@ int main(void)
 
     // new usb composite device
     MX_USB_OTG_FS_PCD_Init();
+    // printf("f\n\r");
+    // U_PrintNow();
     MX_USB_DEVICE_Init();
-
 
     // MIDI Host
     // MHost_Init();
@@ -96,10 +98,10 @@ int main(void)
 
 
 
-    uint32_t last_tick = HAL_GetTick();
+    // uint32_t last_tick = HAL_GetTick();
     int saw = 0;
     int g_state = 0;
-    int counter = 0;
+    // int counter = 0;
     int once = 1;
     while(1){
         CPU_count++;
@@ -127,9 +129,10 @@ int main(void)
             // char* crow_msg = "^^v\n\r";
             char* crow_msg = "print('hi')\n\r";
             USBHost_Send((unsigned char*)crow_msg, strlen(crow_msg));
+            Caw_printf("hi\n\r");
         }
 
-        // U_PrintNow();
+        U_PrintNow();
         Caw_try_receive(); // something is broken in the receiver :/
             // prob something to do with the different chip?
         // switch( Caw_try_receive() ){ // true on pressing 'enter'
@@ -176,7 +179,7 @@ int main(void)
             }
             */
             // sprintf(&crow_msg[len*3], "\n\r");
-            snprintf(crow_msg, len, buf);
+            snprintf(crow_msg, len, (char*)buf);
             Caw_printf("C:%s\n\r", crow_msg);
         }
     }

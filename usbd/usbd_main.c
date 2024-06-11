@@ -35,5 +35,7 @@ void USB_CDC_DeInit(void)
 extern PCD_HandleTypeDef hpcd;
 
 void OTG_FS_IRQHandler(void){
+    printf("usb otg fs\n\r");
+    U_PrintNow();
     HAL_PCD_IRQHandler(&hpcd);
 }

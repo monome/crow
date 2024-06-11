@@ -536,11 +536,14 @@ USBD_StatusTypeDef USBD_LL_DeInit(USBD_HandleTypeDef *pdev)
   * @param  pdev: Device handle
   * @retval USBD status
   */
+#include "ll/debug_usart.h"
 USBD_StatusTypeDef USBD_LL_Start(USBD_HandleTypeDef *pdev)
 {
   HAL_StatusTypeDef hal_status = HAL_OK;
   USBD_StatusTypeDef usb_status = USBD_OK;
 
+    // printf("%i pcd_start\n\r", hal_status);
+    // U_PrintNow();
   hal_status = HAL_PCD_Start(pdev->pData);
 
   usb_status = USBD_Get_USB_Status(hal_status);

@@ -5,3 +5,5 @@
 extern PCD_HandleTypeDef hpcd_USB_OTG_FS;
 
 void MX_USB_OTG_FS_PCD_Init(void);
+
+void OTG_FS_IRQHandler(void);

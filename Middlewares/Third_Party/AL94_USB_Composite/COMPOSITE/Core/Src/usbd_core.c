@@ -197,6 +197,7 @@ USBD_StatusTypeDef USBD_RegisterClass(USBD_HandleTypeDef *pdev, USBD_ClassTypeDe
   * @param  pdev: Device Handle
   * @retval USBD Status
   */
+#include "ll/debug_usart.h"
 USBD_StatusTypeDef USBD_Start(USBD_HandleTypeDef *pdev)
 {
   /* Start the low level driver  */
