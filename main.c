@@ -25,6 +25,7 @@
 // new USB composite device setup
 #include "lib/usb_otg.h"
 #include "usb_device.h"
+#include "usbd_midi_if.h"
 
 #include "lib/midi.h"
 // #include "lib/mhost.h"
@@ -130,6 +131,27 @@ int main(void)
             char* crow_msg = "print('hi')\n\r";
             USBHost_Send((unsigned char*)crow_msg, strlen(crow_msg));
             // Caw_printf("hi\n\r");
+
+            // the midiparser lib probably wraps this
+            // 144 60 127 - turn ON note #60 on MIDI channel 1 with a velocity of 127
+            uint8_t cable = 0;
+            uint8_t code = 0x9; // note-on message (see usb-midi pdf doc)
+            uint8_t message = 0x9; // note-on
+            uint8_t channel = 0;
+            uint8_t note = 60;
+            uint8_t velocity = 127;
+
+            uint8_t reportBuffer[4] = {
+              // cable - represents physical/virtual port number (0 - 15) of the device
+              // code - in general cases is equal to midi message
+              (cable << 4) | code,
+              (message << 4) | channel,
+              note,
+              velocity,
+            };
+            // while (USBD_MIDI_GetState() != MIDI_IDLE) {};
+            USBD_MIDI_SendReport(reportBuffer, 4);
+            Caw_printf(".\n\r");
         }
 
         U_PrintNow();

@@ -8,10 +8,10 @@
 #define MIDI_IN_PORTS_NUM              0x01
 #define MIDI_OUT_PORTS_NUM             0x01
 
-#define MIDI_EPIN_ADDR                 0x81
+// #define MIDI_EPIN_ADDR                 0x81
 #define MIDI_EPIN_SIZE                 0x40
 
-#define MIDI_EPOUT_ADDR                0x01
+// #define MIDI_EPOUT_ADDR                0x01
 #define MIDI_EPOUT_SIZE                0x40
 
 #define USB_MIDI_CLASS_DESC_SHIFT      18

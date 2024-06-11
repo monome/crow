@@ -525,19 +525,19 @@ static uint8_t USBD_MIDI_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx){
   pdev->pClassData_MIDI = (void*)hmidi;
 
   USBD_LL_OpenEP(pdev,
-                 MIDI_EPIN_ADDR,
+                 MIDI_IN_EP,
                  USBD_EP_TYPE_INTR,
                  MIDI_EPIN_SIZE);
-  pdev->ep_out[MIDI_EPIN_ADDR & 0xFU].is_used = 1U;
+  pdev->ep_out[MIDI_IN_EP & 0xFU].is_used = 1U;
 
   USBD_LL_OpenEP(pdev,
-               MIDI_EPOUT_ADDR,
+               MIDI_OUT_EP,
                USBD_EP_TYPE_INTR,
                MIDI_EPOUT_SIZE);
-  pdev->ep_in[MIDI_EPOUT_ADDR & 0xFU].is_used = 1U;
+  pdev->ep_in[MIDI_OUT_EP & 0xFU].is_used = 1U;
 
   USBD_LL_PrepareReceive(pdev, 
-               MIDI_EPOUT_ADDR,                                      
+               MIDI_OUT_EP,                                      
                hmidi->RxBuffer,
                MIDI_EPOUT_SIZE);    
   return ret;
@@ -546,11 +546,11 @@ static uint8_t USBD_MIDI_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx){
 static uint8_t  USBD_MIDI_DeInit (USBD_HandleTypeDef *pdev, uint8_t cfgidx){
   /* Close MIDI EPs */
   // USBD_LL_CloseEP(pdev, MIDI_EPIN_SIZE);
-  USBD_LL_CloseEP(pdev, MIDI_EPIN_ADDR);
-  pdev->ep_in[MIDI_EPIN_ADDR & 0xFU].is_used = 0U;
+  USBD_LL_CloseEP(pdev, MIDI_IN_EP);
+  pdev->ep_in[MIDI_IN_EP & 0xFU].is_used = 0U;
 
-  USBD_LL_CloseEP(pdev, MIDI_EPOUT_ADDR);
-  pdev->ep_in[MIDI_EPOUT_ADDR & 0xFU].is_used = 0U;
+  USBD_LL_CloseEP(pdev, MIDI_OUT_EP);
+  pdev->ep_in[MIDI_OUT_EP & 0xFU].is_used = 0U;
 
   /* FRee allocated memory */
   if(pdev->pClassData_MIDI != NULL){
@@ -630,7 +630,7 @@ static uint8_t  USBD_MIDI_DataIn (USBD_HandleTypeDef *pdev, uint8_t epnum){
 }
 
 static uint8_t  USBD_MIDI_DataOut (USBD_HandleTypeDef *pdev, uint8_t epnum){
-  if (epnum != (MIDI_EPOUT_ADDR & 0x0F)) return USBD_FAIL;
+  if (epnum != (MIDI_OUT_EP & 0x0F)) return USBD_FAIL;
 
   USBD_MIDI_HandleTypeDef *hmidi = (USBD_MIDI_HandleTypeDef*)pdev->pClassData_MIDI;
   hmidi->RxLength = USBD_LL_GetRxDataSize(pdev, epnum);
@@ -638,7 +638,7 @@ static uint8_t  USBD_MIDI_DataOut (USBD_HandleTypeDef *pdev, uint8_t epnum){
   ((USBD_MIDI_ItfTypeDef*)pdev->pUserData_MIDI)->Receive(hmidi->RxBuffer, &hmidi->RxLength);
 
   USBD_LL_PrepareReceive(pdev, 
-               MIDI_EPOUT_ADDR,                                      
+               MIDI_OUT_EP,                                      
                hmidi->RxBuffer,
                MIDI_EPOUT_SIZE);    
   

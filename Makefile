@@ -137,6 +137,7 @@ SRC = main.c \
 	$(USBD_COMPOSITE)/App/usbd_cdc_acm_if.c \
 	$(USBD_COMPOSITE)/App/usbd_desc.c \
 	$(USBD_COMPOSITE)/App/usbd_msc_if.c \
+	$(USBD_COMPOSITE)/App/usbd_midi_if.c \
 	$(wildcard $(USBD_COMPOSITE)/Class/CDC_ACM/Src/*.c) \
 	$(wildcard $(USBD_COMPOSITE)/Class/COMPOSITE/Src/*.c) \
 	$(wildcard $(USBD_COMPOSITE)/Class/MSC/Src/*.c) \

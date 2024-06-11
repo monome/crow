@@ -489,7 +489,7 @@ USBD_StatusTypeDef USBD_LL_Init(USBD_HandleTypeDef *pdev)
     HAL_PCDEx_SetTxFiFoInBytes(hpcd_USB_OTG_PTR, (PRNT_IN_EP & 0x7F), 128);
 #endif
 #if (USBD_USE_MIDI == 1)
-    HAL_PCDEx_SetTxFiFoInBytes(hpcd_USB_OTG_PTR, (MIDI_EPIN_ADDR & 0x7F), 128);
+    HAL_PCDEx_SetTxFiFoInBytes(hpcd_USB_OTG_PTR, (MIDI_IN_EP & 0x7F), 128);
 #endif
 #if (USBD_USE_CDC_ACM == 1)
     for (uint8_t i = 0; i < USBD_CDC_ACM_COUNT; i++)

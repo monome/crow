@@ -471,7 +471,7 @@ static uint8_t USBD_COMPOSITE_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
   }
 #endif
 #if (USBD_USE_MIDI == 1)
-  if (epnum == (MIDI_EPIN_ADDR & 0x7F))
+  if (epnum == (MIDI_IN_EP & 0x7F))
   {
     USBD_MIDI.DataIn(pdev, epnum);
   }
@@ -762,7 +762,7 @@ static uint8_t USBD_COMPOSITE_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
   }
 #endif
 #if (USBD_USE_MIDI == 1)
-  if (epnum == MIDI_EPOUT_ADDR)
+  if (epnum == MIDI_OUT_EP)
   {
     USBD_MIDI.DataOut(pdev, epnum);
   }
