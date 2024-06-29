@@ -6,7 +6,7 @@
 
 #include "caw.h" // Caw_printf
 
-#include "lualink.h" // L_queue_asl_done for raising a sequence-complete event
+// #include "lualink.h" // L_queue_asl_done for raising a sequence-complete event
 
 // TODO
 // add sequins data type
@@ -396,7 +396,7 @@ static void next_action( int index )
         } else {
 stepup:
             if( !seq_up(self) ){ // To invalid. Jump up. return if nothing left to do
-                L_queue_asl_done(index); // trigger a lua event when sequence is complete
+                // L_queue_asl_done(index); // trigger a lua event when sequence is complete
                 return;
             }
         }

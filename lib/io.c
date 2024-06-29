@@ -11,12 +11,13 @@
 #include "caw.h"
 #include "casl.h"
 
-#include "lualink.h"           // L_handle_in_stream (pass this in as ptr?)
+// #include "lualink.h"           // L_handle_in_stream (pass this in as ptr?)
 
 #define IN_CHANNELS ADDA_ADC_CHAN_COUNT
 
 static void public_update( void );
 
+/*
 void IO_Init( int adc_timer_ix )
 {
     // hardware layer
@@ -142,3 +143,5 @@ static void public_update( void )
         chan = (chan + 1) % 6;
     }
 }
+
+*/

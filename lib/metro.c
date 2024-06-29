@@ -5,7 +5,7 @@
 #include <stdio.h>
 
 #include "../ll/timers.h"      // _Init() _Start() _Stop() _Set_Params()
-#include "lualink.h"           // L_handle_metro()
+// #include "lualink.h"           // L_handle_metro()
 
 typedef enum { METRO_STATUS_RUNNING
              , METRO_STATUS_STOPPED
@@ -97,7 +97,7 @@ void Metro_set_stage( int ix, int stage )
 
 static void Metro_bang( int ix )
 {
-    L_queue_metro( ix, metros[ix].stage );
+    // L_queue_metro( ix, metros[ix].stage );
     metros[ix].stage++;
     if( metros[ix].stage == 0x7FFFFFFF ){ metros[ix].stage = 0x7FFFFFFE; } // overflow
     if( metros[ix].count >= 0 ){ // negative values are infinite

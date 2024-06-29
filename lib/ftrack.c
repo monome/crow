@@ -1,5 +1,6 @@
 #include "ftrack.h"
 
+/*
 #include "ll/adda.h" // ADDA_BLOCK_SIZE
 
 // time constant
@@ -95,3 +96,5 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
         zc++;
     }
 }
+
+*/

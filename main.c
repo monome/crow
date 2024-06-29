@@ -1,31 +1,44 @@
 #include "ll/system.h"
-#include "ll/debug_pin.h"
-#include "ll/debug_usart.h"
+// #include "ll/debug_pin.h"
+// #include "ll/debug_usart.h"
 #include "ll/status_led.h"
 #include "syscalls.c" // printf() redirection
-#include "lib/io.h"
-#include "lib/events.h"
+// #include "lib/io.h"
+// #include "lib/events.h"
 #include "ll/timers.h"
-#include "lib/metro.h"
+// #include "lib/metro.h"
 #include "lib/clock.h"
 #include "lib/caw.h"
-#include "lib/ii.h"
-#include "ll/i2c_pullups.h" // i2c_hw_pullups_init
-#include "ll/random.h"
-#include "lib/lualink.h"
-#include "lib/repl.h"
+// #include "lib/ii.h"
+// #include "ll/i2c_pullups.h" // i2c_hw_pullups_init
+// #include "ll/random.h"
 #include "usbd/usbd_cdc_interface.h" // CDC_main_init()
-#include "lib/bootloader.h" // bootloader_enter(), bootloader_restart()
-#include "lib/flash.h" // Flash_clear_user_script()
 #include "stm32f7xx_it.h" // CPU_count;
+#include "ll/lights.h"
+#include "ll/din.h"
+#include "ll/adc.h"
+#include "ll/dac108.h"
+#include "ll/adda.h"
+
+/*
+density, C4, 2_in14
+steps, A5, 2_in5
+rotate, A6, 2_in6
+fold, A7, 1_in7
+id, B0, 1_in8
+offset, B1, 1_in9
+
+MOSI, A0, SAI2_SD_B, AF10
+SCK, A2, SAI2_SCK_B, AF8
+!SYNC, C0, SAI2_FS_B, AF8
+*/
 
 
-int main(void)
-{
+int main(void){
     system_init();
 
     // Debugging
-    Debug_Pin_Init();
+    // Debug_Pin_Init();
     Debug_USART_Init(); // ignored in TRACE mode
     // User-readable status led
     status_led_init();
@@ -34,56 +47,66 @@ int main(void)
 
     printf("\n\nhi from crow!\n");
 
+    lights_init();
+    lights_all(0);
+
+    din_init();
+
+    ADC_Init();
+
     // Drivers
     int max_timers = Timer_Init();
-    IO_Init( max_timers-2 ); // use second-last timer
-    IO_Start(); // must start IO before running lua init() script
-    events_init();
-    Metro_Init( max_timers-2 ); // reserve 2 timers for USB & ADC
+    // IO_Init( max_timers-2 ); // use second-last timer
+    // IO_Start(); // must start IO before running lua init() script
+    // Metro_Init( max_timers-2 ); // reserve 2 timers for USB & ADC
     clock_init( 100 ); // TODO how to pass it the timer?
     Caw_Init( max_timers-1 ); // use last timer
     CDC_clear_buffers();
 
-    i2c_hw_pullups_init(); // enable GPIO for v1.1 hardware pullups
-    ii_init( II_CROW );
-    Random_Init();
+    // i2c_hw_pullups_init(); // enable GPIO for v1.1 hardware pullups
+    // ii_init( II_CROW );
+    // Random_Init();
 
-    REPL_init( Lua_Init() );
-
-    REPL_print_script_name();
-    Lua_crowbegin();
+    DAC_Init(32, 16); // 32 samples per block, 16 channels
+    DAC_Start();
 
     uint32_t last_tick = HAL_GetTick();
+    int counter = 100;
+    uint8_t state = 0;
+    int l_count = 0;
     while(1){
         CPU_count++;
         U_PrintNow();
-        switch( Caw_try_receive() ){ // true on pressing 'enter'
-            case C_repl:        REPL_eval( Caw_get_read()
-                                         , Caw_get_read_len()
-                                         , Caw_send_luaerror
-                                         ); break;
-            case C_boot:        bootloader_enter(); break;
-            case C_startupload: REPL_begin_upload(); break;
-            case C_endupload:   REPL_upload(0); break;
-            case C_flashupload: REPL_upload(1); break;
-            case C_restart:     bootloader_restart(); break;
-            case C_print:       REPL_print_script(); break;
-            case C_version:     system_print_version(); break;
-            case C_identity:    system_print_identity(); break;
-            case C_killlua:     REPL_reset(); break;
-            case C_flashclear:  REPL_clear_script(); break;
-            case C_loadFirst:   REPL_default_script(); break;
-            default: break; // 'C_none' does nothing
-        }
-        Random_Update();
+        Caw_try_receive(); // JUST DROP RX'D VALS
+
+        // Random_Update();
         uint32_t time_now = HAL_GetTick(); // for running a 1ms-interval tick
         if( last_tick != time_now ){ // called on 1ms interval
             last_tick = time_now;
             clock_update(time_now);
-            status_led_tick(time_now);
+            // status_led_tick(time_now);
+            counter--;
+            if(counter<=0){
+                counter = 100;
+                state ^= 1;
+                status_led_set(state);
+                l_count++;
+                if(l_count >= 12) l_count = 0;
+
+                int a = ADC_get(4); // raw 0~4095 value
+                a *= 12; // scale up to 12*4096
+                a >>= 12; // divide by 4096
+                lights_xset(a);
+                // Caw_printf("%i\n\r",a);
+            }
+            for(int i=0; i<6; i++){
+                ADDA_set_val(i, ADC_get(i));
+            }
         }
-        event_next(); // check/execute single event
-        ii_leader_process();
+        // lights_set(0, din_get(DIN_RESET));
+        // lights_set(1, din_get(DIN_DOWN));
+        // lights_set(2, din_get(DIN_2UP));
+        // ii_leader_process();
         Caw_send_queued();
     }
 }

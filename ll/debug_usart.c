@@ -17,15 +17,15 @@ void U_Print(char* s, int len){ return; }
 void Debug_USART_Init( void )
 {
 #ifndef TRACE // ie using USART to debug
-    handusart.Instance = DBG_USARTx;
+    // handusart.Instance = DBG_USARTx;
 
-    handusart.Init.BaudRate   = DBG_USART_baud;
-    handusart.Init.WordLength = USART_WORDLENGTH_8B;
-    handusart.Init.StopBits   = USART_STOPBITS_1;
-    handusart.Init.Parity     = USART_PARITY_NONE;
-    handusart.Init.Mode       = USART_MODE_TX;
+    // handusart.Init.BaudRate   = DBG_USART_baud;
+    // handusart.Init.WordLength = USART_WORDLENGTH_8B;
+    // handusart.Init.StopBits   = USART_STOPBITS_1;
+    // handusart.Init.Parity     = USART_PARITY_NONE;
+    // handusart.Init.Mode       = USART_MODE_TX;
 
-    HAL_USART_Init( &handusart );
+    // HAL_USART_Init( &handusart );
 #endif // TRACE
     str_buf = str_buffer_init( 511 ); // fifo for DMA buffer
 }
@@ -105,18 +105,18 @@ void USARTx_IRQHandler( void )
 // Communication Functions
 void U_PrintNow( void )
 {
-#ifndef TRACE
-    if( HAL_USART_GetState( &handusart ) == HAL_USART_STATE_READY
-     && !str_buffer_empty( str_buf ) ){
-        BLOCK_IRQS(
-            uint16_t str_len = str_buffer_len( str_buf );
-            HAL_USART_Transmit_DMA( &handusart
-                                  , (uint8_t*)str_buffer_dequeue( str_buf, str_len )
-                                  , str_len
-                                  );
-        );
-    }
-#endif // TRACE
+// #ifndef TRACE
+//     if( HAL_USART_GetState( &handusart ) == HAL_USART_STATE_READY
+//      && !str_buffer_empty( str_buf ) ){
+//         BLOCK_IRQS(
+//             uint16_t str_len = str_buffer_len( str_buf );
+//             HAL_USART_Transmit_DMA( &handusart
+//                                   , (uint8_t*)str_buffer_dequeue( str_buf, str_len )
+//                                   , str_len
+//                                   );
+//         );
+//     }
+// #endif // TRACE
 }
 
 void U_Print(char* s, int len)

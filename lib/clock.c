@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "lualink.h"
+// #include "lualink.h"
 #include <stm32f7xx_hal.h> // HAL_GetTick
 #include "clock_ll.h" // linked list for clocks
 
@@ -80,14 +80,14 @@ void clock_update(uint32_t time_now)
 sleep_next:
     if(sleep_head // list is not empty
     && sleep_head->wakeup < dtime_now){ // time to awaken
-        L_queue_clock_resume(sleep_head->coro_id); // event!
+        // L_queue_clock_resume(sleep_head->coro_id); // event!
         ll_insert_idle(ll_pop(&sleep_head)); // return to idle list
         goto sleep_next; // check the next sleeper too!
     }
 sync_next:
     if(sync_head // list is not empty
     && sync_head->wakeup < precise_beat_now){ // time to awaken
-        L_queue_clock_resume(sync_head->coro_id); // event!
+        // L_queue_clock_resume(sync_head->coro_id); // event!
         ll_insert_idle(ll_pop(&sync_head)); // return to idle list
         goto sync_next; // check the next syncer too!
     }
@@ -139,14 +139,14 @@ void clock_update_reference_from(double beats, double beat_duration, clock_sourc
 void clock_start_from( clock_source_t source )
 {
     if( clock_source == source ){
-        L_queue_clock_start();
+        // L_queue_clock_start();
     }
 }
 
 void clock_stop_from( clock_source_t source )
 {
     if( clock_source == source ){
-        L_queue_clock_stop();
+        // L_queue_clock_stop();
     }
 }
 
