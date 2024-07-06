@@ -99,7 +99,7 @@ int main(void){
                 int a = ADC_get(4); // raw 0~4095 value
                 a *= 12; // scale up to 12*4096
                 a >>= 12; // divide by 4096
-                lights_xset(a);
+                lights_xset(stepped_ix());
                 // Caw_printf("%i\n\r",a);
             }
             for(int i=0; i<6; i++){

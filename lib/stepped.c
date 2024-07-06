@@ -63,6 +63,10 @@ void stepped(float _steps, int _reset, int _twoup, int _down){
     }
 }
 
+int stepped_ix(void){
+    return current_step;
+}
+
 int stepped_get(void){
     // perform scaling
     return vsteps[current_step];
