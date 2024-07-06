@@ -15,6 +15,7 @@ static const Pin ds[3] =
 
 static GPIO_InitTypeDef g;
 
+// TODO use EXTI instead of manual scanning
 void din_init(void){
     __HAL_RCC_GPIOB_CLK_ENABLE();
 

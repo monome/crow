@@ -19,14 +19,15 @@
 #include "ll/adc.h"
 #include "ll/dac108.h"
 #include "ll/adda.h"
+#include "lib/stepped.h"
 
 /*
-density, C4, 2_in14
-steps, A5, 2_in5
-rotate, A6, 2_in6
 fold, A7, 1_in7
 id, B0, 1_in8
 offset, B1, 1_in9
+density, C4, 2_in14
+steps, A5, 2_in5
+rotate, A6, 2_in6
 
 MOSI, A0, SAI2_SD_B, AF10
 SCK, A2, SAI2_SCK_B, AF8
@@ -45,7 +46,7 @@ int main(void){
     status_led_fast(LED_SLOW); // slow blink until USB connection goes live
     status_led_set(1); // set status to ON to show sign of life straight away
 
-    printf("\n\nhi from crow!\n");
+    printf("\n\nhi from parafocus!\n");
 
     lights_init();
     lights_all(0);
@@ -66,6 +67,8 @@ int main(void){
     // i2c_hw_pullups_init(); // enable GPIO for v1.1 hardware pullups
     // ii_init( II_CROW );
     // Random_Init();
+
+    stepped_init();
 
     DAC_Init(32, 16); // 32 samples per block, 16 channels
     DAC_Start();
@@ -103,6 +106,12 @@ int main(void){
                 ADDA_set_val(i, ADC_get(i));
             }
         }
+
+        stepped(1.f, din_get(DIN_RESET), din_get(DIN_2UP), din_get(DIN_DOWN));
+        ADDA_set_val(0, stepped_get());
+        ADDA_set_val(1, 0x0); // set fine tune to zero position
+        // NOTE: chan 0 is main stepped cv, chan1 is fine tune
+
         // lights_set(0, din_get(DIN_RESET));
         // lights_set(1, din_get(DIN_DOWN));
         // lights_set(2, din_get(DIN_2UP));
