@@ -20,6 +20,7 @@
 #include "ll/dac108.h"
 #include "ll/adda.h"
 #include "lib/stepped.h"
+#include "lib/sfold.h"
 
 /*
 fold, A7, 1_in7
@@ -69,6 +70,7 @@ int main(void){
     // Random_Init();
 
     stepped_init();
+    sfold_init(12);
 
     DAC_Init(32, 16); // 32 samples per block, 16 channels
     DAC_Start();
@@ -103,7 +105,7 @@ int main(void){
                 // Caw_printf("%i\n\r",a);
             }
             for(int i=0; i<6; i++){
-                ADDA_set_val(i, ADC_get(i));
+                // ADDA_set_val(i, ADC_get(i));
             }
         }
 

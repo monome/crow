@@ -2,6 +2,15 @@
 
 #include <stm32f7xx.h>
 
+typedef enum{
+    ADC_Fold,
+    ADC_ID,
+    ADC_Offset,
+    ADC_Density,
+    ADC_Steps,
+    ADC_Rotate
+} ADC_Channels;
+
 void ADC_Init(void);
 
 uint16_t ADC_get(int chan);

@@ -62,6 +62,25 @@ void DAC_Start(void){
     sai_start_transmit(samples, samp_count); // in terms of bytes?
 }
 
+static const int channel_id_from_ix[12] = {
+    DAC_Fold1,
+    DAC_Fold2,
+    DAC_Fold3,
+    DAC_Fold4,
+    DAC_Fold5,
+    DAC_Fold6,
+    DAC_Fold7,
+    DAC_Fold8,
+    DAC_Fold9,
+    DAC_Fold10,
+    DAC_Fold11,
+    DAC_Fold12
+};
+
+int DAC_get_channel_id(int channel){
+    return channel_id_from_ix[channel];
+}
+
 void DAC_CalibrateScalar( uint8_t channel, float scale ){
     // dac_calibrated_scalar[channel] = DAC_V_TO_U16 * scale;
 }
