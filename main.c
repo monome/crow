@@ -103,6 +103,7 @@ int main(void){
                 a >>= 12; // divide by 4096
                 lights_xset(stepped_ix());
                 // Caw_printf("%i\n\r",a);
+                Caw_printf("%i\n\r",ADC_get_count());
             }
             for(int i=0; i<6; i++){
                 // ADDA_set_val(i, ADC_get(i));

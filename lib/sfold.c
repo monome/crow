@@ -52,9 +52,19 @@ void sfold_set_id(float i){
 
 // separate run function per channel
 // returns 0..1
+static float phasor = 0.f;
+static float pinc = 100.f / (2.f * 6000.f); // are we running twice per frame?
 float sfold(int channel){
     // OFFSET
     float retval = offset;
+
+    // tmp: sawtooth oscillator
+    // float retval = phasor;
+    // if(channel == 0){
+    //     phasor += pinc; 
+    //     if(phasor>=1.f) phasor -= 1.f;
+    // }
+
 
     // ROTATE
     // create rotated_index by adding ROTATE to channel index

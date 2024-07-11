@@ -41,8 +41,8 @@ void ADC_Init(void){
     }
 
     // Channel configuration
-    sConfig.SamplingTime = ADC_SAMPLETIME_480CYCLES;
-    // sConfig.SamplingTime = ADC_SAMPLETIME_144CYCLES;
+    // sConfig.SamplingTime = ADC_SAMPLETIME_480CYCLES;
+    sConfig.SamplingTime = ADC_SAMPLETIME_144CYCLES;
     sConfig.Offset       = 0;
 
     sConfig.Channel      = ADC_CHANNEL_7;
@@ -237,7 +237,9 @@ void DMA2_Stream2_IRQHandler(void){
     HAL_DMA_IRQHandler(AdcHandle2.DMA_Handle);
 }
 
+static int counter = 0;
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc){
+    counter++;
     if(hadc == &AdcHandle){
         read_half[0] = 0;
     } else if(hadc == &AdcHandle2){
@@ -245,6 +247,7 @@ void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc){
     }
 }
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc){
+    counter++;
     if(hadc == &AdcHandle){
         read_half[0] = 1;
     } else if(hadc == &AdcHandle2){
@@ -253,4 +256,11 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc){
 }
 void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc){
     Caw_printf("adc error\n\r");
+}
+
+// debug / timing / optimization
+int ADC_get_count(void){
+    int c = counter;
+    counter = 0;
+    return c;
 }

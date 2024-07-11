@@ -178,13 +178,36 @@ static void sai_init(void){
     rcc.PeriphClockSelection    = RCC_PERIPHCLK_SAI2;
     rcc.Sai2ClockSelection      = RCC_SAI2CLKSOURCE_PLLSAI;
 
+    // 30MHz maximum bit clock in daisy-chain mode
+    // every 2 channels takes 33 clks
+    // for 16 channels, that's 528 clks
+    // at 30MHz (max) that's 56,818Hz
+    // 48kHz -> 25,344,000 core clock
+
+
     // here we configure for 3.072MHz
     // ie 8 channels, 17bits, 22.5kHz sample rate
     // rcc.PLLSAI.PLLSAIN          = 384;
     // rcc.PLLSAI.PLLSAIN          = 192;
-    rcc.PLLSAI.PLLSAIN          = 96;
+
+    // 6kHz
+    rcc.PLLSAI.PLLSAIN          = 396;
     rcc.PLLSAI.PLLSAIQ          = 5;
     rcc.PLLSAIDivQ              = 25;
+
+    // 24kHz
+    // rcc.PLLSAI.PLLSAIN          = 431;
+    // rcc.PLLSAI.PLLSAIQ          = 2;
+    // rcc.PLLSAIDivQ              = 17;
+
+    // 48kHz
+    // rcc.PLLSAI.PLLSAIN          = 380;
+    // rcc.PLLSAI.PLLSAIQ          = 3;
+    // rcc.PLLSAIDivQ              = 5;
+
+    // rcc.PLLSAI.PLLSAIN          = 96;
+    // rcc.PLLSAI.PLLSAIQ          = 5;
+    // rcc.PLLSAIDivQ              = 25;
     // see @ciel/tools/sai_pll_calculator.lua to configure
 
     HAL_RCCEx_PeriphCLKConfig(&rcc);

@@ -21,3 +21,5 @@ void DMA2_Stream2_IRQHandler(void);
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc);
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc);
 void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc);
+
+int ADC_get_count(void);
