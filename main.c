@@ -72,7 +72,8 @@ int main(void){
     stepped_init();
     sfold_init(12);
 
-    DAC_Init(32, 16); // 32 samples per block, 16 channels
+    // DAC_Init(32, 16); // 32 samples per block, 16 channels
+    DAC_Init(1, 16); // DISABLE BLOCK PROCESSING, single sample! minimal latency
     DAC_Start();
 
     uint32_t last_tick = HAL_GetTick();
@@ -103,7 +104,7 @@ int main(void){
                 a >>= 12; // divide by 4096
                 lights_xset(stepped_ix());
                 // Caw_printf("%i\n\r",a);
-                Caw_printf("%i\n\r",ADC_get_count());
+                // Caw_printf("%i\n\r",ADC_get_count());
             }
             for(int i=0; i<6; i++){
                 // ADDA_set_val(i, ADC_get(i));

@@ -23,3 +23,6 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc);
 void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc);
 
 int ADC_get_count(void);
+
+// collect next frame, and return last received frame
+uint16_t* ADC_next_frame(void);

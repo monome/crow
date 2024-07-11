@@ -1,7 +1,6 @@
 #include "adc.h"
 
 #include <stdio.h>
-// #include <stm32f7xx_hal.h> // HAL_Delay()
 
 #include "interrupts.h"
 #include "../lib/caw.h"
@@ -10,13 +9,9 @@ static ADC_HandleTypeDef AdcHandle;
 static ADC_HandleTypeDef AdcHandle2;
 static ADC_ChannelConfTypeDef sConfig;
 
-#define ADC_CHANNELS 3
-#define ADC_BUFFERS 2
-static volatile uint16_t adc_raw[ADC_CHANNELS*ADC_BUFFERS*2]; // 6 channels,
-static volatile uint16_t* adc_raw2 = &adc_raw[ADC_CHANNELS*ADC_BUFFERS*1]; // second 3 channels
+static volatile uint16_t adc_direct[2][6];
 
-
-static void start_conversion(void);
+static void next_conversion(void);
 
 void ADC_Init(void){
     AdcHandle.Instance                   = ADC1;
@@ -25,15 +20,15 @@ void ADC_Init(void){
     AdcHandle.Init.ClockPrescaler        = ADC_CLOCKPRESCALER_PCLK_DIV4;
     AdcHandle.Init.Resolution            = ADC_RESOLUTION_12B;
     AdcHandle.Init.ScanConvMode          = ADC_SCAN_ENABLE;
-    AdcHandle.Init.ContinuousConvMode    = ENABLE; // i think disable
-    AdcHandle.Init.NbrOfConversion       = 3; // scan all 5 chans on ADC1
-    AdcHandle.Init.DiscontinuousConvMode = DISABLE; // i think enable
+    AdcHandle.Init.ContinuousConvMode    = ENABLE;
+    AdcHandle.Init.NbrOfConversion       = 3;
+    AdcHandle.Init.DiscontinuousConvMode = DISABLE;
     AdcHandle.Init.NbrOfDiscConversion   = 3;
     AdcHandle.Init.ExternalTrigConv      = ADC_SOFTWARE_START;
     AdcHandle.Init.ExternalTrigConvEdge  = ADC_EXTERNALTRIGCONVEDGE_NONE;
     AdcHandle.Init.ExternalTrigConv      = ADC_EXTERNALTRIGCONV_T1_CC1;
     AdcHandle.Init.DataAlign             = ADC_DATAALIGN_RIGHT;
-    AdcHandle.Init.DMAContinuousRequests = ENABLE;
+    AdcHandle.Init.DMAContinuousRequests = DISABLE;
     AdcHandle.Init.EOCSelection          = ADC_EOC_SEQ_CONV;
 
     if( HAL_ADC_Init( &AdcHandle ) != HAL_OK ){
@@ -58,23 +53,21 @@ void ADC_Init(void){
     if( HAL_ADC_ConfigChannel(&AdcHandle, &sConfig) != HAL_OK )
         Caw_printf("HAL_ADC_ConfigChannel failed\n");
 
-
-
     AdcHandle2.Instance                   = ADC2;
     HAL_ADC_DeInit(&AdcHandle2);
 
     AdcHandle2.Init.ClockPrescaler        = ADC_CLOCKPRESCALER_PCLK_DIV4;
     AdcHandle2.Init.Resolution            = ADC_RESOLUTION_12B;
-    AdcHandle2.Init.ScanConvMode          = ADC_SCAN_ENABLE;
-    AdcHandle2.Init.ContinuousConvMode    = ENABLE; // i think disable
-    AdcHandle2.Init.NbrOfConversion       = 3; // scan all 5 chans on ADC1
-    AdcHandle2.Init.DiscontinuousConvMode = DISABLE; // i think enable
+    AdcHandle2.Init.ScanConvMode          = ADC_SCAN_ENABLE; // enable this to allow use of the internal MUX
+    AdcHandle2.Init.ContinuousConvMode    = ENABLE; // enable means "one conversion" is the whole sequence
+    AdcHandle2.Init.NbrOfConversion       = 3; // scan 3 chans on ADC
+    AdcHandle2.Init.DiscontinuousConvMode = DISABLE; // only used if doing a fancy irregular channel sequence
     AdcHandle2.Init.NbrOfDiscConversion   = 3;
     AdcHandle2.Init.ExternalTrigConv      = ADC_SOFTWARE_START;
     AdcHandle2.Init.ExternalTrigConvEdge  = ADC_EXTERNALTRIGCONVEDGE_NONE;
     AdcHandle2.Init.ExternalTrigConv      = ADC_EXTERNALTRIGCONV_T1_CC1;
     AdcHandle2.Init.DataAlign             = ADC_DATAALIGN_RIGHT;
-    AdcHandle2.Init.DMAContinuousRequests = ENABLE;
+    AdcHandle2.Init.DMAContinuousRequests = DISABLE; // ENABLE this along with DMA circular buffer mode for continuous
     AdcHandle2.Init.EOCSelection          = ADC_EOC_SEQ_CONV;
 
     if( HAL_ADC_Init( &AdcHandle2 ) != HAL_OK ){
@@ -95,19 +88,20 @@ void ADC_Init(void){
         Caw_printf("HAL_ADC_ConfigChannel failed\n");
 
 
-    start_conversion();
+    next_conversion();
 }
 
-static void start_conversion(void){
+static int double_buffer = 0;
+static void next_conversion(void){
     if( HAL_ADC_Start_DMA( &AdcHandle
-                         , (uint32_t*)adc_raw
-                         , ADC_CHANNELS*ADC_BUFFERS
+                         , (uint32_t*)&adc_direct[double_buffer][0]
+                         , 3
                          ) != HAL_OK ){
         Caw_printf("HAL_ADC_Start_DMA failed, retrying..\n");
         // HAL_Delay(10);
         if( HAL_ADC_Start_DMA( &AdcHandle
-                             , (uint32_t*)adc_raw
-                             , ADC_CHANNELS*ADC_BUFFERS
+                             , (uint32_t*)&adc_direct[double_buffer][0]
+                             , 3
                              ) != HAL_OK ){
             Caw_printf("HAL_ADC_Start_DMA failed again, ignoring\n");
             return;
@@ -115,14 +109,14 @@ static void start_conversion(void){
     }
 
     if( HAL_ADC_Start_DMA( &AdcHandle2
-                         , (uint32_t*)adc_raw2
-                         , ADC_CHANNELS*ADC_BUFFERS
+                         , (uint32_t*)&adc_direct[double_buffer][3]
+                         , 3
                          ) != HAL_OK ){
         Caw_printf("HAL_ADC_Start_DMA failed, retrying..\n");
         // HAL_Delay(10);
         if( HAL_ADC_Start_DMA( &AdcHandle2
-                             , (uint32_t*)adc_raw2
-                             , ADC_CHANNELS*ADC_BUFFERS
+                             , (uint32_t*)&adc_direct[double_buffer][3]
+                             , 3
                              ) != HAL_OK ){
             Caw_printf("HAL_ADC_Start_DMA failed again, ignoring\n");
             return;
@@ -159,7 +153,7 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef *hadc){
         hdma_adc.Init.MemInc                = DMA_MINC_ENABLE;
         hdma_adc.Init.PeriphDataAlignment   = DMA_PDATAALIGN_HALFWORD;
         hdma_adc.Init.MemDataAlignment      = DMA_MDATAALIGN_WORD;
-        hdma_adc.Init.Mode                  = DMA_CIRCULAR;
+        hdma_adc.Init.Mode                  = DMA_NORMAL;
         hdma_adc.Init.Priority              = DMA_PRIORITY_HIGH;
         hdma_adc.Init.FIFOMode              = DMA_FIFOMODE_DISABLE;
         hdma_adc.Init.FIFOThreshold         = DMA_FIFO_THRESHOLD_HALFFULL;
@@ -197,7 +191,7 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef *hadc){
         hdma_adc2.Init.MemInc                = DMA_MINC_ENABLE;
         hdma_adc2.Init.PeriphDataAlignment   = DMA_PDATAALIGN_HALFWORD;
         hdma_adc2.Init.MemDataAlignment      = DMA_MDATAALIGN_WORD;
-        hdma_adc2.Init.Mode                  = DMA_CIRCULAR;
+        hdma_adc2.Init.Mode                  = DMA_NORMAL;
         hdma_adc2.Init.Priority              = DMA_PRIORITY_HIGH;
         hdma_adc2.Init.FIFOMode              = DMA_FIFOMODE_DISABLE;
         hdma_adc2.Init.FIFOThreshold         = DMA_FIFO_THRESHOLD_HALFFULL;
@@ -214,17 +208,30 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef *hadc){
     }
 }
 
-static int read_half[2] = {0,0};
-uint16_t ADC_get(int chan){ // inversion & bipolar shaping
-    // 1,2,3,1,2,3,4,5,6,4,5,6
-    if(chan<3){
-        chan += read_half[0] * ADC_CHANNELS;
-    } else {
-        chan -= ADC_CHANNELS; // 3-5 down to 0-2
-        chan += read_half[1] * ADC_CHANNELS; // +0 or +3 -> 0-2 / 3-5
-        chan += ADC_CHANNELS * 2; // += 6 -> 6-8 / 9-11
+// return a pointer to an array that can be accesed directly with enum names
+uint16_t* ADC_get_buffer(void){
+    return (uint16_t*)adc_direct[double_buffer];
+}
+
+uint16_t ADC_get(int chan){
+    return (uint16_t)adc_direct[double_buffer][chan];
+}
+
+// call this at the start of your tight audio callback
+// this will setup the ADC_get() function to point to the valid data
+static int completed = 0;
+uint16_t* ADC_next_frame(void){
+    // check we completed the last read (raise warning if not, help with configuring speeds)
+    if(completed==0){
+        Caw_printf("ADC: dma wasn't done\n\r");
     }
-    return adc_raw[chan];
+    // flip read/write heads
+    double_buffer ^= 1;
+
+    // start next cycle
+    next_conversion();
+
+    return ADC_get_buffer();
 }
 
 
@@ -237,30 +244,9 @@ void DMA2_Stream2_IRQHandler(void){
     HAL_DMA_IRQHandler(AdcHandle2.DMA_Handle);
 }
 
-static int counter = 0;
-void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc){
-    counter++;
-    if(hadc == &AdcHandle){
-        read_half[0] = 0;
-    } else if(hadc == &AdcHandle2){
-        read_half[1] = 0;
-    }
-}
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc){
-    counter++;
-    if(hadc == &AdcHandle){
-        read_half[0] = 1;
-    } else if(hadc == &AdcHandle2){
-        read_half[1] = 1;
-    }
+    completed++;
 }
 void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc){
     Caw_printf("adc error\n\r");
-}
-
-// debug / timing / optimization
-int ADC_get_count(void){
-    int c = counter;
-    counter = 0;
-    return c;
 }
