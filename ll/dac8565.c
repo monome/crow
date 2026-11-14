@@ -180,7 +180,7 @@ void HAL_I2S_MspInit(I2S_HandleTypeDef *hi2s)
     // I2SCLK = f(PLLI2S clock output) = f(VCO clock) / PLLI2SR
     RCC_ExCLKInitStruct.PeriphClockSelection = RCC_PERIPHCLK_I2S;
     RCC_ExCLKInitStruct.I2sClockSelection = RCC_I2SCLKSOURCE_PLLI2S;
-    RCC_ExCLKInitStruct.PLLI2S.PLLI2SN = 384; // mul factor: 50~432
+    RCC_ExCLKInitStruct.PLLI2S.PLLI2SN = 344; // mul factor: 50~432
     RCC_ExCLKInitStruct.PLLI2S.PLLI2SR = 2; // div factor: 2~7
     HAL_RCCEx_PeriphCLKConfig(&RCC_ExCLKInitStruct);
 
